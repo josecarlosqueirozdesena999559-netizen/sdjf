@@ -1,0 +1,126 @@
+import SwiftUI
+
+struct HomeView: View {
+    @StateObject private var viewModel = HomeViewModel()
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @EnvironmentObject var favoritesViewModel: FavoritesViewModel
+    @State private var searchText = ""
+    
+    let categoryColumns = Array(repeating: GridItem(.flexible(), spacing: 16), count: 4)
+    let productColumns = Array(repeating: GridItem(.flexible(), spacing: 16), count: 2)
+    
+    var body: some View {
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 24) {
+                    
+                    // Barra de Pesquisa Flat
+                    NavigationLink(destination: SearchResultsView(initialQuery: searchText)) {
+                        HStack {
+                            Image(systemName: "magnifyingglass")
+                                .foregroundColor(Theme.textSecondary)
+                            Text("Buscar produtos, categorias...")
+                                .foregroundColor(Theme.textSecondary)
+                            Spacer()
+                        }
+                        .padding()
+                        .background(Theme.inputBackground)
+                        .cornerRadius(12)
+                    }
+                    .padding(.horizontal)
+                    
+                    // Banner da Imagem Fornecida
+                    Image("banner_home")
+                        .resizable()
+                        .scaledToFit()
+                        .cornerRadius(16)
+                        .padding(.horizontal)
+                    
+                    // Categorias em Grid (4x2)
+                    LazyVGrid(columns: categoryColumns, spacing: 20) {
+                        ForEach(viewModel.categories.prefix(7)) { category in
+                            NavigationLink(destination: SearchResultsView(category: category)) {
+                                FlatCategoryCard(category: category)
+                            }
+                        }
+                        // Botão "Mais"
+                        NavigationLink(destination: CategoriesView()) {
+                            VStack(spacing: 8) {
+                                ZStack {
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(Theme.inputBackground)
+                                        .frame(width: 60, height: 60)
+                                    Image(systemName: "ellipsis")
+                                        .font(.title2)
+                                        .foregroundColor(Theme.primary)
+                                }
+                                Text("Mais")
+                                    .font(.caption)
+                                    .foregroundColor(Theme.textPrimary)
+                            }
+                        }
+                    }
+                    .padding(.horizontal)
+                    
+                    // Destaques
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack {
+                            Text("Destaques")
+                                .font(.title3)
+                                .fontWeight(.bold)
+                            Spacer()
+                            NavigationLink(destination: SearchResultsView()) {
+                                Text("Ver todos >")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(Theme.primary)
+                            }
+                        }
+                        .padding(.horizontal)
+                        
+                        LazyVGrid(columns: productColumns, spacing: 16) {
+                            ForEach(viewModel.featuredProducts) { product in
+                                NavigationLink(destination: ProductDetailView(product: product)) {
+                                    FlatProductCard(product: product)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                            }
+                        }
+                        .padding(.horizontal)
+                    }
+                    
+                    Spacer(minLength: 80) // Espaço para a tabbar
+                }
+                .padding(.vertical)
+            }
+            .background(Color.white.ignoresSafeArea())
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Text("MercadoFácil")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                        .foregroundColor(.primary)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: NotificationsView()) {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "bell")
+                                .font(.title3)
+                                .foregroundColor(.primary)
+                            Circle()
+                                .fill(Color.red)
+                                .frame(width: 8, height: 8)
+                                .offset(x: 2, y: -2)
+                        }
+                    }
+                }
+            }
+            .onAppear {
+                if viewModel.categories.isEmpty {
+                    viewModel.fetchHomeData()
+                }
+            }
+        }
+    }
+}

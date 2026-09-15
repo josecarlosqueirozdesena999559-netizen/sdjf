@@ -1,0 +1,21 @@
+name: MercadoFacil
+options:
+  bundleIdPrefix: com.mercadofacil
+targets:
+  MercadoFacil:
+    type: application
+    platform: iOS
+    deploymentTarget: "17.0"
+    sources:
+      - path: Models
+      - path: Views
+      - path: ViewModels
+      - path: Components
+      - path: Services
+      - path: Utilities
+      - path: MercadoFacilApp.swift
+      - path: Assets.xcassets
+    info:
+      properties:
+        UILaunchScreen: {}
+        NSLocationWhenInUseUsageDescription: "Precisamos da sua localização para exibir produtos na sua região."

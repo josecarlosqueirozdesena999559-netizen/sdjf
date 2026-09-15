@@ -1,0 +1,49 @@
+name: Build for Appetize.io
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install Xcodegen
+      run: brew install xcodegen
+
+    - name: Generate Xcode Project
+      run: xcodegen generate
+
+    - name: Build for iOS Simulator
+      run: |
+        set -o pipefail
+        xcodebuild \
+          -project MercadoFacil.xcodeproj \
+          -scheme MercadoFacil \
+          -sdk iphonesimulator \
+          -configuration Debug \
+          -destination 'platform=iOS Simulator,name=iPhone 15' \
+          clean build \
+          CODE_SIGN_IDENTITY="" \
+          CODE_SIGNING_REQUIRED=NO \
+          CODE_SIGNING_ALLOWED=NO
+
+    - name: Prepare App Bundle for Appetize
+      run: |
+        # Encontra o .app gerado no DerivedData
+        APP_PATH=$(find ~/Library/Developer/Xcode/DerivedData -name "MercadoFacil.app" -type d | head -n 1)
+        echo "Found App at $APP_PATH"
+        mkdir -p payload
+        cp -R "$APP_PATH" payload/
+        cd payload
+        zip -r ../MercadoFacil-Simulator.zip MercadoFacil.app
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: MercadoFacil-Appetize
+        path: MercadoFacil-Simulator.zip
