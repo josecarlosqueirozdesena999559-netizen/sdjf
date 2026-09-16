@@ -5,6 +5,7 @@ struct ChatView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var messageText = ""
     @State private var messages: [Message] = []
+    @State private var chatStatus: String = "online"
     
     var body: some View {
         VStack {
@@ -59,6 +60,26 @@ struct ChatView: View {
                                 let newMsg = Message(id: UUID(), senderId: authViewModel.currentUser?.id ?? UUID(), receiverId: conversation.participantId, text: messageText, timestamp: Date(), isRead: true)
                                 messages.append(newMsg)
                                 messageText = ""
+                                
+                                // Mock behavior for status and auto-reply
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                                    chatStatus = "online"
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
+                                    chatStatus = "digitando..."
+                                }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 4.5) {
+                                    let formatter = DateFormatter()
+                                    formatter.timeStyle = .short
+                                    let timeString = formatter.string(from: Date())
+                                    
+                                    messages.append(Message(id: UUID(), senderId: conversation.participantId, receiverId: authViewModel.currentUser?.id ?? UUID(), text: "Certo! Podemos fechar negócio.", timestamp: Date(), isRead: true))
+                                    chatStatus = "online"
+                                    
+                                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                                        chatStatus = "visto por último hoje às \(timeString)"
+                                    }
+                                }
                             }
                         }) {
                             Image(systemName: "arrow.up.circle.fill")
@@ -90,9 +111,16 @@ struct ChatView: View {
                                     Image(systemName: "person.crop.circle.fill")
                                         .foregroundColor(Theme.textSecondary)
                                 )
-                            Text(user.visibleName ?? user.name)
-                                .font(.headline)
-                                .foregroundColor(Theme.textPrimary)
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(user.visibleName ?? user.name)
+                                    .font(.headline)
+                                    .foregroundColor(Theme.textPrimary)
+                                
+                                Text(chatStatus)
+                                    .font(.caption)
+                                    .foregroundColor(chatStatus == "online" || chatStatus == "digitando..." ? Theme.primary : Theme.textSecondary)
+                            }
                         }
                     }
                 } else {
@@ -103,6 +131,10 @@ struct ChatView: View {
 
         .onAppear {
             messages = [conversation.lastMessage]
+            let formatter = DateFormatter()
+            formatter.timeStyle = .short
+            let timeString = formatter.string(from: Date().addingTimeInterval(-1800)) // 30 mins ago
+            chatStatus = "visto por último hoje às \(timeString)"
         }
     }
 }
