@@ -39,6 +39,21 @@ struct UserProfileView: View {
                             .fontWeight(.bold)
                         Text("@\(authViewModel.currentUser?.username ?? "usuario")")
                             .foregroundColor(Theme.textSecondary)
+                        
+                        HStack(spacing: 16) {
+                            HStack(spacing: 4) {
+                                Image(systemName: "mappin.and.ellipse")
+                                Text(authViewModel.currentUser?.location ?? "São Paulo - SP")
+                            }
+                            
+                            HStack(spacing: 4) {
+                                Image(systemName: "clock.fill")
+                                Text("Responde em 1h") // Mocked since we didn't add it to User model directly
+                            }
+                        }
+                        .font(.caption)
+                        .foregroundColor(Theme.textSecondary)
+                        .padding(.top, 4)
                     }
                     .padding(.top)
                     
