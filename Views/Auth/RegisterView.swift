@@ -1,6 +1,18 @@
 import SwiftUI
 import PhotosUI
 
+// Triangle shape used for map pin tail
+struct Triangle: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: rect.midX, y: rect.maxY))
+        path.addLine(to: CGPoint(x: rect.minX, y: rect.minY))
+        path.addLine(to: CGPoint(x: rect.maxX, y: rect.minY))
+        path.closeSubpath()
+        return path
+    }
+}
+
 struct RegisterView: View {
     @StateObject private var viewModel = RegisterViewModel()
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -194,110 +206,144 @@ struct RegisterView: View {
     }
     
     var stepLocation: some View {
-        VStack(alignment: .center, spacing: 18) {
-            // Header Logo
+        VStack(spacing: 0) {
+            // Header logo
             HStack(spacing: 6) {
                 Image(systemName: "paperplane.fill")
-                    .font(.title2)
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(Theme.primary)
                 Text("MercadoFácil")
-                    .font(.title2)
-                    .fontWeight(.bold)
+                    .font(.system(size: 18, weight: .bold))
                     .foregroundColor(Theme.textPrimary)
             }
-            .padding(.top, 4)
+            .padding(.top, 12)
+            .padding(.bottom, 24)
             
-            // Map Illustration Graphic
+            // Big map pin illustration inside green circle
             ZStack {
-                RoundedRectangle(cornerRadius: 24)
-                    .fill(Theme.lightGreen.opacity(0.5))
-                    .frame(width: 140, height: 120)
+                Circle()
+                    .fill(Theme.lightGreen)
+                    .frame(width: 180, height: 180)
                 
-                VStack(spacing: 4) {
-                    Image(systemName: "mappin.and.ellipse")
-                        .font(.system(size: 64, weight: .bold))
-                        .foregroundColor(Theme.primary)
+                // Simulated map background dots/streets
+                ZStack {
+                    // Road lines simulation
+                    ForEach(0..<3, id: \.self) { i in
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Theme.primary.opacity(0.15))
+                            .frame(width: 80 - CGFloat(i * 20), height: 6)
+                            .offset(y: CGFloat(i * 18) - 18)
+                    }
+                    ForEach(0..<2, id: \.self) { i in
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(Theme.primary.opacity(0.15))
+                            .frame(width: 6, height: 60)
+                            .offset(x: CGFloat(i * 36) - 18)
+                    }
                     
-                    Image(systemName: "map.fill")
-                        .font(.system(size: 28))
-                        .foregroundColor(Theme.primary.opacity(0.6))
+                    // Big map pin
+                    VStack(spacing: 0) {
+                        ZStack {
+                            Circle()
+                                .fill(Theme.primary)
+                                .frame(width: 72, height: 72)
+                            Image(systemName: "mappin.and.ellipse")
+                                .font(.system(size: 38, weight: .bold))
+                                .foregroundColor(.white)
+                        }
+                        // Pin tail
+                        Triangle()
+                            .fill(Theme.primary)
+                            .frame(width: 20, height: 14)
+                    }
+                    .offset(y: -8)
                 }
             }
-            .padding(.vertical, 8)
+            .padding(.bottom, 28)
             
-            Text("De onde você é?")
-                .font(.title)
-                .fontWeight(.bold)
-                .foregroundColor(Theme.textPrimary)
+            // Title with "você" in green bold
+            HStack(spacing: 0) {
+                Text("De onde ")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(Theme.textPrimary)
+                Text("você")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(Theme.primary)
+                Text(" é?")
+                    .font(.system(size: 28, weight: .bold))
+                    .foregroundColor(Theme.textPrimary)
+            }
+            .padding(.bottom, 10)
             
-            Text("Usamos sua localização para mostrar produtos próximos a você.")
+            Text("Usamos sua localização para mostrar\nprodutos próximos a você.")
                 .font(.subheadline)
                 .multilineTextAlignment(.center)
                 .foregroundColor(Theme.textSecondary)
-                .padding(.horizontal, 24)
+                .lineSpacing(3)
+                .padding(.horizontal, 32)
+                .padding(.bottom, 32)
             
+            // Location found badge
             if !viewModel.locationName.isEmpty {
-                HStack {
+                HStack(spacing: 8) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.green)
                     Text(viewModel.locationName)
                         .font(.headline)
                         .foregroundColor(Theme.textPrimary)
                 }
-                .padding()
-                .background(Theme.lightGreen.opacity(0.5))
-                .cornerRadius(16)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(Theme.lightGreen)
+                .cornerRadius(12)
+                .padding(.bottom, 16)
             }
             
             if viewModel.isFetchingLocation {
                 ProgressView("Obtendo localização...")
                     .padding()
             } else {
-                Button(action: {
-                    viewModel.requestLocation()
-                }) {
-                    HStack(spacing: 10) {
+                // Primary green button
+                Button(action: { viewModel.requestLocation() }) {
+                    HStack(spacing: 8) {
                         Image(systemName: "location.fill")
-                            .font(.headline)
+                            .font(.system(size: 15, weight: .bold))
                         Text("Usar minha localização atual")
-                            .font(.headline)
-                            .fontWeight(.semibold)
+                            .font(.system(size: 16, weight: .semibold))
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
+                    .padding(.vertical, 16)
                     .background(Theme.primary)
                     .foregroundColor(.white)
-                    .cornerRadius(24)
+                    .cornerRadius(28)
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 14)
                 
-                Button(action: {
-                    viewModel.locationName = "São Paulo - SP"
-                }) {
+                // Secondary link
+                Button(action: { viewModel.locationName = "São Paulo - SP" }) {
                     HStack(spacing: 4) {
-                        Image(systemName: "map")
                         Text("Escolher no mapa")
+                            .font(.system(size: 14, weight: .medium))
                         Image(systemName: "chevron.right")
+                            .font(.system(size: 12, weight: .semibold))
                     }
-                    .font(.subheadline)
-                    .fontWeight(.medium)
                     .foregroundColor(Theme.textSecondary)
                 }
-                .padding(.top, 4)
+                .padding(.bottom, 24)
             }
             
-            Spacer().frame(height: 12)
-            
+            // Continue button — shown when location is set
             if !viewModel.locationName.isEmpty {
                 PrimaryButton(title: "Continuar") {
                     withAnimation { viewModel.validateAndProceed() }
                 }
-                .padding(.horizontal)
+                .padding(.horizontal, 24)
             }
         }
-        .padding(.horizontal)
-        .padding(.top, 4)
+        .frame(maxWidth: .infinity)
     }
+
     
     // MARK: - Profile Setup Step
     var stepProfileSetup: some View {
