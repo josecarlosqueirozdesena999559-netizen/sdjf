@@ -106,16 +106,7 @@ struct UserProfileView: View {
                         }
                     }
                     
-                    Divider()
-                    
-                    Button(action: {
-                        authViewModel.logout()
-                    }) {
-                        Text("Sair da Conta")
-                            .foregroundColor(Theme.error)
-                            .fontWeight(.semibold)
-                            .padding()
-                    }
+
                     
                     Spacer()
                 }
@@ -124,7 +115,7 @@ struct UserProfileView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: ProfileEditView()) {
+                    NavigationLink(destination: SettingsView()) {
                         Image(systemName: "gearshape")
                             .foregroundColor(Theme.textPrimary)
                     }
