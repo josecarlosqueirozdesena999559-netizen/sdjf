@@ -61,7 +61,7 @@ struct ChatView: View {
         .toolbar {
             ToolbarItem(placement: .principal) {
                 if let user = MockData.users.first(where: { $0.id == conversation.participantId }) {
-                    NavigationLink(destination: SellerProfileView(seller: Seller(user: user, rating: 4.8, reviewsCount: 15, salesCount: 30, description: "Vendedor de confiabilidade."))) {
+                    NavigationLink(destination: SellerProfileView(seller: Seller(id: UUID(), user: user, isVerified: true, rating: 4.8, reviewCount: 15, salesCount: 30, averageResponseTime: "Responde em 1h", bio: "Vendedor de confiabilidade."))) {
                         HStack(spacing: 8) {
                             Circle()
                                 .fill(Theme.inputBackground)
@@ -70,7 +70,7 @@ struct ChatView: View {
                                     Image(systemName: "person.crop.circle.fill")
                                         .foregroundColor(Theme.textSecondary)
                                 )
-                            Text(user.visibleName)
+                            Text(user.visibleName ?? user.name)
                                 .font(.headline)
                                 .foregroundColor(Theme.textPrimary)
                         }
