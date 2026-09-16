@@ -206,111 +206,140 @@ struct RegisterView: View {
     }
     
     var stepLocation: some View {
-        VStack(spacing: 0) {
-            
-            // Header logo — centered
-            HStack(spacing: 6) {
-                Image(systemName: "location.fill")
-                    .font(.system(size: 16, weight: .bold))
-                    .foregroundColor(Theme.primary)
-                Text("MercadoFácil")
-                    .font(.system(size: 17, weight: .bold))
-                    .foregroundColor(Theme.textPrimary)
-            }
-            .frame(maxWidth: .infinity)
-            .multilineTextAlignment(.center)
-            .padding(.top, 16)
-            .padding(.bottom, 32)
-            
-            // Illustration: big light-green circle with dark green pin inside
-            ZStack {
-                // Outer light green circle
-                Circle()
-                    .fill(Color(hex: "D4F0E3"))
-                    .frame(width: 200, height: 200)
-                
-                // Inner medium circle
-                Circle()
-                    .fill(Color(hex: "B8E8D0"))
-                    .frame(width: 148, height: 148)
-                
-                // Location pin icon — big, dark green
-                Image(systemName: "mappin.and.ellipse")
-                    .font(.system(size: 72, weight: .bold))
-                    .foregroundColor(Theme.primary)
-            }
-            .padding(.bottom, 36)
-            
-            // Title centered, "você" in green
-            Group {
-                Text("De onde ") +
-                Text("você").foregroundColor(Theme.primary) +
-                Text(" é?")
-            }
-            .font(.system(size: 26, weight: .bold))
-            .foregroundColor(Theme.textPrimary)
-            .multilineTextAlignment(.center)
-            .frame(maxWidth: .infinity)
-            .padding(.bottom, 12)
-            
-            // Subtitle centered
-            Text("Usamos sua localização para mostrar\nprodutos próximos a você.")
-                .font(.system(size: 15))
-                .multilineTextAlignment(.center)
-                .foregroundColor(.gray)
-                .lineSpacing(4)
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 40)
-                .padding(.bottom, 36)
-            
-            // Location confirmed badge
-            if !viewModel.locationName.isEmpty {
-                HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(.green)
-                    Text(viewModel.locationName)
-                        .font(.system(size: 15, weight: .semibold))
-                        .foregroundColor(Theme.textPrimary)
+        ZStack {
+            // Background light green blobs (corners decoration)
+            VStack {
+                HStack {
+                    Circle()
+                        .fill(Color(hex: "D4F5E5").opacity(0.5))
+                        .frame(width: 160, height: 160)
+                        .offset(x: -50, y: -50)
+                    Spacer()
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(Theme.lightGreen)
-                .cornerRadius(12)
-                .padding(.bottom, 16)
+                Spacer()
+                HStack {
+                    Spacer()
+                    Circle()
+                        .fill(Color(hex: "D4F5E5").opacity(0.4))
+                        .frame(width: 140, height: 140)
+                        .offset(x: 50, y: 50)
+                }
             }
+            .ignoresSafeArea()
             
-            if viewModel.isFetchingLocation {
-                ProgressView("Obtendo localização...")
-                    .padding()
-            } else {
-                // Primary green rounded button
-                Button(action: { viewModel.requestLocation() }) {
-                    HStack(spacing: 8) {
-                        Image(systemName: "location.fill")
-                            .font(.system(size: 14, weight: .semibold))
-                        Text("Usar minha localização atual")
-                            .font(.system(size: 15, weight: .semibold))
+            VStack(spacing: 0) {
+                // Logo top-left style
+                HStack(spacing: 6) {
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: 18, weight: .bold))
+                        .foregroundColor(Theme.primary)
+                    HStack(spacing: 0) {
+                        Text("Mercado")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(Color(hex: "1A1A2E"))
+                        Text("Fácil")
+                            .font(.system(size: 20, weight: .bold))
+                            .foregroundColor(Theme.primary)
                     }
+                    Spacer()
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
+                .padding(.bottom, 28)
+                
+                // Illustration — use cropped asset from design reference
+                Image("location_illustration")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 240, height: 200)
+                    .padding(.bottom, 28)
+                
+                // Title: "De onde você é?" — "você" in green
+                Group {
+                    Text("De onde ").foregroundColor(Color(hex: "1A1A2E")) +
+                    Text("você ").foregroundColor(Theme.primary) +
+                    Text("é?").foregroundColor(Color(hex: "1A1A2E"))
+                }
+                .font(.system(size: 28, weight: .bold))
+                .multilineTextAlignment(.center)
+                .frame(maxWidth: .infinity)
+                .padding(.bottom, 12)
+                
+                // Subtitle
+                Text("Usamos sua localização para mostrar\nprodutos próximos a você.")
+                    .font(.system(size: 16))
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(.gray)
+                    .lineSpacing(4)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 15)
-                    .background(Theme.primary)
-                    .foregroundColor(.white)
-                    .cornerRadius(30)
+                    .padding(.horizontal, 36)
+                    .padding(.bottom, 32)
+                
+                // Location confirmed badge
+                if !viewModel.locationName.isEmpty {
+                    HStack(spacing: 8) {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                        Text(viewModel.locationName)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundColor(Theme.textPrimary)
+                    }
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Theme.lightGreen)
+                    .cornerRadius(12)
+                    .padding(.bottom, 16)
                 }
-                .padding(.horizontal, 28)
-            }
-            
-            // Continue appears after location is set
-            if !viewModel.locationName.isEmpty {
-                PrimaryButton(title: "Continuar") {
-                    withAnimation { viewModel.validateAndProceed() }
+                
+                if viewModel.isFetchingLocation {
+                    ProgressView("Obtendo localização...")
+                        .padding(.bottom, 16)
+                } else {
+                    // Green pill button — paperplane icon
+                    Button(action: { viewModel.requestLocation() }) {
+                        HStack(spacing: 10) {
+                            Image(systemName: "paperplane.fill")
+                                .font(.system(size: 14, weight: .bold))
+                            Text("Usar minha localização atual")
+                                .font(.system(size: 16, weight: .bold))
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 17)
+                        .background(Theme.primary)
+                        .foregroundColor(.white)
+                        .cornerRadius(32)
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 16)
+                    
+                    // Escolher no mapa link
+                    Button(action: { viewModel.locationName = "São Paulo - SP" }) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "scope")
+                                .font(.system(size: 16))
+                            Text("Escolher no mapa")
+                                .font(.system(size: 15, weight: .medium))
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .semibold))
+                        }
+                        .foregroundColor(Theme.primary)
+                    }
+                    .padding(.bottom, 20)
                 }
-                .padding(.horizontal, 28)
-                .padding(.top, 12)
+                
+                // Continuar — shown after location set
+                if !viewModel.locationName.isEmpty {
+                    PrimaryButton(title: "Continuar") {
+                        withAnimation { viewModel.validateAndProceed() }
+                    }
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 8)
+                }
             }
         }
         .frame(maxWidth: .infinity)
     }
+
 
 
     
