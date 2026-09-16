@@ -26,17 +26,16 @@ struct RegisterView: View {
                     .foregroundColor(Theme.textSecondary)
                 Spacer()
                 if viewModel.currentStep != .name {
-                    // Spacer for balance
                     Image(systemName: "chevron.left").opacity(0)
                 }
             }
-            .padding()
+            .padding(.horizontal)
+            .padding(.top, 8)
             
             ProgressView(value: Double(viewModel.currentStep.rawValue + 1), total: Double(RegisterStep.allCases.count))
                 .tint(Theme.primary)
                 .padding(.horizontal)
-            
-
+                .padding(.top, 4)
             
             VStack {
                 switch viewModel.currentStep {
@@ -57,8 +56,8 @@ struct RegisterView: View {
                 case .profileSetup:
                     stepProfileSetup
                 }
-            } // End of VStack wrapping steps
-            .padding(.top, 8)
+            }
+            .padding(.top, 4)
             
             Spacer()
         }
@@ -88,6 +87,7 @@ struct RegisterView: View {
             }
         }
         .padding(.horizontal)
+        .padding(.top, 8)
     }
     
     var stepCPF: some View {
@@ -104,6 +104,7 @@ struct RegisterView: View {
             }
         }
         .padding(.horizontal)
+        .padding(.top, 8)
     }
     
     var stepBirthDate: some View {
@@ -123,6 +124,7 @@ struct RegisterView: View {
             }
         }
         .padding(.horizontal)
+        .padding(.top, 8)
     }
     
     var stepEmail: some View {
@@ -139,6 +141,7 @@ struct RegisterView: View {
             }
         }
         .padding(.horizontal)
+        .padding(.top, 8)
     }
     
     var stepPassword: some View {
@@ -155,6 +158,7 @@ struct RegisterView: View {
             }
         }
         .padding(.horizontal)
+        .padding(.top, 8)
     }
     
     var stepUsername: some View {
@@ -186,6 +190,7 @@ struct RegisterView: View {
             }
         }
         .padding(.horizontal)
+        .padding(.top, 8)
     }
     
     var stepLocation: some View {
@@ -241,9 +246,10 @@ struct RegisterView: View {
             }
         }
         .padding(.horizontal)
+        .padding(.top, 8)
     }
     
-    // MARK: - WhatsApp Style Profile Setup
+    // MARK: - Profile Setup Step
     var stepProfileSetup: some View {
         VStack(alignment: .center, spacing: 20) {
             VStack(spacing: 6) {
@@ -260,7 +266,7 @@ struct RegisterView: View {
             }
             .padding(.top, 4)
             
-            // WhatsApp Style Avatar Picker with Camera Badge
+            // Profile Avatar Picker with Camera Badge
             PhotosPicker(selection: $selectedItem, matching: .images) {
                 ZStack(alignment: .bottomTrailing) {
                     if let profileImage = viewModel.profileImage {
@@ -283,7 +289,6 @@ struct RegisterView: View {
                             .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
                     }
                     
-                    // WhatsApp-style camera icon badge at bottom-right
                     ZStack {
                         Circle()
                             .fill(Theme.primary)
@@ -305,7 +310,7 @@ struct RegisterView: View {
                     }
                 }
             }
-            .padding(.vertical, 8)
+            .padding(.vertical, 4)
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Nome de Exibição")
