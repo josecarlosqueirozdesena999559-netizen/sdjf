@@ -37,7 +37,7 @@ struct UserProfileView: View {
                         Text(authViewModel.currentUser?.visibleName ?? "Meu Nome")
                             .font(.title2)
                             .fontWeight(.bold)
-                        Text(authViewModel.currentUser?.email ?? "meuemail@exemplo.com")
+                        Text("@\(authViewModel.currentUser?.username ?? "usuario")")
                             .foregroundColor(Theme.textSecondary)
                     }
                     .padding(.top)
@@ -65,39 +65,40 @@ struct UserProfileView: View {
                             LazyVGrid(columns: columns, spacing: 16) {
                                 ForEach(myProducts) { product in
                                     VStack(spacing: 8) {
-                                        FlatProductCard(product: product)
-                                        
-                                        // Edit & Sold actions
-                                        HStack(spacing: 8) {
-                                            Button(action: {
-                                                // Edit action mock
-                                            }) {
-                                                Text("Editar")
-                                                    .font(.caption)
-                                                    .fontWeight(.semibold)
-                                                    .frame(maxWidth: .infinity)
-                                                    .padding(.vertical, 6)
-                                                    .background(Theme.inputBackground)
-                                                    .foregroundColor(Theme.textPrimary)
-                                                    .cornerRadius(6)
-                                            }
+                                        ZStack(alignment: .topTrailing) {
+                                            FlatProductCard(product: product)
                                             
-                                            Button(action: {
-                                                // Mark as sold mock
-                                                if let index = myProducts.firstIndex(where: { $0.id == product.id }) {
-                                                    myProducts.remove(at: index)
+                                            Menu {
+                                                Button(action: {}) {
+                                                    Label("Editar", systemImage: "pencil")
                                                 }
-                                            }) {
-                                                Text("Vendido")
-                                                    .font(.caption)
-                                                    .fontWeight(.semibold)
-                                                    .frame(maxWidth: .infinity)
-                                                    .padding(.vertical, 6)
-                                                    .background(Theme.primary)
-                                                    .foregroundColor(.white)
-                                                    .cornerRadius(6)
+                                                Button(action: {
+                                                    if let index = myProducts.firstIndex(where: { $0.id == product.id }) {
+                                                        myProducts.remove(at: index)
+                                                    }
+                                                }) {
+                                                    Label("Marcar como Vendido", systemImage: "checkmark.circle")
+                                                }
+                                                Button(role: .destructive, action: {
+                                                    if let index = myProducts.firstIndex(where: { $0.id == product.id }) {
+                                                        myProducts.remove(at: index)
+                                                    }
+                                                }) {
+                                                    Label("Excluir", systemImage: "trash")
+                                                }
+                                            } label: {
+                                                Image(systemName: "ellipsis")
+                                                    .font(.system(size: 20, weight: .bold))
+                                                    .foregroundColor(Theme.textPrimary)
+                                                    .padding(8)
+                                                    .background(Color.white.opacity(0.8))
+                                                    .clipShape(Circle())
+                                                    .shadow(radius: 2)
                                             }
+                                            .padding(8)
                                         }
+                                        
+
                                     }
                                 }
                             }
@@ -121,6 +122,14 @@ struct UserProfileView: View {
             }
             .navigationTitle("Perfil")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    NavigationLink(destination: ProfileEditView()) {
+                        Image(systemName: "gearshape")
+                            .foregroundColor(Theme.textPrimary)
+                    }
+                }
+            }
             .background(Theme.background)
         }
     }

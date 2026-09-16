@@ -36,16 +36,7 @@ struct RegisterView: View {
                 .tint(Theme.primary)
                 .padding(.horizontal)
             
-            if let error = viewModel.errorMessage {
-                Text(error)
-                    .font(.footnote)
-                    .foregroundColor(Theme.error)
-                    .padding()
-                    .frame(maxWidth: .infinity)
-                    .background(Theme.error.opacity(0.1))
-                    .cornerRadius(8)
-                    .padding(.horizontal)
-            }
+
             
             VStack {
             switch viewModel.currentStep {
@@ -72,6 +63,12 @@ struct RegisterView: View {
             Spacer()
         }
         .background(Theme.background.ignoresSafeArea())
+        .alert(isPresented: Binding<Bool>(
+            get: { viewModel.errorMessage != nil },
+            set: { if !$0 { viewModel.errorMessage = nil } }
+        )) {
+            Alert(title: Text("Atenção"), message: Text(viewModel.errorMessage ?? ""), dismissButton: .default(Text("OK")))
+        }
         .navigationBarHidden(true)
     }
     
