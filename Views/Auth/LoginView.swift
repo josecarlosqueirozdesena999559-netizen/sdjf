@@ -24,7 +24,7 @@ struct LoginView: View {
                 }
                 
                 VStack(spacing: 16) {
-                    CustomTextField(title: "UsuÃ¡rio, E-mail ou Telefone", placeholder: "@seu.usuario ou email", text: $email, keyboardType: .emailAddress)
+                    CustomTextField(title: "Usuário", placeholder: "@nomedeusuario", text: $email, keyboardType: .default)
                     CustomTextField(title: "Senha", placeholder: "Sua senha", text: $password, isSecure: true)
                 }
                 
@@ -59,4 +59,5 @@ struct LoginView: View {
         }
     }
 }
+
 

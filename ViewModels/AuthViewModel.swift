@@ -37,19 +37,48 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    func login(emailOrUsername: String, password: String) {
+        func login(emailOrUsername: String, password: String) {
         Task {
             self.isLoading = true
             self.errorMessage = nil
             do {
-                // To keep it simple, we use the input as email directly. 
-                // A real "username" login in Supabase requires an edge function or a lookup first.
-                let session = try await supabase.auth.signIn(email: emailOrUsername, password: password)
-                await loadProfile(for: session.user.id, email: session.user.email ?? emailOrUsername)
+                var loginEmail = emailOrUsername
+                
+                if !loginEmail.contains("@") || loginEmail.hasPrefix("@") {
+                    let cleanUsername = loginEmail.replacingOccurrences(of: "@", with: "").lowercased().trimmingCharacters(in: .whitespaces)
+                    
+                    struct ProfileLookup: Codable {
+                        let email: String?
+                    }
+                    
+                    let profiles: [ProfileLookup] = try await supabase.database
+                        .from("profiles")
+                        .select("email")
+                        .eq("username", value: cleanUsername)
+                        .execute()
+                        .value
+                    
+                    if let foundProfile = profiles.first, let foundEmail = foundProfile.email {
+                        loginEmail = foundEmail
+                    } else {
+                        await MainActor.run {
+                            self.errorMessage = "Usuário não encontrado."
+                            self.isLoading = false
+                        }
+                        return
+                    }
+                }
+                
+                let session = try await supabase.auth.signIn(email: loginEmail, password: password)
+                await loadProfile(for: session.user.id, email: session.user.email ?? loginEmail)
             } catch {
-                self.errorMessage = "Falha no login: verifique suas credenciais."
+                await MainActor.run {
+                    self.errorMessage = "Falha no login: verifique suas credenciais."
+                }
             }
-            self.isLoading = false
+            await MainActor.run {
+                self.isLoading = false
+            }
         }
     }
     
@@ -101,3 +130,4 @@ class AuthViewModel: ObservableObject {
         }
     }
 }
+
