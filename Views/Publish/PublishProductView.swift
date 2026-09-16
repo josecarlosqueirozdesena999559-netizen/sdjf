@@ -2,6 +2,7 @@ import SwiftUI
 
 struct PublishProductView: View {
     @StateObject private var viewModel = PublishViewModel()
+    @Environment(\.dismiss) var dismiss
     
     var body: some View {
         NavigationStack {
@@ -100,6 +101,14 @@ struct PublishProductView: View {
             .background(Theme.background.ignoresSafeArea())
             .navigationTitle("Anunciar produto")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: { dismiss() }) {
+                        Image(systemName: "chevron.left")
+                            .foregroundColor(Theme.primary)
+                    }
+                }
+            }
             .alert("Sucesso", isPresented: $viewModel.publishSuccess) {
                 Button("OK", role: .cancel) { }
             } message: {

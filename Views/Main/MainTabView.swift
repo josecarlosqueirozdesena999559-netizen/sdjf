@@ -28,7 +28,7 @@ struct MainTabView: View {
                     }
                     .tag(2)
                 
-                MessagesListView()
+                MessagesListView(selectedTab: $selectedTab)
                     .tabItem {
                         Image(systemName: "bubble.left.and.bubble.right")
                         Text("Mensagens")

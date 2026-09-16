@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MessagesListView: View {
     @StateObject private var viewModel = MessagesViewModel()
+    @Binding var selectedTab: Int
     
     var body: some View {
         NavigationStack {
@@ -20,6 +21,18 @@ struct MessagesListView: View {
             }
             .background(Theme.background)
             .navigationTitle("Mensagens")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Button(action: { selectedTab = 0 }) {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                            Text("Início")
+                        }
+                        .foregroundColor(Theme.primary)
+                    }
+                }
+            }
             .onAppear {
                 viewModel.fetchConversations()
             }

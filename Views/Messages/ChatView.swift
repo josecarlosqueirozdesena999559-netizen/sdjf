@@ -2,6 +2,7 @@ import SwiftUI
 
 struct ChatView: View {
     let conversation: Conversation
+    @EnvironmentObject var authViewModel: AuthViewModel
     @State private var messageText = ""
     @State private var messages: [Message] = []
     
@@ -11,7 +12,7 @@ struct ChatView: View {
                 VStack(spacing: 12) {
                     ForEach(messages) { message in
                         HStack {
-                            if message.senderId == UUID() /* Mock current user */ {
+                            if message.senderId == authViewModel.currentUser?.id || message.senderId == UUID(uuidString: "00000000-0000-0000-0000-000000000000") /* Fallback mock */ {
                                 Spacer()
                                 Text(message.text)
                                     .padding()
@@ -55,7 +56,7 @@ struct ChatView: View {
                     } else {
                         Button(action: {
                             if !messageText.isEmpty {
-                                let newMsg = Message(id: UUID(), senderId: UUID(), receiverId: conversation.participantId, text: messageText, timestamp: Date(), isRead: true)
+                                let newMsg = Message(id: UUID(), senderId: authViewModel.currentUser?.id ?? UUID(), receiverId: conversation.participantId, text: messageText, timestamp: Date(), isRead: true)
                                 messages.append(newMsg)
                                 messageText = ""
                             }
