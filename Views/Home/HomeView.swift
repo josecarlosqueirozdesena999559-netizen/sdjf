@@ -5,7 +5,6 @@ struct HomeView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var favoritesViewModel: FavoritesViewModel
     @State private var searchText = ""
-    @State private var filterLocal = false
     
     let categoryColumns = Array(repeating: GridItem(.flexible(), spacing: 16), count: 4)
     let productColumns = Array(repeating: GridItem(.flexible(), spacing: 16), count: 2)
@@ -29,19 +28,6 @@ struct HomeView: View {
                         .cornerRadius(12)
                     }
                     .padding(.horizontal)
-                    
-                    // PROXIMITY TOGGLE
-                    Toggle(isOn: $filterLocal) {
-                        HStack {
-                            Image(systemName: "mappin.and.ellipse")
-                                .foregroundColor(Theme.primary)
-                            Text("Próximos a você (até 60km)")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                        }
-                    }
-                    .padding(.horizontal, 20)
-                    .tint(Theme.primary)
                     
                     // Banner da Imagem Fornecida
                     Image("banner_home")
@@ -76,6 +62,18 @@ struct HomeView: View {
                     }
                     .padding(.horizontal)
                     
+                    // Indicador Visual (Para o usuário saber que já está filtrado)
+                    HStack {
+                        Image(systemName: "location.north.circle.fill")
+                            .foregroundColor(Theme.primary)
+                        Text("Mostrando anúncios próximos a você")
+                            .font(.subheadline)
+                            .fontWeight(.semibold)
+                            .foregroundColor(Theme.textSecondary)
+                    }
+                    .padding(.horizontal)
+                    .padding(.top, -8)
+                    
                     // Menu Explorar
                     VStack(alignment: .leading, spacing: 24) {
                         Text("Explorar")
@@ -86,7 +84,7 @@ struct HomeView: View {
                         ForEach(MockData.categories) { category in
                             let catProducts = MockData.products.filter { p in
                                 p.categoryId == category.id &&
-                                (!filterLocal || p.location == (authViewModel.currentUser?.location ?? "São Paulo - SP"))
+                                p.location == (authViewModel.currentUser?.location ?? "São Paulo - SP")
                             }
                             
                             if !catProducts.isEmpty {

@@ -3,6 +3,7 @@
 struct SearchResultsView: View {
     @StateObject private var viewModel = SearchViewModel()
     @EnvironmentObject var favoritesViewModel: FavoritesViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel
     
     var initialQuery: String = ""
     var category: Category? = nil
@@ -14,10 +15,15 @@ struct SearchResultsView: View {
         GridItem(.flexible(), spacing: 16)
     ]
     
+    var localResults: [Product] {
+        let userLoc = authViewModel.currentUser?.location ?? "São Paulo - SP"
+        return viewModel.results.filter { $0.location == userLoc }
+    }
+    
     var body: some View {
         VStack {
             HStack {
-                Text("\(viewModel.results.count) resultados")
+                Text("\(localResults.count) resultados próximos a você")
                     .foregroundColor(Theme.textSecondary)
                     .font(.subheadline)
                 Spacer()
@@ -32,13 +38,13 @@ struct SearchResultsView: View {
                 Spacer()
                 ProgressView()
                 Spacer()
-            } else if viewModel.results.isEmpty {
+            } else if localResults.isEmpty {
                 Spacer()
                 VStack(spacing: 16) {
-                    Image(systemName: "magnifyingglass")
+                    Image(systemName: "location.slash")
                         .font(.largeTitle)
                         .foregroundColor(Theme.textSecondary)
-                    Text("Nenhum produto encontrado.")
+                    Text("Nenhum produto próximo a você.")
                         .foregroundColor(Theme.textSecondary)
                 }
                 Spacer()
@@ -46,14 +52,14 @@ struct SearchResultsView: View {
                 ScrollView {
                     if isGrid {
                         LazyVGrid(columns: columns, spacing: 16) {
-                            ForEach(viewModel.results) { product in
+                            ForEach(localResults) { product in
                                 FlatProductCard(product: product)
                             }
                         }
                         .padding()
                     } else {
                         LazyVStack(spacing: 16) {
-                            ForEach(viewModel.results) { product in
+                            ForEach(localResults) { product in
                                 NavigationLink(destination: ProductDetailView(product: product)) {
                                     HStack {
                                         Rectangle()
@@ -102,4 +108,3 @@ struct SearchResultsView: View {
         }
     }
 }
-
