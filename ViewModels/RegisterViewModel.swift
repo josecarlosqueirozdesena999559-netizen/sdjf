@@ -18,7 +18,18 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var currentStep: RegisterStep = .name
     
     @Published var name = ""
-    @Published var cpf = ""
+    @Published var cpf = "" {
+        didSet {
+            let numbers = cpf.filter { $0.isNumber }
+            var result = ""
+            for (index, char) in numbers.enumerated() {
+                if index == 3 || index == 6 { result.append(".") }
+                else if index == 9 { result.append("-") }
+                if index < 11 { result.append(char) }
+            }
+            if cpf != result { cpf = result }
+        }
+    }
     @Published var birthDate = Date()
     @Published var email = ""
     @Published var password = ""

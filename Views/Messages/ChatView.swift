@@ -33,26 +33,45 @@ struct ChatView: View {
                 .padding(.top)
             }
             
-            HStack {
-                TextField("Digite uma mensagem...", text: $messageText)
-                    .padding()
-                    .background(Color.white)
-                    .cornerRadius(20)
-                    .overlay(RoundedRectangle(cornerRadius: 20).stroke(Theme.border, lineWidth: 1))
-                
-                Button(action: {
-                    if !messageText.isEmpty {
-                        let newMsg = Message(id: UUID(), senderId: UUID(), receiverId: conversation.participantId, text: messageText, timestamp: Date(), isRead: true)
-                        messages.append(newMsg)
-                        messageText = ""
-                    }
-                }) {
-                    Image(systemName: "paperplane.fill")
-                        .foregroundColor(Theme.primary)
-                        .padding()
+            HStack(spacing: 12) {
+                Button(action: {}) {
+                    Image(systemName: "plus")
+                        .font(.system(size: 20))
+                        .foregroundColor(Theme.textSecondary)
                 }
+                
+                HStack(spacing: 8) {
+                    TextField("Mensagem...", text: $messageText)
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 12)
+                    
+                    if messageText.isEmpty {
+                        Button(action: {}) {
+                            Image(systemName: "mic.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(Theme.textSecondary)
+                                .padding(.trailing, 12)
+                        }
+                    } else {
+                        Button(action: {
+                            if !messageText.isEmpty {
+                                let newMsg = Message(id: UUID(), senderId: UUID(), receiverId: conversation.participantId, text: messageText, timestamp: Date(), isRead: true)
+                                messages.append(newMsg)
+                                messageText = ""
+                            }
+                        }) {
+                            Image(systemName: "arrow.up.circle.fill")
+                                .font(.system(size: 28))
+                                .foregroundColor(Theme.primary)
+                                .padding(.trailing, 4)
+                        }
+                    }
+                }
+                .background(Color.black.opacity(0.05))
+                .cornerRadius(20)
             }
-            .padding()
+            .padding(.horizontal)
+            .padding(.vertical, 10)
             .background(Color.white)
         }
         .background(Theme.background.ignoresSafeArea())

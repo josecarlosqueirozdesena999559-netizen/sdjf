@@ -8,21 +8,21 @@ struct PublishProductView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     // Fotos Placeholder
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        HStack {
-                            Button(action: {}) {
-                                VStack {
-                                    Image(systemName: "camera.fill")
-                                        .font(.title)
-                                    Text("Adicionar fotos")
-                                        .font(.caption)
-                                }
-                                .frame(width: 120, height: 120)
-                                .background(Theme.lightGreen)
-                                .foregroundColor(Theme.primary)
-                                .cornerRadius(12)
+                    HStack {
+                        Button(action: {}) {
+                            VStack(spacing: 8) {
+                                Image(systemName: "camera.fill")
+                                    .font(.title2)
+                                Text("Adicionar")
+                                    .font(.caption)
+                                    .fontWeight(.medium)
                             }
+                            .frame(width: 90, height: 90)
+                            .background(Theme.lightGreen)
+                            .foregroundColor(Theme.primary)
+                            .cornerRadius(12)
                         }
+                        Spacer()
                     }
                     .padding(.horizontal)
                     
@@ -86,8 +86,7 @@ struct PublishProductView: View {
                         
                         CustomTextField(title: "Localização", placeholder: "Ex: São Paulo - SP", text: $viewModel.location)
                         
-                        Toggle("Aceita negociação?", isOn: $viewModel.acceptsNegotiation)
-                            .tint(Theme.primary)
+                        
                     }
                     .padding(.horizontal)
                     
