@@ -20,3 +20,7 @@ targets:
       properties:
         UILaunchScreen: {}
         NSLocationWhenInUseUsageDescription: "Precisamos da sua localização para exibir produtos na sua região."
+
+    settings:
+      ASSETCATALOG_COMPILER_APPICON_NAME: ""
+      ENABLE_PREVIEWS: NO
