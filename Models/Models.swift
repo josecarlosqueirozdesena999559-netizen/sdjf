@@ -63,6 +63,7 @@ struct Message: Identifiable, Codable {
     let senderId: UUID
     let receiverId: UUID
     let text: String
+    var imageName: String? = nil // Support for sending images
     let timestamp: Date
     var isRead: Bool
 }

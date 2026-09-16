@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct ChatView: View {
     let conversation: Conversation
@@ -6,6 +7,7 @@ struct ChatView: View {
     @State private var messageText = ""
     @State private var messages: [Message] = []
     @State private var chatStatus: String = "online"
+    @State private var selectedAttachment: PhotosPickerItem? = nil
     
     var body: some View {
         VStack {
@@ -16,11 +18,19 @@ struct ChatView: View {
                             if message.senderId == authViewModel.currentUser?.id || message.senderId == UUID(uuidString: "00000000-0000-0000-0000-000000000000") /* Fallback mock */ {
                                 Spacer()
                                 VStack(alignment: .trailing, spacing: 4) {
-                                    Text(message.text)
-                                        .padding()
-                                        .background(Theme.primary)
-                                        .foregroundColor(.white)
-                                        .cornerRadius(16)
+                                    if message.imageName != nil {
+                                        Rectangle()
+                                            .fill(Theme.lightGreen)
+                                            .frame(width: 200, height: 150)
+                                            .overlay(Image(systemName: "photo").font(.largeTitle).foregroundColor(Theme.primary))
+                                            .cornerRadius(12)
+                                    } else {
+                                        Text(message.text)
+                                            .padding()
+                                            .background(Theme.primary)
+                                            .foregroundColor(.white)
+                                            .cornerRadius(16)
+                                    }
                                     
                                     HStack(spacing: 4) {
                                         Text(Formatters.timeFormatter.string(from: message.timestamp))
@@ -58,10 +68,31 @@ struct ChatView: View {
             }
             
             HStack(spacing: 12) {
-                Button(action: {}) {
+                PhotosPicker(selection: $selectedAttachment, matching: .any(of: [.images, .videos])) {
                     Image(systemName: "plus")
                         .font(.system(size: 20))
                         .foregroundColor(Theme.textSecondary)
+                }
+                .onChange(of: selectedAttachment) { _ in
+                    // Simulate sending the selected image/video
+                    if selectedAttachment != nil {
+                        let newMsg = Message(id: UUID(), senderId: authViewModel.currentUser?.id ?? UUID(), receiverId: conversation.participantId, text: "📷 Mídia", imageName: "mock_image", timestamp: Date(), isRead: false)
+                        messages.append(newMsg)
+                        selectedAttachment = nil
+                        
+                        // Fake reply
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
+                            chatStatus = "online"
+                            for i in 0..<messages.count {
+                                if messages[i].senderId != conversation.participantId { messages[i].isRead = true }
+                            }
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { chatStatus = "digitando..." }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
+                            messages.append(Message(id: UUID(), senderId: conversation.participantId, receiverId: authViewModel.currentUser?.id ?? UUID(), text: "Que legal!", timestamp: Date(), isRead: true))
+                            chatStatus = "online"
+                        }
+                    }
                 }
                 
                 HStack(spacing: 8) {

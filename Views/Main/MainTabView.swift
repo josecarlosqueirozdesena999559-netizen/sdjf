@@ -1,4 +1,5 @@
 import SwiftUI
+import UserNotifications
 
 struct MainTabView: View {
     @StateObject private var favoritesViewModel = FavoritesViewModel()
@@ -63,6 +64,19 @@ struct MainTabView: View {
         .environmentObject(favoritesViewModel)
         .fullScreenCover(isPresented: $showPublish) {
             PublishProductView()
+        }
+        .onAppear {
+            requestNotificationPermissions()
+        }
+    }
+    
+    private func requestNotificationPermissions() {
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
+            if granted {
+                print("Notificações permitidas")
+            } else if let error = error {
+                print("Erro ao pedir permissão: \(error.localizedDescription)")
+            }
         }
     }
 }
