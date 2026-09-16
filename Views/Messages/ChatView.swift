@@ -16,7 +16,30 @@ struct ChatView: View {
     @State private var showRatingSuccess = false
     
     var body: some View {
-        VStack {
+        VStack(spacing: 0) {
+            
+            // BANNER DE AVALIAÇÃO - Movido para fora da NavigationBar
+            Button(action: {
+                showRatingSheet = true
+            }) {
+                HStack(spacing: 8) {
+                    Image(systemName: "star.bubble.fill")
+                        .font(.system(size: 18))
+                    Text("Avaliar Vendedor")
+                        .font(.subheadline)
+                        .fontWeight(.semibold)
+                    Spacer()
+                    Image(systemName: "chevron.right")
+                        .font(.caption)
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color.yellow.opacity(0.15))
+                .foregroundColor(.orange)
+            }
+            
+            Divider()
+            
             ScrollView {
                 VStack(spacing: 12) {
                     ForEach(messages) { message in
@@ -158,15 +181,12 @@ struct ChatView: View {
                     } else {
                         Button(action: {
                             if !messageText.isEmpty {
-                                // Initially sent as unread (gray ticks)
                                 let newMsg = Message(id: UUID(), senderId: authViewModel.currentUser?.id ?? UUID(), receiverId: conversation.participantId, text: messageText, timestamp: Date(), isRead: false)
                                 messages.append(newMsg)
                                 messageText = ""
                                 
-                                // Mock behavior for status and auto-reply
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                                     chatStatus = "online"
-                                    // Mark all our messages as read (blue ticks) when they come online
                                     for i in 0..<messages.count {
                                         if messages[i].senderId != conversation.participantId {
                                             messages[i].isRead = true
@@ -236,19 +256,7 @@ struct ChatView: View {
                     Text("Chat")
                 }
             }
-            
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    showRatingSheet = true
-                }) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "star.fill")
-                        Text("Avaliar")
-                    }
-                    .font(.caption)
-                    .foregroundColor(Theme.primary)
-                }
-            }
+            // Removed trailing icon from here.
         }
         .sheet(isPresented: $showRatingSheet) {
             VStack(spacing: 24) {
@@ -320,28 +328,6 @@ struct ChatView: View {
             formatter.timeStyle = .short
             let timeString = formatter.string(from: Date().addingTimeInterval(-1800)) // 30 mins ago
             chatStatus = "visto por último hoje às \(timeString)"
-        }
-    }
-}
-
-struct AudioWaveView: View {
-    @State private var drawingHeight = true
-    var body: some View {
-        HStack(spacing: 4) {
-            ForEach(0..<10) { index in
-                RoundedRectangle(cornerRadius: 2)
-                    .fill(Theme.primary)
-                    .frame(width: 4, height: drawingHeight ? CGFloat.random(in: 10...30) : CGFloat.random(in: 10...30))
-                    .animation(
-                        Animation.easeInOut(duration: 0.2)
-                            .repeatForever()
-                            .delay(Double(index) * 0.05),
-                        value: drawingHeight
-                    )
-            }
-        }
-        .onAppear {
-            drawingHeight.toggle()
         }
     }
 }
