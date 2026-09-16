@@ -56,8 +56,31 @@ struct ChatView: View {
             .background(Color.white)
         }
         .background(Theme.background.ignoresSafeArea())
-        .navigationTitle(MockData.users.first(where: { $0.id == conversation.participantId })?.name ?? "Chat")
+        
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                if let user = MockData.users.first(where: { $0.id == conversation.participantId }) {
+                    NavigationLink(destination: SellerProfileView(seller: Seller(user: user, rating: 4.8, reviewsCount: 15, salesCount: 30, description: "Vendedor de confiabilidade."))) {
+                        HStack(spacing: 8) {
+                            Circle()
+                                .fill(Theme.inputBackground)
+                                .frame(width: 32, height: 32)
+                                .overlay(
+                                    Image(systemName: "person.crop.circle.fill")
+                                        .foregroundColor(Theme.textSecondary)
+                                )
+                            Text(user.visibleName)
+                                .font(.headline)
+                                .foregroundColor(Theme.textPrimary)
+                        }
+                    }
+                } else {
+                    Text("Chat")
+                }
+            }
+        }
+
         .onAppear {
             messages = [conversation.lastMessage]
         }

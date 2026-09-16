@@ -2,75 +2,126 @@ import SwiftUI
 
 struct UserProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
+    @State private var myProducts: [Product] = MockData.products.prefix(3).map { $0 } // Mock own products
+    
+    let columns = [
+        GridItem(.flexible(), spacing: 16),
+        GridItem(.flexible(), spacing: 16)
+    ]
     
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    HStack(spacing: 16) {
-                        Circle()
-                            .fill(Theme.lightGreen)
-                            .frame(width: 60, height: 60)
-                            .overlay(
-                                Text(String(authViewModel.currentUser?.name.prefix(1) ?? "U"))
-                                    .foregroundColor(Theme.primary)
-                                    .font(.title2)
-                                    .fontWeight(.bold)
-                            )
+            ScrollView {
+                VStack(spacing: 24) {
+                    
+                    // Profile Header
+                    VStack(spacing: 12) {
+                        ZStack(alignment: .bottomTrailing) {
+                            Circle()
+                                .fill(Theme.inputBackground)
+                                .frame(width: 100, height: 100)
+                                .overlay(
+                                    Image(systemName: "person.crop.circle.fill")
+                                        .font(.system(size: 100))
+                                        .foregroundColor(Theme.textSecondary.opacity(0.5))
+                                )
+                            
+                            Button(action: {}) {
+                                Circle()
+                                    .fill(Theme.primary)
+                                    .frame(width: 30, height: 30)
+                                    .overlay(Image(systemName: "camera.fill").font(.caption).foregroundColor(.white))
+                            }
+                        }
                         
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(authViewModel.currentUser?.name ?? "Usuário Convidado")
-                                .font(.headline)
-                            Text(authViewModel.currentUser?.email ?? "email@exemplo.com")
-                                .font(.subheadline)
-                                .foregroundColor(Theme.textSecondary)
+                        Text(authViewModel.currentUser?.visibleName ?? "Meu Nome")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                        Text(authViewModel.currentUser?.email ?? "meuemail@exemplo.com")
+                            .foregroundColor(Theme.textSecondary)
+                    }
+                    .padding(.top)
+                    
+                    Divider()
+                    
+                    // User's Ads
+                    VStack(alignment: .leading, spacing: 16) {
+                        Text("Meus Anúncios")
+                            .font(.title3)
+                            .fontWeight(.bold)
+                            .padding(.horizontal)
+                        
+                        if myProducts.isEmpty {
+                            VStack(spacing: 12) {
+                                Image(systemName: "tag.slash")
+                                    .font(.largeTitle)
+                                    .foregroundColor(Theme.textSecondary)
+                                Text("Você ainda não publicou nada.")
+                                    .foregroundColor(Theme.textSecondary)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 40)
+                        } else {
+                            LazyVGrid(columns: columns, spacing: 16) {
+                                ForEach(myProducts) { product in
+                                    VStack(spacing: 8) {
+                                        FlatProductCard(product: product)
+                                        
+                                        // Edit & Sold actions
+                                        HStack(spacing: 8) {
+                                            Button(action: {
+                                                // Edit action mock
+                                            }) {
+                                                Text("Editar")
+                                                    .font(.caption)
+                                                    .fontWeight(.semibold)
+                                                    .frame(maxWidth: .infinity)
+                                                    .padding(.vertical, 6)
+                                                    .background(Theme.inputBackground)
+                                                    .foregroundColor(Theme.textPrimary)
+                                                    .cornerRadius(6)
+                                            }
+                                            
+                                            Button(action: {
+                                                // Mark as sold mock
+                                                if let index = myProducts.firstIndex(where: { $0.id == product.id }) {
+                                                    myProducts.remove(at: index)
+                                                }
+                                            }) {
+                                                Text("Vendido")
+                                                    .font(.caption)
+                                                    .fontWeight(.semibold)
+                                                    .frame(maxWidth: .infinity)
+                                                    .padding(.vertical, 6)
+                                                    .background(Theme.primary)
+                                                    .foregroundColor(.white)
+                                                    .cornerRadius(6)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(.horizontal)
                         }
                     }
-                    .padding(.vertical, 8)
-                }
-                
-                Section {
-                    NavigationLink(destination: MyAdsView()) {
-                        Label("Meus anúncios", systemImage: "tag")
-                    }
-                    NavigationLink(destination: Text("Minhas compras")) {
-                        Label("Minhas compras", systemImage: "bag")
-                    }
-                    NavigationLink(destination: FavoritesView()) {
-                        Label("Meus favoritos", systemImage: "heart")
-                    }
-                    NavigationLink(destination: Text("Minhas vendas")) {
-                        Label("Minhas vendas", systemImage: "dollarsign.circle")
-                    }
-                }
-                
-                Section {
-                    NavigationLink(destination: ProfessionalAccountView()) {
-                        Label("Conta Profissional", systemImage: "briefcase")
-                            .foregroundColor(Theme.primary)
-                    }
-                }
-                
-                Section {
-                    NavigationLink(destination: SettingsView()) {
-                        Label("Configurações", systemImage: "gear")
-                    }
-                    NavigationLink(destination: Text("Ajuda")) {
-                        Label("Ajuda", systemImage: "questionmark.circle")
-                    }
-                }
-                
-                Section {
+                    
+                    Divider()
+                    
                     Button(action: {
                         authViewModel.logout()
                     }) {
-                        Text("Sair")
+                        Text("Sair da Conta")
                             .foregroundColor(Theme.error)
+                            .fontWeight(.semibold)
+                            .padding()
                     }
+                    
+                    Spacer()
                 }
             }
-            .listStyle(InsetGroupedListStyle())
             .navigationTitle("Perfil")
+            .navigationBarTitleDisplayMode(.inline)
+            .background(Theme.background)
         }
     }
 }
