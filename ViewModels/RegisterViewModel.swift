@@ -204,18 +204,15 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
             self.locationName = "Falha ao obter localizaÃ§Ã£o."
         }
     }
-    func register(authViewModel: AuthViewModel, completion: @escaping () -> Void) {
+        func register(authViewModel: AuthViewModel, completion: @escaping () -> Void) {
         errorMessage = nil
         Task {
             do {
-                // 1. Sign up user via Supabase Auth
                 let response = try await supabase.auth.signUp(email: email, password: password)
                 guard let user = response.user else {
                     await MainActor.run { errorMessage = "Erro ao criar conta (sem ID)" }
                     return
                 }
-                
-                // 2. Upload avatar if exists
                 var avatarUrlStr: String? = nil
                 if let image = profileImage, let data = image.jpegData(compressionQuality: 0.7) {
                     let fileName = "\(user.id.uuidString).jpg"
@@ -225,7 +222,6 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                             file: data,
                             options: FileOptions(contentType: "image/jpeg")
                         )
-                        // Get public URL
                         let publicUrl = try supabase.storage.from("avatars").getPublicURL(path: fileName)
                         avatarUrlStr = publicUrl.absoluteString
                     } catch {
@@ -233,9 +229,7 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                     }
                 }
                 
-                // 3. Create profile object
-                let cleanCpf = cpf.filter { }
-.isNumber }
+                let cleanCpf = cpf.filter { char in char.isNumber }
                 let newProfile = Profile(
                     id: user.id,
                     name: name,
@@ -248,13 +242,11 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                     created_at: Date()
                 )
                 
-                // 4. Insert into 'profiles' table
                 try await supabase.database
                     .from("profiles")
                     .insert(newProfile)
                     .execute()
                 
-                // 5. Update UI state via AuthViewModel
                 await MainActor.run {
                     authViewModel.login(emailOrUsername: email, password: password)
                     completion()
