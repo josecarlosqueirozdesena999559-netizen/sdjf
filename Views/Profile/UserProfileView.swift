@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct UserProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -40,22 +40,59 @@ struct UserProfileView: View {
                         Text("@\(authViewModel.currentUser?.username ?? "usuario")")
                             .foregroundColor(Theme.textSecondary)
                         
-                        HStack(spacing: 16) {
-                            HStack(spacing: 4) {
-                                Image(systemName: "mappin.and.ellipse")
-                                Text(authViewModel.currentUser?.location ?? "São Paulo - SP")
+                        Text(authViewModel.currentUser?.location ?? "São Paulo - SP")
+                            .foregroundColor(Theme.textSecondary)
+                            .font(.subheadline)
+                        
+                        // STATS BLOCK - Identical to SellerProfileView
+                        HStack(spacing: 32) {
+                            VStack {
+                                Text("12") // Mock sales
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                Text("Vendas")
+                                    .font(.caption)
+                                    .foregroundColor(Theme.textSecondary)
                             }
                             
-                            HStack(spacing: 4) {
-                                Image(systemName: "clock.fill")
-                                Text("Responde em 1h") // Mocked since we didn't add it to User model directly
+                            VStack {
+                                HStack(spacing: 4) {
+                                    Text("5.0")
+                                        .font(.title3)
+                                        .fontWeight(.bold)
+                                    Image(systemName: "star.fill")
+                                        .foregroundColor(.yellow)
+                                        .font(.caption)
+                                }
+                                Text("Avaliação")
+                                    .font(.caption)
+                                    .foregroundColor(Theme.textSecondary)
+                            }
+                            
+                            VStack {
+                                Text("1 hora") // Mock response time
+                                    .font(.title3)
+                                    .fontWeight(.bold)
+                                Text("Resposta")
+                                    .font(.caption)
+                                    .foregroundColor(Theme.textSecondary)
                             }
                         }
-                        .font(.caption)
-                        .foregroundColor(Theme.textSecondary)
-                        .padding(.top, 4)
+                        .padding(.top, 8)
+                        
                     }
                     .padding(.top)
+                    
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text("Sobre")
+                            .font(.headline)
+                        
+                        Text("Vendo itens que não uso mais, tudo bem conservado! (Você pode alterar isso em Configurações)")
+                            .font(.body)
+                            .foregroundColor(Theme.textSecondary)
+                    }
+                    .padding(.horizontal)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     
                     Divider()
                     
@@ -113,15 +150,12 @@ struct UserProfileView: View {
                                             .padding(8)
                                         }
                                         
-
                                     }
                                 }
                             }
                             .padding(.horizontal)
                         }
                     }
-                    
-
                     
                     Spacer()
                 }
