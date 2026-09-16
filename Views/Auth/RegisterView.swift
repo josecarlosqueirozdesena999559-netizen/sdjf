@@ -195,21 +195,9 @@ struct RegisterView: View {
     
     var stepLocation: some View {
         ZStack {
-            // Background light green blobs (corners decoration) - Only bottom one now
-            VStack {
-                Spacer()
-                HStack {
-                    Spacer()
-                    Circle()
-                        .fill(Color(hex: "D4F5E5").opacity(0.5))
-                        .frame(width: 180, height: 180)
-                        .offset(x: 60, y: 60)
-                }
-            }
-            .ignoresSafeArea()
-            
             VStack(spacing: 0) {
                 Spacer()
+                    .frame(height: 60) // Moves everything up slightly
                 
                 // Illustration — use cropped asset from design reference
                 Image("location_illustration")
@@ -258,8 +246,8 @@ struct RegisterView: View {
                 if viewModel.isFetchingLocation {
                     ProgressView("Obtendo localização...")
                         .padding(.bottom, 24)
-                } else {
-                    // Green pill button — paperplane icon
+                } else if viewModel.locationName.isEmpty {
+                    // Only show 'Usar minha localização atual' if location is NOT set yet
                     Button(action: { viewModel.requestLocation() }) {
                         HStack(spacing: 10) {
                             Image(systemName: "paperplane.fill")
@@ -279,7 +267,7 @@ struct RegisterView: View {
                 
                 Spacer()
                 
-                // Continuar — shown after location set
+                // Continuar — shown ONLY after location set
                 if !viewModel.locationName.isEmpty {
                     PrimaryButton(title: "Continuar") {
                         withAnimation { viewModel.validateAndProceed() }
