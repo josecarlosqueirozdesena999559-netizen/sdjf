@@ -1,26 +1,5 @@
 ﻿import SwiftUI
 
-struct SettingsLabel: View {
-    let title: String
-    let icon: String
-    let color: Color
-    
-    var body: some View {
-        HStack(spacing: 16) {
-            ZStack {
-                RoundedRectangle(cornerRadius: 8)
-                    .fill(color)
-                    .frame(width: 30, height: 30)
-                Image(systemName: icon)
-                    .font(.system(size: 14, weight: .semibold))
-                    .foregroundColor(.white)
-            }
-            Text(title)
-                .foregroundColor(Theme.textPrimary)
-        }
-    }
-}
-
 struct SettingsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     
@@ -36,32 +15,32 @@ struct SettingsView: View {
         Form {
             Section(header: Text("Perfil")) {
                 NavigationLink(destination: ProfileEditView()) {
-                    SettingsLabel(title: "Configurações de Perfil", icon: "person.fill", color: .blue)
+                    Label("Configurações de Perfil", systemImage: "person.crop.circle")
                 }
             }
             
             Section(header: Text("Segurança")) {
                 NavigationLink(destination: Text("Trocar Senha").padding().navigationTitle("Senha")) {
-                    SettingsLabel(title: "Trocar Senha", icon: "lock.fill", color: .orange)
+                    Label("Trocar Senha", systemImage: "lock")
                 }
                 NavigationLink(destination: Text("Trocar E-mail").padding().navigationTitle("E-mail")) {
-                    SettingsLabel(title: "Trocar E-mail", icon: "envelope.fill", color: .green)
+                    Label("Trocar E-mail", systemImage: "envelope")
                 }
             }
             
             Section(header: Text("Privacidade"), footer: Text("Controle o que os outros usuários podem ver sobre sua atividade.")) {
                 Toggle(isOn: $showOnline) {
-                    SettingsLabel(title: "Visto por último e online", icon: "eye.fill", color: .teal)
+                    Label("Visto por último e online", systemImage: "eye")
                 }
                 .tint(Theme.primary)
                 
                 Toggle(isOn: $showTyping) {
-                    SettingsLabel(title: "Status 'Digitando...'", icon: "keyboard.fill", color: .purple)
+                    Label("Status 'Digitando...'", systemImage: "keyboard")
                 }
                 .tint(Theme.primary)
                 
                 Toggle(isOn: $showRecording) {
-                    SettingsLabel(title: "Status 'Gravando áudio...'", icon: "mic.fill", color: .pink)
+                    Label("Status 'Gravando áudio...'", systemImage: "mic")
                 }
                 .tint(Theme.primary)
             }
@@ -70,18 +49,8 @@ struct SettingsView: View {
                 Button(action: {
                     showDeleteConfirm = true
                 }) {
-                    HStack(spacing: 16) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color.red.opacity(0.1))
-                                .frame(width: 30, height: 30)
-                            Image(systemName: "trash.fill")
-                                .font(.system(size: 14, weight: .semibold))
-                                .foregroundColor(.red)
-                        }
-                        Text("Excluir conta")
-                            .foregroundColor(.red)
-                    }
+                    Label("Excluir conta", systemImage: "trash")
+                        .foregroundColor(Theme.error)
                 }
             }
             
@@ -91,7 +60,7 @@ struct SettingsView: View {
                 }) {
                     Text("Sair da Conta")
                         .frame(maxWidth: .infinity)
-                        .foregroundColor(.red)
+                        .foregroundColor(Theme.error)
                         .fontWeight(.bold)
                 }
             }
