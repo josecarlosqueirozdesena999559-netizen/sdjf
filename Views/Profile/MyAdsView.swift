@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct MyAdsView: View {
     @State private var selectedTab = 0
@@ -28,6 +28,8 @@ struct MyAdsView: View {
         }
         .background(Theme.background.ignoresSafeArea())
         .navigationTitle("Meus anúncios")
+        .customBackButton()
         .navigationBarTitleDisplayMode(.inline)
     }
 }
+

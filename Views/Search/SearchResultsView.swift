@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct SearchResultsView: View {
     @StateObject private var viewModel = SearchViewModel()
@@ -89,6 +89,7 @@ struct SearchResultsView: View {
         }
         .background(Theme.background.ignoresSafeArea())
         .navigationTitle(category?.name ?? "Resultados")
+        .customBackButton()
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $viewModel.query, prompt: "Buscar produtos...")
         .onChange(of: viewModel.query) { _ in
@@ -101,3 +102,4 @@ struct SearchResultsView: View {
         }
     }
 }
+

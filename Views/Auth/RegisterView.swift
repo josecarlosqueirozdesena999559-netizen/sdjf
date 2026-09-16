@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import PhotosUI
 
 struct RegisterView: View {
@@ -396,6 +396,7 @@ struct RegisterView: View {
             }
             .padding(.horizontal)
         }
+        .customBackButton()
         .onAppear {
             if viewModel.visibleName.isEmpty {
                 viewModel.visibleName = viewModel.name.components(separatedBy: " ").first ?? ""
@@ -403,3 +404,4 @@ struct RegisterView: View {
         }
     }
 }
+

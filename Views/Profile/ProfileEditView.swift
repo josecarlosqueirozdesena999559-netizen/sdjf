@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct ProfileEditView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -45,6 +45,7 @@ struct ProfileEditView: View {
             }
         }
         .navigationTitle("Editar Perfil")
+        .customBackButton()
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             username = authViewModel.currentUser?.username ?? ""
@@ -52,3 +53,4 @@ struct ProfileEditView: View {
         }
     }
 }
+

@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct ProductDetailView: View {
     let product: Product
@@ -109,6 +109,7 @@ struct ProductDetailView: View {
             }
         }
         .background(Theme.background.ignoresSafeArea())
+        .customBackButton()
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
@@ -161,3 +162,4 @@ struct ProductDetailView: View {
         )
     }
 }
+

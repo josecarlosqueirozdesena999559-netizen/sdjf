@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct SellerProfileView: View {
     let seller: Seller
@@ -103,6 +103,8 @@ struct SellerProfileView: View {
         }
         .background(Theme.background.ignoresSafeArea())
         .navigationTitle(seller.user.name)
+        .customBackButton()
         .navigationBarTitleDisplayMode(.inline)
     }
 }
+

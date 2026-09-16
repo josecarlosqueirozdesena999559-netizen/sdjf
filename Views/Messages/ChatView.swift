@@ -201,6 +201,7 @@ struct ChatView: View {
         }
         .background(Theme.background.ignoresSafeArea())
         
+        .customBackButton()
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
@@ -263,4 +264,5 @@ struct AudioWaveView: View {
         }
     }
 }
+
 

@@ -20,6 +20,8 @@ struct NotificationsView: View {
             .padding(.vertical, 8)
         }
         .listStyle(PlainListStyle())
+        .customBackButton()
         .navigationTitle("Notificações")
     }
 }
+

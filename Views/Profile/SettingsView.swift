@@ -60,6 +60,7 @@ struct SettingsView: View {
                 }
             }
         }
+        .customBackButton()
         .navigationTitle("Configurações")
         .alert("Excluir conta?", isPresented: $showDeleteConfirm) {
             Button("Cancelar", role: .cancel) { }
@@ -71,3 +72,4 @@ struct SettingsView: View {
         }
     }
 }
+

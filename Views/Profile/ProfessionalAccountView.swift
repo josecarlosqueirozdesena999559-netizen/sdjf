@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct ProfessionalAccountView: View {
     var body: some View {
@@ -43,6 +43,7 @@ struct ProfessionalAccountView: View {
         }
         .background(Theme.background.ignoresSafeArea())
         .navigationTitle("Conta Profissional")
+        .customBackButton()
         .navigationBarTitleDisplayMode(.inline)
     }
 }
@@ -61,3 +62,4 @@ struct FeatureRow: View {
         }
     }
 }
+
