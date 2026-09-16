@@ -1,11 +1,27 @@
 ﻿import SwiftUI
 
+struct ProductOffer: Identifiable {
+    let id = UUID()
+    let bidderName: String
+    let bidderId: UUID
+    let amount: Double
+    let time: Date
+}
+
 struct ProductDetailView: View {
     let product: Product
     @EnvironmentObject var favoritesViewModel: FavoritesViewModel
+    @EnvironmentObject var authViewModel: AuthViewModel
+    
+    @State private var offers: [ProductOffer] = []
+    @State private var offerAmount: String = ""
     
     var seller: Seller? {
         MockData.sellers.first { $0.user.id == product.sellerId }
+    }
+    
+    var isOwner: Bool {
+        authViewModel.currentUser?.id == product.sellerId
     }
     
     var body: some View {
@@ -45,15 +61,145 @@ struct ProductDetailView: View {
                     
                     Divider()
                     
-                    Text("Descrição")
-                        .font(.headline)
-                        .fontWeight(.bold)
-                    
-                    Text(product.description)
-                        .font(.body)
-                        .foregroundColor(Theme.textSecondary)
+                    // NEW: IMPROVED DESCRIPTION
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Image(systemName: "doc.text.fill")
+                                .foregroundColor(Theme.primary)
+                            Text("Descrição do Produto")
+                                .font(.headline)
+                                .fontWeight(.bold)
+                        }
+                        
+                        Text(product.description)
+                            .font(.body)
+                            .foregroundColor(Theme.textSecondary)
+                            .lineSpacing(4)
+                            .padding()
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(Theme.inputBackground)
+                            .cornerRadius(12)
+                    }
                     
                     Divider()
+                    
+                    // NEW: NEGOTIATION / BIDS SECTION
+                    if product.acceptsNegotiation {
+                        VStack(alignment: .leading, spacing: 12) {
+                            HStack {
+                                Image(systemName: "hand.thumbsup.fill")
+                                    .foregroundColor(Theme.primary)
+                                Text("Negociação e Lances")
+                                    .font(.headline)
+                                    .fontWeight(.bold)
+                            }
+                            
+                            if isOwner {
+                                Text("Como dono deste anúncio, você pode ver os lances e iniciar uma negociação.")
+                                    .font(.caption)
+                                    .foregroundColor(Theme.textSecondary)
+                                
+                                if offers.isEmpty {
+                                    Text("Nenhum lance recebido ainda.")
+                                        .font(.subheadline)
+                                        .foregroundColor(Theme.textSecondary)
+                                        .padding()
+                                } else {
+                                    ForEach(offers) { offer in
+                                        HStack {
+                                            VStack(alignment: .leading) {
+                                                Text(offer.bidderName)
+                                                    .font(.subheadline)
+                                                    .fontWeight(.bold)
+                                                Text(Formatters.formatCurrency(offer.amount))
+                                                    .foregroundColor(Theme.primary)
+                                                    .fontWeight(.bold)
+                                            }
+                                            Spacer()
+                                            
+                                            NavigationLink(destination: ChatView(conversation: Conversation(
+                                                id: UUID(),
+                                                productId: product.id,
+                                                participantId: offer.bidderId,
+                                                lastMessage: Message(id: UUID(), senderId: product.sellerId, receiverId: offer.bidderId, text: "Olá! Vi seu lance de \(Formatters.formatCurrency(offer.amount)). Vamos negociar?", timestamp: Date(), isRead: true),
+                                                unreadCount: 0
+                                            ))) {
+                                                Text("Negociar")
+                                                    .font(.caption)
+                                                    .fontWeight(.bold)
+                                                    .padding(.horizontal, 12)
+                                                    .padding(.vertical, 6)
+                                                    .background(Theme.primary)
+                                                    .foregroundColor(.white)
+                                                    .cornerRadius(8)
+                                            }
+                                        }
+                                        .padding()
+                                        .background(Theme.inputBackground)
+                                        .cornerRadius(8)
+                                    }
+                                }
+                            } else {
+                                // If not owner, user can place bids
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack {
+                                        Text("R$")
+                                            .foregroundColor(Theme.textSecondary)
+                                            .fontWeight(.bold)
+                                        TextField("0,00", text: $offerAmount)
+                                            .keyboardType(.decimalPad)
+                                            .font(.headline)
+                                        
+                                        Button(action: {
+                                            if let amount = Double(offerAmount.replacingOccurrences(of: ",", with: ".")) {
+                                                let newOffer = ProductOffer(bidderName: authViewModel.currentUser?.name ?? "Você", bidderId: authViewModel.currentUser?.id ?? UUID(), amount: amount, time: Date())
+                                                offers.append(newOffer)
+                                                offerAmount = ""
+                                            }
+                                        }) {
+                                            Text("Enviar Lance")
+                                                .font(.subheadline)
+                                                .fontWeight(.bold)
+                                                .padding(.horizontal, 12)
+                                                .padding(.vertical, 8)
+                                                .background(offerAmount.isEmpty ? Theme.textSecondary : Theme.primary)
+                                                .foregroundColor(.white)
+                                                .cornerRadius(8)
+                                        }
+                                        .disabled(offerAmount.isEmpty)
+                                    }
+                                    .padding()
+                                    .background(Theme.inputBackground)
+                                    .cornerRadius(8)
+                                    
+                                    if !offers.filter({ $0.bidderId == authViewModel.currentUser?.id }).isEmpty {
+                                        Text("Seus lances:")
+                                            .font(.subheadline)
+                                            .fontWeight(.bold)
+                                            .padding(.top, 4)
+                                        
+                                        ForEach(offers.filter({ $0.bidderId == authViewModel.currentUser?.id })) { offer in
+                                            HStack {
+                                                Text("Você ofereceu:")
+                                                    .font(.caption)
+                                                    .foregroundColor(Theme.textSecondary)
+                                                Spacer()
+                                                Text(Formatters.formatCurrency(offer.amount))
+                                                    .font(.subheadline)
+                                                    .fontWeight(.bold)
+                                                    .foregroundColor(Theme.primary)
+                                            }
+                                            .padding()
+                                            .background(Theme.inputBackground.opacity(0.5))
+                                            .cornerRadius(8)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        
+                        Divider()
+                    }
                     
                     if let seller = seller {
                         Text("Sobre o vendedor")
@@ -127,39 +273,49 @@ struct ProductDetailView: View {
                 }
             }
         }
+        .onAppear {
+            if offers.isEmpty && isOwner {
+                // Mock some initial offers for demonstration to the owner
+                offers = [
+                    ProductOffer(bidderName: "Carlos Silva", bidderId: UUID(), amount: product.price * 0.9, time: Date()),
+                    ProductOffer(bidderName: "Amanda Costa", bidderId: UUID(), amount: product.price * 0.85, time: Date())
+                ]
+            }
+        }
         .overlay(
             VStack {
                 Spacer()
-                HStack(spacing: 16) {
-                    NavigationLink(destination: ChatView(conversation: Conversation(
-                        id: UUID(),
-                        productId: product.id,
-                        participantId: product.sellerId,
-                        lastMessage: Message(
+                if !isOwner {
+                    HStack(spacing: 16) {
+                        NavigationLink(destination: ChatView(conversation: Conversation(
                             id: UUID(),
-                            senderId: product.sellerId,
-                            receiverId: UUID(),
-                            text: "Olá! Gostaria de conversar sobre o produto \(product.title).",
-                            timestamp: Date(),
-                            isRead: true
-                        ),
-                        unreadCount: 0
-                    ))) {
-                        Text("Conversar com vendedor")
-                            .font(.headline)
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Theme.primary)
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
+                            productId: product.id,
+                            participantId: product.sellerId,
+                            lastMessage: Message(
+                                id: UUID(),
+                                senderId: authViewModel.currentUser?.id ?? UUID(),
+                                receiverId: product.sellerId,
+                                text: "Olá! Gostaria de conversar sobre o produto \(product.title).",
+                                timestamp: Date(),
+                                isRead: true
+                            ),
+                            unreadCount: 0
+                        ))) {
+                            Text("Conversar com vendedor")
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Theme.primary)
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                        }
                     }
+                    .padding()
+                    .background(Color.white.shadow(color: Color.black.opacity(0.1), radius: 10, y: -5))
                 }
-                .padding()
-                .background(Color.white.shadow(color: Color.black.opacity(0.1), radius: 10, y: -5))
             }
             , alignment: .bottom
         )
     }
 }
-
