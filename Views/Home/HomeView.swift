@@ -88,11 +88,8 @@ struct HomeView: View {
                                     ScrollView(.horizontal, showsIndicators: false) {
                                         HStack(spacing: 16) {
                                             ForEach(catProducts) { product in
-                                                NavigationLink(destination: ProductDetailView(product: product)) {
-                                                    FlatProductCard(product: product)
-                                                        .frame(width: 160)
-                                                }
-                                                .buttonStyle(PlainButtonStyle())
+                                                FlatProductCard(product: product)
+                                                    .frame(width: 160)
                                             }
                                         }
                                         .padding(.horizontal)

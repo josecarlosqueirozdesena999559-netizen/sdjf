@@ -47,11 +47,7 @@ struct SearchResultsView: View {
                     if isGrid {
                         LazyVGrid(columns: columns, spacing: 16) {
                             ForEach(viewModel.results) { product in
-                                NavigationLink(destination: ProductDetailView(product: product)) {
-                                    FlatProductCard(product: product)
-                                        
-                                }
-                                .buttonStyle(PlainButtonStyle())
+                                FlatProductCard(product: product)
                             }
                         }
                         .padding()

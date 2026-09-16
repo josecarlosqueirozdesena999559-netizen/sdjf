@@ -48,11 +48,27 @@ struct ChatView: View {
                                 }
                             } else {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(message.text)
+                                    if message.text.contains("🎵") {
+                                        HStack {
+                                            Image(systemName: "play.fill")
+                                                .foregroundColor(Theme.primary)
+                                            AudioWaveView()
+                                                .frame(height: 20)
+                                                .padding(.horizontal, 8)
+                                            Text("0:12")
+                                                .font(.caption)
+                                                .foregroundColor(Theme.textPrimary)
+                                        }
                                         .padding()
                                         .background(Theme.border)
-                                        .foregroundColor(Theme.textPrimary)
                                         .cornerRadius(16)
+                                    } else {
+                                        Text(message.text)
+                                            .padding()
+                                            .background(Theme.border)
+                                            .foregroundColor(Theme.textPrimary)
+                                            .cornerRadius(16)
+                                    }
                                     
                                     Text(Formatters.timeFormatter.string(from: message.timestamp))
                                         .font(.system(size: 10))

@@ -22,11 +22,7 @@ struct FavoritesView: View {
                 ScrollView {
                     LazyVGrid(columns: columns, spacing: 16) {
                         ForEach(favoritesViewModel.favoriteProducts) { product in
-                            NavigationLink(destination: ProductDetailView(product: product)) {
-                                FlatProductCard(product: product)
-                                    
-                            }
-                            .buttonStyle(PlainButtonStyle())
+                            FlatProductCard(product: product)
                         }
                     }
                     .padding()
