@@ -36,8 +36,7 @@ struct RegisterView: View {
                 .tint(Theme.primary)
                 .padding(.horizontal)
             
-            Spacer()
-            
+            VStack {
             switch viewModel.currentStep {
             case .name:
                 stepName
@@ -56,6 +55,8 @@ struct RegisterView: View {
             case .profileSetup:
                 stepProfileSetup
             }
+            } // End of VStack wrapping steps
+            .padding(.top, 32)
             
             Spacer()
         }

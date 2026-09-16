@@ -17,7 +17,7 @@ struct MainTabView: View {
                 
                 CategoriesView()
                     .tabItem {
-                        Image(systemName: "list.bullet")
+                        Image(systemName: "square.grid.2x2")
                         Text("Categorias")
                     }
                     .tag(1)
@@ -30,14 +30,14 @@ struct MainTabView: View {
                 
                 MessagesListView()
                     .tabItem {
-                        Image(systemName: "message")
+                        Image(systemName: "bubble.left.and.bubble.right")
                         Text("Mensagens")
                     }
                     .tag(3)
                 
                 UserProfileView()
                     .tabItem {
-                        Image(systemName: "person")
+                        Image(systemName: "person.crop.circle")
                         Text("Perfil")
                     }
                     .tag(4)
