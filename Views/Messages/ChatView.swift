@@ -15,17 +15,39 @@ struct ChatView: View {
                         HStack {
                             if message.senderId == authViewModel.currentUser?.id || message.senderId == UUID(uuidString: "00000000-0000-0000-0000-000000000000") /* Fallback mock */ {
                                 Spacer()
-                                Text(message.text)
-                                    .padding()
-                                    .background(Theme.primary)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(16)
+                                VStack(alignment: .trailing, spacing: 4) {
+                                    Text(message.text)
+                                        .padding()
+                                        .background(Theme.primary)
+                                        .foregroundColor(.white)
+                                        .cornerRadius(16)
+                                    
+                                    HStack(spacing: 4) {
+                                        Text(Formatters.timeFormatter.string(from: message.timestamp))
+                                            .font(.system(size: 10))
+                                            .foregroundColor(.gray)
+                                        
+                                        // WhatsApp style ticks
+                                        HStack(spacing: -4) {
+                                            Image(systemName: "checkmark")
+                                            Image(systemName: "checkmark")
+                                        }
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundColor(message.isRead ? .blue : .gray)
+                                    }
+                                }
                             } else {
-                                Text(message.text)
-                                    .padding()
-                                    .background(Theme.border)
-                                    .foregroundColor(Theme.textPrimary)
-                                    .cornerRadius(16)
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(message.text)
+                                        .padding()
+                                        .background(Theme.border)
+                                        .foregroundColor(Theme.textPrimary)
+                                        .cornerRadius(16)
+                                    
+                                    Text(Formatters.timeFormatter.string(from: message.timestamp))
+                                        .font(.system(size: 10))
+                                        .foregroundColor(.gray)
+                                }
                                 Spacer()
                             }
                         }
@@ -57,13 +79,20 @@ struct ChatView: View {
                     } else {
                         Button(action: {
                             if !messageText.isEmpty {
-                                let newMsg = Message(id: UUID(), senderId: authViewModel.currentUser?.id ?? UUID(), receiverId: conversation.participantId, text: messageText, timestamp: Date(), isRead: true)
+                                // Initially sent as unread (gray ticks)
+                                let newMsg = Message(id: UUID(), senderId: authViewModel.currentUser?.id ?? UUID(), receiverId: conversation.participantId, text: messageText, timestamp: Date(), isRead: false)
                                 messages.append(newMsg)
                                 messageText = ""
                                 
                                 // Mock behavior for status and auto-reply
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
                                     chatStatus = "online"
+                                    // Mark all our messages as read (blue ticks) when they come online
+                                    for i in 0..<messages.count {
+                                        if messages[i].senderId != conversation.participantId {
+                                            messages[i].isRead = true
+                                        }
+                                    }
                                 }
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                                     chatStatus = "digitando..."

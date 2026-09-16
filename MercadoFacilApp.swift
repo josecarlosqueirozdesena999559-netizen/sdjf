@@ -8,6 +8,7 @@ struct MercadoFacilApp: App {
         WindowGroup {
             SplashView()
                 .environmentObject(authViewModel)
+                .environment(\.locale, .init(identifier: "pt_BR"))
         }
     }
 }
