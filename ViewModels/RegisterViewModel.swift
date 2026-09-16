@@ -209,10 +209,7 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
         Task {
             do {
                 let response = try await supabase.auth.signUp(email: self.email, password: self.password)
-                guard let user = response.user else {
-                    await MainActor.run { self.errorMessage = "Erro ao criar conta (sem ID)" }
-                    return
-                }
+                let user = response.user
                 var avatarUrlStr: String? = nil
                 if let image = self.profileImage, let data = image.jpegData(compressionQuality: 0.7) {
                     let fileName = "\(user.id.uuidString).jpg"
@@ -262,3 +259,4 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
 }
+
