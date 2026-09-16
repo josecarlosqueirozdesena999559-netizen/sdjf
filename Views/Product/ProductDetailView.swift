@@ -130,7 +130,20 @@ struct ProductDetailView: View {
             VStack {
                 Spacer()
                 HStack(spacing: 16) {
-                    Button(action: {}) {
+                    NavigationLink(destination: ChatView(conversation: Conversation(
+                        id: UUID(),
+                        productId: product.id,
+                        participantId: product.sellerId,
+                        lastMessage: Message(
+                            id: UUID(),
+                            senderId: product.sellerId,
+                            receiverId: UUID(),
+                            text: "Olá! Gostaria de tirar dúvidas sobre o produto \(product.title).",
+                            timestamp: Date(),
+                            isRead: true
+                        ),
+                        unreadCount: 0
+                    ))) {
                         Text("Mensagem")
                             .font(.headline)
                             .fontWeight(.semibold)
@@ -142,7 +155,29 @@ struct ProductDetailView: View {
                             .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.primary, lineWidth: 2))
                     }
                     
-                    PrimaryButton(title: "Comprar", action: {})
+                    NavigationLink(destination: ChatView(conversation: Conversation(
+                        id: UUID(),
+                        productId: product.id,
+                        participantId: product.sellerId,
+                        lastMessage: Message(
+                            id: UUID(),
+                            senderId: product.sellerId,
+                            receiverId: UUID(),
+                            text: "Olá! Gostaria de comprar o produto \(product.title).",
+                            timestamp: Date(),
+                            isRead: true
+                        ),
+                        unreadCount: 0
+                    ))) {
+                        Text("Comprar")
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Theme.primary)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
+                    }
                 }
                 .padding()
                 .background(Color.white.shadow(color: Color.black.opacity(0.1), radius: 10, y: -5))
