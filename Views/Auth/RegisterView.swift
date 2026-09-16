@@ -194,19 +194,47 @@ struct RegisterView: View {
     }
     
     var stepLocation: some View {
-        VStack(alignment: .center, spacing: 20) {
-            Image(systemName: "location.circle.fill")
-                .font(.system(size: 60))
-                .foregroundColor(Theme.primary)
+        VStack(alignment: .center, spacing: 18) {
+            // Header Logo
+            HStack(spacing: 6) {
+                Image(systemName: "paperplane.fill")
+                    .font(.title2)
+                    .foregroundColor(Theme.primary)
+                Text("MercadoFácil")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                    .foregroundColor(Theme.textPrimary)
+            }
+            .padding(.top, 4)
+            
+            // Map Illustration Graphic
+            ZStack {
+                RoundedRectangle(cornerRadius: 24)
+                    .fill(Theme.lightGreen.opacity(0.5))
+                    .frame(width: 140, height: 120)
+                
+                VStack(spacing: 4) {
+                    Image(systemName: "mappin.and.ellipse")
+                        .font(.system(size: 64, weight: .bold))
+                        .foregroundColor(Theme.primary)
+                    
+                    Image(systemName: "map.fill")
+                        .font(.system(size: 28))
+                        .foregroundColor(Theme.primary.opacity(0.6))
+                }
+            }
+            .padding(.vertical, 8)
             
             Text("De onde você é?")
-                .font(.title2)
+                .font(.title)
                 .fontWeight(.bold)
                 .foregroundColor(Theme.textPrimary)
             
-            Text("Usamos sua localização para sugerir anúncios e vendedores perto de você.")
+            Text("Usamos sua localização para mostrar produtos próximos a você.")
+                .font(.subheadline)
                 .multilineTextAlignment(.center)
                 .foregroundColor(Theme.textSecondary)
+                .padding(.horizontal, 24)
             
             if !viewModel.locationName.isEmpty {
                 HStack {
@@ -214,39 +242,61 @@ struct RegisterView: View {
                         .foregroundColor(.green)
                     Text(viewModel.locationName)
                         .font(.headline)
+                        .foregroundColor(Theme.textPrimary)
                 }
                 .padding()
-                .background(Color.white)
-                .cornerRadius(12)
+                .background(Theme.lightGreen.opacity(0.5))
+                .cornerRadius(16)
             }
             
             if viewModel.isFetchingLocation {
-                ProgressView()
+                ProgressView("Obtendo localização...")
                     .padding()
-            } else if viewModel.locationName.isEmpty {
+            } else {
                 Button(action: {
                     viewModel.requestLocation()
                 }) {
-                    HStack {
+                    HStack(spacing: 10) {
                         Image(systemName: "location.fill")
+                            .font(.headline)
                         Text("Usar minha localização atual")
+                            .font(.headline)
+                            .fontWeight(.semibold)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Theme.lightGreen)
-                    .foregroundColor(Theme.primary)
-                    .cornerRadius(12)
+                    .padding(.vertical, 14)
+                    .background(Theme.primary)
+                    .foregroundColor(.white)
+                    .cornerRadius(24)
                 }
+                .padding(.horizontal)
+                
+                Button(action: {
+                    viewModel.locationName = "São Paulo - SP"
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "map")
+                        Text("Escolher no mapa")
+                        Image(systemName: "chevron.right")
+                    }
+                    .font(.subheadline)
+                    .fontWeight(.medium)
+                    .foregroundColor(Theme.textSecondary)
+                }
+                .padding(.top, 4)
             }
             
-            Spacer().frame(height: 20)
+            Spacer().frame(height: 12)
             
-            PrimaryButton(title: "Continuar", isEnabled: !viewModel.locationName.isEmpty) {
-                withAnimation { viewModel.validateAndProceed() }
+            if !viewModel.locationName.isEmpty {
+                PrimaryButton(title: "Continuar") {
+                    withAnimation { viewModel.validateAndProceed() }
+                }
+                .padding(.horizontal)
             }
         }
         .padding(.horizontal)
-        .padding(.top, 8)
+        .padding(.top, 4)
     }
     
     // MARK: - Profile Setup Step
