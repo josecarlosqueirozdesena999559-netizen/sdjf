@@ -195,15 +195,8 @@ struct RegisterView: View {
     
     var stepLocation: some View {
         ZStack {
-            // Background light green blobs (corners decoration)
+            // Background light green blobs (corners decoration) - Only bottom one now
             VStack {
-                HStack {
-                    Circle()
-                        .fill(Color(hex: "D4F5E5").opacity(0.6))
-                        .frame(width: 220, height: 220)
-                        .offset(x: -80, y: -80)
-                    Spacer()
-                }
                 Spacer()
                 HStack {
                     Spacer()
@@ -216,32 +209,14 @@ struct RegisterView: View {
             .ignoresSafeArea()
             
             VStack(spacing: 0) {
-                // Logo top-left style
-                HStack(spacing: 6) {
-                    Image(systemName: "paperplane.fill")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundColor(Theme.primary)
-                    HStack(spacing: 0) {
-                        Text("Mercado")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(Color(hex: "1A1A2E"))
-                        Text("Fácil")
-                            .font(.system(size: 20, weight: .bold))
-                            .foregroundColor(Theme.primary)
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, 24)
-                .padding(.top, 16)
-                
                 Spacer()
                 
                 // Illustration — use cropped asset from design reference
                 Image("location_illustration")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 260)
-                    .padding(.bottom, 32)
+                    .frame(maxWidth: 320)
+                    .padding(.bottom, 24)
                 
                 // Title: "De onde você é?" — "você" in green
                 Group {
@@ -300,20 +275,6 @@ struct RegisterView: View {
                     }
                     .padding(.horizontal, 24)
                     .padding(.bottom, 24)
-                    
-                    // Escolher no mapa link
-                    Button(action: { viewModel.locationName = "São Paulo - SP" }) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "smallcircle.filled.circle")
-                                .font(.system(size: 18, weight: .medium))
-                            Text("Escolher no mapa")
-                                .font(.system(size: 16, weight: .bold))
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .bold))
-                        }
-                        .foregroundColor(Theme.primary)
-                    }
-                    .padding(.bottom, 20)
                 }
                 
                 Spacer()
