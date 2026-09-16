@@ -55,38 +55,74 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
         locationManager.delegate = self
     }
     
+    static func isValidCPF(_ cpf: String) -> Bool {
+        let numbers = cpf.filter { $0.isNumber }.compactMap { Int(String($0)) }
+        guard numbers.count == 11 else { return false }
+        if Set(numbers).count == 1 { return false }
+        
+        let sum1 = (0..<9).reduce(0) { $0 + numbers[$1] * (10 - $1) }
+        let digit1 = (sum1 * 10) % 11 % 10
+        if digit1 != numbers[9] { return false }
+        
+        let sum2 = (0..<10).reduce(0) { $0 + numbers[$1] * (11 - $1) }
+        let digit2 = (sum2 * 10) % 11 % 10
+        if digit2 != numbers[10] { return false }
+        
+        return true
+    }
+    
+    static func isValidEmail(_ email: String) -> Bool {
+        let emailRegEx = "[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,64}"
+        let emailPred = NSPredicate(format: "SELF MATCHES %@", emailRegEx)
+        return emailPred.evaluate(with: email)
+    }
+    
+    static func isValidUsername(_ username: String) -> Bool {
+        let cleanUser = username.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard cleanUser.count >= 3 && cleanUser.count <= 20 else { return false }
+        let userRegEx = "^[a-zA-Z0-9._]+$"
+        let userPred = NSPredicate(format: "SELF MATCHES %@", userRegEx)
+        return userPred.evaluate(with: cleanUser)
+    }
+    
     func validateAndProceed() {
         errorMessage = nil
         
         switch currentStep {
         case .name:
-            if name.count < 3 {
-                errorMessage = "Digite seu nome completo."
+            let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+            if trimmedName.count < 3 || !trimmedName.contains(" ") {
+                errorMessage = "Digite seu nome e sobrenome completo."
                 return
             }
         case .cpf:
             let cleanCpf = cpf.filter { $0.isNumber }
             if cleanCpf.count != 11 {
-                errorMessage = "O CPF deve ter 11 números."
+                errorMessage = "O CPF deve conter exatamente 11 números."
+                return
+            }
+            if !RegisterViewModel.isValidCPF(cleanCpf) {
+                errorMessage = "CPF inválido. Por favor, verifique os números."
                 return
             }
             if MockData.users.contains(where: { $0.cpf?.filter { $0.isNumber } == cleanCpf }) {
-                errorMessage = "Este CPF já está cadastrado."
+                errorMessage = "Este CPF já está cadastrado em nosso sistema."
                 return
             }
         case .birthDate:
             let age = Calendar.current.dateComponents([.year], from: birthDate, to: Date()).year ?? 0
             if age < 18 {
-                errorMessage = "Você precisa ter mais de 18 anos."
+                errorMessage = "É necessário ter mais de 18 anos para se cadastrar."
                 return
             }
         case .email:
-            if !email.contains("@") || !email.contains(".") {
-                errorMessage = "Digite um e-mail válido."
+            let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !RegisterViewModel.isValidEmail(cleanEmail) {
+                errorMessage = "Digite um endereço de e-mail válido (ex: nome@email.com)."
                 return
             }
-            if MockData.users.contains(where: { $0.email.lowercased() == email.lowercased() }) {
-                errorMessage = "Este e-mail já está em uso."
+            if MockData.users.contains(where: { $0.email.lowercased() == cleanEmail.lowercased() }) {
+                errorMessage = "Este e-mail já está em uso por outra conta."
                 return
             }
         case .password:
@@ -100,8 +136,12 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                 errorMessage = "Digite um nome de usuário."
                 return
             }
+            if !RegisterViewModel.isValidUsername(cleanUser) {
+                errorMessage = "O usuário deve ter de 3 a 20 caracteres e conter apenas letras, números, ponto ou underline."
+                return
+            }
             if MockData.users.contains(where: { $0.username?.lowercased() == cleanUser }) {
-                errorMessage = "Este usuário já existe. Tente outro."
+                errorMessage = "Este nome de usuário '@\(cleanUser)' já está em uso. Escolha outro."
                 return
             }
         default:
