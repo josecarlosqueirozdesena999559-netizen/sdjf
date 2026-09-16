@@ -23,13 +23,13 @@ struct ChatView: View {
                 showRatingSheet = true
             }) {
                 HStack(spacing: 8) {
-                    Image(systemName: "star.bubble.fill")
+                    Image("lucide_star").resizable().renderingMode(.template).frame(width: 18, height: 18)
                         .font(.system(size: 18))
                     Text("Avaliar Vendedor")
                         .font(.subheadline)
                         .fontWeight(.semibold)
                     Spacer()
-                    Image(systemName: "chevron.right")
+                    Image("lucide_chevron-right").resizable().renderingMode(.template).frame(width: 14, height: 14)
                         .font(.caption)
                 }
                 .padding(.horizontal, 16)
@@ -331,3 +331,4 @@ struct ChatView: View {
         }
     }
 }
+

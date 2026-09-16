@@ -2,7 +2,7 @@
 
 struct UserProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
-    @State private var myProducts: [Product] = MockData.products.prefix(3).map { $0 } // Mock own products
+    @State private var myProducts: [Product] = MockData.products.prefix(3).map { $0 }
     
     let columns = [
         GridItem(.flexible(), spacing: 16),
@@ -14,15 +14,17 @@ struct UserProfileView: View {
             ScrollView {
                 VStack(spacing: 24) {
                     
-                    // Profile Header
                     VStack(spacing: 12) {
                         ZStack(alignment: .bottomTrailing) {
                             Circle()
                                 .fill(Theme.inputBackground)
                                 .frame(width: 100, height: 100)
                                 .overlay(
-                                    Image(systemName: "person.crop.circle.fill")
-                                        .font(.system(size: 100))
+                                    Image("lucide_user")
+                                        .resizable()
+                                        .renderingMode(.template)
+                                        .scaledToFit()
+                                        .frame(width: 60, height: 60)
                                         .foregroundColor(Theme.textSecondary.opacity(0.5))
                                 )
                             
@@ -30,7 +32,14 @@ struct UserProfileView: View {
                                 Circle()
                                     .fill(Theme.primary)
                                     .frame(width: 30, height: 30)
-                                    .overlay(Image(systemName: "camera.fill").font(.caption).foregroundColor(.white))
+                                    .overlay(
+                                        Image("lucide_camera")
+                                            .resizable()
+                                            .renderingMode(.template)
+                                            .scaledToFit()
+                                            .frame(width: 14, height: 14)
+                                            .foregroundColor(.white)
+                                    )
                             }
                         }
                         
@@ -44,10 +53,9 @@ struct UserProfileView: View {
                             .foregroundColor(Theme.textSecondary)
                             .font(.subheadline)
                         
-                        // STATS BLOCK - Identical to SellerProfileView
                         HStack(spacing: 32) {
                             VStack {
-                                Text("12") // Mock sales
+                                Text("12")
                                     .font(.title3)
                                     .fontWeight(.bold)
                                 Text("Vendas")
@@ -60,9 +68,12 @@ struct UserProfileView: View {
                                     Text("5.0")
                                         .font(.title3)
                                         .fontWeight(.bold)
-                                    Image(systemName: "star.fill")
+                                    Image("lucide_star")
+                                        .resizable()
+                                        .renderingMode(.template)
+                                        .scaledToFit()
+                                        .frame(width: 12, height: 12)
                                         .foregroundColor(.yellow)
-                                        .font(.caption)
                                 }
                                 Text("Avaliação")
                                     .font(.caption)
@@ -70,7 +81,7 @@ struct UserProfileView: View {
                             }
                             
                             VStack {
-                                Text("1 hora") // Mock response time
+                                Text("1 hora")
                                     .font(.title3)
                                     .fontWeight(.bold)
                                 Text("Resposta")
@@ -96,7 +107,6 @@ struct UserProfileView: View {
                     
                     Divider()
                     
-                    // User's Ads
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Meus Anúncios")
                             .font(.title3)
@@ -105,8 +115,11 @@ struct UserProfileView: View {
                         
                         if myProducts.isEmpty {
                             VStack(spacing: 12) {
-                                Image(systemName: "tag.slash")
-                                    .font(.largeTitle)
+                                Image("lucide_tag")
+                                    .resizable()
+                                    .renderingMode(.template)
+                                    .scaledToFit()
+                                    .frame(width: 40, height: 40)
                                     .foregroundColor(Theme.textSecondary)
                                 Text("Você ainda não publicou nada.")
                                     .foregroundColor(Theme.textSecondary)
@@ -122,25 +135,20 @@ struct UserProfileView: View {
                                             
                                             Menu {
                                                 Button(action: {}) {
-                                                    Label("Editar", systemImage: "pencil")
+                                                    Label { Text("Editar") } icon: { Image("lucide_keyboard").renderingMode(.template) }
                                                 }
-                                                Button(action: {
-                                                    if let index = myProducts.firstIndex(where: { $0.id == product.id }) {
-                                                        myProducts.remove(at: index)
-                                                    }
-                                                }) {
-                                                    Label("Marcar como Vendido", systemImage: "checkmark.circle")
+                                                Button(action: {}) {
+                                                    Label { Text("Marcar como Vendido") } icon: { Image("lucide_check").renderingMode(.template) }
                                                 }
-                                                Button(role: .destructive, action: {
-                                                    if let index = myProducts.firstIndex(where: { $0.id == product.id }) {
-                                                        myProducts.remove(at: index)
-                                                    }
-                                                }) {
-                                                    Label("Excluir", systemImage: "trash")
+                                                Button(role: .destructive, action: {}) {
+                                                    Label { Text("Excluir") } icon: { Image("lucide_trash").renderingMode(.template) }
                                                 }
                                             } label: {
-                                                Image(systemName: "ellipsis")
-                                                    .font(.system(size: 20, weight: .bold))
+                                                Image("lucide_more-horizontal")
+                                                    .resizable()
+                                                    .renderingMode(.template)
+                                                    .scaledToFit()
+                                                    .frame(width: 20, height: 20)
                                                     .foregroundColor(Theme.textPrimary)
                                                     .padding(8)
                                                     .background(Color.white.opacity(0.8))
@@ -149,7 +157,6 @@ struct UserProfileView: View {
                                             }
                                             .padding(8)
                                         }
-                                        
                                     }
                                 }
                             }
@@ -165,7 +172,11 @@ struct UserProfileView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink(destination: SettingsView()) {
-                        Image(systemName: "gearshape")
+                        Image("lucide_settings")
+                            .resizable()
+                            .renderingMode(.template)
+                            .scaledToFit()
+                            .frame(width: 24, height: 24)
                             .foregroundColor(Theme.textPrimary)
                     }
                 }
