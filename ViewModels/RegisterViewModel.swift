@@ -204,23 +204,22 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
             self.locationName = "Falha ao obter localizaÃ§Ã£o."
         }
     }
-        func register(authViewModel: AuthViewModel, completion: @escaping () -> Void) {
-        errorMessage = nil
+            func register(authViewModel: AuthViewModel, completion: @escaping () -> Void) {
+        self.errorMessage = nil
         Task {
             do {
-                let response = try await supabase.auth.signUp(email: email, password: password)
+                let response = try await supabase.auth.signUp(email: self.email, password: self.password)
                 guard let user = response.user else {
-                    await MainActor.run { errorMessage = "Erro ao criar conta (sem ID)" }
+                    await MainActor.run { self.errorMessage = "Erro ao criar conta (sem ID)" }
                     return
                 }
                 var avatarUrlStr: String? = nil
-                if let image = profileImage, let data = image.jpegData(compressionQuality: 0.7) {
+                if let image = self.profileImage, let data = image.jpegData(compressionQuality: 0.7) {
                     let fileName = "\(user.id.uuidString).jpg"
                     do {
                         try await supabase.storage.from("avatars").upload(
                             path: fileName,
-                            file: data,
-                            options: FileOptions(contentType: "image/jpeg")
+                            file: data
                         )
                         let publicUrl = try supabase.storage.from("avatars").getPublicURL(path: fileName)
                         avatarUrlStr = publicUrl.absoluteString
@@ -229,15 +228,16 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                     }
                 }
                 
-                let cleanCpf = cpf.filter { char in char.isNumber }
+                let currentCpf = self.cpf
+                let cleanCpf = currentCpf.filter { char in char.isNumber }
                 let newProfile = Profile(
                     id: user.id,
-                    name: name,
-                    visible_name: visibleName.isEmpty ? nil : visibleName,
-                    username: username,
-                    email: email,
+                    name: self.name,
+                    visible_name: self.visibleName.isEmpty ? nil : self.visibleName,
+                    username: self.username,
+                    email: self.email,
                     document: cleanCpf,
-                    location: locationName.isEmpty ? "Desconhecido" : locationName,
+                    location: self.locationName.isEmpty ? "Desconhecido" : self.locationName,
                     avatar_url: avatarUrlStr,
                     created_at: Date()
                 )
@@ -247,13 +247,16 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                     .insert(newProfile)
                     .execute()
                 
+                let finalEmail = self.email
+                let finalPassword = self.password
+                
                 await MainActor.run {
-                    authViewModel.login(emailOrUsername: email, password: password)
+                    authViewModel.login(emailOrUsername: finalEmail, password: finalPassword)
                     completion()
                 }
             } catch {
                 await MainActor.run {
-                    errorMessage = "Ocorreu um erro no cadastro: \(error.localizedDescription)"
+                    self.errorMessage = "Ocorreu um erro no cadastro: \(error.localizedDescription)"
                 }
             }
         }
