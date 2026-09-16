@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct LoginView: View {
     @State private var email = ""
@@ -24,7 +24,7 @@ struct LoginView: View {
                 }
                 
                 VStack(spacing: 16) {
-                    CustomTextField(title: "Usuário, E-mail ou Telefone", placeholder: "@seu.usuario ou email", text: $email, keyboardType: .emailAddress)
+                    CustomTextField(title: "UsuÃ¡rio, E-mail ou Telefone", placeholder: "@seu.usuario ou email", text: $email, keyboardType: .emailAddress)
                     CustomTextField(title: "Senha", placeholder: "Sua senha", text: $password, isSecure: true)
                 }
                 
@@ -38,13 +38,13 @@ struct LoginView: View {
                 }
                 
                 PrimaryButton(title: "Entrar") {
-                    authViewModel.login()
+                    authViewModel.login(emailOrUsername: email, password: password)
                 }
                 
 
                 
                 HStack {
-                    Text("Ainda não possui uma conta?")
+                    Text("Ainda nÃ£o possui uma conta?")
                         .foregroundColor(Theme.textSecondary)
                     NavigationLink("Criar conta", destination: RegisterView())
                         .foregroundColor(Theme.primary)
@@ -59,3 +59,4 @@ struct LoginView: View {
         }
     }
 }
+

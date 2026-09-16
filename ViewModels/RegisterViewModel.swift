@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import Combine
 import CoreLocation
 import UIKit
@@ -98,50 +98,50 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
         case .cpf:
             let cleanCpf = cpf.filter { $0.isNumber }
             if cleanCpf.count != 11 {
-                errorMessage = "O CPF deve conter exatamente 11 números."
+                errorMessage = "O CPF deve conter exatamente 11 nÃºmeros."
                 return
             }
             if !RegisterViewModel.isValidCPF(cleanCpf) {
-                errorMessage = "CPF inválido. Por favor, verifique os números."
+                errorMessage = "CPF invÃ¡lido. Por favor, verifique os nÃºmeros."
                 return
             }
             if MockData.users.contains(where: { $0.cpf?.filter { $0.isNumber } == cleanCpf }) {
-                errorMessage = "Este CPF já está cadastrado em nosso sistema."
+                errorMessage = "Este CPF jÃ¡ estÃ¡ cadastrado em nosso sistema."
                 return
             }
         case .birthDate:
             let age = Calendar.current.dateComponents([.year], from: birthDate, to: Date()).year ?? 0
             if age < 18 {
-                errorMessage = "É necessário ter mais de 18 anos para se cadastrar."
+                errorMessage = "Ã‰ necessÃ¡rio ter mais de 18 anos para se cadastrar."
                 return
             }
         case .email:
             let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
             if !RegisterViewModel.isValidEmail(cleanEmail) {
-                errorMessage = "Digite um endereço de e-mail válido (ex: nome@email.com)."
+                errorMessage = "Digite um endereÃ§o de e-mail vÃ¡lido (ex: nome@email.com)."
                 return
             }
             if MockData.users.contains(where: { $0.email.lowercased() == cleanEmail.lowercased() }) {
-                errorMessage = "Este e-mail já está em uso por outra conta."
+                errorMessage = "Este e-mail jÃ¡ estÃ¡ em uso por outra conta."
                 return
             }
         case .password:
             if password.count < 6 {
-                errorMessage = "A senha deve ter no mínimo 6 caracteres."
+                errorMessage = "A senha deve ter no mÃ­nimo 6 caracteres."
                 return
             }
         case .username:
             let cleanUser = username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
             if cleanUser.isEmpty {
-                errorMessage = "Digite um nome de usuário."
+                errorMessage = "Digite um nome de usuÃ¡rio."
                 return
             }
             if !RegisterViewModel.isValidUsername(cleanUser) {
-                errorMessage = "O usuário deve ter de 3 a 20 caracteres e conter apenas letras, números, ponto ou underline."
+                errorMessage = "O usuÃ¡rio deve ter de 3 a 20 caracteres e conter apenas letras, nÃºmeros, ponto ou underline."
                 return
             }
             if MockData.users.contains(where: { $0.username?.lowercased() == cleanUser }) {
-                errorMessage = "Este nome de usuário '@\(cleanUser)' já está em uso. Escolha outro."
+                errorMessage = "Este nome de usuÃ¡rio '@\(cleanUser)' jÃ¡ estÃ¡ em uso. Escolha outro."
                 return
             }
         default:
@@ -188,10 +188,10 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                     if !city.isEmpty && !state.isEmpty {
                         self.locationName = "\(city) - \(state)"
                     } else {
-                        self.locationName = "Localização obtida com sucesso!"
+                        self.locationName = "LocalizaÃ§Ã£o obtida com sucesso!"
                     }
                 } else {
-                    self.locationName = "Localização obtida com sucesso!"
+                    self.locationName = "LocalizaÃ§Ã£o obtida com sucesso!"
                 }
             }
         }
@@ -201,7 +201,69 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         DispatchQueue.main.async {
             self.isFetchingLocation = false
-            self.locationName = "Falha ao obter localização."
+            self.locationName = "Falha ao obter localizaÃ§Ã£o."
+        }
+    }
+    func register(authViewModel: AuthViewModel, completion: @escaping () -> Void) {
+        errorMessage = nil
+        Task {
+            do {
+                // 1. Sign up user via Supabase Auth
+                let response = try await supabase.auth.signUp(email: email, password: password)
+                guard let user = response.user else {
+                    await MainActor.run { errorMessage = "Erro ao criar conta (sem ID)" }
+                    return
+                }
+                
+                // 2. Upload avatar if exists
+                var avatarUrlStr: String? = nil
+                if let image = profileImage, let data = image.jpegData(compressionQuality: 0.7) {
+                    let fileName = "\(user.id.uuidString).jpg"
+                    do {
+                        try await supabase.storage.from("avatars").upload(
+                            path: fileName,
+                            file: data,
+                            options: FileOptions(contentType: "image/jpeg")
+                        )
+                        // Get public URL
+                        let publicUrl = try supabase.storage.from("avatars").getPublicURL(path: fileName)
+                        avatarUrlStr = publicUrl.absoluteString
+                    } catch {
+                        print("Erro ao fazer upload do avatar: \(error)")
+                    }
+                }
+                
+                // 3. Create profile object
+                let cleanCpf = cpf.filter { }
+.isNumber }
+                let newProfile = Profile(
+                    id: user.id,
+                    name: name,
+                    visible_name: visibleName.isEmpty ? nil : visibleName,
+                    username: username,
+                    email: email,
+                    document: cleanCpf,
+                    location: locationName.isEmpty ? "Desconhecido" : locationName,
+                    avatar_url: avatarUrlStr,
+                    created_at: Date()
+                )
+                
+                // 4. Insert into 'profiles' table
+                try await supabase.database
+                    .from("profiles")
+                    .insert(newProfile)
+                    .execute()
+                
+                // 5. Update UI state via AuthViewModel
+                await MainActor.run {
+                    authViewModel.login(emailOrUsername: email, password: password)
+                    completion()
+                }
+            } catch {
+                await MainActor.run {
+                    errorMessage = "Ocorreu um erro no cadastro: \(error.localizedDescription)"
+                }
+            }
         }
     }
 }

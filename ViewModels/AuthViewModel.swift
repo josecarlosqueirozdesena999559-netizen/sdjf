@@ -1,20 +1,103 @@
-import Foundation
+﻿import Foundation
 import Combine
+import Supabase
 
+struct Profile: Codable {
+    let id: UUID
+    let name: String
+    let visible_name: String?
+    let username: String?
+    let email: String?
+    let document: String?
+    let location: String?
+    let avatar_url: String?
+    let created_at: Date?
+}
+
+@MainActor
 class AuthViewModel: ObservableObject {
     @Published var isAuthenticated: Bool = false
     @Published var currentUser: User? = nil
     
-    func login() {
-        // Mock login
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
-            self.currentUser = MockData.users.first
-            self.isAuthenticated = true
+    @Published var isLoading = false
+    @Published var errorMessage: String? = nil
+    
+    init() {
+        Task {
+            await checkSession()
+        }
+    }
+    
+    func checkSession() async {
+        do {
+            let session = try await supabase.auth.session
+            await loadProfile(for: session.user.id, email: session.user.email ?? "")
+        } catch {
+            self.isAuthenticated = false
+        }
+    }
+    
+    func login(emailOrUsername: String, password: String) {
+        Task {
+            self.isLoading = true
+            self.errorMessage = nil
+            do {
+                // To keep it simple, we use the input as email directly. 
+                // A real "username" login in Supabase requires an edge function or a lookup first.
+                let session = try await supabase.auth.signIn(email: emailOrUsername, password: password)
+                await loadProfile(for: session.user.id, email: session.user.email ?? emailOrUsername)
+            } catch {
+                self.errorMessage = "Falha no login: verifique suas credenciais."
+            }
+            self.isLoading = false
         }
     }
     
     func logout() {
-        self.currentUser = nil
-        self.isAuthenticated = false
+        Task {
+            do {
+                try await supabase.auth.signOut()
+            } catch {
+                print("Logout erro: \(error)")
+            }
+            self.currentUser = nil
+            self.isAuthenticated = false
+        }
+    }
+    
+    private func loadProfile(for userId: UUID, email: String) async {
+        do {
+            let profile: Profile = try await supabase.database
+                .from("profiles")
+                .select()
+                .eq("id", value: userId)
+                .single()
+                .execute()
+                .value
+            
+            // Map to our User struct
+            self.currentUser = User(
+                id: profile.id,
+                name: profile.name,
+                cpf: profile.document,
+                birthDate: nil,
+                email: profile.email ?? email,
+                phone: "",
+                username: profile.username,
+                visibleName: profile.visible_name,
+                avatarURL: profile.avatar_url,
+                location: profile.location ?? "Desconhecido",
+                latitude: nil,
+                longitude: nil,
+                memberSince: profile.created_at ?? Date(),
+                isProfessional: false
+            )
+            self.isAuthenticated = true
+        } catch {
+            print("Erro ao carregar perfil, talvez não exista: \(error)")
+            // Fallback for demo if profile doesn't exist yet but auth succeeded
+            self.currentUser = User(id: userId, name: "Usuário", cpf: "", birthDate: nil, email: email, phone: "", username: "user", visibleName: nil, avatarURL: nil, location: "Desconhecido", latitude: nil, longitude: nil, memberSince: Date(), isProfessional: false)
+            self.isAuthenticated = true
+        }
     }
 }
