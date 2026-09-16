@@ -2,10 +2,10 @@ import SwiftUI
 
 struct PrimaryButton: View {
     var title: String
-    var action: () -> Void
     var isEnabled: Bool = true
     var isDestructive: Bool = false
     var isLoading: Bool = false
+    var action: () -> Void
     
     var body: some View {
         Button(action: action) {
