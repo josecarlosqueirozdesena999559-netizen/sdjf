@@ -332,3 +332,24 @@ struct ChatView: View {
     }
 }
 
+struct AudioWaveView: View {
+    @State private var drawingHeight = true
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(0..<10, id: \.self) { index in
+                RoundedRectangle(cornerRadius: 2)
+                    .fill(Theme.primary)
+                    .frame(width: 4, height: drawingHeight ? CGFloat.random(in: 10...30) : CGFloat.random(in: 10...30))
+                    .animation(
+                        Animation.easeInOut(duration: 0.2)
+                            .repeatForever()
+                            .delay(Double(index) * 0.05),
+                        value: drawingHeight
+                    )
+            }
+        }
+        .onAppear {
+            drawingHeight.toggle()
+        }
+    }
+}
