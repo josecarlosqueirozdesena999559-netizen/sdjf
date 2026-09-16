@@ -23,9 +23,8 @@ struct FavoritesView: View {
                     LazyVGrid(columns: columns, spacing: 16) {
                         ForEach(favoritesViewModel.favoriteProducts) { product in
                             NavigationLink(destination: ProductDetailView(product: product)) {
-                                ProductCard(product: product) {
-                                    favoritesViewModel.toggleFavorite(product: product)
-                                }
+                                FlatProductCard(product: product)
+                                    
                             }
                             .buttonStyle(PlainButtonStyle())
                         }

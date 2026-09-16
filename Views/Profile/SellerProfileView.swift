@@ -94,7 +94,7 @@ struct SellerProfileView: View {
                     LazyVGrid(columns: columns, spacing: 16) {
                         ForEach(sellerProducts) { product in
                             NavigationLink(destination: ProductDetailView(product: product)) {
-                                ProductCard(product: product, onFavorite: {})
+                                FlatProductCard(product: product)
                             }
                             .buttonStyle(PlainButtonStyle())
                         }
