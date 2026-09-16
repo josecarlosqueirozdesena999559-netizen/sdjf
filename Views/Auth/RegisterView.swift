@@ -207,89 +207,69 @@ struct RegisterView: View {
     
     var stepLocation: some View {
         VStack(spacing: 0) {
-            // Header logo
+            
+            // Header logo — centered
             HStack(spacing: 6) {
-                Image(systemName: "paperplane.fill")
-                    .font(.system(size: 18, weight: .bold))
+                Image(systemName: "location.fill")
+                    .font(.system(size: 16, weight: .bold))
                     .foregroundColor(Theme.primary)
                 Text("MercadoFácil")
-                    .font(.system(size: 18, weight: .bold))
+                    .font(.system(size: 17, weight: .bold))
                     .foregroundColor(Theme.textPrimary)
             }
-            .padding(.top, 12)
-            .padding(.bottom, 24)
+            .frame(maxWidth: .infinity)
+            .multilineTextAlignment(.center)
+            .padding(.top, 16)
+            .padding(.bottom, 32)
             
-            // Big map pin illustration inside green circle
+            // Illustration: big light-green circle with dark green pin inside
             ZStack {
+                // Outer light green circle
                 Circle()
-                    .fill(Theme.lightGreen)
-                    .frame(width: 180, height: 180)
+                    .fill(Color(hex: "D4F0E3"))
+                    .frame(width: 200, height: 200)
                 
-                // Simulated map background dots/streets
-                ZStack {
-                    // Road lines simulation
-                    ForEach(0..<3, id: \.self) { i in
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Theme.primary.opacity(0.15))
-                            .frame(width: 80 - CGFloat(i * 20), height: 6)
-                            .offset(y: CGFloat(i * 18) - 18)
-                    }
-                    ForEach(0..<2, id: \.self) { i in
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(Theme.primary.opacity(0.15))
-                            .frame(width: 6, height: 60)
-                            .offset(x: CGFloat(i * 36) - 18)
-                    }
-                    
-                    // Big map pin
-                    VStack(spacing: 0) {
-                        ZStack {
-                            Circle()
-                                .fill(Theme.primary)
-                                .frame(width: 72, height: 72)
-                            Image(systemName: "mappin.and.ellipse")
-                                .font(.system(size: 38, weight: .bold))
-                                .foregroundColor(.white)
-                        }
-                        // Pin tail
-                        Triangle()
-                            .fill(Theme.primary)
-                            .frame(width: 20, height: 14)
-                    }
-                    .offset(y: -8)
-                }
-            }
-            .padding(.bottom, 28)
-            
-            // Title with "você" in green bold
-            HStack(spacing: 0) {
-                Text("De onde ")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(Theme.textPrimary)
-                Text("você")
-                    .font(.system(size: 28, weight: .bold))
+                // Inner medium circle
+                Circle()
+                    .fill(Color(hex: "B8E8D0"))
+                    .frame(width: 148, height: 148)
+                
+                // Location pin icon — big, dark green
+                Image(systemName: "mappin.and.ellipse")
+                    .font(.system(size: 72, weight: .bold))
                     .foregroundColor(Theme.primary)
-                Text(" é?")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundColor(Theme.textPrimary)
             }
-            .padding(.bottom, 10)
+            .padding(.bottom, 36)
             
+            // Title centered, "você" in green
+            Group {
+                Text("De onde ") +
+                Text("você").foregroundColor(Theme.primary) +
+                Text(" é?")
+            }
+            .font(.system(size: 26, weight: .bold))
+            .foregroundColor(Theme.textPrimary)
+            .multilineTextAlignment(.center)
+            .frame(maxWidth: .infinity)
+            .padding(.bottom, 12)
+            
+            // Subtitle centered
             Text("Usamos sua localização para mostrar\nprodutos próximos a você.")
-                .font(.subheadline)
+                .font(.system(size: 15))
                 .multilineTextAlignment(.center)
-                .foregroundColor(Theme.textSecondary)
-                .lineSpacing(3)
-                .padding(.horizontal, 32)
-                .padding(.bottom, 32)
+                .foregroundColor(.gray)
+                .lineSpacing(4)
+                .frame(maxWidth: .infinity)
+                .padding(.horizontal, 40)
+                .padding(.bottom, 36)
             
-            // Location found badge
+            // Location confirmed badge
             if !viewModel.locationName.isEmpty {
                 HStack(spacing: 8) {
                     Image(systemName: "checkmark.circle.fill")
                         .foregroundColor(.green)
                     Text(viewModel.locationName)
-                        .font(.headline)
+                        .font(.system(size: 15, weight: .semibold))
                         .foregroundColor(Theme.textPrimary)
                 }
                 .padding(.horizontal, 16)
@@ -303,46 +283,35 @@ struct RegisterView: View {
                 ProgressView("Obtendo localização...")
                     .padding()
             } else {
-                // Primary green button
+                // Primary green rounded button
                 Button(action: { viewModel.requestLocation() }) {
                     HStack(spacing: 8) {
                         Image(systemName: "location.fill")
-                            .font(.system(size: 15, weight: .bold))
+                            .font(.system(size: 14, weight: .semibold))
                         Text("Usar minha localização atual")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.system(size: 15, weight: .semibold))
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
+                    .padding(.vertical, 15)
                     .background(Theme.primary)
                     .foregroundColor(.white)
-                    .cornerRadius(28)
+                    .cornerRadius(30)
                 }
-                .padding(.horizontal, 24)
-                .padding(.bottom, 14)
-                
-                // Secondary link
-                Button(action: { viewModel.locationName = "São Paulo - SP" }) {
-                    HStack(spacing: 4) {
-                        Text("Escolher no mapa")
-                            .font(.system(size: 14, weight: .medium))
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
-                    }
-                    .foregroundColor(Theme.textSecondary)
-                }
-                .padding(.bottom, 24)
+                .padding(.horizontal, 28)
             }
             
-            // Continue button — shown when location is set
+            // Continue appears after location is set
             if !viewModel.locationName.isEmpty {
                 PrimaryButton(title: "Continuar") {
                     withAnimation { viewModel.validateAndProceed() }
                 }
-                .padding(.horizontal, 24)
+                .padding(.horizontal, 28)
+                .padding(.top, 12)
             }
         }
         .frame(maxWidth: .infinity)
     }
+
 
     
     // MARK: - Profile Setup Step
