@@ -30,6 +30,7 @@ struct Seller: Identifiable, Codable {
 
 enum ProductCondition: String, Codable, CaseIterable {
     case new = "Novo"
+    case likeNew = "Semi-novo"
     case used = "Usado"
 }
 

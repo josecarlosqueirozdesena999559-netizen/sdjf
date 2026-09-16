@@ -62,31 +62,44 @@ struct HomeView: View {
                     }
                     .padding(.horizontal)
                     
-                    // Destaques
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack {
-                            Text("Destaques")
-                                .font(.title3)
-                                .fontWeight(.bold)
-                            Spacer()
-                            NavigationLink(destination: SearchResultsView()) {
-                                Text("Ver todos >")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
-                                    .foregroundColor(Theme.primary)
-                            }
-                        }
-                        .padding(.horizontal)
+                    // Menu Explorar
+                    VStack(alignment: .leading, spacing: 24) {
+                        Text("Explorar")
+                            .font(.title2)
+                            .fontWeight(.bold)
+                            .padding(.horizontal)
                         
-                        LazyVGrid(columns: productColumns, spacing: 16) {
-                            ForEach(viewModel.featuredProducts) { product in
-                                NavigationLink(destination: ProductDetailView(product: product)) {
-                                    FlatProductCard(product: product)
+                        ForEach(MockData.categories) { category in
+                            let catProducts = MockData.products.filter { $0.categoryId == category.id }
+                            if !catProducts.isEmpty {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    HStack {
+                                        Text(category.name)
+                                            .font(.headline)
+                                        Spacer()
+                                        NavigationLink(destination: SearchResultsView(category: category)) {
+                                            Text("Ver tudo")
+                                                .font(.subheadline)
+                                                .foregroundColor(Theme.primary)
+                                        }
+                                    }
+                                    .padding(.horizontal)
+                                    
+                                    ScrollView(.horizontal, showsIndicators: false) {
+                                        HStack(spacing: 16) {
+                                            ForEach(catProducts) { product in
+                                                NavigationLink(destination: ProductDetailView(product: product)) {
+                                                    FlatProductCard(product: product)
+                                                        .frame(width: 160)
+                                                }
+                                                .buttonStyle(PlainButtonStyle())
+                                            }
+                                        }
+                                        .padding(.horizontal)
+                                    }
                                 }
-                                .buttonStyle(PlainButtonStyle())
                             }
                         }
-                        .padding(.horizontal)
                     }
                     
                     Spacer(minLength: 80) // Espaço para a tabbar

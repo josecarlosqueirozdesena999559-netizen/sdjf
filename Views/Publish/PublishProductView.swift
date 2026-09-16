@@ -1,116 +1,128 @@
 import SwiftUI
+import PhotosUI
 
 struct PublishProductView: View {
     @StateObject private var viewModel = PublishViewModel()
     @Environment(\.dismiss) var dismiss
     
+    @State private var selectedItems: [PhotosPickerItem] = []
+    @State private var selectedImages: [UIImage] = []
+    
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(spacing: 20) {
-                    // Fotos Placeholder
-                    HStack {
-                        Button(action: {}) {
-                            VStack(spacing: 8) {
-                                Image(systemName: "camera.fill")
-                                    .font(.title2)
-                                Text("Adicionar")
-                                    .font(.caption)
-                                    .fontWeight(.medium)
-                            }
-                            .frame(width: 90, height: 90)
-                            .background(Theme.lightGreen)
-                            .foregroundColor(Theme.primary)
-                            .cornerRadius(12)
-                        }
-                        Spacer()
-                    }
-                    .padding(.horizontal)
-                    
-                    VStack(spacing: 16) {
-                        CustomTextField(title: "Título", placeholder: "Ex: iPhone 13 128GB", text: $viewModel.title)
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Descrição")
-                                .font(.subheadline)
-                                .foregroundColor(Theme.textSecondary)
-                            TextEditor(text: $viewModel.description)
-                                .frame(height: 100)
-                                .padding(8)
-                                .background(Color.white)
-                                .cornerRadius(12)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .stroke(Theme.border, lineWidth: 1)
-                                )
-                        }
-                        
-                        CustomTextField(title: "Preço (R$)", placeholder: "0,00", text: $viewModel.price, keyboardType: .decimalPad)
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Estado")
-                                .font(.subheadline)
-                                .foregroundColor(Theme.textSecondary)
-                            Picker("Estado", selection: $viewModel.selectedCondition) {
-                                ForEach(ProductCondition.allCases, id: \.self) { condition in
-                                    Text(condition.rawValue).tag(condition)
+            Form {
+                Section(header: Text("Fotos do Produto")) {
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 12) {
+                            PhotosPicker(selection: $selectedItems, maxSelectionCount: 6, matching: .images) {
+                                VStack {
+                                    Image(systemName: "camera.fill")
+                                        .font(.title2)
+                                    Text("Adicionar")
+                                        .font(.caption)
+                                        .fontWeight(.semibold)
                                 }
+                                .frame(width: 80, height: 80)
+                                .background(Theme.inputBackground)
+                                .foregroundColor(Theme.primary)
+                                .cornerRadius(8)
                             }
-                            .pickerStyle(SegmentedPickerStyle())
-                        }
-                        
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Categoria")
-                                .font(.subheadline)
-                                .foregroundColor(Theme.textSecondary)
                             
-                            Menu {
-                                ForEach(MockData.categories) { category in
-                                    Button(category.name) {
-                                        viewModel.selectedCategoryId = category.id
-                                    }
-                                }
-                            } label: {
-                                HStack {
-                                    Text(MockData.categories.first { $0.id == viewModel.selectedCategoryId }?.name ?? "Selecione uma categoria")
-                                        .foregroundColor(viewModel.selectedCategoryId == nil ? .gray : Theme.textPrimary)
-                                    Spacer()
-                                    Image(systemName: "chevron.down")
-                                        .foregroundColor(Theme.textSecondary)
-                                }
-                                .padding()
-                                .background(Color.white)
-                                .cornerRadius(12)
-                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1))
+                            ForEach(0..<selectedImages.count, id: \.self) { index in
+                                Image(uiImage: selectedImages[index])
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 80, height: 80)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .overlay(
+                                        Button(action: {
+                                            selectedImages.remove(at: index)
+                                            selectedItems.remove(at: index)
+                                        }) {
+                                            Image(systemName: "minus.circle.fill")
+                                                .foregroundColor(.red)
+                                                .background(Circle().fill(Color.white))
+                                        }
+                                        .offset(x: 5, y: -5)
+                                        , alignment: .topTrailing
+                                    )
                             }
                         }
-                        
-                        CustomTextField(title: "Localização", placeholder: "Ex: São Paulo - SP", text: $viewModel.location)
-                        
-                        
+                        .padding(.vertical, 8)
                     }
-                    .padding(.horizontal)
-                    
-                    PrimaryButton(title: "Publicar anúncio", isEnabled: viewModel.isFormValid, isLoading: viewModel.isPublishing) {
-                        viewModel.publish()
+                    .onChange(of: selectedItems) { newItems in
+                        Task {
+                            selectedImages = []
+                            for item in newItems {
+                                if let data = try? await item.loadTransferable(type: Data.self),
+                                   let image = UIImage(data: data) {
+                                    selectedImages.append(image)
+                                }
+                            }
+                        }
                     }
-                    .padding()
                 }
-                .padding(.vertical)
+                
+                Section(header: Text("Informações Principais")) {
+                    TextField("Título (Ex: iPhone 13 128GB)", text: $viewModel.title)
+                    TextField("Preço (R$ 0,00)", text: $viewModel.price)
+                        .keyboardType(.decimalPad)
+                }
+                
+                Section(header: Text("Detalhes")) {
+                    Picker("Estado", selection: $viewModel.selectedCondition) {
+                        ForEach(ProductCondition.allCases, id: \.self) { condition in
+                            Text(condition.rawValue).tag(condition)
+                        }
+                    }
+                    
+                    Picker("Categoria", selection: $viewModel.selectedCategoryId) {
+                        Text("Selecione").tag(UUID?.none)
+                        ForEach(MockData.categories) { category in
+                            Text(category.name).tag(Optional(category.id))
+                        }
+                    }
+                    
+                    TextField("Localização (Ex: São Paulo - SP)", text: $viewModel.location)
+                }
+                
+                Section(header: Text("Descrição")) {
+                    TextEditor(text: $viewModel.description)
+                        .frame(minHeight: 100)
+                }
+                
+                Section {
+                    Button(action: {
+                        viewModel.publish()
+                    }) {
+                        HStack {
+                            Spacer()
+                            if viewModel.isPublishing {
+                                ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
+                            } else {
+                                Text("Publicar Anúncio")
+                                    .font(.headline)
+                            }
+                            Spacer()
+                        }
+                        .foregroundColor(viewModel.isFormValid ? .white : Theme.textSecondary)
+                    }
+                    .listRowBackground(viewModel.isFormValid ? Theme.primary : Theme.inputBackground)
+                    .disabled(!viewModel.isFormValid || viewModel.isPublishing)
+                }
             }
-            .background(Theme.background.ignoresSafeArea())
-            .navigationTitle("Anunciar produto")
+            .navigationTitle("Anunciar Produto")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: { dismiss() }) {
-                        Image(systemName: "chevron.left")
+                        Text("Cancelar")
                             .foregroundColor(Theme.primary)
                     }
                 }
             }
             .alert("Sucesso", isPresented: $viewModel.publishSuccess) {
-                Button("OK", role: .cancel) { }
+                Button("OK", role: .cancel) { dismiss() }
             } message: {
                 Text("Seu anúncio foi publicado com sucesso!")
             }
