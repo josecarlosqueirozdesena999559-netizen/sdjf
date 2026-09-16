@@ -199,18 +199,18 @@ struct RegisterView: View {
             VStack {
                 HStack {
                     Circle()
-                        .fill(Color(hex: "D4F5E5").opacity(0.5))
-                        .frame(width: 160, height: 160)
-                        .offset(x: -50, y: -50)
+                        .fill(Color(hex: "D4F5E5").opacity(0.6))
+                        .frame(width: 220, height: 220)
+                        .offset(x: -80, y: -80)
                     Spacer()
                 }
                 Spacer()
                 HStack {
                     Spacer()
                     Circle()
-                        .fill(Color(hex: "D4F5E5").opacity(0.4))
-                        .frame(width: 140, height: 140)
-                        .offset(x: 50, y: 50)
+                        .fill(Color(hex: "D4F5E5").opacity(0.5))
+                        .frame(width: 180, height: 180)
+                        .offset(x: 60, y: 60)
                 }
             }
             .ignoresSafeArea()
@@ -219,7 +219,7 @@ struct RegisterView: View {
                 // Logo top-left style
                 HStack(spacing: 6) {
                     Image(systemName: "paperplane.fill")
-                        .font(.system(size: 18, weight: .bold))
+                        .font(.system(size: 20, weight: .bold))
                         .foregroundColor(Theme.primary)
                     HStack(spacing: 0) {
                         Text("Mercado")
@@ -232,15 +232,16 @@ struct RegisterView: View {
                     Spacer()
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 8)
-                .padding(.bottom, 28)
+                .padding(.top, 16)
+                
+                Spacer()
                 
                 // Illustration — use cropped asset from design reference
                 Image("location_illustration")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 240, height: 200)
-                    .padding(.bottom, 28)
+                    .frame(width: 260)
+                    .padding(.bottom, 32)
                 
                 // Title: "De onde você é?" — "você" in green
                 Group {
@@ -248,7 +249,7 @@ struct RegisterView: View {
                     Text("você ").foregroundColor(Theme.primary) +
                     Text("é?").foregroundColor(Color(hex: "1A1A2E"))
                 }
-                .font(.system(size: 28, weight: .bold))
+                .font(.system(size: 32, weight: .bold))
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .padding(.bottom, 12)
@@ -261,7 +262,7 @@ struct RegisterView: View {
                     .lineSpacing(4)
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, 36)
-                    .padding(.bottom, 32)
+                    .padding(.bottom, 40)
                 
                 // Location confirmed badge
                 if !viewModel.locationName.isEmpty {
@@ -276,44 +277,46 @@ struct RegisterView: View {
                     .padding(.vertical, 10)
                     .background(Theme.lightGreen)
                     .cornerRadius(12)
-                    .padding(.bottom, 16)
+                    .padding(.bottom, 24)
                 }
                 
                 if viewModel.isFetchingLocation {
                     ProgressView("Obtendo localização...")
-                        .padding(.bottom, 16)
+                        .padding(.bottom, 24)
                 } else {
                     // Green pill button — paperplane icon
                     Button(action: { viewModel.requestLocation() }) {
                         HStack(spacing: 10) {
                             Image(systemName: "paperplane.fill")
-                                .font(.system(size: 14, weight: .bold))
+                                .font(.system(size: 16, weight: .bold))
                             Text("Usar minha localização atual")
                                 .font(.system(size: 16, weight: .bold))
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 17)
+                        .padding(.vertical, 18)
                         .background(Theme.primary)
                         .foregroundColor(.white)
                         .cornerRadius(32)
                     }
                     .padding(.horizontal, 24)
-                    .padding(.bottom, 16)
+                    .padding(.bottom, 24)
                     
                     // Escolher no mapa link
                     Button(action: { viewModel.locationName = "São Paulo - SP" }) {
                         HStack(spacing: 8) {
-                            Image(systemName: "scope")
-                                .font(.system(size: 16))
+                            Image(systemName: "smallcircle.filled.circle")
+                                .font(.system(size: 18, weight: .medium))
                             Text("Escolher no mapa")
-                                .font(.system(size: 15, weight: .medium))
+                                .font(.system(size: 16, weight: .bold))
                             Image(systemName: "chevron.right")
-                                .font(.system(size: 12, weight: .semibold))
+                                .font(.system(size: 12, weight: .bold))
                         }
                         .foregroundColor(Theme.primary)
                     }
                     .padding(.bottom, 20)
                 }
+                
+                Spacer()
                 
                 // Continuar — shown after location set
                 if !viewModel.locationName.isEmpty {
@@ -321,7 +324,7 @@ struct RegisterView: View {
                         withAnimation { viewModel.validateAndProceed() }
                     }
                     .padding(.horizontal, 24)
-                    .padding(.bottom, 8)
+                    .padding(.bottom, 20)
                 }
             }
         }
