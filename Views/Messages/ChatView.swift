@@ -10,6 +10,11 @@ struct ChatView: View {
     @State private var selectedAttachment: PhotosPickerItem? = nil
     @State private var isRecordingAudio = false
     
+    @State private var showRatingSheet = false
+    @State private var selectedStars = 0
+    @State private var ratingFeedback = ""
+    @State private var showRatingSuccess = false
+    
     var body: some View {
         VStack {
             ScrollView {
@@ -231,8 +236,84 @@ struct ChatView: View {
                     Text("Chat")
                 }
             }
+            
+            ToolbarItem(placement: .navigationBarTrailing) {
+                Button(action: {
+                    showRatingSheet = true
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "star.fill")
+                        Text("Avaliar")
+                    }
+                    .font(.caption)
+                    .foregroundColor(Theme.primary)
+                }
+            }
         }
-
+        .sheet(isPresented: $showRatingSheet) {
+            VStack(spacing: 24) {
+                Text("Avaliar Vendedor")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                
+                Text("Como foi sua experiência com este vendedor?")
+                    .multilineTextAlignment(.center)
+                    .foregroundColor(Theme.textSecondary)
+                    .padding(.horizontal)
+                
+                HStack(spacing: 16) {
+                    ForEach(1...5, id: \.self) { star in
+                        Image(systemName: star <= selectedStars ? "star.fill" : "star")
+                            .font(.system(size: 40))
+                            .foregroundColor(star <= selectedStars ? .yellow : Theme.textSecondary.opacity(0.3))
+                            .onTapGesture {
+                                selectedStars = star
+                            }
+                    }
+                }
+                
+                ZStack(alignment: .topLeading) {
+                    TextEditor(text: $ratingFeedback)
+                        .frame(height: 100)
+                        .padding(8)
+                        .background(Theme.inputBackground)
+                        .cornerRadius(12)
+                    
+                    if ratingFeedback.isEmpty {
+                        Text("Deixe um comentário (opcional)...")
+                            .foregroundColor(Theme.textSecondary)
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 16)
+                            .allowsHitTesting(false)
+                    }
+                }
+                .padding(.horizontal)
+                
+                Button(action: {
+                    showRatingSheet = false
+                    showRatingSuccess = true
+                }) {
+                    Text("Enviar Avaliação")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity)
+                        .padding()
+                        .background(selectedStars > 0 ? Theme.primary : Theme.textSecondary)
+                        .foregroundColor(.white)
+                        .cornerRadius(12)
+                        .padding(.horizontal)
+                }
+                .disabled(selectedStars == 0)
+                
+                Spacer()
+            }
+            .padding(.top, 40)
+            .presentationDetents([.fraction(0.55)])
+        }
+        .alert("Avaliação Enviada", isPresented: $showRatingSuccess) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text("Muito obrigado! Sua avaliação ajuda a manter a comunidade segura e confiável.")
+        }
         .onAppear {
             messages = [conversation.lastMessage]
             let formatter = DateFormatter()
@@ -264,5 +345,3 @@ struct AudioWaveView: View {
         }
     }
 }
-
-

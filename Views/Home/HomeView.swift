@@ -1,10 +1,11 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var favoritesViewModel: FavoritesViewModel
     @State private var searchText = ""
+    @State private var filterLocal = false
     
     let categoryColumns = Array(repeating: GridItem(.flexible(), spacing: 16), count: 4)
     let productColumns = Array(repeating: GridItem(.flexible(), spacing: 16), count: 2)
@@ -28,6 +29,19 @@ struct HomeView: View {
                         .cornerRadius(12)
                     }
                     .padding(.horizontal)
+                    
+                    // PROXIMITY TOGGLE
+                    Toggle(isOn: $filterLocal) {
+                        HStack {
+                            Image(systemName: "mappin.and.ellipse")
+                                .foregroundColor(Theme.primary)
+                            Text("Próximos a você (até 60km)")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .tint(Theme.primary)
                     
                     // Banner da Imagem Fornecida
                     Image("banner_home")
@@ -70,7 +84,11 @@ struct HomeView: View {
                             .padding(.horizontal)
                         
                         ForEach(MockData.categories) { category in
-                            let catProducts = MockData.products.filter { $0.categoryId == category.id }
+                            let catProducts = MockData.products.filter { p in
+                                p.categoryId == category.id &&
+                                (!filterLocal || p.location == (authViewModel.currentUser?.location ?? "São Paulo - SP"))
+                            }
+                            
                             if !catProducts.isEmpty {
                                 VStack(alignment: .leading, spacing: 12) {
                                     HStack {
