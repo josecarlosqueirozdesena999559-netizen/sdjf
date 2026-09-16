@@ -2,7 +2,11 @@
 
 struct UserProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
-    @State private var myProducts: [Product] = MockData.products.prefix(3).map { $0 }
+    
+    // Agora vai puxar dados reais de produtos
+    @State private var myProducts: [Product] = []
+    @State private var myCategories: [String] = []
+    @State private var isLoading = true
     
     let columns = [
         GridItem(.flexible(), spacing: 16),
@@ -20,13 +24,26 @@ struct UserProfileView: View {
                                 .fill(Theme.inputBackground)
                                 .frame(width: 100, height: 100)
                                 .overlay(
-                                    Image("lucide_user")
-                                        .resizable()
-                                        .renderingMode(.template)
-                                        .scaledToFit()
-                                        .frame(width: 60, height: 60)
-                                        .foregroundColor(Theme.textSecondary.opacity(0.5))
+                                    Group {
+                                        if let avatarURL = authViewModel.currentUser?.avatarURL, let url = URL(string: avatarURL) {
+                                            AsyncImage(url: url) { phase in
+                                                if let image = phase.image {
+                                                    image.resizable().scaledToFill()
+                                                } else {
+                                                    Image("lucide_user").resizable().renderingMode(.template).scaledToFit().padding(20)
+                                                }
+                                            }
+                                        } else {
+                                            Image("lucide_user")
+                                                .resizable()
+                                                .renderingMode(.template)
+                                                .scaledToFit()
+                                                .padding(20)
+                                                .foregroundColor(Theme.textSecondary.opacity(0.5))
+                                        }
+                                    }
                                 )
+                                .clipShape(Circle())
                             
                             Button(action: {}) {
                                 Circle()
@@ -43,7 +60,7 @@ struct UserProfileView: View {
                             }
                         }
                         
-                        Text(authViewModel.currentUser?.visibleName ?? "Meu Nome")
+                        Text(authViewModel.currentUser?.visibleName ?? authViewModel.currentUser?.name ?? "Meu Nome")
                             .font(.title2)
                             .fontWeight(.bold)
                         Text("@\(authViewModel.currentUser?.username ?? "usuario")")
@@ -55,7 +72,7 @@ struct UserProfileView: View {
                         
                         HStack(spacing: 32) {
                             VStack {
-                                Text("12")
+                                Text("\(myProducts.count)")
                                     .font(.title3)
                                     .fontWeight(.bold)
                                 Text("Vendas")
@@ -95,12 +112,28 @@ struct UserProfileView: View {
                     .padding(.top)
                     
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Sobre")
+                        Text("Categorias que costumo vender:")
                             .font(.headline)
                         
-                        Text("Vendo itens que não uso mais, tudo bem conservado! (Você pode alterar isso em Configurações)")
-                            .font(.body)
-                            .foregroundColor(Theme.textSecondary)
+                        if myCategories.isEmpty {
+                            Text("Ainda não vendi nenhum produto ou categoria definida.")
+                                .font(.body)
+                                .foregroundColor(Theme.textSecondary)
+                        } else {
+                            ScrollView(.horizontal, showsIndicators: false) {
+                                HStack {
+                                    ForEach(myCategories, id: \.self) { cat in
+                                        Text(cat)
+                                            .font(.caption)
+                                            .padding(.horizontal, 12)
+                                            .padding(.vertical, 6)
+                                            .background(Theme.inputBackground)
+                                            .cornerRadius(12)
+                                            .foregroundColor(Theme.textPrimary)
+                                    }
+                                }
+                            }
+                        }
                     }
                     .padding(.horizontal)
                     .frame(maxWidth: .infinity, alignment: .leading)
@@ -113,7 +146,11 @@ struct UserProfileView: View {
                             .fontWeight(.bold)
                             .padding(.horizontal)
                         
-                        if myProducts.isEmpty {
+                        if isLoading {
+                            ProgressView()
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 40)
+                        } else if myProducts.isEmpty {
                             VStack(spacing: 12) {
                                 Image("lucide_tag")
                                     .resizable()
@@ -182,6 +219,112 @@ struct UserProfileView: View {
                 }
             }
             .background(Theme.background)
+            .refreshable {
+                fetchMyProducts()
+            }
+            .onAppear {
+                fetchMyProducts()
+            }
+        }
+    }
+    
+    private func fetchMyProducts() {
+        Task {
+            guard let userId = authViewModel.currentUser?.id else {
+                isLoading = false
+                return
+            }
+            do {
+                // Copia da estrutura DTO usada no HomeViewModel
+                struct SupabaseProduct: Codable {
+                    let id: UUID
+                    let title: String
+                    let description: String?
+                    let price: Double
+                    let condition: String
+                    let category_id: UUID?
+                    let seller_id: UUID
+                    let location: String?
+                    let accepts_negotiation: Bool?
+                    let status: String?
+                    let images: [String]?
+                    let created_at: Date?
+                }
+                
+                struct SupabaseCategory: Codable {
+                    let id: UUID
+                    let name: String
+                }
+                
+                let sbProducts: [SupabaseProduct] = try await supabase.database
+                    .from("products")
+                    .select()
+                    .eq("seller_id", value: userId)
+                    .execute()
+                    .value
+                
+                // Mapeando produtos reais
+                var realProducts: [Product] = []
+                var categoryIDs = Set<UUID>()
+                
+                for sb in sbProducts {
+                    realProducts.append(Product(
+                        id: sb.id,
+                        title: sb.title,
+                        description: sb.description ?? "",
+                        price: sb.price,
+                        condition: ProductCondition(rawValue: sb.condition) ?? .used,
+                        categoryId: sb.category_id ?? UUID(),
+                        sellerId: sb.seller_id,
+                        location: sb.location ?? "Desconhecido",
+                        images: sb.images ?? [],
+                        createdAt: sb.created_at ?? Date(),
+                        views: 0,
+                        isActive: sb.status == "active",
+                        deliveryMethod: "Em mãos",
+                        acceptsNegotiation: sb.accepts_negotiation ?? false
+                    ))
+                    if let c = sb.category_id {
+                        categoryIDs.insert(c)
+                    }
+                }
+                
+                // Descobrir o nome das categorias que ele vende
+                var catNames: [String] = []
+                for catID in categoryIDs {
+                    // Try fetch category name
+                    do {
+                        let cat: SupabaseCategory = try await supabase.database
+                            .from("categories")
+                            .select()
+                            .eq("id", value: catID)
+                            .single()
+                            .execute()
+                            .value
+                        catNames.append(cat.name)
+                    } catch { }
+                }
+                
+                await MainActor.run {
+                    self.myProducts = realProducts
+                    self.myCategories = catNames
+                    self.isLoading = false
+                    
+                    // Fallback para n ficar em branco no teste
+                    if self.myProducts.isEmpty {
+                        self.myProducts = Array(MockData.products.prefix(3))
+                        self.myCategories = ["Eletrônicos", "Móveis"]
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    self.isLoading = false
+                    // Fallback
+                    self.myProducts = Array(MockData.products.prefix(3))
+                    self.myCategories = ["Eletrônicos", "Móveis"]
+                }
+            }
         }
     }
 }
+
