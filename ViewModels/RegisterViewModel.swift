@@ -24,6 +24,8 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var password = ""
     @Published var username = ""
     
+    @Published var errorMessage: String? = nil
+    
     // Location
     @Published var locationName = ""
     @Published var latitude: Double? = nil
@@ -42,6 +44,62 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
         locationManager.delegate = self
     }
     
+    func validateAndProceed() {
+        errorMessage = nil
+        
+        switch currentStep {
+        case .name:
+            if name.count < 3 {
+                errorMessage = "Digite seu nome completo."
+                return
+            }
+        case .cpf:
+            let cleanCpf = cpf.filter { $0.isNumber }
+            if cleanCpf.count != 11 {
+                errorMessage = "O CPF deve ter 11 números."
+                return
+            }
+            if MockData.users.contains(where: { $0.cpf?.filter { $0.isNumber } == cleanCpf }) {
+                errorMessage = "Este CPF já está cadastrado."
+                return
+            }
+        case .birthDate:
+            let age = Calendar.current.dateComponents([.year], from: birthDate, to: Date()).year ?? 0
+            if age < 18 {
+                errorMessage = "Você precisa ter mais de 18 anos."
+                return
+            }
+        case .email:
+            if !email.contains("@") || !email.contains(".") {
+                errorMessage = "Digite um e-mail válido."
+                return
+            }
+            if MockData.users.contains(where: { $0.email.lowercased() == email.lowercased() }) {
+                errorMessage = "Este e-mail já está em uso."
+                return
+            }
+        case .password:
+            if password.count < 6 {
+                errorMessage = "A senha deve ter no mínimo 6 caracteres."
+                return
+            }
+        case .username:
+            let cleanUser = username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+            if cleanUser.isEmpty {
+                errorMessage = "Digite um nome de usuário."
+                return
+            }
+            if MockData.users.contains(where: { $0.username?.lowercased() == cleanUser }) {
+                errorMessage = "Este usuário já existe. Tente outro."
+                return
+            }
+        default:
+            break
+        }
+        
+        nextStep()
+    }
+
     func nextStep() {
         if currentStep != .profileSetup {
             if let next = RegisterStep(rawValue: currentStep.rawValue + 1) {

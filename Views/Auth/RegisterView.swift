@@ -36,6 +36,17 @@ struct RegisterView: View {
                 .tint(Theme.primary)
                 .padding(.horizontal)
             
+            if let error = viewModel.errorMessage {
+                Text(error)
+                    .font(.footnote)
+                    .foregroundColor(Theme.error)
+                    .padding()
+                    .frame(maxWidth: .infinity)
+                    .background(Theme.error.opacity(0.1))
+                    .cornerRadius(8)
+                    .padding(.horizontal)
+            }
+            
             VStack {
             switch viewModel.currentStep {
             case .name:
@@ -75,7 +86,7 @@ struct RegisterView: View {
             CustomTextField(title: "Nome", placeholder: "Seu nome completo", text: $viewModel.name)
             
             PrimaryButton(title: "Continuar", isEnabled: !viewModel.name.isEmpty) {
-                withAnimation { viewModel.nextStep() }
+                withAnimation { viewModel.validateAndProceed() }
             }
         }
         .padding()
@@ -90,7 +101,7 @@ struct RegisterView: View {
             CustomTextField(title: "CPF", placeholder: "000.000.000-00", text: $viewModel.cpf, keyboardType: .numberPad)
             
             PrimaryButton(title: "Continuar", isEnabled: viewModel.cpf.count >= 11) {
-                withAnimation { viewModel.nextStep() }
+                withAnimation { viewModel.validateAndProceed() }
             }
         }
         .padding()
@@ -108,7 +119,7 @@ struct RegisterView: View {
                 .frame(maxWidth: .infinity)
             
             PrimaryButton(title: "Continuar") {
-                withAnimation { viewModel.nextStep() }
+                withAnimation { viewModel.validateAndProceed() }
             }
         }
         .padding()
@@ -123,7 +134,7 @@ struct RegisterView: View {
             CustomTextField(title: "E-mail", placeholder: "exemplo@email.com", text: $viewModel.email, keyboardType: .emailAddress)
             
             PrimaryButton(title: "Continuar", isEnabled: viewModel.email.contains("@")) {
-                withAnimation { viewModel.nextStep() }
+                withAnimation { viewModel.validateAndProceed() }
             }
         }
         .padding()
@@ -138,7 +149,7 @@ struct RegisterView: View {
             CustomTextField(title: "Senha", placeholder: "Sua senha", text: $viewModel.password, isSecure: true)
             
             PrimaryButton(title: "Continuar", isEnabled: viewModel.password.count >= 6) {
-                withAnimation { viewModel.nextStep() }
+                withAnimation { viewModel.validateAndProceed() }
             }
         }
         .padding()
@@ -153,10 +164,22 @@ struct RegisterView: View {
                 .font(.subheadline)
                 .foregroundColor(Theme.textSecondary)
             
-            CustomTextField(title: "Usuário", placeholder: "@seu.usuario", text: $viewModel.username)
+                        VStack(alignment: .leading, spacing: 8) {
+                Text("Usuário").font(.subheadline).foregroundColor(Theme.textSecondary)
+                HStack {
+                    Text("@").foregroundColor(Theme.textSecondary).fontWeight(.bold)
+                    TextField("seu.usuario", text: $viewModel.username)
+                        .autocapitalization(.none)
+                        .disableAutocorrection(true)
+                }
+                .padding()
+                .background(Theme.inputBackground)
+                .cornerRadius(12)
+                .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1))
+            }
             
             PrimaryButton(title: "Continuar", isEnabled: !viewModel.username.isEmpty) {
-                withAnimation { viewModel.nextStep() }
+                withAnimation { viewModel.validateAndProceed() }
             }
         }
         .padding()
@@ -210,7 +233,7 @@ struct RegisterView: View {
             Spacer()
             
             PrimaryButton(title: "Continuar", isEnabled: !viewModel.locationName.isEmpty) {
-                withAnimation { viewModel.nextStep() }
+                withAnimation { viewModel.validateAndProceed() }
             }
         }
         .padding()

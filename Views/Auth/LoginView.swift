@@ -24,7 +24,7 @@ struct LoginView: View {
                 }
                 
                 VStack(spacing: 16) {
-                    CustomTextField(title: "E-mail ou telefone", placeholder: "Digite seu e-mail", text: $email, keyboardType: .emailAddress)
+                    CustomTextField(title: "Usuário, E-mail ou Telefone", placeholder: "@seu.usuario ou email", text: $email, keyboardType: .emailAddress)
                     CustomTextField(title: "Senha", placeholder: "Sua senha", text: $password, isSecure: true)
                 }
                 
@@ -41,24 +41,7 @@ struct LoginView: View {
                     authViewModel.login()
                 }
                 
-                HStack {
-                    VStack { Divider() }
-                    Text("ou").foregroundColor(Theme.textSecondary).font(.caption)
-                    VStack { Divider() }
-                }
-                .padding(.vertical, 8)
-                
-                Button(action: {}) {
-                    HStack {
-                        Image(systemName: "applelogo")
-                        Text("Continuar com Apple")
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding()
-                    .background(Color.black)
-                    .foregroundColor(.white)
-                    .cornerRadius(12)
-                }
+
                 
                 HStack {
                     Text("Ainda não possui uma conta?")
