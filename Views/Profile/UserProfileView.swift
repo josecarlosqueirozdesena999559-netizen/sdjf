@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 
 struct UserProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -66,9 +66,15 @@ struct UserProfileView: View {
                         Text("@\(authViewModel.currentUser?.username ?? "usuario")")
                             .foregroundColor(Theme.textSecondary)
                         
-                        Text(authViewModel.currentUser?.location ?? "São Paulo - SP")
-                            .foregroundColor(Theme.textSecondary)
-                            .font(.subheadline)
+                        if let loc = authViewModel.currentUser?.location, !loc.isEmpty, loc != "Desconhecido" {
+                            Text(loc)
+                                .foregroundColor(Theme.textSecondary)
+                                .font(.subheadline)
+                        } else {
+                            Text("Localização não informada")
+                                .foregroundColor(Theme.textSecondary)
+                                .font(.subheadline)
+                        }
                         
                         HStack(spacing: 32) {
                             VStack {
@@ -82,7 +88,7 @@ struct UserProfileView: View {
                             
                             VStack {
                                 HStack(spacing: 4) {
-                                    Text("5.0")
+                                    Text(String(format: "%.1f", authViewModel.currentUser?.rating ?? 0.0))
                                         .font(.title3)
                                         .fontWeight(.bold)
                                     Image("lucide_star")
@@ -98,7 +104,7 @@ struct UserProfileView: View {
                             }
                             
                             VStack {
-                                Text("1 hora")
+                                Text(authViewModel.currentUser?.responseTime ?? "-")
                                     .font(.title3)
                                     .fontWeight(.bold)
                                 Text("Resposta")

@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import Combine
 import Supabase
 
@@ -12,6 +12,8 @@ struct Profile: Codable {
     let location: String?
     let avatar_url: String?
     let created_at: Date?
+    let rating: Double?
+    let response_time: String?
 }
 
 @MainActor
@@ -119,13 +121,15 @@ class AuthViewModel: ObservableObject {
                 latitude: nil,
                 longitude: nil,
                 memberSince: profile.created_at ?? Date(),
-                isProfessional: false
+                isProfessional: false,
+                rating: profile.rating,
+                responseTime: profile.response_time
             )
             self.isAuthenticated = true
         } catch {
             print("Erro ao carregar perfil, talvez não exista: \(error)")
             // Fallback for demo if profile doesn't exist yet but auth succeeded
-            self.currentUser = User(id: userId, name: "Usuário", cpf: "", birthDate: nil, email: email, phone: "", username: "user", visibleName: nil, avatarURL: nil, location: "Desconhecido", latitude: nil, longitude: nil, memberSince: Date(), isProfessional: false)
+            self.currentUser = User(id: userId, name: "Usuário", cpf: "", birthDate: nil, email: email, phone: "", username: "user", visibleName: nil, avatarURL: nil, location: "Desconhecido", latitude: nil, longitude: nil, memberSince: Date(), isProfessional: false, rating: nil, responseTime: nil)
             self.isAuthenticated = true
         }
     }

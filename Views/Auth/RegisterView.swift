@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import PhotosUI
 
 struct RegisterView: View {
@@ -387,7 +387,9 @@ struct RegisterView: View {
                     latitude: viewModel.latitude,
                     longitude: viewModel.longitude,
                     memberSince: Date(),
-                    isProfessional: false
+                    isProfessional: false,
+                    rating: nil,
+                    responseTime: nil
                 )
                 
                 authViewModel.currentUser = newUser

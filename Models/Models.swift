@@ -15,6 +15,8 @@ struct User: Identifiable, Codable {
     var longitude: Double?
     var memberSince: Date
     var isProfessional: Bool
+    var rating: Double?
+    var responseTime: String?
 }
 
 struct Seller: Identifiable, Codable {
