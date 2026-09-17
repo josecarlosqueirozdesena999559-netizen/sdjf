@@ -89,72 +89,72 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
         errorMessage = nil
         
         Task { @MainActor in
-            switch currentStep {
+            switch self.currentStep {
             case .name:
-                let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+                let trimmedName = self.name.trimmingCharacters(in: .whitespacesAndNewlines)
                 if trimmedName.count < 3 || !trimmedName.contains(" ") {
-                    errorMessage = "Digite seu nome e sobrenome completo."
+                    self.errorMessage = "Digite seu nome e sobrenome completo."
                     return
                 }
             case .cpf:
-                let cleanCpf = cpf.filter { $0.isNumber }
+                let cleanCpf = self.cpf.filter { $0.isNumber }
                 if cleanCpf.count != 11 {
-                    errorMessage = "O CPF deve conter exatamente 11 números."
+                    self.errorMessage = "O CPF deve conter exatamente 11 números."
                     return
                 }
                 if !RegisterViewModel.isValidCPF(cleanCpf) {
-                    errorMessage = "CPF inválido. Por favor, verifique os números."
+                    self.errorMessage = "CPF inválido. Por favor, verifique os números."
                     return
                 }
                 do {
                     let count: Int = try await supabase.database.from("profiles").select("id", head: true, count: .exact).eq("document", value: cleanCpf).execute().count ?? 0
                     if count > 0 {
-                        errorMessage = "Este CPF já está cadastrado em nosso sistema."
+                        self.errorMessage = "Este CPF já está cadastrado em nosso sistema."
                         return
                     }
                 } catch {
                     print("Erro verificando CPF: \(error)")
                 }
             case .birthDate:
-                let age = Calendar.current.dateComponents([.year], from: birthDate, to: Date()).year ?? 0
+                let age = Calendar.current.dateComponents([.year], from: self.birthDate, to: Date()).year ?? 0
                 if age < 18 {
-                    errorMessage = "É necessário ter mais de 18 anos para se cadastrar."
+                    self.errorMessage = "É necessário ter mais de 18 anos para se cadastrar."
                     return
                 }
             case .email:
-                let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
+                let cleanEmail = self.email.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !RegisterViewModel.isValidEmail(cleanEmail) {
-                    errorMessage = "Digite um endereço de e-mail válido (ex: nome@email.com)."
+                    self.errorMessage = "Digite um endereço de e-mail válido (ex: nome@email.com)."
                     return
                 }
                 do {
                     let count: Int = try await supabase.database.from("profiles").select("id", head: true, count: .exact).eq("email", value: cleanEmail.lowercased()).execute().count ?? 0
                     if count > 0 {
-                        errorMessage = "Este e-mail já está em uso por outra conta."
+                        self.errorMessage = "Este e-mail já está em uso por outra conta."
                         return
                     }
                 } catch {
                     print("Erro verificando email: \(error)")
                 }
             case .password:
-                if password.count < 6 {
-                    errorMessage = "A senha deve ter no mínimo 6 caracteres."
+                if self.password.count < 6 {
+                    self.errorMessage = "A senha deve ter no mínimo 6 caracteres."
                     return
                 }
             case .username:
-                let cleanUser = username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                let cleanUser = self.username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
                 if cleanUser.isEmpty {
-                    errorMessage = "Digite um nome de usuário."
+                    self.errorMessage = "Digite um nome de usuário."
                     return
                 }
                 if !RegisterViewModel.isValidUsername(cleanUser) {
-                    errorMessage = "O usuário deve ter de 3 a 20 caracteres e conter apenas letras, números, ponto ou underline."
+                    self.errorMessage = "O usuário deve ter de 3 a 20 caracteres e conter apenas letras, números, ponto ou underline."
                     return
                 }
                 do {
                     let count: Int = try await supabase.database.from("profiles").select("id", head: true, count: .exact).eq("username", value: cleanUser).execute().count ?? 0
                     if count > 0 {
-                        errorMessage = "Este nome de usuário '@\(cleanUser)' já está em uso. Escolha outro."
+                        self.errorMessage = "Este nome de usuário '@\(cleanUser)' já está em uso. Escolha outro."
                         return
                     }
                 } catch {
@@ -164,9 +164,7 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                 break
             }
             
-            withAnimation {
-                nextStep()
-            }
+            self.nextStep()
         }
     }
 
