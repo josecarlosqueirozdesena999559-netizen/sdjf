@@ -85,7 +85,21 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
         return userPred.evaluate(with: cleanUser)
     }
     
-        func validateAndProceed() {
+            func validateAndProceed() {
+        errorMessage = nil
+        
+        Task { @MainActor in
+            struct IDResponse: Codable { let id: UUID }
+            
+            switch self.currentStep {
+            case .name:
+                let trimmedName = self.name.trimmingCharacters(in: .whitespacesAndNewlines)
+                if trimmedName.count < 3 || !trimmedName.contains(" ") {
+                    self.errorMessage = "Digite seu nome e sobrenome completo."
+                    return
+                }
+            case .cpf:
+                let cleanCpf = self.cpf.filter { func validateAndProceed() {
         errorMessage = nil
         
         Task { @MainActor in
@@ -161,6 +175,78 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                     }
                 } catch {
                     print("Erro verificando username: \(error)")
+                }
+            default:
+                break
+            }
+            
+            self.nextStep()
+        }
+    }.isNumber }
+                if cleanCpf.count != 11 {
+                    self.errorMessage = "O CPF deve conter exatamente 11 números."
+                    return
+                }
+                if !RegisterViewModel.isValidCPF(cleanCpf) {
+                    self.errorMessage = "CPF inválido. Por favor, verifique os números."
+                    return
+                }
+                do {
+                    let existing: [IDResponse] = try await supabase.database.from("profiles").select("id").eq("document", value: cleanCpf).limit(1).execute().value
+                    if !existing.isEmpty {
+                        self.errorMessage = "Este CPF já está cadastrado em nosso sistema."
+                        return
+                    }
+                } catch {
+                    self.errorMessage = "Erro de rede ao validar CPF: \(error.localizedDescription)"
+                    return
+                }
+            case .birthDate:
+                let age = Calendar.current.dateComponents([.year], from: self.birthDate, to: Date()).year ?? 0
+                if age < 18 {
+                    self.errorMessage = "É necessário ter mais de 18 anos para se cadastrar."
+                    return
+                }
+            case .email:
+                let cleanEmail = self.email.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !RegisterViewModel.isValidEmail(cleanEmail) {
+                    self.errorMessage = "Digite um endereço de e-mail válido (ex: nome@email.com)."
+                    return
+                }
+                do {
+                    let existing: [IDResponse] = try await supabase.database.from("profiles").select("id").eq("email", value: cleanEmail.lowercased()).limit(1).execute().value
+                    if !existing.isEmpty {
+                        self.errorMessage = "Este e-mail já está em uso por outra conta."
+                        return
+                    }
+                } catch {
+                    self.errorMessage = "Erro ao validar e-mail: \(error.localizedDescription)"
+                    return
+                }
+            case .password:
+                if self.password.count < 6 {
+                    self.errorMessage = "A senha deve ter no mínimo 6 caracteres."
+                    return
+                }
+            case .username:
+                let cleanUser = self.username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+                if cleanUser.isEmpty {
+                    self.errorMessage = "Digite um nome de usuário."
+                    return
+                }
+                if !RegisterViewModel.isValidUsername(cleanUser) {
+                    self.errorMessage = "O usuário deve ter de 3 a 20 caracteres e conter apenas letras, números, ponto ou underline."
+                    return
+                }
+                do {
+                    let existing: [IDResponse] = try await supabase.database.from("profiles").select("id").eq("username", value: cleanUser).limit(1).execute().value
+                    if !existing.isEmpty {
+                        self.errorMessage = "Este nome de usuário '@\(cleanUser)' já está em uso. Escolha outro."
+                        return
+                    }
+                } catch {
+                    self.errorMessage = "Erro ao validar usuário: \(error.localizedDescription)"
+                    return
                 }
             default:
                 break
@@ -280,3 +366,4 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
 }
+
