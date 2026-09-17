@@ -11,6 +11,7 @@ struct SelectedMedia: Identifiable {
 struct PublishProductView: View {
     @StateObject private var viewModel = PublishViewModel()
     @Environment(\.dismiss) var dismiss
+    @EnvironmentObject var authViewModel: AuthViewModel
     
     @State private var selectedItems: [PhotosPickerItem] = []
     @State private var selectedMedia: [SelectedMedia] = []
