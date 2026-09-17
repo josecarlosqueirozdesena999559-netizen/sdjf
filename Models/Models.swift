@@ -84,9 +84,10 @@ enum NotificationType: String, Codable {
 
 struct AppNotification: Identifiable, Codable {
     let id: UUID
-    let type: NotificationType
+    let user_id: UUID
+    let type: String
     let title: String
     let body: String
-    let timestamp: Date
-    var isRead: Bool
+    let created_at: Date
+    var is_read: Bool
 }

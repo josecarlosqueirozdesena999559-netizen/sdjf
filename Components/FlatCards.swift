@@ -55,11 +55,26 @@ struct FlatProductCard: View {
                             .font(.caption2)
                             .foregroundColor(Theme.textSecondary)
                             .lineLimit(1)
-                        
-                        Text(Formatters.formatCurrency(product.price))
-                            .font(.headline)
-                            .fontWeight(.bold)
-                            .foregroundColor(Theme.primary)
+                        HStack {
+                            Text(Formatters.formatCurrency(product.price))
+                                .font(.headline)
+                                .fontWeight(.bold)
+                                .foregroundColor(Theme.primary)
+                                
+                            Spacer()
+                            
+                            HStack(spacing: 2) {
+                                Image("lucide_eye")
+                                    .resizable()
+                                    .renderingMode(.template)
+                                    .scaledToFit()
+                                    .frame(width: 12, height: 12)
+                                    .foregroundColor(Theme.textSecondary)
+                                Text("\(product.views)")
+                                    .font(.caption2)
+                                    .foregroundColor(Theme.textSecondary)
+                            }
+                        }
                     }
                 }
             }

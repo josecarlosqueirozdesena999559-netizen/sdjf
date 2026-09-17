@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 
 struct ProductOffer: Identifiable {
     let id = UUID()
@@ -280,6 +280,15 @@ struct ProductDetailView: View {
                     ProductOffer(bidderName: "Carlos Silva", bidderId: UUID(), amount: product.price * 0.9, time: Date()),
                     ProductOffer(bidderName: "Amanda Costa", bidderId: UUID(), amount: product.price * 0.85, time: Date())
                 ]
+            }
+            
+            // Increment view count in Supabase
+            Task {
+                do {
+                    try await supabase.database.rpc("increment_product_views", params: ["product_id": product.id.uuidString]).execute()
+                } catch {
+                    print("Failed to increment views: \(error)")
+                }
             }
         }
         .overlay(

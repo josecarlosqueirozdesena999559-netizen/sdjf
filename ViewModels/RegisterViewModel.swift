@@ -245,6 +245,25 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                     .from("profiles")
                     .insert(newProfile)
                     .execute()
+                    
+                // Send welcome notification
+                struct WelcomeNotification: Codable {
+                    let user_id: UUID
+                    let type: String
+                    let title: String
+                    let body: String
+                }
+                let welcomeNotif = WelcomeNotification(
+                    user_id: user.id,
+                    type: "welcome",
+                    title: "Bem-vindo ao Achou Marketplace!",
+                    body: "Comece a explorar as melhores ofertas agora mesmo."
+                )
+                do {
+                    try await supabase.database.from("notifications").insert(welcomeNotif).execute()
+                } catch {
+                    print("Could not insert welcome notif: \(error)")
+                }
                 
                 let finalEmail = self.email
                 let finalPassword = self.password
