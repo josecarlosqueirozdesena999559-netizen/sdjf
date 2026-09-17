@@ -238,10 +238,18 @@ struct PublishProductView: View {
             .onChange(of: selectedItems) { newItems in
                 loadMedia(from: newItems)
             }
-            .alert("Sucesso", isPresented: $viewModel.publishSuccess) {
+            .alert("Post Realizado!", isPresented: $viewModel.publishSuccess) {
                 Button("Ver meus anúncios", role: .cancel) { dismiss() }
             } message: {
-                Text("Seu anúncio foi publicado com sucesso e já está visível para os compradores!")
+                Text("Seu anúncio foi publicado com sucesso e já está no ar!")
+            }
+            .alert("Erro", isPresented: Binding<Bool>(
+                get: { viewModel.publishError != nil },
+                set: { if !$0 { viewModel.publishError = nil } }
+            )) {
+                Button("OK", role: .cancel) { }
+            } message: {
+                Text(viewModel.publishError ?? "Erro desconhecido")
             }
         }
     }

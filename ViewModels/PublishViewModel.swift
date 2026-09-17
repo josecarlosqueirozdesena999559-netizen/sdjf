@@ -12,6 +12,7 @@ class PublishViewModel: ObservableObject {
     @Published var acceptsNegotiation: Bool = true
     @Published var isPublishing: Bool = false
     @Published var publishSuccess: Bool = false
+    @Published var publishError: String? = nil
     
     var isFormValid: Bool {
         return !title.isEmpty && !price.isEmpty && selectedCategoryId != nil && !location.isEmpty
@@ -20,9 +21,13 @@ class PublishViewModel: ObservableObject {
     func publish(sellerId: UUID) {
         guard isFormValid else { return }
         isPublishing = true
+        publishError = nil
         
         Task {
             do {
+                // Pequeno delay para exibir a animação de carregamento (feedback visual)
+                try? await Task.sleep(nanoseconds: 1_200_000_000)
+                
                 let pPrice = Double(price.replacingOccurrences(of: ",", with: ".")) ?? 0.0
                 
                 struct InsertProduct: Codable {
@@ -62,6 +67,7 @@ class PublishViewModel: ObservableObject {
                 print("Erro ao publicar: \(error)")
                 await MainActor.run {
                     self.isPublishing = false
+                    self.publishError = "Ocorreu um erro ao publicar. Tente novamente."
                 }
             }
         }
