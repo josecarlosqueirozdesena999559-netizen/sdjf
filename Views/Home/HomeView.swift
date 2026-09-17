@@ -5,6 +5,7 @@ struct HomeView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @EnvironmentObject var favoritesViewModel: FavoritesViewModel
     @State private var searchText = ""
+    @Environment(\.scenePhase) var scenePhase
     
     let categoryColumns = Array(repeating: GridItem(.flexible(), spacing: 16), count: 4)
     let productColumns = Array(repeating: GridItem(.flexible(), spacing: 16), count: 2)
@@ -156,7 +157,13 @@ struct HomeView: View {
                 }
             }
             .onAppear {
-                if viewModel.categories.isEmpty {
+                viewModel.fetchHomeData()
+            }
+            .refreshable {
+                viewModel.fetchHomeData()
+            }
+            .onChange(of: scenePhase) { newPhase in
+                if newPhase == .active {
                     viewModel.fetchHomeData()
                 }
             }

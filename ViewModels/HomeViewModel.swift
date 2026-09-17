@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import Combine
 
 struct SupabaseProduct: Codable {
@@ -14,6 +14,7 @@ struct SupabaseProduct: Codable {
     let status: String?
     let images: [String]?
     let created_at: Date?
+    let views: Int?
 }
 
 struct SupabaseCategory: Codable {
@@ -74,6 +75,7 @@ class HomeViewModel: ObservableObject {
                 let sbProducts: [SupabaseProduct] = try await supabase.database
                     .from("products")
                     .select()
+                    .order("views", ascending: false)
                     .order("created_at", ascending: false)
                     .limit(20)
                     .execute()
@@ -91,7 +93,7 @@ class HomeViewModel: ObservableObject {
                         location: sb.location ?? "Desconhecido",
                         images: sb.images ?? [],
                         createdAt: sb.created_at ?? Date(),
-                        views: 0,
+                        views: sb.views ?? 0,
                         isActive: sb.status == "active",
                         deliveryMethod: "Em mãos",
                         acceptsNegotiation: sb.accepts_negotiation ?? false

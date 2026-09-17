@@ -282,10 +282,16 @@ struct ProductDetailView: View {
                 ]
             }
             
-            // Increment view count in Supabase
+            // Increment view count in Supabase (unique per user)
             Task {
+                guard let userId = authViewModel.currentUser?.id else { return }
                 do {
-                    try await supabase.database.rpc("increment_product_views", params: ["product_id": product.id.uuidString]).execute()
+                    struct IncrementParams: Codable {
+                        let p_product_id: UUID
+                        let p_user_id: UUID
+                    }
+                    let params = IncrementParams(p_product_id: product.id, p_user_id: userId)
+                    try await supabase.database.rpc("increment_product_views", params: params).execute()
                 } catch {
                     print("Failed to increment views: \(error)")
                 }
