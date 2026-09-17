@@ -13,7 +13,7 @@ struct Profile: Codable {
     let avatar_url: String?
     let created_at: Date?
     let rating: Double?
-    let response_time: String?
+    let avg_response_time: String?
 }
 
 @MainActor
@@ -109,13 +109,13 @@ class AuthViewModel: ObservableObject {
             
             // Map to our User struct
             self.currentUser = User(
-                id: profile.id,
-                name: profile.name,
-                cpf: profile.document,
+                id: userId,
+                name: profile.name ?? "",
+                cpf: profile.document ?? "",
                 birthDate: nil,
                 email: profile.email ?? email,
                 phone: "",
-                username: profile.username,
+                username: profile.username ?? "",
                 visibleName: profile.visible_name,
                 avatarURL: profile.avatar_url,
                 location: profile.location ?? "Desconhecido",
@@ -124,7 +124,7 @@ class AuthViewModel: ObservableObject {
                 memberSince: profile.created_at ?? Date(),
                 isProfessional: false,
                 rating: profile.rating,
-                responseTime: profile.response_time
+                responseTime: profile.avg_response_time
             )
             self.isAuthenticated = true
         } catch {
