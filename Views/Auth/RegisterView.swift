@@ -180,6 +180,12 @@ struct RegisterView: View {
                 .background(Theme.inputBackground)
                 .cornerRadius(12)
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1))
+                
+                if !viewModel.username.isEmpty && viewModel.username.count >= 3 && viewModel.errorMessage == nil {
+                    Text("Nome de usuário disponível")
+                        .font(.caption)
+                        .foregroundColor(Theme.primary)
+                }
             }
             
             PrimaryButton(title: "Continuar", isEnabled: !viewModel.username.isEmpty) {
@@ -371,28 +377,9 @@ struct RegisterView: View {
             Spacer().frame(height: 12)
             
             PrimaryButton(title: "Concluir cadastro", isEnabled: !viewModel.visibleName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
-                let newUser = User(
-                    id: UUID(),
-                    name: viewModel.name,
-                    cpf: viewModel.cpf,
-                    birthDate: viewModel.birthDate,
-                    email: viewModel.email,
-                    phone: "",
-                    username: viewModel.username,
-                    visibleName: viewModel.visibleName,
-                    avatarURL: nil,
-                    location: viewModel.locationName,
-                    latitude: viewModel.latitude,
-                    longitude: viewModel.longitude,
-                    memberSince: Date(),
-                    isProfessional: false,
-                    rating: nil,
-                    responseTime: nil
-                )
-                
-                authViewModel.currentUser = newUser
-                authViewModel.isAuthenticated = true
-                dismiss()
+                viewModel.register(authViewModel: authViewModel) {
+                    dismiss()
+                }
             }
             .padding(.horizontal)
         }

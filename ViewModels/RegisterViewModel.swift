@@ -1,4 +1,4 @@
-﻿import Foundation
+�import Foundation
 import Combine
 import CoreLocation
 import UIKit
@@ -118,13 +118,13 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
             case .birthDate:
                 let age = Calendar.current.dateComponents([.year], from: self.birthDate, to: Date()).year ?? 0
                 if age < 18 {
-                    self.errorMessage = "É necessário ter mais de 18 anos para se cadastrar."
+                    self.errorMessage = "� necess�rio ter mais de 18 anos para se cadastrar."
                     return
                 }
             case .email:
                 let cleanEmail = self.email.trimmingCharacters(in: .whitespacesAndNewlines)
                 if !RegisterViewModel.isValidEmail(cleanEmail) {
-                    self.errorMessage = "Digite um endereço de e-mail válido (ex: nome@email.com)."
+                    self.errorMessage = "Digite um endere�o de e-mail v�lido (ex: nome@email.com)."
                     return
                 }
                 do {
@@ -142,17 +142,17 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
             case .username:
                 let cleanUser = self.username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
                 if cleanUser.isEmpty {
-                    self.errorMessage = "Digite um nome de usuário."
+                    self.errorMessage = "Digite um nome de usu�rio."
                     return
                 }
                 if !RegisterViewModel.isValidUsername(cleanUser) {
-                    self.errorMessage = "O usuário deve ter de 3 a 20 caracteres e conter apenas letras, números, ponto ou underline."
+                    self.errorMessage = "O usu�rio deve ter de 3 a 20 caracteres e conter apenas letras, números, ponto ou underline."
                     return
                 }
                 do {
                     let existing: [IDResponse] = try await supabase.database.from("profiles").select("id").eq("username", value: cleanUser).limit(1).execute().value
                     if !existing.isEmpty {
-                        self.errorMessage = "Este nome de usuário '@\(cleanUser)' já está em uso. Escolha outro."
+                        self.errorMessage = "Este nome de usu�rio '@\(cleanUser)' já está em uso. Escolha outro."
                         return
                     }
                 } catch { self.errorMessage = "Erro de rede ao validar Username."; return }
@@ -201,10 +201,10 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                     if !city.isEmpty && !state.isEmpty {
                         self.locationName = "\(city) - \(state)"
                     } else {
-                        self.locationName = "LocalizaÃ§Ã£o obtida com sucesso!"
+                        self.locationName = "Localização obtida com sucesso!"
                     }
                 } else {
-                    self.locationName = "LocalizaÃ§Ã£o obtida com sucesso!"
+                    self.locationName = "Localização obtida com sucesso!"
                 }
             }
         }
@@ -214,7 +214,7 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         DispatchQueue.main.async {
             self.isFetchingLocation = false
-            self.locationName = "Falha ao obter LocalizaÃ§Ã£o."
+            self.locationName = "Falha ao obter Localização."
         }
     }
                 func register(authViewModel: AuthViewModel, completion: @escaping () -> Void) {
@@ -251,7 +251,7 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                     avatar_url: avatarUrlStr,
                     created_at: Date(),
                     rating: nil,
-                    response_time: nil
+                    avg_response_time: nil
                 )
                 
                 try await supabase.database
