@@ -2,6 +2,7 @@ import SwiftUI
 
 struct MessagesListView: View {
     @StateObject private var viewModel = MessagesViewModel()
+    @EnvironmentObject var authViewModel: AuthViewModel
     @Binding var selectedTab: Int
     
     var body: some View {
@@ -9,13 +10,15 @@ struct MessagesListView: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(viewModel.conversations) { conversation in
-                        NavigationLink(destination: ChatView(conversation: conversation)) {
-                            MessageRowView(conversation: conversation)
+                        if let user = authViewModel.currentUser {
+                            NavigationLink(destination: ChatView(conversation: conversation, currentUser: user)) {
+                                MessageRowView(conversation: conversation)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            
+                            Divider()
+                                .padding(.leading, 76)
                         }
-                        .buttonStyle(PlainButtonStyle())
-                        
-                        Divider()
-                            .padding(.leading, 76)
                     }
                 }
             }
@@ -34,7 +37,11 @@ struct MessagesListView: View {
                 }
             }
             .onAppear {
-                viewModel.fetchConversations()
+                if let user = authViewModel.currentUser {
+                    Task {
+                        await viewModel.fetchConversations(for: user.id)
+                    }
+                }
             }
         }
     }

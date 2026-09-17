@@ -2,11 +2,8 @@ import SwiftUI
 import PhotosUI
 
 struct ChatView: View {
-    let conversation: Conversation
-    @EnvironmentObject var authViewModel: AuthViewModel
+    @StateObject var viewModel: ChatViewModel
     @State private var messageText = ""
-    @State private var messages: [Message] = []
-    @State private var chatStatus: String = "online"
     @State private var selectedAttachment: PhotosPickerItem? = nil
     @State private var isRecordingAudio = false
     
@@ -14,6 +11,10 @@ struct ChatView: View {
     @State private var selectedStars = 0
     @State private var ratingFeedback = ""
     @State private var showRatingSuccess = false
+    
+    init(conversation: Conversation, currentUser: User) {
+        _viewModel = StateObject(wrappedValue: ChatViewModel(conversation: conversation, currentUser: currentUser))
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -42,9 +43,9 @@ struct ChatView: View {
             
             ScrollView {
                 VStack(spacing: 12) {
-                    ForEach(messages) { message in
+                    ForEach(viewModel.messages) { message in
                         HStack {
-                            if message.senderId == authViewModel.currentUser?.id || message.senderId == UUID(uuidString: "00000000-0000-0000-0000-000000000000") /* Fallback mock */ {
+                            if message.senderId == viewModel.currentUser.id {
                                 Spacer()
                                 VStack(alignment: .trailing, spacing: 4) {
                                     if message.imageName != nil {
@@ -119,24 +120,11 @@ struct ChatView: View {
                         .foregroundColor(Theme.textSecondary)
                 }
                 .onChange(of: selectedAttachment) { _ in
-                    // Simulate sending the selected image/video
                     if selectedAttachment != nil {
-                        let newMsg = Message(id: UUID(), senderId: authViewModel.currentUser?.id ?? UUID(), receiverId: conversation.participantId, text: "📷 Mídia", imageName: "mock_image", timestamp: Date(), isRead: false)
-                        messages.append(newMsg)
+                        Task {
+                            await viewModel.sendMessage(text: "📷 Mídia", mediaUrl: "mock_image")
+                        }
                         selectedAttachment = nil
-                        
-                        // Fake reply
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                            chatStatus = "online"
-                            for i in 0..<messages.count {
-                                if messages[i].senderId != conversation.participantId { messages[i].isRead = true }
-                            }
-                        }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { chatStatus = "digitando..." }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 4.0) {
-                            messages.append(Message(id: UUID(), senderId: conversation.participantId, receiverId: authViewModel.currentUser?.id ?? UUID(), text: "Que legal!", timestamp: Date(), isRead: true))
-                            chatStatus = "online"
-                        }
                     }
                 }
                 
@@ -150,25 +138,18 @@ struct ChatView: View {
                         TextField("Mensagem...", text: $messageText)
                             .padding(.vertical, 10)
                             .padding(.horizontal, 12)
+                            .onChange(of: messageText) { _ in
+                                viewModel.sendTypingEvent()
+                            }
                     }
                     
                     if messageText.isEmpty {
                         Button(action: {
                             if isRecordingAudio {
-                                let newMsg = Message(id: UUID(), senderId: authViewModel.currentUser?.id ?? UUID(), receiverId: conversation.participantId, text: "🎤 Mensagem de Voz", timestamp: Date(), isRead: false)
-                                messages.append(newMsg)
+                                Task {
+                                    await viewModel.sendMessage(text: "🎤 Mensagem de Voz")
+                                }
                                 isRecordingAudio = false
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                                    chatStatus = "online"
-                                    for i in 0..<messages.count {
-                                        if messages[i].senderId != conversation.participantId { messages[i].isRead = true }
-                                    }
-                                }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { chatStatus = "gravando áudio..." }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                                    messages.append(Message(id: UUID(), senderId: conversation.participantId, receiverId: authViewModel.currentUser?.id ?? UUID(), text: "🎤 áudio (0:12)", timestamp: Date(), isRead: true))
-                                    chatStatus = "online"
-                                }
                             } else {
                                 isRecordingAudio = true
                             }
@@ -181,32 +162,10 @@ struct ChatView: View {
                     } else {
                         Button(action: {
                             if !messageText.isEmpty {
-                                let newMsg = Message(id: UUID(), senderId: authViewModel.currentUser?.id ?? UUID(), receiverId: conversation.participantId, text: messageText, timestamp: Date(), isRead: false)
-                                messages.append(newMsg)
+                                let text = messageText
                                 messageText = ""
-                                
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-                                    chatStatus = "online"
-                                    for i in 0..<messages.count {
-                                        if messages[i].senderId != conversation.participantId {
-                                            messages[i].isRead = true
-                                        }
-                                    }
-                                }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
-                                    chatStatus = "digitando..."
-                                }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 4.5) {
-                                    let formatter = DateFormatter()
-                                    formatter.timeStyle = .short
-                                    let timeString = formatter.string(from: Date())
-                                    
-                                    messages.append(Message(id: UUID(), senderId: conversation.participantId, receiverId: authViewModel.currentUser?.id ?? UUID(), text: "Certo! Podemos fechar negócio.", timestamp: Date(), isRead: true))
-                                    chatStatus = "online"
-                                    
-                                    DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                                        chatStatus = "visto por último hoje às \(timeString)"
-                                    }
+                                Task {
+                                    await viewModel.sendMessage(text: text)
                                 }
                             }
                         }) {
@@ -230,7 +189,7 @@ struct ChatView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
-                if let user = MockData.users.first(where: { $0.id == conversation.participantId }) {
+                if let user = MockData.users.first(where: { $0.id == viewModel.conversation.participantId }) {
                     NavigationLink(destination: SellerProfileView(seller: Seller(id: UUID(), user: user, isVerified: true, rating: 4.8, reviewCount: 15, salesCount: 30, averageResponseTime: "Responde em 1h", bio: "Vendedor de confiabilidade."))) {
                         HStack(spacing: 8) {
                             Circle()
@@ -246,9 +205,10 @@ struct ChatView: View {
                                     .font(.headline)
                                     .foregroundColor(Theme.textPrimary)
                                 
-                                Text(chatStatus)
+                                let statusText = viewModel.isTyping ? "digitando..." : (viewModel.otherUserOnline ? "online" : (viewModel.lastSeen != nil ? "visto por último hoje" : "offline"))
+                                Text(statusText)
                                     .font(.caption)
-                                    .foregroundColor(chatStatus == "online" || chatStatus == "digitando..." ? Theme.primary : Theme.textSecondary)
+                                    .foregroundColor(viewModel.isTyping || viewModel.otherUserOnline ? Theme.primary : Theme.textSecondary)
                             }
                         }
                     }
@@ -323,11 +283,7 @@ struct ChatView: View {
             Text("Muito obrigado! Sua avaliação ajuda a manter a comunidade segura e confiável.")
         }
         .onAppear {
-            messages = [conversation.lastMessage]
-            let formatter = DateFormatter()
-            formatter.timeStyle = .short
-            let timeString = formatter.string(from: Date().addingTimeInterval(-1800)) // 30 mins ago
-            chatStatus = "visto por último hoje às \(timeString)"
+            // ChatViewModel takes care of fetching messages
         }
     }
 }
