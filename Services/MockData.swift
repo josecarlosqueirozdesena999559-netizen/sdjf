@@ -1,4 +1,4 @@
-�import Foundation
+import Foundation
 
 struct MockData {
     static let categories: [Category] = [

@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 
 struct SellerProfileView: View {
     let seller: Seller

@@ -106,11 +106,10 @@ class AuthViewModel: ObservableObject {
                 .single()
                 .execute()
                 .value
-            
             // Map to our User struct
             self.currentUser = User(
                 id: userId,
-                name: profile.name ?? "",
+                name: profile.name,
                 cpf: profile.document ?? "",
                 birthDate: nil,
                 email: profile.email ?? email,

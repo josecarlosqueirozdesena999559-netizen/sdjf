@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 
 struct MyAdsView: View {
     @State private var selectedTab = 0

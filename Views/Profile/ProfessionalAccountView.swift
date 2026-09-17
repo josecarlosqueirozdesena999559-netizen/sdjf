@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 
 struct ProfessionalAccountView: View {
     var body: some View {

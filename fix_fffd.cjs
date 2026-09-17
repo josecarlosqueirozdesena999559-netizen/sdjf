@@ -1,0 +1,10 @@
+﻿const fs = require('fs');
+let c = fs.readFileSync('ViewModels/RegisterViewModel.swift', 'utf8');
+c = c.replace(/n.meros/g, 'números');
+c = c.replace(/inv.lido/g, 'inválido');
+c = c.replace(/j. est./g, 'já está');
+c = c.replace(/Us.rio/g, 'Usuário');
+c = c.replace(/us.rio/g, 'usuário');
+c = c.replace(/m.nimo/g, 'mínimo');
+c = c.replace(/M.nimo/g, 'Mínimo');
+fs.writeFileSync('ViewModels/RegisterViewModel.swift', c, 'utf8');

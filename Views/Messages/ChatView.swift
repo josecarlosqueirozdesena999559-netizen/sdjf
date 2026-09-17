@@ -1,4 +1,4 @@
-�import SwiftUI
+import SwiftUI
 import PhotosUI
 
 struct ChatView: View {
@@ -18,7 +18,7 @@ struct ChatView: View {
     var body: some View {
         VStack(spacing: 0) {
             
-            // BANNER DE AVALIA��O - Movido para fora da NavigationBar
+            // BANNER DE AVALIAÇÃO - Movido para fora da NavigationBar
             Button(action: {
                 showRatingSheet = true
             }) {
@@ -77,7 +77,7 @@ struct ChatView: View {
                                 }
                             } else {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    if message.text.contains("<�") {
+                                    if message.text.contains("🎤") {
                                         HStack {
                                             Image(systemName: "play.fill")
                                                 .foregroundColor(Theme.primary)
@@ -121,7 +121,7 @@ struct ChatView: View {
                 .onChange(of: selectedAttachment) { _ in
                     // Simulate sending the selected image/video
                     if selectedAttachment != nil {
-                        let newMsg = Message(id: UUID(), senderId: authViewModel.currentUser?.id ?? UUID(), receiverId: conversation.participantId, text: "=� M�dia", imageName: "mock_image", timestamp: Date(), isRead: false)
+                        let newMsg = Message(id: UUID(), senderId: authViewModel.currentUser?.id ?? UUID(), receiverId: conversation.participantId, text: "📷 Mídia", imageName: "mock_image", timestamp: Date(), isRead: false)
                         messages.append(newMsg)
                         selectedAttachment = nil
                         
@@ -155,7 +155,7 @@ struct ChatView: View {
                     if messageText.isEmpty {
                         Button(action: {
                             if isRecordingAudio {
-                                let newMsg = Message(id: UUID(), senderId: authViewModel.currentUser?.id ?? UUID(), receiverId: conversation.participantId, text: "<� Mensagem de Voz", timestamp: Date(), isRead: false)
+                                let newMsg = Message(id: UUID(), senderId: authViewModel.currentUser?.id ?? UUID(), receiverId: conversation.participantId, text: "🎤 Mensagem de Voz", timestamp: Date(), isRead: false)
                                 messages.append(newMsg)
                                 isRecordingAudio = false
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
@@ -164,9 +164,9 @@ struct ChatView: View {
                                         if messages[i].senderId != conversation.participantId { messages[i].isRead = true }
                                     }
                                 }
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { chatStatus = "gravando �udio..." }
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { chatStatus = "gravando áudio..." }
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
-                                    messages.append(Message(id: UUID(), senderId: conversation.participantId, receiverId: authViewModel.currentUser?.id ?? UUID(), text: "<� �udio (0:12)", timestamp: Date(), isRead: true))
+                                    messages.append(Message(id: UUID(), senderId: conversation.participantId, receiverId: authViewModel.currentUser?.id ?? UUID(), text: "🎤 áudio (0:12)", timestamp: Date(), isRead: true))
                                     chatStatus = "online"
                                 }
                             } else {
@@ -201,11 +201,11 @@ struct ChatView: View {
                                     formatter.timeStyle = .short
                                     let timeString = formatter.string(from: Date())
                                     
-                                    messages.append(Message(id: UUID(), senderId: conversation.participantId, receiverId: authViewModel.currentUser?.id ?? UUID(), text: "Certo! Podemos fechar neg�cio.", timestamp: Date(), isRead: true))
+                                    messages.append(Message(id: UUID(), senderId: conversation.participantId, receiverId: authViewModel.currentUser?.id ?? UUID(), text: "Certo! Podemos fechar negócio.", timestamp: Date(), isRead: true))
                                     chatStatus = "online"
                                     
                                     DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                                        chatStatus = "visto por �ltimo hoje �s \(timeString)"
+                                        chatStatus = "visto por último hoje às \(timeString)"
                                     }
                                 }
                             }
@@ -264,7 +264,7 @@ struct ChatView: View {
                     .font(.title2)
                     .fontWeight(.bold)
                 
-                Text("Como foi sua experi�ncia com este vendedor?")
+                Text("Como foi sua experiência com este vendedor?")
                     .multilineTextAlignment(.center)
                     .foregroundColor(Theme.textSecondary)
                     .padding(.horizontal)
@@ -288,7 +288,7 @@ struct ChatView: View {
                         .cornerRadius(12)
                     
                     if ratingFeedback.isEmpty {
-                        Text("Deixe um coment�rio (opcional)...")
+                        Text("Deixe um comentário (opcional)...")
                             .foregroundColor(Theme.textSecondary)
                             .padding(.horizontal, 12)
                             .padding(.vertical, 16)
@@ -301,7 +301,7 @@ struct ChatView: View {
                     showRatingSheet = false
                     showRatingSuccess = true
                 }) {
-                    Text("Enviar Avalia��o")
+                    Text("Enviar Avaliação")
                         .font(.headline)
                         .frame(maxWidth: .infinity)
                         .padding()
@@ -317,17 +317,17 @@ struct ChatView: View {
             .padding(.top, 40)
             .presentationDetents([.fraction(0.55)])
         }
-        .alert("Avalia��o Enviada", isPresented: $showRatingSuccess) {
+        .alert("Avaliação Enviada", isPresented: $showRatingSuccess) {
             Button("OK", role: .cancel) { }
         } message: {
-            Text("Muito obrigado! Sua avalia��o ajuda a manter a comunidade segura e confi�vel.")
+            Text("Muito obrigado! Sua avaliação ajuda a manter a comunidade segura e confiável.")
         }
         .onAppear {
             messages = [conversation.lastMessage]
             let formatter = DateFormatter()
             formatter.timeStyle = .short
             let timeString = formatter.string(from: Date().addingTimeInterval(-1800)) // 30 mins ago
-            chatStatus = "visto por �ltimo hoje �s \(timeString)"
+            chatStatus = "visto por último hoje às \(timeString)"
         }
     }
 }
