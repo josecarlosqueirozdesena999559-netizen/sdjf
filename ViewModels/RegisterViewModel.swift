@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import Combine
 import CoreLocation
 import UIKit
@@ -236,7 +236,9 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                     document: cleanCpf,
                     location: self.locationName.isEmpty ? "Desconhecido" : self.locationName,
                     avatar_url: avatarUrlStr,
-                    created_at: Date()
+                    created_at: Date(),
+                    rating: nil,
+                    response_time: nil
                 )
                 
                 try await supabase.database
