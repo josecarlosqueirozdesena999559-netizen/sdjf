@@ -1,4 +1,4 @@
-﻿name: MercadoFacil
+name: MercadoFacil
 packages:
   Supabase:
     url: https://github.com/supabase/supabase-swift.git
@@ -25,7 +25,7 @@ targets:
       path: Info.plist
       properties:
         UILaunchScreen: {}
-        NSLocationWhenInUseUsageDescription: "Precisamos da sua localizaÃ§Ã£o para exibir produtos na sua regiÃ£o."
+        NSLocationWhenInUseUsageDescription: "Precisamos da sua localização para exibir produtos na sua região."
         CFBundleDevelopmentRegion: "pt-BR"
         CFBundleAllowMixedLocalizations: true
         CFBundleLocalizations:

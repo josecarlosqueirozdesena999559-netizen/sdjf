@@ -1,18 +1,17 @@
-﻿import SwiftUI
+import SwiftUI
 
 struct LoginView: View {
-    @State private var email = ""
+    @State private var username = ""
     @State private var password = ""
     @EnvironmentObject var authViewModel: AuthViewModel
     
     var body: some View {
         NavigationStack {
             VStack(spacing: 24) {
-                Image(systemName: "bag.fill")
+                Image("logo")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 50, height: 50)
-                    .foregroundColor(Theme.primary)
+                    .frame(height: 60)
                     .padding(.top, 40)
                 
                 VStack(spacing: 8) {
@@ -24,7 +23,7 @@ struct LoginView: View {
                 }
                 
                 VStack(spacing: 16) {
-                    CustomTextField(title: "Usuário", placeholder: "@nomedeusuario", text: $email, keyboardType: .default)
+                    CustomTextField(title: "Nome de usuário", placeholder: "@nomedeusuario", text: $username, keyboardType: .default)
                     CustomTextField(title: "Senha", placeholder: "Sua senha", text: $password, isSecure: true)
                 }
                 
@@ -38,13 +37,13 @@ struct LoginView: View {
                 }
                 
                 PrimaryButton(title: "Entrar") {
-                    authViewModel.login(emailOrUsername: email, password: password)
+                    authViewModel.login(emailOrUsername: username, password: password)
                 }
                 
 
                 
                 HStack {
-                    Text("Ainda nÃ£o possui uma conta?")
+                    Text("Ainda não possui uma conta?")
                         .foregroundColor(Theme.textSecondary)
                     NavigationLink("Criar conta", destination: RegisterView())
                         .foregroundColor(Theme.primary)

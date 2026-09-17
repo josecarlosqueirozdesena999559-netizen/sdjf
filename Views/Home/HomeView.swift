@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
@@ -124,10 +124,10 @@ struct HomeView: View {
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("MercadoFácil")
-                            .font(.title2)
-                            .fontWeight(.bold)
-                            .foregroundColor(.primary)
+                        Image("logo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 28)
                         
                         if let user = authViewModel.currentUser {
                             HStack(spacing: 4) {

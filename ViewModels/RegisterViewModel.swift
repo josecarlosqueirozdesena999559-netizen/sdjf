@@ -98,50 +98,50 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
         case .cpf:
             let cleanCpf = cpf.filter { $0.isNumber }
             if cleanCpf.count != 11 {
-                errorMessage = "O CPF deve conter exatamente 11 nÃºmeros."
+                errorMessage = "O CPF deve conter exatamente 11 números."
                 return
             }
             if !RegisterViewModel.isValidCPF(cleanCpf) {
-                errorMessage = "CPF invÃ¡lido. Por favor, verifique os nÃºmeros."
+                errorMessage = "CPF inválido. Por favor, verifique os números."
                 return
             }
             if MockData.users.contains(where: { $0.cpf?.filter { $0.isNumber } == cleanCpf }) {
-                errorMessage = "Este CPF jÃ¡ estÃ¡ cadastrado em nosso sistema."
+                errorMessage = "Este CPF já está cadastrado em nosso sistema."
                 return
             }
         case .birthDate:
             let age = Calendar.current.dateComponents([.year], from: birthDate, to: Date()).year ?? 0
             if age < 18 {
-                errorMessage = "Ã‰ necessÃ¡rio ter mais de 18 anos para se cadastrar."
+                errorMessage = "É necessário ter mais de 18 anos para se cadastrar."
                 return
             }
         case .email:
             let cleanEmail = email.trimmingCharacters(in: .whitespacesAndNewlines)
             if !RegisterViewModel.isValidEmail(cleanEmail) {
-                errorMessage = "Digite um endereÃ§o de e-mail vÃ¡lido (ex: nome@email.com)."
+                errorMessage = "Digite um endereço de e-mail válido (ex: nome@email.com)."
                 return
             }
             if MockData.users.contains(where: { $0.email.lowercased() == cleanEmail.lowercased() }) {
-                errorMessage = "Este e-mail jÃ¡ estÃ¡ em uso por outra conta."
+                errorMessage = "Este e-mail já está em uso por outra conta."
                 return
             }
         case .password:
             if password.count < 6 {
-                errorMessage = "A senha deve ter no mÃ­nimo 6 caracteres."
+                errorMessage = "A senha deve ter no mínimo 6 caracteres."
                 return
             }
         case .username:
             let cleanUser = username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
             if cleanUser.isEmpty {
-                errorMessage = "Digite um nome de usuÃ¡rio."
+                errorMessage = "Digite um nome de usuário."
                 return
             }
             if !RegisterViewModel.isValidUsername(cleanUser) {
-                errorMessage = "O usuÃ¡rio deve ter de 3 a 20 caracteres e conter apenas letras, nÃºmeros, ponto ou underline."
+                errorMessage = "O usuário deve ter de 3 a 20 caracteres e conter apenas letras, números, ponto ou underline."
                 return
             }
             if MockData.users.contains(where: { $0.username?.lowercased() == cleanUser }) {
-                errorMessage = "Este nome de usuÃ¡rio '@\(cleanUser)' jÃ¡ estÃ¡ em uso. Escolha outro."
+                errorMessage = "Este nome de usuário '@\(cleanUser)' já está em uso. Escolha outro."
                 return
             }
         default:
@@ -188,10 +188,10 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                     if !city.isEmpty && !state.isEmpty {
                         self.locationName = "\(city) - \(state)"
                     } else {
-                        self.locationName = "LocalizaÃ§Ã£o obtida com sucesso!"
+                        self.locationName = "Localização obtida com sucesso!"
                     }
                 } else {
-                    self.locationName = "LocalizaÃ§Ã£o obtida com sucesso!"
+                    self.locationName = "Localização obtida com sucesso!"
                 }
             }
         }
@@ -201,7 +201,7 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
         DispatchQueue.main.async {
             self.isFetchingLocation = false
-            self.locationName = "Falha ao obter localizaÃ§Ã£o."
+            self.locationName = "Falha ao obter Localização."
         }
     }
             func register(authViewModel: AuthViewModel, completion: @escaping () -> Void) {
@@ -259,4 +259,5 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
 }
+
 

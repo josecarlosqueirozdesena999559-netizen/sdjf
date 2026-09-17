@@ -14,15 +14,10 @@ struct SplashView: View {
         } else {
             VStack {
                 Spacer()
-                Image(systemName: "bag.fill")
+                Image("logo")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 100, height: 100)
-                    .foregroundColor(Theme.primary)
-                Text("MercadoFácil")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundColor(Theme.primary)
-                    .padding(.top, 16)
+                    .frame(width: 200)
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

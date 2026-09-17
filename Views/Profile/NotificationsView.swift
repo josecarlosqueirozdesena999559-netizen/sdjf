@@ -10,7 +10,7 @@ struct NotificationsView: View {
                     .overlay(Image(systemName: "bell.fill").foregroundColor(Theme.primary))
                 
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Bem-vindo ao MercadoFácil!")
+                    Text("Bem-vindo ao Achou Marketplace!")
                         .font(.headline)
                     Text("Comece a explorar as melhores ofertas agora mesmo.")
                         .font(.subheadline)
