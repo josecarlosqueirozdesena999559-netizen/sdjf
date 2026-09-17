@@ -378,7 +378,7 @@ struct RegisterView: View {
             
             PrimaryButton(title: "Concluir cadastro", isEnabled: !viewModel.visibleName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
                 viewModel.register(authViewModel: authViewModel) {
-                    dismiss()
+                    // Do nothing, SplashView will route automatically
                 }
             }
             .padding(.horizontal)
