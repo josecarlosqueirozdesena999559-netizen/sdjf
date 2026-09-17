@@ -36,6 +36,14 @@ struct LoginView: View {
                     .foregroundColor(Theme.primary)
                 }
                 
+                if let error = authViewModel.errorMessage {
+                    Text(error)
+                        .foregroundColor(.red)
+                        .font(.subheadline)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal)
+                }
+                
                 if authViewModel.isLoading {
                     ProgressView()
                 } else {
@@ -56,12 +64,6 @@ struct LoginView: View {
             }
             .padding()
             .background(Theme.background.ignoresSafeArea())
-            .alert(isPresented: Binding<Bool>(
-                get: { authViewModel.errorMessage != nil },
-                set: { if !$0 { authViewModel.errorMessage = nil } }
-            )) {
-                Alert(title: Text("Atenção"), message: Text(authViewModel.errorMessage ?? ""), dismissButton: .default(Text("OK")))
-            }
         }
     }
 }

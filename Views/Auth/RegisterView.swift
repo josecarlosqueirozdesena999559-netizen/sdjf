@@ -167,9 +167,6 @@ struct RegisterView: View {
                 .font(.title2)
                 .fontWeight(.bold)
                 .foregroundColor(Theme.textPrimary)
-            Text("Ele identificará seu perfil e suas ofertas únicas no app")
-                .font(.subheadline)
-                .foregroundColor(Theme.textSecondary)
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Usuário").font(.subheadline).foregroundColor(Theme.textSecondary)
@@ -204,6 +201,7 @@ struct RegisterView: View {
                     .resizable()
                     .scaledToFit()
                     .frame(maxWidth: 320)
+                    .mask(Rectangle().padding(.top, 20).padding(.leading, 20))
                     .padding(.bottom, 24)
                 
                 // Title: "De onde você é?" — "você" in green

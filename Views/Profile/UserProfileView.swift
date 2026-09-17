@@ -315,19 +315,10 @@ struct UserProfileView: View {
                     self.myProducts = realProducts
                     self.myCategories = catNames
                     self.isLoading = false
-                    
-                    // Fallback para n ficar em branco no teste
-                    if self.myProducts.isEmpty {
-                        self.myProducts = Array(MockData.products.prefix(3))
-                        self.myCategories = ["Eletrônicos", "Móveis"]
-                    }
                 }
             } catch {
                 await MainActor.run {
                     self.isLoading = false
-                    // Fallback
-                    self.myProducts = Array(MockData.products.prefix(3))
-                    self.myCategories = ["Eletrônicos", "Móveis"]
                 }
             }
         }
