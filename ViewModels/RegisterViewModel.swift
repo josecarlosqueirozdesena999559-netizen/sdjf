@@ -99,88 +99,7 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                     return
                 }
             case .cpf:
-                let cleanCpf = self.cpf.filter { func validateAndProceed() {
-        errorMessage = nil
-        
-        Task { @MainActor in
-            switch self.currentStep {
-            case .name:
-                let trimmedName = self.name.trimmingCharacters(in: .whitespacesAndNewlines)
-                if trimmedName.count < 3 || !trimmedName.contains(" ") {
-                    self.errorMessage = "Digite seu nome e sobrenome completo."
-                    return
-                }
-            case .cpf:
                 let cleanCpf = self.cpf.filter { $0.isNumber }
-                if cleanCpf.count != 11 {
-                    self.errorMessage = "O CPF deve conter exatamente 11 nÃºmeros."
-                    return
-                }
-                if !RegisterViewModel.isValidCPF(cleanCpf) {
-                    self.errorMessage = "CPF invÃ¡lido. Por favor, verifique os nÃºmeros."
-                    return
-                }
-                do {
-                    let count: Int = try await supabase.database.from("profiles").select("id", head: true, count: .exact).eq("document", value: cleanCpf).execute().count ?? 0
-                    if count > 0 {
-                        self.errorMessage = "Este CPF jÃ¡ estÃ¡ cadastrado em nosso sistema."
-                        return
-                    }
-                } catch {
-                    print("Erro verificando CPF: \(error)")
-                }
-            case .birthDate:
-                let age = Calendar.current.dateComponents([.year], from: self.birthDate, to: Date()).year ?? 0
-                if age < 18 {
-                    self.errorMessage = "Ã‰ necessÃ¡rio ter mais de 18 anos para se cadastrar."
-                    return
-                }
-            case .email:
-                let cleanEmail = self.email.trimmingCharacters(in: .whitespacesAndNewlines)
-                if !RegisterViewModel.isValidEmail(cleanEmail) {
-                    self.errorMessage = "Digite um endereÃ§o de e-mail vÃ¡lido (ex: nome@email.com)."
-                    return
-                }
-                do {
-                    let count: Int = try await supabase.database.from("profiles").select("id", head: true, count: .exact).eq("email", value: cleanEmail.lowercased()).execute().count ?? 0
-                    if count > 0 {
-                        self.errorMessage = "Este e-mail jÃ¡ estÃ¡ em uso por outra conta."
-                        return
-                    }
-                } catch {
-                    print("Erro verificando email: \(error)")
-                }
-            case .password:
-                if self.password.count < 6 {
-                    self.errorMessage = "A senha deve ter no mÃ­nimo 6 caracteres."
-                    return
-                }
-            case .username:
-                let cleanUser = self.username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
-                if cleanUser.isEmpty {
-                    self.errorMessage = "Digite um nome de usuÃ¡rio."
-                    return
-                }
-                if !RegisterViewModel.isValidUsername(cleanUser) {
-                    self.errorMessage = "O usuÃ¡rio deve ter de 3 a 20 caracteres e conter apenas letras, nÃºmeros, ponto ou underline."
-                    return
-                }
-                do {
-                    let count: Int = try await supabase.database.from("profiles").select("id", head: true, count: .exact).eq("username", value: cleanUser).execute().count ?? 0
-                    if count > 0 {
-                        self.errorMessage = "Este nome de usuÃ¡rio '@\(cleanUser)' jÃ¡ estÃ¡ em uso. Escolha outro."
-                        return
-                    }
-                } catch {
-                    print("Erro verificando username: \(error)")
-                }
-            default:
-                break
-            }
-            
-            self.nextStep()
-        }
-    }.isNumber }
                 if cleanCpf.count != 11 {
                     self.errorMessage = "O CPF deve conter exatamente 11 números."
                     return
@@ -304,7 +223,7 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
             self.locationName = "Falha ao obter LocalizaÃ§Ã£o."
         }
     }
-            func register(authViewModel: AuthViewModel, completion: @escaping () -> Void) {
+                func register(authViewModel: AuthViewModel, completion: @escaping () -> Void) {
         self.errorMessage = nil
         Task {
             do {
@@ -361,6 +280,3 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
         }
     }
 }
-
-
-
