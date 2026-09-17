@@ -2,21 +2,18 @@ import Foundation
 
 struct MockData {
     static let categories: [Category] = [
-        Category(id: UUID(), name: "Eletrônicos", description: "TVs, Computadores...", iconName: "desktopcomputer"),
-        Category(id: UUID(), name: "Celulares", description: "Smartphones e acessórios", iconName: "iphone"),
-        Category(id: UUID(), name: "Eletrodomésticos", description: "Geladeiras, fogões...", iconName: "refrigerator"),
-        Category(id: UUID(), name: "Moda", description: "Roupas, calçados...", iconName: "tshirt"),
-        Category(id: UUID(), name: "Casa", description: "Móveis e decoração", iconName: "house"),
-        Category(id: UUID(), name: "Esportes", description: "Bicicletas, academia...", iconName: "bicycle"),
-        Category(id: UUID(), name: "Veículos", description: "Carros e motos", iconName: "car"),
-        Category(id: UUID(), name: "Livros e Games", description: "Console, HQs...", iconName: "gamecontroller"),
-        Category(id: UUID(), name: "Beleza", description: "Cosméticos, perfumes...", iconName: "staroflife")
+        Category(id: UUID(uuidString: "11111111-1111-1111-1111-111111111111")!, name: "Eletrônicos", description: "TVs, Computadores...", iconName: "desktopcomputer"),
+        Category(id: UUID(uuidString: "11111111-1111-1111-1111-111111111112")!, name: "Celulares", description: "Smartphones e acessórios", iconName: "iphone"),
+        Category(id: UUID(uuidString: "11111111-1111-1111-1111-111111111113")!, name: "Eletrodomésticos", description: "Geladeiras, fogões...", iconName: "refrigerator"),
+        Category(id: UUID(uuidString: "11111111-1111-1111-1111-111111111114")!, name: "Moda", description: "Roupas, calçados...", iconName: "tshirt"),
+        Category(id: UUID(uuidString: "11111111-1111-1111-1111-111111111115")!, name: "Casa", description: "Móveis e decoração", iconName: "house"),
+        Category(id: UUID(uuidString: "11111111-1111-1111-1111-111111111116")!, name: "Esportes", description: "Bicicletas, academia...", iconName: "bicycle"),
+        Category(id: UUID(uuidString: "11111111-1111-1111-1111-111111111117")!, name: "Veículos", description: "Carros e motos", iconName: "car"),
+        Category(id: UUID(uuidString: "11111111-1111-1111-1111-111111111118")!, name: "Livros e Games", description: "Console, HQs...", iconName: "gamecontroller"),
+        Category(id: UUID(uuidString: "11111111-1111-1111-1111-111111111119")!, name: "Beleza", description: "Cosméticos, perfumes...", iconName: "staroflife")
     ]
     
     static let users: [User] = [
-        User(id: UUID(), name: "João Silva", cpf: "111.111.111-11", birthDate: Date(), email: "joao@email.com", phone: "11999999999", username: "joaosilva", visibleName: "João S.", avatarURL: nil, location: "São Paulo - SP", latitude: -23.5505, longitude: -46.6333, memberSince: Date(), isProfessional: true),
-        User(id: UUID(), name: "Maria Oliveira", cpf: "222.222.222-22", birthDate: Date(), email: "maria@email.com", phone: "21999999999", username: "mariaoliveira", visibleName: "Maria", avatarURL: nil, location: "Rio de Janeiro - RJ", latitude: -22.9068, longitude: -43.1729, memberSince: Date(), isProfessional: false),
-        User(id: UUID(), name: "Carlos Mendes", cpf: "333.333.333-33", birthDate: Date(), email: "carlos@email.com", phone: "31999999999", username: "carlosmendes", visibleName: "Carlos", avatarURL: nil, location: "Belo Horizonte - MG", latitude: -19.9167, longitude: -43.9345, memberSince: Date(), isProfessional: true),
         User(id: UUID(), name: "Ana Souza", cpf: "444.444.444-44", birthDate: Date(), email: "ana@email.com", phone: "85999999999", username: "anasouza", visibleName: "Ana Souza", avatarURL: nil, location: "Fortaleza - CE", latitude: -3.7172, longitude: -38.5434, memberSince: Date(), isProfessional: false),
         User(id: UUID(), name: "Pedro Costa", cpf: "555.555.555-55", birthDate: Date(), email: "pedro@email.com", phone: "41999999999", username: "pedrocosta", visibleName: "Pedro C.", avatarURL: nil, location: "Curitiba - PR", latitude: -25.4284, longitude: -49.2733, memberSince: Date(), isProfessional: false)
     ]
