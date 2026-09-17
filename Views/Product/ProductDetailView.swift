@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct ProductOffer: Identifiable {
     let id = UUID()
@@ -123,7 +123,7 @@ struct ProductDetailView: View {
                                                 participantId: offer.bidderId,
                                                 lastMessage: Message(id: UUID(), senderId: product.sellerId, receiverId: offer.bidderId, text: "Olá! Vi seu lance de \(Formatters.formatCurrency(offer.amount)). Vamos negociar?", timestamp: Date(), isRead: true),
                                                 unreadCount: 0
-                                            ))) {
+                                            ), currentUser: authViewModel.currentUser ?? User(id: UUID(), name: "Visitante", email: "", phone: "", location: "", memberSince: Date(), isProfessional: false))) {
                                                 Text("Negociar")
                                                     .font(.caption)
                                                     .fontWeight(.bold)
@@ -315,7 +315,7 @@ struct ProductDetailView: View {
                                 isRead: true
                             ),
                             unreadCount: 0
-                        ))) {
+                                            ), currentUser: authViewModel.currentUser ?? User(id: UUID(), name: "Visitante", email: "", phone: "", location: "", memberSince: Date(), isProfessional: false))) {
                             Text("Conversar com vendedor")
                                 .font(.headline)
                                 .fontWeight(.semibold)
