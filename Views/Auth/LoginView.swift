@@ -36,12 +36,13 @@ struct LoginView: View {
                     .foregroundColor(Theme.primary)
                 }
                 
-                PrimaryButton(title: "Entrar") {
-                    authViewModel.login(emailOrUsername: username, password: password)
+                if authViewModel.isLoading {
+                    ProgressView()
+                } else {
+                    PrimaryButton(title: "Entrar") {
+                        authViewModel.login(emailOrUsername: username, password: password)
+                    }
                 }
-                
-
-                
                 HStack {
                     Text("Ainda não possui uma conta?")
                         .foregroundColor(Theme.textSecondary)
@@ -55,6 +56,12 @@ struct LoginView: View {
             }
             .padding()
             .background(Theme.background.ignoresSafeArea())
+            .alert(isPresented: Binding<Bool>(
+                get: { authViewModel.errorMessage != nil },
+                set: { if !$0 { authViewModel.errorMessage = nil } }
+            )) {
+                Alert(title: Text("Atenção"), message: Text(authViewModel.errorMessage ?? ""), dismissButton: .default(Text("OK")))
+            }
         }
     }
 }

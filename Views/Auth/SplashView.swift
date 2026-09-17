@@ -17,7 +17,7 @@ struct SplashView: View {
                 Image("logo")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 200)
+                    .frame(width: 300)
                 Spacer()
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)

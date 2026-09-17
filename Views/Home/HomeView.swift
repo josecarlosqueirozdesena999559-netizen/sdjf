@@ -127,7 +127,7 @@ struct HomeView: View {
                         Image("logo")
                             .resizable()
                             .scaledToFit()
-                            .frame(height: 28)
+                            .frame(height: 36)
                         
                         if let user = authViewModel.currentUser {
                             HStack(spacing: 4) {
