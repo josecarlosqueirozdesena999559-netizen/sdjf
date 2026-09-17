@@ -148,23 +148,28 @@ struct HomeView: View {
                             Image(systemName: "bell")
                                 .font(.title3)
                                 .foregroundColor(.primary)
-                            Circle()
-                                .fill(Color.red)
-                                .frame(width: 8, height: 8)
-                                .offset(x: 2, y: -2)
+                            if authViewModel.hasUnreadNotifications {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 8, height: 8)
+                                    .offset(x: 2, y: -2)
+                            }
                         }
                     }
                 }
             }
             .onAppear {
                 viewModel.fetchHomeData()
+                Task { await authViewModel.checkUnreadNotifications() }
             }
             .refreshable {
                 viewModel.fetchHomeData()
+                Task { await authViewModel.checkUnreadNotifications() }
             }
             .onChange(of: scenePhase) { newPhase in
                 if newPhase == .active {
                     viewModel.fetchHomeData()
+                    Task { await authViewModel.checkUnreadNotifications() }
                 }
             }
         }

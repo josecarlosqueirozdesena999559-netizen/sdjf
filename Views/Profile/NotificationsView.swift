@@ -57,6 +57,11 @@ struct NotificationsView: View {
         .refreshable {
             fetchNotifications()
         }
+        .onDisappear {
+            Task {
+                await authViewModel.checkUnreadNotifications()
+            }
+        }
     }
     
     private func fetchNotifications() {

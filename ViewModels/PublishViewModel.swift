@@ -17,14 +17,53 @@ class PublishViewModel: ObservableObject {
         return !title.isEmpty && !price.isEmpty && selectedCategoryId != nil && !location.isEmpty
     }
     
-    func publish() {
+    func publish(sellerId: UUID) {
         guard isFormValid else { return }
         isPublishing = true
         
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-            self.isPublishing = false
-            self.publishSuccess = true
-            self.resetForm()
+        Task {
+            do {
+                let pPrice = Double(price.replacingOccurrences(of: ",", with: ".")) ?? 0.0
+                
+                struct InsertProduct: Codable {
+                    let title: String
+                    let description: String
+                    let price: Double
+                    let condition: String
+                    let category_id: UUID
+                    let seller_id: UUID
+                    let location: String
+                    let accepts_negotiation: Bool
+                    let status: String
+                    let views: Int
+                }
+                
+                let newProd = InsertProduct(
+                    title: title,
+                    description: description,
+                    price: pPrice,
+                    condition: selectedCondition.rawValue,
+                    category_id: selectedCategoryId!,
+                    seller_id: sellerId,
+                    location: location,
+                    accepts_negotiation: acceptsNegotiation,
+                    status: "active",
+                    views: 0
+                )
+                
+                try await supabase.database.from("products").insert(newProd).execute()
+                
+                await MainActor.run {
+                    self.isPublishing = false
+                    self.publishSuccess = true
+                    self.resetForm()
+                }
+            } catch {
+                print("Erro ao publicar: \(error)")
+                await MainActor.run {
+                    self.isPublishing = false
+                }
+            }
         }
     }
     

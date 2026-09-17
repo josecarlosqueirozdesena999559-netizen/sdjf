@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 
@@ -211,7 +211,11 @@ struct PublishProductView: View {
             }
             // FLOATING ACTION BUTTON
             .safeAreaInset(edge: .bottom) {
-                Button(action: { viewModel.publish() }) {
+                Button(action: { 
+                    if let userId = authViewModel.currentUser?.id {
+                        viewModel.publish(sellerId: userId)
+                    }
+                }) {
                     HStack {
                         if viewModel.isPublishing {
                             ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))

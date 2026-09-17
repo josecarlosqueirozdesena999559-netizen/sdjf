@@ -20,6 +20,7 @@ struct Profile: Codable {
 class AuthViewModel: ObservableObject {
     @Published var isAuthenticated: Bool = false
     @Published var currentUser: User? = nil
+    @Published var hasUnreadNotifications: Bool = false
     
     @Published var isLoading = false
     @Published var errorMessage: String? = nil
@@ -131,6 +132,28 @@ class AuthViewModel: ObservableObject {
             // Fallback for demo if profile doesn't exist yet but auth succeeded
             self.currentUser = User(id: userId, name: "Usuário", cpf: "", birthDate: nil, email: email, phone: "", username: "user", visibleName: nil, avatarURL: nil, location: "Desconhecido", latitude: nil, longitude: nil, memberSince: Date(), isProfessional: false, rating: nil, responseTime: nil)
             self.isAuthenticated = true
+        }
+        
+        await checkUnreadNotifications()
+    }
+    
+    func checkUnreadNotifications() async {
+        guard let userId = self.currentUser?.id else { return }
+        do {
+            struct CountResponse: Codable {
+                let count: Int
+            }
+            let count: Int = try await supabase.database
+                .from("notifications")
+                .select("id", head: true, count: .exact)
+                .eq("user_id", value: userId)
+                .eq("is_read", value: false)
+                .execute()
+                .count ?? 0
+            
+            self.hasUnreadNotifications = count > 0
+        } catch {
+            print("Failed to check unread notifications: \(error)")
         }
     }
 }
