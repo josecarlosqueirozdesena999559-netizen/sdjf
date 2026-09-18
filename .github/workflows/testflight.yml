@@ -87,7 +87,14 @@ jobs:
           -exportOptionsPlist ExportOptions.plist \
           -exportPath $RUNNER_TEMP/export
 
-    - name: Upload to TestFlight
+    - name: Upload IPA Artifact
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: MercadoFacil-IPA
+        path: $RUNNER_TEMP/export/MercadoFacil.ipa
+
+    - name: Upload to TestFlight via Fastlane
       env:
         APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
         APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
@@ -95,41 +102,26 @@ jobs:
       run: |
         mkdir -p ~/.appstoreconnect/private_keys
         echo -n "$APPSTORE_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8
-        xcrun altool --upload-app -f $RUNNER_TEMP/export/MercadoFacil.ipa -t ios --apiKey $APPSTORE_KEY_ID --apiIssuer $APPSTORE_ISSUER_ID
-
-
-
-
-
-
-
-      - name: Upload to TestFlight
-        env:
-          APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
-          APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
-          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
-        run: |
-          mkdir -p ~/.appstoreconnect/private_keys
-          echo -n "$APPSTORE_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8
-          
-          brew install fastlane
-          
-          cat <<EOF > Fastfile
-          default_platform(:ios)
-          platform :ios do
-            lane :upload_testflight do
-              app_store_connect_api_key(
-                key_id: ENV["APPSTORE_KEY_ID"],
-                issuer_id: ENV["APPSTORE_ISSUER_ID"],
-                key_filepath: "#{ENV['HOME']}/.appstoreconnect/private_keys/AuthKey_#{ENV['APPSTORE_KEY_ID']}.p8",
-                in_house: false
-              )
-              pilot(
-                ipa: "$RUNNER_TEMP/export/MercadoFacil.ipa",
-                skip_waiting_for_build_processing: true
-              )
-            end
+        
+        # We don't need brew install fastlane, it's preinstalled on macos-14
+        
+        cat <<EOF > Fastfile
+        default_platform(:ios)
+        platform :ios do
+          lane :upload_testflight do
+            app_store_connect_api_key(
+              key_id: ENV["APPSTORE_KEY_ID"],
+              issuer_id: ENV["APPSTORE_ISSUER_ID"],
+              key_filepath: "$HOME/.appstoreconnect/private_keys/AuthKey_${ENV['APPSTORE_KEY_ID']}.p8",
+              in_house: false
+            )
+            pilot(
+              ipa: "$RUNNER_TEMP/export/MercadoFacil.ipa",
+              skip_waiting_for_build_processing: true,
+              apple_id: "6670498175"
+            )
           end
-          EOF
-          
-          fastlane ios upload_testflight
+        end
+        EOF
+        
+        fastlane ios upload_testflight
