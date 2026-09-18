@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import Supabase
 import Combine
 
@@ -71,12 +71,12 @@ class ChatViewModel: ObservableObject {
     
     func setupRealtime() async {
         let roomName = "room_\(conversation.id.uuidString)"
-        self.channel = await supabase.realtimeV2.channel(roomName)
+        self.channel = supabase.realtimeV2.channel(roomName)
         
         guard let channel = self.channel else { return }
         
         // Listen for new messages via Postgres Changes
-        let insertions = await channel.postgresChange(
+        let insertions = channel.postgresChange(
             InsertAction.self,
             schema: "public",
             table: "messages",
@@ -84,7 +84,7 @@ class ChatViewModel: ObservableObject {
         )
         
         // Listen for updates (e.g. is_read)
-        let updates = await channel.postgresChange(
+        let updates = channel.postgresChange(
             UpdateAction.self,
             schema: "public",
             table: "messages",
@@ -102,7 +102,7 @@ class ChatViewModel: ObservableObject {
         
         // Listen for presence changes
         Task {
-            for await presence in await channel.presenceChange() {
+            for await presence in channel.presenceChange() {
                 // We get joining and leaving
                 let state = await channel.presenceState()
                 var isOnline = false
@@ -122,7 +122,7 @@ class ChatViewModel: ObservableObject {
         
         // Listen for typing broadcast
         Task {
-            let typingEvents = await channel.broadcast(event: "typing")
+            let typingEvents = channel.broadcast(event: "typing")
             for await payload in typingEvents {
                 if let userId = payload["user_id"]?.stringValue, userId != self.currentUser.id.uuidString {
                     self.isTyping = true
