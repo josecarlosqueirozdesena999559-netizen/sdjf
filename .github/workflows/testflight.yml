@@ -72,7 +72,7 @@ jobs:
             <key>method</key>
             <string>app-store</string>
             <key>teamID</key>
-            <string>3Y94PZDQB2</string>
+            <string>3YB4FZDQ82</string>
             <key>provisioningProfiles</key>
             <dict>
                 <key>com.seuuusario.mercadofacil</key>
@@ -96,5 +96,6 @@ jobs:
         mkdir -p ~/.appstoreconnect/private_keys
         echo -n "$APPSTORE_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8
         xcrun altool --upload-app -f $RUNNER_TEMP/export/MercadoFacil.ipa -t ios --apiKey $APPSTORE_KEY_ID --apiIssuer $APPSTORE_ISSUER_ID
+
 
 
