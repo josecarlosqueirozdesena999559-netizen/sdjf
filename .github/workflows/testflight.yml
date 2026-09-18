@@ -43,7 +43,7 @@ jobs:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
         run: |
-          mkdir -p ~/.appstoreconnect/private_keys
+          
           echo -n "$APPSTORE_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8
           
           mkdir -p fastlane
@@ -54,7 +54,8 @@ jobs:
               app_store_connect_api_key(
                 key_id: ENV["APPSTORE_KEY_ID"],
                 issuer_id: ENV["APPSTORE_ISSUER_ID"],
-                key_filepath: "#{ENV['HOME']}/.appstoreconnect/private_keys/AuthKey_#{ENV['APPSTORE_KEY_ID']}.p8",
+                key_content: ENV["APPSTORE_PRIVATE_KEY"],
+                is_key_content_base64: true,
                 in_house: false
               )
               
@@ -135,7 +136,8 @@ jobs:
               app_store_connect_api_key(
                 key_id: ENV["APPSTORE_KEY_ID"],
                 issuer_id: ENV["APPSTORE_ISSUER_ID"],
-                key_filepath: "#{ENV['HOME']}/.appstoreconnect/private_keys/AuthKey_#{ENV['APPSTORE_KEY_ID']}.p8",
+                key_content: ENV["APPSTORE_PRIVATE_KEY"],
+                is_key_content_base64: true,
                 in_house: false
               )
               pilot(
@@ -148,3 +150,4 @@ jobs:
           end
           EOF
           fastlane ios upload_testflight
+
