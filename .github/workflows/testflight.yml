@@ -118,6 +118,7 @@ jobs:
             pilot(
               ipa: "$RUNNER_TEMP/export/MercadoFacil.ipa",
               skip_waiting_for_build_processing: true,
+              app_identifier: "com.seuusuario.mercadofacil",
               
             )
           end
@@ -125,4 +126,5 @@ jobs:
         EOF
         
         fastlane ios upload_testflight
+
 
