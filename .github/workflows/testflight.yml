@@ -60,7 +60,7 @@ jobs:
           -sdk iphoneos \
           -configuration Release \
           -destination 'generic/platform=iOS' \
-          clean archive DEVELOPMENT_TEAM=3YB4FZDQ82 PRODUCT_BUNDLE_IDENTIFIER=com.seuuusario.mercadofacil CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE_SPECIFIER='Achou Market Place' CODE_SIGN_IDENTITY='Apple Distribution'
+          clean archive DEVELOPMENT_TEAM=3YB4FZDQ82 PRODUCT_BUNDLE_IDENTIFIER=com.seuusuario.mercadofacil CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE_SPECIFIER='Achou Market Place' CODE_SIGN_IDENTITY='Apple Distribution'
 
     - name: Export IPA
       run: |
@@ -75,7 +75,7 @@ jobs:
             <string>3YB4FZDQ82</string>
             <key>provisioningProfiles</key>
             <dict>
-                <key>com.seuuusario.mercadofacil</key>
+                <key>com.seuusuario.mercadofacil</key>
                 <string>Achou Market Place</string>
             </dict>
         </dict>
@@ -96,6 +96,7 @@ jobs:
         mkdir -p ~/.appstoreconnect/private_keys
         echo -n "$APPSTORE_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8
         xcrun altool --upload-app -f $RUNNER_TEMP/export/MercadoFacil.ipa -t ios --apiKey $APPSTORE_KEY_ID --apiIssuer $APPSTORE_ISSUER_ID
+
 
 
 
