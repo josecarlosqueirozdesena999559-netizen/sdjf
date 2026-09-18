@@ -4,7 +4,7 @@ packages:
     url: https://github.com/supabase/supabase-swift.git
     exactVersion: 2.2.0
 options:
-  bundleIdPrefix: com.seuusuario.mercadofacil
+  bundleIdPrefix: com.jcsena.mercadofacil2026
 targets:
   MercadoFacil:
     type: application
@@ -23,10 +23,10 @@ targets:
       - package: Supabase
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.seuusuario.mercadofacil
+        PRODUCT_BUNDLE_IDENTIFIER: com.jcsena.mercadofacil2026
         CODE_SIGN_IDENTITY: "Apple Distribution"
         DEVELOPMENT_TEAM: 3YB4FZDQ82
-        PROVISIONING_PROFILE_SPECIFIER: "MercadoFacil Oficial Profile"
+        PROVISIONING_PROFILE_SPECIFIER: "MercadoFacil Auto Profile"
         CODE_SIGN_STYLE: Manual
         ASSETCATALOG_COMPILER_APPICON_NAME: ""
     info:
@@ -38,4 +38,3 @@ targets:
         CFBundleAllowMixedLocalizations: true
         CFBundleLocalizations:
           - "pt-BR"
-
