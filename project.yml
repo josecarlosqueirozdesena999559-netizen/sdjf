@@ -4,7 +4,7 @@ packages:
     url: https://github.com/supabase/supabase-swift.git
     exactVersion: 2.2.0
 options:
-  bundleIdPrefix: com.mercadofacil
+  bundleIdPrefix: com.seuuusario.mercadofacil
 targets:
   MercadoFacil:
     type: application
@@ -19,6 +19,12 @@ targets:
       - path: Utilities
       - path: MercadoFacilApp.swift
       - path: Assets.xcassets
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.seuuusario.mercadofacil
+      CODE_SIGN_IDENTITY: "Apple Distribution"
+      DEVELOPMENT_TEAM: 3Y94PZDQB2
+      PROVISIONING_PROFILE_SPECIFIER: "Achou Market Place"
+      CODE_SIGN_STYLE: Manual
     dependencies:
       - package: Supabase
     info:
@@ -35,6 +41,7 @@ targets:
       ASSETCATALOG_COMPILER_APPICON_NAME: ""
       ENABLE_PREVIEWS: NO
       OTHER_SWIFT_FLAGS: $(inherited) -enable-experimental-feature AccessLevelOnImport
+
 
 
 
