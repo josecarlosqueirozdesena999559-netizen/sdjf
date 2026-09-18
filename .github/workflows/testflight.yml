@@ -43,9 +43,6 @@ jobs:
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
           APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
         run: |
-          
-          echo -n "$APPSTORE_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8
-          
           mkdir -p fastlane
           cat <<EOF > fastlane/Fastfile
           default_platform(:ios)
@@ -128,6 +125,7 @@ jobs:
         env:
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
+          APPSTORE_PRIVATE_KEY: ${{ secrets.APPSTORE_PRIVATE_KEY }}
         run: |
           cat <<EOF > fastlane/Fastfile
           default_platform(:ios)
@@ -150,4 +148,3 @@ jobs:
           end
           EOF
           fastlane ios upload_testflight
-
