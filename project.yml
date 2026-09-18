@@ -4,7 +4,7 @@ packages:
     url: https://github.com/supabase/supabase-swift.git
     exactVersion: 2.2.0
 options:
-  bundleIdPrefix: com.seuuusario.mercadofacil
+  bundleIdPrefix: com.seuusuario.mercadofacil
 targets:
   MercadoFacil:
     type: application
@@ -23,7 +23,7 @@ targets:
       - package: Supabase
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.seuuusario.mercadofacil
+        PRODUCT_BUNDLE_IDENTIFIER: com.seuusuario.mercadofacil
         CODE_SIGN_IDENTITY: "Apple Distribution"
         DEVELOPMENT_TEAM: 3YB4FZDQ82
         PROVISIONING_PROFILE_SPECIFIER: "MercadoFacil Oficial Profile"

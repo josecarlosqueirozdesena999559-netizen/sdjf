@@ -60,7 +60,7 @@ jobs:
           -sdk iphoneos \
           -configuration Release \
           -destination 'generic/platform=iOS' \
-          clean archive DEVELOPMENT_TEAM=3YB4FZDQ82 PRODUCT_BUNDLE_IDENTIFIER=com.seuuusario.mercadofacil CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE_SPECIFIER='MercadoFacil Oficial Profile' CODE_SIGN_IDENTITY='Apple Distribution'
+          clean archive DEVELOPMENT_TEAM=3YB4FZDQ82 PRODUCT_BUNDLE_IDENTIFIER=com.seuusuario.mercadofacil CODE_SIGN_STYLE=Manual PROVISIONING_PROFILE_SPECIFIER='MercadoFacil Oficial Profile' CODE_SIGN_IDENTITY='Apple Distribution'
 
     - name: Export IPA
       run: |
@@ -75,7 +75,7 @@ jobs:
             <string>3YB4FZDQ82</string>
             <key>provisioningProfiles</key>
             <dict>
-                <key>com.seuuusario.mercadofacil</key>
+                <key>com.seuusuario.mercadofacil</key>
                 <string>MercadoFacil Oficial Profile</string>
             </dict>
         </dict>
@@ -118,7 +118,7 @@ jobs:
             pilot(
               ipa: "$RUNNER_TEMP/export/MercadoFacil.ipa",
               skip_waiting_for_build_processing: true,
-              app_identifier: "com.seuuusario.mercadofacil",
+              app_identifier: "com.seuusuario.mercadofacil",
               
             )
           end
@@ -126,6 +126,7 @@ jobs:
         EOF
         
         fastlane ios upload_testflight
+
 
 
 
