@@ -134,7 +134,7 @@ jobs:
           APPSTORE_ISSUER_ID: ${{ secrets.APPSTORE_ISSUER_ID }}
           APPSTORE_KEY_ID: ${{ secrets.APPSTORE_KEY_ID }}
         run: |
-          cat <<EOF > FastfileUpload
+          cat <<EOF > Fastfile
           default_platform(:ios)
           platform :ios do
             lane :upload_testflight do
@@ -153,5 +153,6 @@ jobs:
             end
           end
           EOF
-          fastlane ios upload_testflight -f FastfileUpload
+          fastlane ios upload_testflight 
+
 
