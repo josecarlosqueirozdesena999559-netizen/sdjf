@@ -102,20 +102,32 @@ class ChatViewModel: ObservableObject {
         
         // Listen for presence changes
         Task {
-            for await presence in channel.presenceChange() {
-                // We get joining and leaving
-                let state = await channel.presenceState()
-                var isOnline = false
-                for (_, presences) in state {
-                    for p in presences {
-                        if let userId = p.payload["user_id"]?.stringValue, userId == self.conversation.participantId.uuidString {
-                            isOnline = true
+            struct PresencePayload: Codable {
+                let user_id: String
+                let status: String
+            }
+            var onlineUsers: Set<String> = []
+            
+            for await action in channel.presenceChange() {
+                do {
+                    let joins = try action.decodeJoins(as: PresencePayload.self)
+                    let leaves = try action.decodeLeaves(as: PresencePayload.self)
+                    
+                    for p in joins {
+                        onlineUsers.insert(p.user_id)
+                    }
+                    for p in leaves {
+                        onlineUsers.remove(p.user_id)
+                    }
+                    
+                    Task { @MainActor in
+                        self.otherUserOnline = onlineUsers.contains(self.conversation.participantId.uuidString)
+                        if !self.otherUserOnline {
+                            self.lastSeen = Date() // Approximate
                         }
                     }
-                }
-                self.otherUserOnline = isOnline
-                if !isOnline {
-                    self.lastSeen = Date() // Approximate
+                } catch {
+                    print("Error decoding presence: \(error)")
                 }
             }
         }
@@ -144,16 +156,21 @@ class ChatViewModel: ObservableObject {
                         let text: String
                         let media_url: String?
                         let is_read: Bool
-                        let created_at: Date
+                        let created_at: String
                     }
                     let decoded = try insert.decodeRecord(decoder: JSONDecoder()) as MsgPayload
+                    
+                    let formatter = ISO8601DateFormatter()
+                    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                    let date = formatter.date(from: decoded.created_at) ?? Date()
+                    
                     let newMsg = Message(
                         id: decoded.id,
                         senderId: decoded.sender_id,
                         receiverId: decoded.sender_id == self.conversation.participantId ? self.currentUser.id : self.conversation.participantId,
                         text: decoded.text,
                         imageName: decoded.media_url,
-                        timestamp: decoded.created_at,
+                        timestamp: date,
                         isRead: decoded.is_read
                     )
                     
