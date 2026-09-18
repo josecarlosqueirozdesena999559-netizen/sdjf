@@ -60,7 +60,7 @@ jobs:
           -sdk iphoneos \
           -configuration Release \
           -destination 'generic/platform=iOS' \
-          clean archive | xcpretty
+          clean archive
 
     - name: Export IPA
       run: |
@@ -96,4 +96,5 @@ jobs:
         mkdir -p ~/.appstoreconnect/private_keys
         echo -n "$APPSTORE_PRIVATE_KEY" | base64 --decode > ~/.appstoreconnect/private_keys/AuthKey_${APPSTORE_KEY_ID}.p8
         xcrun altool --upload-app -f $RUNNER_TEMP/export/MercadoFacil.ipa -t ios --apiKey $APPSTORE_KEY_ID --apiIssuer $APPSTORE_ISSUER_ID
+
 
