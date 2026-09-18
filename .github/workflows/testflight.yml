@@ -53,7 +53,7 @@ jobs:
               app_store_connect_api_key(
                 key_id: ENV["APPSTORE_KEY_ID"],
                 issuer_id: ENV["APPSTORE_ISSUER_ID"],
-                key_filepath: "$HOME/.appstoreconnect/private_keys/AuthKey_$ENV['APPSTORE_KEY_ID'].p8",
+                key_filepath: "$HOME/.appstoreconnect/private_keys/AuthKey_#{ENV['APPSTORE_KEY_ID']}.p8",
                 in_house: false
               )
               
@@ -141,7 +141,7 @@ jobs:
               app_store_connect_api_key(
                 key_id: ENV["APPSTORE_KEY_ID"],
                 issuer_id: ENV["APPSTORE_ISSUER_ID"],
-                key_filepath: "$HOME/.appstoreconnect/private_keys/AuthKey_$ENV['APPSTORE_KEY_ID'].p8",
+                key_filepath: "$HOME/.appstoreconnect/private_keys/AuthKey_#{ENV['APPSTORE_KEY_ID']}.p8",
                 in_house: false
               )
               pilot(
@@ -154,3 +154,4 @@ jobs:
           end
           EOF
           fastlane ios upload_testflight -f FastfileUpload
+
