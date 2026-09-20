@@ -99,7 +99,7 @@ struct LoginView: View {
                     
                     Button(action: {
                         Task {
-                            await authViewModel.login(username: username, password: password)
+                            await authViewModel.login(emailOrUsername: username, password: password)
                         }
                     }) {
                         if authViewModel.isLoading {
