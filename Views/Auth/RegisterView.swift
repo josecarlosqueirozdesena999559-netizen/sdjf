@@ -98,7 +98,7 @@ struct RegisterView: View {
                 .foregroundColor(Theme.textPrimary)
             
             CustomTextField(title: "CPF", placeholder: "000.000.000-00", text: $viewModel.cpf, keyboardType: .numberPad)
-                .onChange(of: viewModel.cpf) { newValue in
+                .onChange(of: viewModel.cpf) { _, newValue in
                     let numbers = newValue.filter { $0.isNumber }
                     var result = ""
                     for (index, char) in numbers.enumerated() {
@@ -185,7 +185,7 @@ struct RegisterView: View {
                     TextField("seunome", text: $viewModel.username)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
-                        .onChange(of: viewModel.username) { _ in
+                        .onChange(of: viewModel.username) { _, _ in
                             viewModel.checkUsernameAvailability()
                         }
                     
@@ -362,7 +362,7 @@ struct RegisterView: View {
                     .offset(x: 2, y: 2)
                 }
             }
-            .onChange(of: selectedItem) { newItem in
+            .onChange(of: selectedItem) { _, newItem in
                 Task {
                     if let data = try? await newItem?.loadTransferable(type: Data.self),
                        let uiImage = UIImage(data: data) {

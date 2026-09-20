@@ -119,7 +119,7 @@ struct ChatView: View {
                         .font(.system(size: 20))
                         .foregroundColor(Theme.textSecondary)
                 }
-                .onChange(of: selectedAttachment) { _ in
+                .onChange(of: selectedAttachment) { _, _ in
                     if selectedAttachment != nil {
                         Task {
                             await viewModel.sendMessage(text: "📷 Mídia", mediaUrl: "mock_image")
@@ -138,7 +138,7 @@ struct ChatView: View {
                         TextField("Mensagem...", text: $messageText)
                             .padding(.vertical, 10)
                             .padding(.horizontal, 12)
-                            .onChange(of: messageText) { _ in
+                            .onChange(of: messageText) { _, _ in
                                 viewModel.sendTypingEvent()
                             }
                     }

@@ -98,7 +98,7 @@ struct SearchResultsView: View {
         .customBackButton()
         .navigationBarTitleDisplayMode(.inline)
         .searchable(text: $viewModel.query, prompt: "Buscar produtos...")
-        .onChange(of: viewModel.query) { _ in
+        .onChange(of: viewModel.query) { _, _ in
             viewModel.search()
         }
         .onAppear {

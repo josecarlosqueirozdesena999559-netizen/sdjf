@@ -166,7 +166,7 @@ struct HomeView: View {
                 viewModel.fetchHomeData()
                 Task { await authViewModel.checkUnreadNotifications() }
             }
-            .onChange(of: scenePhase) { newPhase in
+            .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .active {
                     viewModel.fetchHomeData()
                     Task { await authViewModel.checkUnreadNotifications() }

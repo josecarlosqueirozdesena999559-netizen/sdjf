@@ -1,5 +1,6 @@
 import Foundation
 import Combine
+import UIKit
 
 class PublishViewModel: ObservableObject {
     @Published var title: String = ""

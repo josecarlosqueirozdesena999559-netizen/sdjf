@@ -238,7 +238,7 @@ struct PublishProductView: View {
                 }
                 .disabled(!viewModel.isFormValid || viewModel.isPublishing)
             }
-            .onChange(of: selectedItems) { newItems in
+            .onChange(of: selectedItems) { _, newItems in
                 loadMedia(from: newItems)
             }
             .overlay(
@@ -270,7 +270,7 @@ struct PublishProductView: View {
                     }
                 }
             )
-            .onChange(of: viewModel.publishSuccess) { success in
+            .onChange(of: viewModel.publishSuccess) { _, success in
                 if success {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
                         dismiss()
