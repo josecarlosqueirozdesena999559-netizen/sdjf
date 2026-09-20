@@ -21,10 +21,6 @@ workflows:
           brew install xcodegen
           xcodegen generate
 
-      - name: Fetch signing files
-        script: |
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE
-
       - name: Set up keychain
         script: |
           keychain initialize
@@ -33,15 +29,11 @@ workflows:
         script: |
           keychain add-certificates
 
-      - name: Check signing identities
-        script: |
-          security find-identity -v -p codesigning
-
-      - name: Set up code signing settings on Xcode project
+      - name: Set up code signing settings
         script: |
           xcode-project use-profiles
 
-      - name: Build IPA for distribution
+      - name: Build IPA
         script: |
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
