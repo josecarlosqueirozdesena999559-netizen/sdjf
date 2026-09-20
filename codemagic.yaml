@@ -28,6 +28,13 @@ workflows:
         script: |
           keychain initialize
 
+      - name: Check signing identities
+        script: |
+          echo "=== CERTIFICADOS DISPONÍVEIS ==="
+          security find-identity -v -p codesigning
+          echo "=== CERTIFICADOS INSTALADOS ==="
+          security find-certificate -a -c "Apple Distribution" "$HOME/Library/Keychains/codemagic.keychain-db" 2>/dev/null || true
+
       - name: Set up code signing
         script: |
           xcode-project use-profiles
