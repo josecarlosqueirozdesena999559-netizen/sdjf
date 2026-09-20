@@ -223,10 +223,24 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                 if let placemark = placemarks?.first {
                     let city = placemark.locality ?? ""
                     let state = placemark.administrativeArea ?? ""
-                    if !city.isEmpty && !state.isEmpty {
-                        self.locationName = "\(city) - \(state)"
-                    } else {
+                    let neighborhood = placemark.subLocality ?? ""
+                    let street = placemark.thoroughfare ?? ""
+                    let number = placemark.subThoroughfare ?? ""
+                    
+                    var parts: [String] = []
+                    if !street.isEmpty {
+                        var streetStr = street
+                        if !number.isEmpty { streetStr += ", \(number)" }
+                        parts.append(streetStr)
+                    }
+                    if !neighborhood.isEmpty { parts.append(neighborhood) }
+                    if !city.isEmpty { parts.append(city) }
+                    if !state.isEmpty { parts.append(state) }
+                    
+                    if parts.isEmpty {
                         self.locationName = "Localização obtida com sucesso!"
+                    } else {
+                        self.locationName = parts.joined(separator: " - ")
                     }
                 } else {
                     self.locationName = "Localização obtida com sucesso!"

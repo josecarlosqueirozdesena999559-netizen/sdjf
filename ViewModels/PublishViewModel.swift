@@ -18,7 +18,7 @@ class PublishViewModel: ObservableObject {
         return !title.isEmpty && !price.isEmpty && selectedCategoryId != nil && !location.isEmpty
     }
     
-    func publish(sellerId: UUID) {
+    func publish(sellerId: UUID, images: [UIImage] = []) {
         guard isFormValid else { return }
         isPublishing = true
         publishError = nil
@@ -27,6 +27,20 @@ class PublishViewModel: ObservableObject {
             do {
                 // Pequeno delay para exibir a animação de carregamento (feedback visual)
                 try? await Task.sleep(nanoseconds: 1_200_000_000)
+                
+                var imageUrls: [String] = []
+                for image in images {
+                    if let data = image.jpegData(compressionQuality: 0.7) {
+                        let fileName = "\(UUID().uuidString).jpg"
+                        do {
+                            try await supabase.storage.from("products").upload(path: fileName, file: data)
+                            let publicUrl = try supabase.storage.from("products").getPublicURL(path: fileName)
+                            imageUrls.append(publicUrl.absoluteString)
+                        } catch {
+                            print("Erro ao fazer upload da imagem: \(error)")
+                        }
+                    }
+                }
                 
                 let pPrice = Double(price.replacingOccurrences(of: ",", with: ".")) ?? 0.0
                 
@@ -41,6 +55,7 @@ class PublishViewModel: ObservableObject {
                     let accepts_negotiation: Bool
                     let status: String
                     let views: Int
+                    let images: [String]
                 }
                 
                 let newProd = InsertProduct(
@@ -53,7 +68,8 @@ class PublishViewModel: ObservableObject {
                     location: location,
                     accepts_negotiation: acceptsNegotiation,
                     status: "active",
-                    views: 0
+                    views: 0,
+                    images: imageUrls
                 )
                 
                 try await supabase.database.from("products").insert(newProd).execute()

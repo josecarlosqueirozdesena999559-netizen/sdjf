@@ -8,16 +8,35 @@ struct MessagesListView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVStack(spacing: 0) {
-                    ForEach(viewModel.conversations) { conversation in
-                        if let user = authViewModel.currentUser {
-                            NavigationLink(destination: ChatView(conversation: conversation, currentUser: user)) {
-                                MessageRowView(conversation: conversation)
+                if viewModel.conversations.isEmpty {
+                    VStack(spacing: 16) {
+                        Image(systemName: "tray")
+                            .font(.system(size: 64))
+                            .foregroundColor(Theme.textSecondary.opacity(0.5))
+                        Text("Nenhuma mensagem ainda")
+                            .font(.title3)
+                            .fontWeight(.semibold)
+                            .foregroundColor(Theme.textPrimary)
+                        Text("Quando você iniciar ou receber uma conversa, ela aparecerá aqui.")
+                            .font(.subheadline)
+                            .foregroundColor(Theme.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 100)
+                } else {
+                    LazyVStack(spacing: 0) {
+                        ForEach(viewModel.conversations) { conversation in
+                            if let user = authViewModel.currentUser {
+                                NavigationLink(destination: ChatView(conversation: conversation, currentUser: user)) {
+                                    MessageRowView(conversation: conversation)
+                                }
+                                .buttonStyle(PlainButtonStyle())
+                                
+                                Divider()
+                                    .padding(.leading, 76)
                             }
-                            .buttonStyle(PlainButtonStyle())
-                            
-                            Divider()
-                                .padding(.leading, 76)
                         }
                     }
                 }

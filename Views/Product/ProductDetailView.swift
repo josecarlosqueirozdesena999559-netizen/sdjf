@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 
 struct ProductOffer: Identifiable {
     let id = UUID()
@@ -274,13 +274,7 @@ struct ProductDetailView: View {
             }
         }
         .onAppear {
-            if offers.isEmpty && isOwner {
-                // Mock some initial offers for demonstration to the owner
-                offers = [
-                    ProductOffer(bidderName: "Carlos Silva", bidderId: UUID(), amount: product.price * 0.9, time: Date()),
-                    ProductOffer(bidderName: "Amanda Costa", bidderId: UUID(), amount: product.price * 0.85, time: Date())
-                ]
-            }
+            // Sem lances mockados, inicia vazio
             
             // Increment view count in Supabase (unique per user)
             Task {

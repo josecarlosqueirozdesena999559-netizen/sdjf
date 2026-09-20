@@ -214,7 +214,8 @@ struct PublishProductView: View {
             .safeAreaInset(edge: .bottom) {
                 Button(action: { 
                     if let userId = authViewModel.currentUser?.id {
-                        viewModel.publish(sellerId: userId)
+                        let images = loadedMedia.map { $0.image }
+                        viewModel.publish(sellerId: userId, images: images)
                     }
                 }) {
                     HStack {
