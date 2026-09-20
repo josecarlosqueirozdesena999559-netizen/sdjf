@@ -124,28 +124,31 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    if let user = authViewModel.currentUser {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("Olá, \(user.visibleName ?? user.name.components(separatedBy: " ").first ?? "Usuário")")
-                                .font(.headline)
-                                .foregroundColor(Theme.textPrimary)
-                            
-                            HStack(spacing: 4) {
-                                Image(systemName: "location.fill")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(Theme.primary)
-                                Text(user.location)
-                                    .font(.subheadline)
-                                    .foregroundColor(Theme.textSecondary)
+                    Group {
+                        if let user = authViewModel.currentUser {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("Olá, \(user.visibleName ?? user.name.components(separatedBy: " ").first ?? "Usuário")")
+                                    .font(.headline)
+                                    .foregroundColor(Theme.textPrimary)
+                                
+                                HStack(spacing: 4) {
+                                    Image(systemName: "location.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(Theme.primary)
+                                    Text(user.location)
+                                        .font(.subheadline)
+                                        .foregroundColor(Theme.textSecondary)
+                                }
                             }
+                            .padding(.leading, 8)
+                        } else {
+                            Image("logo")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 36)
                         }
-                        .padding(.leading, 8)
-                    } else {
-                        Image("logo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 36)
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink(destination: NotificationsView()) {
@@ -160,7 +163,9 @@ struct HomeView: View {
                                     .offset(x: 2, y: -2)
                             }
                         }
+                        .padding(8)
                     }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
             .onAppear {
