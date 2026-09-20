@@ -8,17 +8,26 @@ struct WelcomeView: View {
             ZStack {
                 Theme.background.ignoresSafeArea()
                 
+                // Graphics Layer (Ignores Safe Area completely to touch the very edges)
                 VStack(spacing: 0) {
-                    // Top Graphic (anchored to top)
                     Image("splash_top")
                         .resizable()
                         .scaledToFit()
                         .frame(maxWidth: .infinity)
-                        .ignoresSafeArea(edges: .top)
                     
                     Spacer()
                     
-                    // Buttons (in the middle white space)
+                    Image("splash_bottom")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(maxWidth: .infinity)
+                }
+                .ignoresSafeArea() // Fixes white margin below the bottom wave and at the top!
+                
+                // Buttons Layer (Respects Safe Area)
+                VStack {
+                    Spacer()
+                    
                     VStack(spacing: 16) {
                         NavigationLink(destination: LoginView()) {
                             Text("Iniciar")
@@ -52,16 +61,8 @@ struct WelcomeView: View {
                         .padding(.top, 8)
                     }
                     .padding(.horizontal, 32)
-                    .padding(.bottom, 20)
-                    
-                    Spacer()
-                    
-                    // Bottom Wave (anchored to bottom)
-                    Image("splash_bottom")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(maxWidth: .infinity)
-                        .ignoresSafeArea(edges: .bottom)
+                    // Push buttons above the bottom wave dynamically based on screen width
+                    .padding(.bottom, UIScreen.main.bounds.width * 0.35)
                 }
             }
         }
