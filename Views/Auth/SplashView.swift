@@ -9,7 +9,7 @@ struct SplashView: View {
             if authViewModel.isAuthenticated {
                 MainTabView()
             } else {
-                LoginView()
+                WelcomeView()
             }
         } else {
             VStack {
