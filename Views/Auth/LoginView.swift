@@ -18,7 +18,7 @@ struct LoginView: View {
             HStack {
                 Button(action: {
                     if step == .password {
-                        withAnimation { step = .username }
+                        withAnimation(.easeInOut(duration: 0.25)) { step = .username }
                     } else {
                         dismiss()
                     }
@@ -42,7 +42,10 @@ struct LoginView: View {
                             .fontWeight(.bold)
                             .foregroundColor(Theme.textPrimary)
                     }
-                    .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .trailing)))
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .leading).combined(with: .opacity),
+                        removal: .move(edge: .leading).combined(with: .opacity)
+                    ))
                     
                     CustomTextField(title: "Nome de usuário", placeholder: "@nomedeusuario", text: $username, keyboardType: .default)
                         .autocapitalization(.none)
@@ -51,7 +54,7 @@ struct LoginView: View {
                     Spacer()
                     
                     Button(action: {
-                        withAnimation { step = .password }
+                        withAnimation(.easeInOut(duration: 0.25)) { step = .password }
                     }) {
                         Text("Continuar")
                             .font(.headline)
@@ -71,7 +74,10 @@ struct LoginView: View {
                         Text("Quase lá! Insira sua senha para acessar.")
                             .foregroundColor(Theme.textSecondary)
                     }
-                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .trailing).combined(with: .opacity),
+                        removal: .move(edge: .trailing).combined(with: .opacity)
+                    ))
                     
                     CustomTextField(title: "Senha", placeholder: "Sua senha secreta", text: $password, isSecure: true)
                         .transition(.opacity)
