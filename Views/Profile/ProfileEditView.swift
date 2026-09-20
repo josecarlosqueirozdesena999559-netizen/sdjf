@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct ProfileEditView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -7,6 +8,9 @@ struct ProfileEditView: View {
     @State private var location = ""
     @State private var responseTime = "Responde em até 1 hora"
     @State private var bio = ""
+    
+    @State private var selectedItem: PhotosPickerItem? = nil
+    @State private var profileImage: UIImage? = nil
     
     let responseOptions = [
         "Responde imediatamente",
@@ -21,20 +25,40 @@ struct ProfileEditView: View {
             Section {
                 HStack {
                     Spacer()
-                    VStack(spacing: 12) {
-                        Circle()
-                            .fill(Theme.inputBackground)
-                            .frame(width: 90, height: 90)
-                            .overlay(
-                                Image(systemName: "person.crop.circle.fill")
-                                    .font(.system(size: 90))
-                                    .foregroundColor(Theme.textSecondary.opacity(0.5))
-                            )
-                        
-                        Text("Alterar foto de perfil")
-                            .font(.subheadline)
-                            .fontWeight(.semibold)
-                            .foregroundColor(Theme.primary)
+                    PhotosPicker(selection: $selectedItem, matching: .images) {
+                        VStack(spacing: 12) {
+                            if let profileImage = profileImage {
+                                Image(uiImage: profileImage)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 90, height: 90)
+                                    .clipShape(Circle())
+                            } else {
+                                Circle()
+                                    .fill(Theme.inputBackground)
+                                    .frame(width: 90, height: 90)
+                                    .overlay(
+                                        Image(systemName: "person.crop.circle.fill")
+                                            .font(.system(size: 90))
+                                            .foregroundColor(Theme.textSecondary.opacity(0.5))
+                                    )
+                            }
+                            
+                            Text("Alterar foto de perfil")
+                                .font(.subheadline)
+                                .fontWeight(.semibold)
+                                .foregroundColor(Theme.primary)
+                        }
+                    }
+                    .onChange(of: selectedItem) { _, newItem in
+                        Task {
+                            if let data = try? await newItem?.loadTransferable(type: Data.self),
+                               let uiImage = UIImage(data: data) {
+                                DispatchQueue.main.async {
+                                    self.profileImage = uiImage
+                                }
+                            }
+                        }
                     }
                     Spacer()
                 }

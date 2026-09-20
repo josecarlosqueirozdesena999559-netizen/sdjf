@@ -7,6 +7,7 @@ struct UserProfileView: View {
     @State private var myProducts: [Product] = []
     @State private var myCategories: [String] = []
     @State private var isLoading = true
+    @State private var productToEdit: Product?
     
     let columns = [
         GridItem(.flexible(), spacing: 16),
@@ -177,7 +178,9 @@ struct UserProfileView: View {
                                             FlatProductCard(product: product)
                                             
                                             Menu {
-                                                Button(action: {}) {
+                                                Button(action: {
+                                                    productToEdit = product
+                                                }) {
                                                     Label { Text("Editar") } icon: { Image("lucide_keyboard").renderingMode(.template) }
                                                 }
                                                 Button(action: {}) {
@@ -212,6 +215,9 @@ struct UserProfileView: View {
             }
             .navigationTitle("Perfil")
             .navigationBarTitleDisplayMode(.inline)
+            .sheet(item: $productToEdit) { product in
+                EditProductView(product: product)
+            }
             .toolbar {
                 ToolbarItem(placement: .navigationBarTrailing) {
                     NavigationLink(destination: SettingsView()) {

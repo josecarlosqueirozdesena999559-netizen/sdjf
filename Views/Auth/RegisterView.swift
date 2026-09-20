@@ -11,14 +11,16 @@ struct RegisterView: View {
     var body: some View {
         VStack {
             HStack {
-                if viewModel.currentStep != .name {
-                    Button(action: {
+                Button(action: {
+                    if viewModel.currentStep == .name {
+                        dismiss()
+                    } else {
                         withAnimation { viewModel.previousStep() }
-                    }) {
-                        Image(systemName: "chevron.left")
-                            .font(.title2)
-                            .foregroundColor(Theme.textPrimary)
                     }
+                }) {
+                    Image(systemName: "chevron.left")
+                        .font(.title2)
+                        .foregroundColor(Theme.textPrimary)
                 }
                 Spacer()
                 Text("Passo \(viewModel.currentStep.rawValue + 1) de \(RegisterStep.allCases.count)")
