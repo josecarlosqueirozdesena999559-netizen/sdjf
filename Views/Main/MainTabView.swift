@@ -63,7 +63,9 @@ struct MainTabView: View {
         }
         .environmentObject(favoritesViewModel)
         .fullScreenCover(isPresented: $showPublish) {
-            PublishProductView()
+            PublishProductView() {
+                selectedTab = 4 // Perfil
+            }
         }
         .onAppear {
             requestNotificationPermissions()

@@ -17,6 +17,8 @@ struct PublishProductView: View {
     @State private var selectedMedia: [SelectedMedia] = []
     @State private var isLoadingMedia: Bool = false
     
+    var onPublishSuccess: (() -> Void)? = nil
+    
     var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
@@ -239,10 +241,42 @@ struct PublishProductView: View {
             .onChange(of: selectedItems) { newItems in
                 loadMedia(from: newItems)
             }
-            .alert("Post Realizado!", isPresented: $viewModel.publishSuccess) {
-                Button("Ver meus anúncios", role: .cancel) { dismiss() }
-            } message: {
-                Text("Seu anúncio foi publicado com sucesso e já está no ar!")
+            .overlay(
+                Group {
+                    if viewModel.isPublishing || viewModel.publishSuccess {
+                        ZStack {
+                            Color.black.opacity(0.6).edgesIgnoringSafeArea(.all)
+                            VStack(spacing: 20) {
+                                if viewModel.isPublishing {
+                                    ProgressView()
+                                        .scaleEffect(1.5)
+                                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                    Text("Publicando...")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                } else if viewModel.publishSuccess {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 60))
+                                        .foregroundColor(.green)
+                                    Text("Item publicado!")
+                                        .font(.headline)
+                                        .foregroundColor(.white)
+                                }
+                            }
+                            .padding(40)
+                            .background(Color(UIColor.systemGray6).opacity(0.2))
+                            .cornerRadius(20)
+                        }
+                    }
+                }
+            )
+            .onChange(of: viewModel.publishSuccess) { success in
+                if success {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                        dismiss()
+                        onPublishSuccess?()
+                    }
+                }
             }
             .alert("Erro", isPresented: Binding<Bool>(
                 get: { viewModel.publishError != nil },
