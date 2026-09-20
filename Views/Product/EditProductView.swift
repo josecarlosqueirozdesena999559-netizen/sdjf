@@ -243,7 +243,7 @@ struct EditProductView: View {
     
     @ViewBuilder private var bottomButton: some View {
         Button(action: { 
-            if let userId = authViewModel.currentUser?.id {
+            if authViewModel.currentUser?.id != nil {
                 let images = selectedMedia.map { $0.image }
                 viewModel.save(images: images)
             }

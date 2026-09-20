@@ -88,8 +88,8 @@ struct LoginView: View {
                         }
                     }
                     
-                    if !authViewModel.errorMessage.isEmpty {
-                        Text(authViewModel.errorMessage)
+                    if let error = authViewModel.errorMessage, !error.isEmpty {
+                        Text(error)
                             .foregroundColor(Theme.error)
                             .font(.subheadline)
                             .padding(.top, 8)
