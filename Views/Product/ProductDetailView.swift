@@ -16,6 +16,11 @@ struct ProductDetailView: View {
     @State private var offers: [ProductOffer] = []
     @State private var offerAmount: String = ""
     @State private var localLikes: Int = 0
+    @State private var currentImageIndex: Int = 0
+    @State private var isFullScreenMedia: Bool = false
+    
+    // Timer for auto-sliding images
+    let timer = Timer.publish(every: 3.0, on: .main, in: .common).autoconnect()
     
     var seller: Seller? {
         MockData.sellers.first { $0.user.id == product.sellerId }
@@ -25,34 +30,67 @@ struct ProductDetailView: View {
         authViewModel.currentUser?.id == product.sellerId
     }
     
+    private func isVideo(url: String) -> Bool {
+        let lowercased = url.lowercased()
+        return lowercased.hasSuffix(".mp4") || lowercased.hasSuffix(".mov") || lowercased.hasSuffix(".m3u8") || lowercased.contains("video")
+    }
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 // Product Images
                 if !product.images.isEmpty {
-                    TabView {
-                        ForEach(product.images, id: \.self) { imageUrl in
+                    TabView(selection: $currentImageIndex) {
+                        ForEach(0..<product.images.count, id: \.self) { index in
+                            let imageUrl = product.images[index]
                             if let url = URL(string: imageUrl) {
-                                AsyncImage(url: url) { phase in
-                                    if let image = phase.image {
-                                        image
-                                            .resizable()
-                                            .aspectRatio(contentMode: .fill)
-                                    } else if phase.error != nil {
-                                        Rectangle()
-                                            .fill(Theme.inputBackground)
-                                            .overlay(Image(systemName: "photo").font(.largeTitle).foregroundColor(.gray))
-                                    } else {
-                                        Rectangle()
-                                            .fill(Theme.inputBackground)
-                                            .overlay(ProgressView())
+                                ZStack {
+                                    AsyncImage(url: url) { phase in
+                                        if let image = phase.image {
+                                            image
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                        } else if phase.error != nil {
+                                            Rectangle()
+                                                .fill(Theme.inputBackground)
+                                                .overlay(Image(systemName: "photo").font(.largeTitle).foregroundColor(.gray))
+                                        } else {
+                                            Rectangle()
+                                                .fill(Theme.inputBackground)
+                                                .overlay(ProgressView())
+                                        }
                                     }
+                                    
+                                    if isVideo(url: imageUrl) {
+                                        Circle()
+                                            .fill(Color.black.opacity(0.5))
+                                            .frame(width: 60, height: 60)
+                                            .overlay(
+                                                Image(systemName: "play.fill")
+                                                    .foregroundColor(.white)
+                                                    .font(.title)
+                                            )
+                                    }
+                                }
+                                .tag(index)
+                                .onTapGesture {
+                                    isFullScreenMedia = true
                                 }
                             }
                         }
                     }
                     .frame(height: 300)
                     .tabViewStyle(PageTabViewStyle())
+                    .onReceive(timer) { _ in
+                        if product.images.count > 1 && !isFullScreenMedia {
+                            withAnimation {
+                                currentImageIndex = (currentImageIndex + 1) % product.images.count
+                            }
+                        }
+                    }
+                    .fullScreenCover(isPresented: $isFullScreenMedia) {
+                        FullScreenMediaView(mediaUrls: product.images, currentIndex: currentImageIndex)
+                    }
                 } else {
                     Rectangle()
                         .fill(Theme.lightGreen)

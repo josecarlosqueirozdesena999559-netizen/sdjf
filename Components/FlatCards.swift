@@ -26,6 +26,9 @@ struct FlatCategoryCard: View {
 struct FlatProductCard: View {
     var product: Product
     
+    @State private var currentImageIndex = 0
+    let timer = Timer.publish(every: 2.5, on: .main, in: .common).autoconnect()
+    
     var seller: Seller? {
         MockData.sellers.first { $0.user.id == product.sellerId }
     }
@@ -35,31 +38,40 @@ struct FlatProductCard: View {
             // Navigate to Product Detail when tapping the main card content
             NavigationLink(destination: ProductDetailView(product: product)) {
                 VStack(alignment: .leading, spacing: 8) {
-                    if let firstImage = product.images.first, let url = URL(string: firstImage) {
-                        AsyncImage(url: url) { phase in
-                            if let image = phase.image {
-                                image
-                                    .resizable()
-                                    .aspectRatio(1, contentMode: .fill)
-                                    .frame(maxWidth: .infinity)
-                                    .clipped()
-                            } else if phase.error != nil {
-                                Rectangle()
-                                    .fill(Theme.inputBackground)
-                                    .aspectRatio(1, contentMode: .fill)
-                                    .overlay(
-                                        Image(systemName: "photo")
-                                            .foregroundColor(.gray.opacity(0.5))
-                                            .font(.system(size: 40))
-                                    )
-                            } else {
-                                Rectangle()
-                                    .fill(Theme.inputBackground)
-                                    .aspectRatio(1, contentMode: .fill)
-                                    .overlay(ProgressView())
+                    if !product.images.isEmpty {
+                        if let url = URL(string: product.images[currentImageIndex]) {
+                            AsyncImage(url: url) { phase in
+                                if let image = phase.image {
+                                    image
+                                        .resizable()
+                                        .aspectRatio(1, contentMode: .fill)
+                                        .frame(maxWidth: .infinity)
+                                        .clipped()
+                                } else if phase.error != nil {
+                                    Rectangle()
+                                        .fill(Theme.inputBackground)
+                                        .aspectRatio(1, contentMode: .fill)
+                                        .overlay(
+                                            Image(systemName: "photo")
+                                                .foregroundColor(.gray.opacity(0.5))
+                                                .font(.system(size: 40))
+                                        )
+                                } else {
+                                    Rectangle()
+                                        .fill(Theme.inputBackground)
+                                        .aspectRatio(1, contentMode: .fill)
+                                        .overlay(ProgressView())
+                                }
+                            }
+                            .cornerRadius(12)
+                            .onReceive(timer) { _ in
+                                if product.images.count > 1 {
+                                    withAnimation(.easeInOut(duration: 0.5)) {
+                                        currentImageIndex = (currentImageIndex + 1) % product.images.count
+                                    }
+                                }
                             }
                         }
-                        .cornerRadius(12)
                     } else {
                         Rectangle()
                             .fill(Theme.inputBackground)
