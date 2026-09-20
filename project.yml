@@ -1,4 +1,4 @@
-﻿name: MercadoFacil
+name: MercadoFacil
 packages:
   Supabase:
     url: https://github.com/supabase/supabase-swift.git
