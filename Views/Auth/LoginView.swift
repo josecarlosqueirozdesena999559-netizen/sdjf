@@ -1,61 +1,132 @@
 import SwiftUI
 
+enum LoginStep {
+    case username
+    case password
+}
+
 struct LoginView: View {
     @State private var username = ""
     @State private var password = ""
+    @State private var step: LoginStep = .username
     @EnvironmentObject var authViewModel: AuthViewModel
+    @Environment(\.dismiss) var dismiss
     
     var body: some View {
-        VStack(spacing: 24) {
-            Image("logo")
-                .resizable()
-                .scaledToFit()
-                .frame(height: 60)
-                .padding(.top, 40)
-            
-            VStack(spacing: 8) {
-                Text("Entrar")
-                    .font(.title)
-                    .fontWeight(.bold)
-                Text("Acesse sua conta para continuar")
-                    .foregroundColor(Theme.textSecondary)
-            }
-            
-            VStack(spacing: 16) {
-                CustomTextField(title: "Nome de usuário", placeholder: "@nomedeusuario", text: $username, keyboardType: .default)
-                CustomTextField(title: "Senha", placeholder: "Sua senha", text: $password, isSecure: true)
-            }
-            
+        VStack(spacing: 0) {
+            // Custom Header for internal navigation
             HStack {
+                Button(action: {
+                    if step == .password {
+                        withAnimation { step = .username }
+                    } else {
+                        dismiss()
+                    }
+                }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .semibold))
+                        Text("Voltar")
+                    }
+                    .foregroundColor(Theme.primary)
+                }
                 Spacer()
-                NavigationLink(destination: ForgotPasswordView()) {
-                    Text("Esqueci minha senha")
-                        .font(.subheadline)
-                        .foregroundColor(Theme.primary)
+            }
+            .padding()
+            
+            VStack(alignment: .leading, spacing: 24) {
+                if step == .username {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Qual é o seu usuário?")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(Theme.textPrimary)
+                        Text("Para acessar sua conta, precisamos do seu nome de usuário ou e-mail.")
+                            .foregroundColor(Theme.textSecondary)
+                    }
+                    .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .trailing)))
+                    
+                    CustomTextField(title: "Nome de usuário ou E-mail", placeholder: "@nomedeusuario", text: $username, keyboardType: .default)
+                        .autocapitalization(.none)
+                        .transition(.opacity)
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        withAnimation { step = .password }
+                    }) {
+                        Text("Continuar")
+                            .font(.headline)
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Theme.primary)
+                            .cornerRadius(12)
+                    }
+                    .disabled(username.isEmpty)
+                } else {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Digite sua senha")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(Theme.textPrimary)
+                        Text("Quase lá! Insira sua senha para acessar.")
+                            .foregroundColor(Theme.textSecondary)
+                    }
+                    .transition(.asymmetric(insertion: .move(edge: .trailing), removal: .move(edge: .leading)))
+                    
+                    CustomTextField(title: "Senha", placeholder: "Sua senha secreta", text: $password, isSecure: true)
+                        .transition(.opacity)
+                    
+                    HStack {
+                        Spacer()
+                        NavigationLink(destination: ForgotPasswordView()) {
+                            Text("Esqueceu a senha?")
+                                .font(.subheadline)
+                                .fontWeight(.medium)
+                                .foregroundColor(Theme.primary)
+                        }
+                    }
+                    
+                    if !authViewModel.errorMessage.isEmpty {
+                        Text(authViewModel.errorMessage)
+                            .foregroundColor(Theme.error)
+                            .font(.subheadline)
+                            .padding(.top, 8)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: {
+                        Task {
+                            await authViewModel.login(username: username, password: password)
+                        }
+                    }) {
+                        if authViewModel.isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Theme.primary)
+                                .cornerRadius(12)
+                        } else {
+                            Text("Entrar")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Theme.primary)
+                                .cornerRadius(12)
+                        }
+                    }
+                    .disabled(password.isEmpty || authViewModel.isLoading)
                 }
             }
-            
-            if let error = authViewModel.errorMessage {
-                Text(error)
-                    .foregroundColor(.red)
-                    .font(.subheadline)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
-            }
-            
-            if authViewModel.isLoading {
-                ProgressView()
-            } else {
-                PrimaryButton(title: "Entrar") {
-                    authViewModel.login(emailOrUsername: username, password: password)
-                }
-            }
-            
-            Spacer()
+            .padding(.horizontal, 24)
+            .padding(.top, 20)
         }
-        .padding()
         .background(Theme.background.ignoresSafeArea())
-        .customBackButton()
+        .navigationBarHidden(true)
     }
 }
 

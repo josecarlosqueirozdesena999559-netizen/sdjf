@@ -5,73 +5,128 @@ struct ForgotPasswordView: View {
     @State private var email = ""
     @State private var isLoading = false
     @State private var message = ""
+    @State private var isSuccess = false
     @Environment(\.dismiss) var dismiss
     
     var body: some View {
-        VStack(spacing: 24) {
-            Text("Recuperar Senha")
-                .font(.largeTitle)
-                .fontWeight(.bold)
-                .padding(.top, 40)
-            
-            Text("Digite seu e-mail cadastrado. Enviaremos um link para você redefinir sua senha.")
-                .multilineTextAlignment(.center)
-                .foregroundColor(Theme.textSecondary)
-                .padding(.horizontal)
-            
-            CustomTextField(title: "E-mail", placeholder: "seu@email.com", text: $email, keyboardType: .emailAddress)
-                .padding(.horizontal)
-                .autocapitalization(.none)
-            
-            if !message.isEmpty {
-                Text(message)
-                    .foregroundColor(message.contains("Sucesso") || message.contains("enviado") ? .green : .red)
-                    .font(.subheadline)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal)
+        VStack(spacing: 0) {
+            // Header Customizado
+            HStack {
+                Button(action: { dismiss() }) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "chevron.left")
+                            .font(.system(size: 16, weight: .semibold))
+                        Text("Voltar")
+                    }
+                    .foregroundColor(Theme.primary)
+                }
+                Spacer()
             }
+            .padding()
             
-            Button(action: resetPassword) {
-                if isLoading {
-                    ProgressView()
-                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Theme.primary)
-                        .cornerRadius(12)
+            VStack(alignment: .leading, spacing: 24) {
+                if isSuccess {
+                    // Success View
+                    VStack(spacing: 24) {
+                        Spacer().frame(height: 40)
+                        
+                        ZStack {
+                            Circle()
+                                .fill(Color.green.opacity(0.1))
+                                .frame(width: 100, height: 100)
+                            Image(systemName: "envelope.badge.fill")
+                                .font(.system(size: 40))
+                                .foregroundColor(.green)
+                        }
+                        
+                        Text("E-mail Enviado!")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(Theme.textPrimary)
+                        
+                        Text(message)
+                            .font(.body)
+                            .foregroundColor(Theme.textSecondary)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 20)
+                        
+                        Spacer()
+                    }
+                    .transition(.opacity)
                 } else {
-                    Text("Enviar Link de Recuperação")
-                        .font(.headline)
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                        .background(Theme.primary)
-                        .cornerRadius(12)
+                    // Form View
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Recuperar Senha")
+                            .font(.largeTitle)
+                            .fontWeight(.bold)
+                            .foregroundColor(Theme.textPrimary)
+                        Text("Digite seu e-mail cadastrado. Enviaremos um link seguro para você redefinir sua senha.")
+                            .foregroundColor(Theme.textSecondary)
+                    }
+                    .padding(.top, 20)
+                    
+                    CustomTextField(title: "Seu E-mail", placeholder: "exemplo@email.com", text: $email, keyboardType: .emailAddress)
+                        .autocapitalization(.none)
+                        .padding(.top, 16)
+                    
+                    if !message.isEmpty && !isSuccess {
+                        HStack(spacing: 8) {
+                            Image(systemName: "exclamationmark.triangle.fill")
+                            Text(message)
+                        }
+                        .foregroundColor(Theme.error)
+                        .font(.subheadline)
+                        .padding(.top, 8)
+                    }
+                    
+                    Spacer()
+                    
+                    Button(action: resetPassword) {
+                        if isLoading {
+                            ProgressView()
+                                .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Theme.primary)
+                                .cornerRadius(12)
+                        } else {
+                            Text("Enviar Link de Recuperação")
+                                .font(.headline)
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Theme.primary)
+                                .cornerRadius(12)
+                        }
+                    }
+                    .disabled(email.isEmpty || !email.contains("@") || isLoading)
                 }
             }
-            .disabled(email.isEmpty || !email.contains("@") || isLoading)
-            .padding(.horizontal)
-            
-            Spacer()
+            .padding(.horizontal, 24)
         }
-        .customBackButton()
+        .background(Theme.background.ignoresSafeArea())
+        .navigationBarHidden(true)
     }
     
     private func resetPassword() {
         isLoading = true
+        message = ""
         Task {
             do {
                 try await supabase.auth.resetPasswordForEmail(email)
                 await MainActor.run {
-                    message = "Link de recuperação enviado! Verifique sua caixa de entrada."
+                    message = "Enviamos as instruções de recuperação para o e-mail: \(email)."
+                    withAnimation {
+                        isSuccess = true
+                    }
                     isLoading = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
                         dismiss()
                     }
                 }
             } catch {
                 await MainActor.run {
-                    message = "Erro: \(error.localizedDescription)"
+                    message = "Erro ao enviar: \(error.localizedDescription)"
                     isLoading = false
                 }
             }
