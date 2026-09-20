@@ -11,9 +11,6 @@ struct WelcomeView: View {
                 let renderedHeight = 2000 * scale
                 let topOffset = (geo.size.height - renderedHeight) / 2
                 
-                // Position the buttons exactly in the middle of the white space (y=1650 in the 2000px image)
-                let buttonCenterY = topOffset + (1650 * scale)
-                
                 ZStack {
                     Color.white.ignoresSafeArea()
                     
@@ -25,29 +22,22 @@ struct WelcomeView: View {
                         .clipped()
                         .ignoresSafeArea()
                     
-                    VStack(spacing: 16) {
+                    VStack(spacing: 30 * scale) { // Exact gap from the image
                         NavigationLink(destination: LoginView()) {
                             Text("Iniciar")
                                 .font(.headline)
                                 .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Theme.primary)
-                                .cornerRadius(30)
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
+                        .frame(height: 140 * scale) // Exact height of the drawn shape
                         
                         NavigationLink(destination: RegisterView()) {
                             Text("Cadastro")
                                 .font(.headline)
                                 .foregroundColor(Theme.primary)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.white)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 30)
-                                        .stroke(Theme.primary, lineWidth: 2)
-                                )
+                                .frame(maxWidth: .infinity, maxHeight: .infinity)
                         }
+                        .frame(height: 140 * scale) // Exact height of the drawn shape
                         
                         NavigationLink(destination: ForgotPasswordView()) {
                             Text("Esqueceu a senha?")
@@ -58,7 +48,8 @@ struct WelcomeView: View {
                         .padding(.top, 8)
                     }
                     .padding(.horizontal, 32)
-                    .position(x: geo.size.width / 2, y: buttonCenterY)
+                    // The center of the entire button group in the image is roughly at y=1700
+                    .position(x: geo.size.width / 2, y: topOffset + (1700 * scale))
                 }
             }
             .ignoresSafeArea(.keyboard)
