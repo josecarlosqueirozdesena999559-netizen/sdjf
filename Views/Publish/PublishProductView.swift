@@ -59,37 +59,39 @@ struct PublishProductView: View {
                                 }
                                 
                                 ForEach(selectedMedia) { media in
-                                    ZStack(alignment: .topTrailing) {
-                                        Image(uiImage: media.image)
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 100, height: 100)
-                                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                                        
-                                        if media.isVideo {
-                                            Color.black.opacity(0.3)
-                                                .frame(width: 100, height: 100)
-                                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                                            Image(systemName: "play.circle.fill")
-                                                .font(.largeTitle)
-                                                .foregroundColor(.white)
-                                                .position(x: 50, y: 50)
-                                        }
-                                        
-                                        Button(action: {
-                                            if let index = selectedMedia.firstIndex(where: { $0.id == media.id }) {
-                                                selectedMedia.remove(at: index)
-                                                if index < selectedItems.count {
-                                                    selectedItems.remove(at: index)
+                                    Image(uiImage: media.image)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 100, height: 100)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .overlay(
+                                            Group {
+                                                if media.isVideo {
+                                                    ZStack {
+                                                        Color.black.opacity(0.3)
+                                                        Image(systemName: "play.circle.fill")
+                                                            .font(.largeTitle)
+                                                            .foregroundColor(.white)
+                                                    }
                                                 }
                                             }
-                                        }) {
-                                            Image(systemName: "xmark.circle.fill")
-                                                .foregroundColor(.white)
-                                                .background(Circle().fill(Color.black.opacity(0.6)))
-                                        }
-                                        .padding(6)
-                                    }
+                                        )
+                                        .overlay(
+                                            Button(action: {
+                                                if let index = selectedMedia.firstIndex(where: { $0.id == media.id }) {
+                                                    selectedMedia.remove(at: index)
+                                                    if index < selectedItems.count {
+                                                        selectedItems.remove(at: index)
+                                                    }
+                                                }
+                                            }) {
+                                                Image(systemName: "xmark.circle.fill")
+                                                    .foregroundColor(.white)
+                                                    .background(Circle().fill(Color.black.opacity(0.6)))
+                                            }
+                                            .padding(6),
+                                            alignment: .topTrailing
+                                        )
                                 }
                             }
                             .padding(.horizontal)
@@ -216,7 +218,7 @@ struct PublishProductView: View {
             .safeAreaInset(edge: .bottom) {
                 Button(action: { 
                     if let userId = authViewModel.currentUser?.id {
-                        let images = loadedMedia.map { $0.image }
+                        let images = selectedMedia.map { $0.image }
                         viewModel.publish(sellerId: userId, images: images)
                     }
                 }) {
@@ -295,15 +297,12 @@ struct PublishProductView: View {
             var loadedMedia: [SelectedMedia] = []
             
             for item in items {
-                var isVideo = false
-                
                 // For video fallback/mock, since actual video extraction is complex,
                 // we check if it is a video type and provide a dummy image or try to load.
                 if item.supportedContentTypes.contains(UTType.movie) ||
                    item.supportedContentTypes.contains(UTType.video) ||
                    item.supportedContentTypes.contains(UTType.mpeg4Movie) ||
                    item.supportedContentTypes.contains(UTType.quickTimeMovie) {
-                    isVideo = true
                     // Provide a generic video thumbnail mock (just a gray square for now, overlaid with play button)
                     if let dummy = createDummyVideoThumbnail() {
                         loadedMedia.append(SelectedMedia(image: dummy, isVideo: true))
