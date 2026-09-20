@@ -124,22 +124,27 @@ struct HomeView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .navigationBarLeading) {
-                    VStack(alignment: .leading, spacing: 2) {
+                    if let user = authViewModel.currentUser {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Olá, \(user.visibleName ?? user.name.components(separatedBy: " ").first ?? "Usuário")")
+                                .font(.headline)
+                                .foregroundColor(Theme.textPrimary)
+                            
+                            HStack(spacing: 4) {
+                                Image(systemName: "location.fill")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(Theme.primary)
+                                Text(user.location)
+                                    .font(.subheadline)
+                                    .foregroundColor(Theme.textSecondary)
+                            }
+                        }
+                        .padding(.leading, 8)
+                    } else {
                         Image("logo")
                             .resizable()
                             .scaledToFit()
                             .frame(height: 36)
-                        
-                        if let user = authViewModel.currentUser {
-                            HStack(spacing: 4) {
-                                Image(systemName: "location.fill")
-                                    .font(.system(size: 10))
-                                    .foregroundColor(Theme.primary)
-                                Text(user.location)
-                                    .font(.caption2)
-                                    .foregroundColor(Theme.textSecondary)
-                            }
-                        }
                     }
                 }
                 ToolbarItem(placement: .navigationBarTrailing) {

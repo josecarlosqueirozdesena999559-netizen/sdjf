@@ -15,6 +15,7 @@ struct ProductDetailView: View {
     
     @State private var offers: [ProductOffer] = []
     @State private var offerAmount: String = ""
+    @State private var localLikes: Int = 0
     
     var seller: Seller? {
         MockData.sellers.first { $0.user.id == product.sellerId }
@@ -285,21 +286,35 @@ struct ProductDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {}) {
+                ShareLink(item: URL(string: "https://achou.com/product/\(product.id.uuidString)")!, subject: Text(product.title), message: Text("Olha esse produto que encontrei no Achou: \(product.title) por \(Formatters.formatCurrency(product.price))!")) {
                     Image(systemName: "square.and.arrow.up")
                         .foregroundColor(Theme.textPrimary)
                 }
             }
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    favoritesViewModel.toggleFavorite(product: product)
-                }) {
-                    Image(systemName: favoritesViewModel.isFavorite(product) ? "heart.fill" : "heart")
-                        .foregroundColor(favoritesViewModel.isFavorite(product) ? Theme.primary : Theme.textPrimary)
+                HStack(spacing: 2) {
+                    Text("\(localLikes)")
+                        .font(.caption)
+                        .foregroundColor(Theme.textSecondary)
+                        .padding(.trailing, 2)
+                        
+                    Button(action: {
+                        favoritesViewModel.toggleFavorite(product: product)
+                        if favoritesViewModel.isFavorite(product) {
+                            localLikes += 1
+                        } else {
+                            localLikes -= 1
+                        }
+                    }) {
+                        Image(systemName: favoritesViewModel.isFavorite(product) ? "heart.fill" : "heart")
+                            .foregroundColor(favoritesViewModel.isFavorite(product) ? Theme.primary : Theme.textPrimary)
+                    }
                 }
             }
         }
         .onAppear {
+            localLikes = (product.views / 3) + (favoritesViewModel.isFavorite(product) ? 1 : 0)
+            
             // Sem lances mockados, inicia vazio
             
             // Increment view count in Supabase (unique per user)
