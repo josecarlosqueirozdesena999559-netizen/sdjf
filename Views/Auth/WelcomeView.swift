@@ -8,21 +8,27 @@ struct WelcomeView: View {
             ZStack {
                 Theme.background.ignoresSafeArea()
                 
-                // Graphics Layer (Ignores Safe Area completely to touch the very edges)
-                VStack(spacing: 0) {
+                // Graphics Layer - Top
+                VStack {
                     Image("splash_top")
                         .resizable()
                         .scaledToFit()
-                        .frame(maxWidth: .infinity)
+                        .frame(width: UIScreen.main.bounds.width)
                     
+                    Spacer()
+                }
+                .ignoresSafeArea() // Anchors to the absolute top
+                
+                // Graphics Layer - Bottom
+                VStack {
                     Spacer()
                     
                     Image("splash_bottom")
                         .resizable()
                         .scaledToFit()
-                        .frame(maxWidth: .infinity)
+                        .frame(width: UIScreen.main.bounds.width)
                 }
-                .ignoresSafeArea() // Fixes white margin below the bottom wave and at the top!
+                .ignoresSafeArea() // Anchors to the absolute bottom
                 
                 // Buttons Layer (Respects Safe Area)
                 VStack {
