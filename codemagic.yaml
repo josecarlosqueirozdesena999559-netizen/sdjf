@@ -3,42 +3,46 @@ workflows:
     name: iOS App Store Deployment
     max_build_duration: 120
     instance_type: mac_mini_m2
+
     integrations:
       app_store_connect: "Codemagic"
+
     environment:
-      groups:
-        - appstore_credentials
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.achou.com
+
       vars:
         XCODE_PROJECT: "MercadoFacil.xcodeproj"
         XCODE_SCHEME: "MercadoFacil"
-        BUNDLE_ID: "com.achou.com"
+
       xcode: latest
+
     scripts:
       - name: Generate Xcode Project using XcodeGen
         script: |
           brew install xcodegen
           xcodegen generate
-      - name: Set up keychain to be used for code signing using Codemagic CLI 'keychain' command
+
+      - name: Set up keychain
         script: |
           keychain initialize
-      - name: Fetch signing files
-        script: |
-          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
-      - name: Add certificates to keychain
-        script: |
-          keychain add-certificates
-      - name: Set up code signing settings on Xcode project
+
+      - name: Set up code signing
         script: |
           xcode-project use-profiles
+
       - name: Build IPA for distribution
         script: |
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME" \
             --config Release
+
     artifacts:
       - build/ios/ipa/*.ipa
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
     publishing:
       app_store_connect:
         auth: integration
