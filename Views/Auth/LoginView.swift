@@ -79,25 +79,30 @@ struct LoginView: View {
                         removal: .move(edge: .trailing).combined(with: .opacity)
                     ))
                     
-                    CustomTextField(title: "Senha", placeholder: "Sua senha secreta", text: $password, isSecure: true)
-                        .transition(.opacity)
-                    
-                    HStack {
-                        Spacer()
-                        NavigationLink(destination: ForgotPasswordView()) {
-                            Text("Esqueceu a senha?")
-                                .font(.subheadline)
-                                .fontWeight(.medium)
-                                .foregroundColor(Theme.primary)
-                        }
-                    }
-                    
-                    if let error = authViewModel.errorMessage, !error.isEmpty {
-                        Text(error)
+                    VStack(alignment: .leading, spacing: 12) {
+                        CustomTextField(title: "Senha", placeholder: "Sua senha secreta", text: $password, isSecure: true)
+                        
+                        if let error = authViewModel.errorMessage, !error.isEmpty {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                Text(error)
+                            }
                             .foregroundColor(Theme.error)
                             .font(.subheadline)
-                            .padding(.top, 8)
+                            .padding(.top, 4)
+                        }
+                        
+                        HStack {
+                            Spacer()
+                            NavigationLink(destination: ForgotPasswordView()) {
+                                Text("Esqueceu a senha?")
+                                    .font(.subheadline)
+                                    .fontWeight(.medium)
+                                    .foregroundColor(Theme.primary)
+                            }
+                        }
                     }
+                    .transition(.opacity)
                     
                     Spacer()
                     
