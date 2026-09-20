@@ -5,15 +5,25 @@ struct WelcomeView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack {
-                // Background Image with the Achou logo and illustrations
-                Image("splash_bg")
-                    .resizable()
-                    .scaledToFill()
-                    .ignoresSafeArea()
+            GeometryReader { geo in
+                // Calculate scale to match .scaledToFill() behavior
+                let scale = max(geo.size.width / 1000, geo.size.height / 2000)
+                let renderedHeight = 2000 * scale
+                let topOffset = (geo.size.height - renderedHeight) / 2
                 
-                VStack {
-                    Spacer()
+                // Position the buttons exactly in the middle of the white space (y=1650 in the 2000px image)
+                let buttonCenterY = topOffset + (1650 * scale)
+                
+                ZStack {
+                    Color.white.ignoresSafeArea()
+                    
+                    // Background Image with the Achou logo and illustrations
+                    Image("splash_bg")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geo.size.width, height: geo.size.height)
+                        .clipped()
+                        .ignoresSafeArea()
                     
                     VStack(spacing: 16) {
                         NavigationLink(destination: LoginView()) {
@@ -48,9 +58,10 @@ struct WelcomeView: View {
                         .padding(.top, 8)
                     }
                     .padding(.horizontal, 32)
-                    .padding(.bottom, 60)
+                    .position(x: geo.size.width / 2, y: buttonCenterY)
                 }
             }
+            .ignoresSafeArea(.keyboard)
         }
     }
 }
