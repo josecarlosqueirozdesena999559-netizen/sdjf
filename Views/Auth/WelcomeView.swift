@@ -61,9 +61,10 @@ struct WelcomeView: View {
                         .padding(.top, 8)
                     }
                     .padding(.horizontal, 32)
-                    // Push buttons above the bottom wave dynamically based on screen width
-                    .padding(.bottom, UIScreen.main.bounds.width * 0.35)
+                    // Wave height is exactly 30% of screen width (154/512). We add 20pts of gap.
+                    .padding(.bottom, UIScreen.main.bounds.width * 0.30 + 20)
                 }
+                .ignoresSafeArea() // Use absolute bounds so the math is perfect across all iPhones
             }
         }
     }
