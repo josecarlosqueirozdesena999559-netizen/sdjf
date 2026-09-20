@@ -35,6 +35,25 @@ struct ProductDetailView: View {
         return lowercased.hasSuffix(".mp4") || lowercased.hasSuffix(".mov") || lowercased.hasSuffix(".m3u8") || lowercased.contains("video")
     }
     
+    private func sendNotification(to userId: UUID, type: String, title: String, body: String) {
+        Task {
+            struct NotifInsert: Codable {
+                let id: UUID
+                let user_id: UUID
+                let type: String
+                let title: String
+                let body: String
+                let is_read: Bool
+            }
+            let notif = NotifInsert(id: UUID(), user_id: userId, type: type, title: title, body: body, is_read: false)
+            do {
+                try await supabase.database.from("notifications").insert(notif).execute()
+            } catch {
+                print("Failed to send notification: \(error)")
+            }
+        }
+    }
+    
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
@@ -217,9 +236,15 @@ struct ProductDetailView: View {
                                         
                                         Button(action: {
                                             if let amount = Double(offerAmount.replacingOccurrences(of: ",", with: ".")) {
-                                                let newOffer = ProductOffer(bidderName: authViewModel.currentUser?.name ?? "Você", bidderId: authViewModel.currentUser?.id ?? UUID(), amount: amount, time: Date())
+                                                let bidderName = authViewModel.currentUser?.name ?? "Você"
+                                                let bidderId = authViewModel.currentUser?.id ?? UUID()
+                                                let newOffer = ProductOffer(bidderName: bidderName, bidderId: bidderId, amount: amount, time: Date())
                                                 offers.append(newOffer)
                                                 offerAmount = ""
+                                                
+                                                if bidderId != product.sellerId {
+                                                    sendNotification(to: product.sellerId, type: "sale", title: "Novo lance recebido!", body: "\(bidderName) fez um lance de \(Formatters.formatCurrency(amount)) no seu produto '\(product.title)'.")
+                                                }
                                             }
                                         }) {
                                             Text("Enviar Lance")
@@ -324,7 +349,22 @@ struct ProductDetailView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                ShareLink(item: URL(string: "https://achou.com/product/\(product.id.uuidString)")!, subject: Text(product.title), message: Text("Olha esse produto que encontrei no Achou: \(product.title) por \(Formatters.formatCurrency(product.price))!")) {
+                Button(action: {
+                    if let user = authViewModel.currentUser, user.id != product.sellerId {
+                        sendNotification(to: product.sellerId, type: "system", title: "Produto compartilhado!", body: "Alguém compartilhou o seu produto '\(product.title)'.")
+                    }
+                    
+                    let activityVC = UIActivityViewController(activityItems: ["Olha esse produto que encontrei no Achou: \(product.title) por \(Formatters.formatCurrency(product.price))!", URL(string: "https://achou.com/product/\(product.id.uuidString)")!], applicationActivities: nil)
+                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                       let window = windowScene.windows.first,
+                       let rootVC = window.rootViewController {
+                        var topController = rootVC
+                        while let presented = topController.presentedViewController {
+                            topController = presented
+                        }
+                        topController.present(activityVC, animated: true)
+                    }
+                }) {
                     Image(systemName: "square.and.arrow.up")
                         .foregroundColor(Theme.textPrimary)
                 }
@@ -340,6 +380,9 @@ struct ProductDetailView: View {
                         favoritesViewModel.toggleFavorite(product: product)
                         if favoritesViewModel.isFavorite(product) {
                             localLikes += 1
+                            if let user = authViewModel.currentUser, user.id != product.sellerId {
+                                sendNotification(to: product.sellerId, type: "system", title: "Nova curtida!", body: "\(user.name) curtiu o seu produto '\(product.title)'.")
+                            }
                         } else {
                             localLikes -= 1
                         }
@@ -353,8 +396,6 @@ struct ProductDetailView: View {
         .onAppear {
             localLikes = (product.views / 3) + (favoritesViewModel.isFavorite(product) ? 1 : 0)
             
-            // Sem lances mockados, inicia vazio
-            
             // Increment view count in Supabase (unique per user)
             Task {
                 guard let userId = authViewModel.currentUser?.id else { return }
@@ -365,6 +406,14 @@ struct ProductDetailView: View {
                     }
                     let params = IncrementParams(p_product_id: product.id, p_user_id: userId)
                     try await supabase.database.rpc("increment_product_views", params: params).execute()
+                    
+                    struct ProductViews: Codable { let views: Int }
+                    if let updatedProduct: ProductViews = try? await supabase.database.from("products").select("views").eq("id", value: product.id).single().execute().value {
+                        let milestones = [5, 30, 55, 105, 500, 1000]
+                        if milestones.contains(updatedProduct.views) && userId != product.sellerId {
+                            sendNotification(to: product.sellerId, type: "system", title: "Meta de Visualizações!", body: "Parabéns! O seu anúncio '\(product.title)' acabou de bater \(updatedProduct.views) visualizações.")
+                        }
+                    }
                 } catch {
                     print("Failed to increment views: \(error)")
                 }
