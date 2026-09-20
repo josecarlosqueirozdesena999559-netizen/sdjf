@@ -41,12 +41,10 @@ struct LoginView: View {
                             .font(.largeTitle)
                             .fontWeight(.bold)
                             .foregroundColor(Theme.textPrimary)
-                        Text("Para acessar sua conta, precisamos do seu nome de usuário ou e-mail.")
-                            .foregroundColor(Theme.textSecondary)
                     }
                     .transition(.asymmetric(insertion: .move(edge: .leading), removal: .move(edge: .trailing)))
                     
-                    CustomTextField(title: "Nome de usuário ou E-mail", placeholder: "@nomedeusuario", text: $username, keyboardType: .default)
+                    CustomTextField(title: "Nome de usuário", placeholder: "@nomedeusuario", text: $username, keyboardType: .default)
                         .autocapitalization(.none)
                         .transition(.opacity)
                     
@@ -57,10 +55,10 @@ struct LoginView: View {
                     }) {
                         Text("Continuar")
                             .font(.headline)
-                            .foregroundColor(.white)
+                            .foregroundColor(username.isEmpty ? .gray : .white)
                             .frame(maxWidth: .infinity)
                             .padding()
-                            .background(Theme.primary)
+                            .background(username.isEmpty ? Color.gray.opacity(0.2) : Theme.primary)
                             .cornerRadius(12)
                     }
                     .disabled(username.isEmpty)
@@ -112,10 +110,10 @@ struct LoginView: View {
                         } else {
                             Text("Entrar")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(password.isEmpty ? .gray : .white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Theme.primary)
+                                .background(password.isEmpty ? Color.gray.opacity(0.2) : Theme.primary)
                                 .cornerRadius(12)
                         }
                     }

@@ -81,7 +81,9 @@ struct ForgotPasswordView: View {
                     
                     Spacer()
                     
-                    Button(action: resetPassword) {
+                    Button(action: {
+                        resetPassword()
+                    }) {
                         if isLoading {
                             ProgressView()
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
@@ -92,10 +94,10 @@ struct ForgotPasswordView: View {
                         } else {
                             Text("Enviar Link de Recuperação")
                                 .font(.headline)
-                                .foregroundColor(.white)
+                                .foregroundColor(email.isEmpty || !email.contains("@") ? .gray : .white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
-                                .background(Theme.primary)
+                                .background(email.isEmpty || !email.contains("@") ? Color.gray.opacity(0.2) : Theme.primary)
                                 .cornerRadius(12)
                         }
                     }
