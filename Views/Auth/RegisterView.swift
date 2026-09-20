@@ -82,7 +82,7 @@ struct RegisterView: View {
             
             CustomTextField(title: "Nome e Sobrenome", placeholder: "Seu nome completo", text: $viewModel.name)
             
-            PrimaryButton(title: "Continuar", isEnabled: !viewModel.name.isEmpty) {
+            PrimaryButton(title: "Continuar", isEnabled: !viewModel.name.isEmpty, isLoading: viewModel.isChecking) {
                 withAnimation { viewModel.validateAndProceed() }
             }
         }
@@ -98,8 +98,18 @@ struct RegisterView: View {
                 .foregroundColor(Theme.textPrimary)
             
             CustomTextField(title: "CPF", placeholder: "000.000.000-00", text: $viewModel.cpf, keyboardType: .numberPad)
+                .onChange(of: viewModel.cpf) { newValue in
+                    let numbers = newValue.filter { $0.isNumber }
+                    var result = ""
+                    for (index, char) in numbers.enumerated() {
+                        if index == 3 || index == 6 { result.append(".") }
+                        else if index == 9 { result.append("-") }
+                        if index < 11 { result.append(char) }
+                    }
+                    if viewModel.cpf != result { viewModel.cpf = result }
+                }
             
-            PrimaryButton(title: "Continuar", isEnabled: viewModel.cpf.filter { $0.isNumber }.count == 11) {
+            PrimaryButton(title: "Continuar", isEnabled: viewModel.cpf.filter { $0.isNumber }.count == 11, isLoading: viewModel.isChecking) {
                 withAnimation { viewModel.validateAndProceed() }
             }
         }
@@ -119,7 +129,7 @@ struct RegisterView: View {
                 .labelsHidden()
                 .frame(maxWidth: .infinity)
             
-            PrimaryButton(title: "Continuar") {
+            PrimaryButton(title: "Continuar", isLoading: viewModel.isChecking) {
                 withAnimation { viewModel.validateAndProceed() }
             }
         }
@@ -136,7 +146,7 @@ struct RegisterView: View {
             
             CustomTextField(title: "E-mail", placeholder: "exemplo@email.com", text: $viewModel.email, keyboardType: .emailAddress)
             
-            PrimaryButton(title: "Continuar", isEnabled: viewModel.email.contains("@")) {
+            PrimaryButton(title: "Continuar", isEnabled: viewModel.email.contains("@"), isLoading: viewModel.isChecking) {
                 withAnimation { viewModel.validateAndProceed() }
             }
         }
@@ -153,7 +163,7 @@ struct RegisterView: View {
             
             CustomTextField(title: "Senha", placeholder: "Mínimo 6 caracteres", text: $viewModel.password, isSecure: true)
             
-            PrimaryButton(title: "Continuar", isEnabled: viewModel.password.count >= 6) {
+            PrimaryButton(title: "Continuar", isEnabled: viewModel.password.count >= 6, isLoading: viewModel.isChecking) {
                 withAnimation { viewModel.validateAndProceed() }
             }
         }
@@ -172,23 +182,35 @@ struct RegisterView: View {
                 Text("Usuário").font(.subheadline).foregroundColor(Theme.textSecondary)
                 HStack {
                     Text("@").foregroundColor(Theme.primary).fontWeight(.bold)
-                    TextField("seu.usuario", text: $viewModel.username)
+                    TextField("seunome", text: $viewModel.username)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
+                        .onChange(of: viewModel.username) { _ in
+                            viewModel.checkUsernameAvailability()
+                        }
+                    
+                    if viewModel.isCheckingUsername {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                    } else if viewModel.isUsernameAvailable == true {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundColor(.green)
+                            .transition(.scale)
+                    }
                 }
                 .padding()
                 .background(Theme.inputBackground)
                 .cornerRadius(12)
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1))
                 
-                if !viewModel.username.isEmpty && viewModel.username.count >= 3 && viewModel.errorMessage == nil {
+                if let available = viewModel.isUsernameAvailable, available {
                     Text("Nome de usuário disponível")
                         .font(.caption)
                         .foregroundColor(Theme.primary)
                 }
             }
             
-            PrimaryButton(title: "Continuar", isEnabled: !viewModel.username.isEmpty) {
+            PrimaryButton(title: "Continuar", isEnabled: !viewModel.username.isEmpty, isLoading: viewModel.isChecking) {
                 withAnimation { viewModel.validateAndProceed() }
             }
         }
@@ -376,7 +398,7 @@ struct RegisterView: View {
             
             Spacer().frame(height: 12)
             
-            PrimaryButton(title: "Concluir cadastro", isEnabled: !viewModel.visibleName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty) {
+            PrimaryButton(title: "Concluir cadastro", isEnabled: !viewModel.visibleName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, isLoading: viewModel.isChecking) {
                 viewModel.register(authViewModel: authViewModel) {
                     // Do nothing, SplashView will route automatically
                 }

@@ -18,24 +18,18 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var currentStep: RegisterStep = .name
     
     @Published var name = ""
-    @Published var cpf = "" {
-        didSet {
-            let numbers = cpf.filter { $0.isNumber }
-            var result = ""
-            for (index, char) in numbers.enumerated() {
-                if index == 3 || index == 6 { result.append(".") }
-                else if index == 9 { result.append("-") }
-                if index < 11 { result.append(char) }
-            }
-            if cpf != result { cpf = result }
-        }
-    }
+    @Published var cpf = ""
     @Published var birthDate = Date()
     @Published var email = ""
     @Published var password = ""
     @Published var username = ""
     
     @Published var errorMessage: String? = nil
+    
+    @Published var isChecking = false
+    @Published var isCheckingUsername = false
+    @Published var isUsernameAvailable: Bool? = nil
+    private var usernameCheckTask: Task<Void, Never>? = nil
     
     // Location
     @Published var locationName = ""
@@ -80,15 +74,46 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     static func isValidUsername(_ username: String) -> Bool {
         let cleanUser = username.trimmingCharacters(in: .whitespacesAndNewlines)
         guard cleanUser.count >= 3 && cleanUser.count <= 20 else { return false }
-        let userRegEx = "^[a-zA-Z0-9._]+$"
+        let userRegEx = "^[a-zA-Z0-9_]+$"
         let userPred = NSPredicate(format: "SELF MATCHES %@", userRegEx)
         return userPred.evaluate(with: cleanUser)
     }
     
-        func validateAndProceed() {
+    func checkUsernameAvailability() {
+        let cleanUser = self.username.lowercased().trimmingCharacters(in: .whitespacesAndNewlines)
+        guard RegisterViewModel.isValidUsername(cleanUser) else {
+            self.isUsernameAvailable = nil
+            return
+        }
+        
+        usernameCheckTask?.cancel()
+        usernameCheckTask = Task { @MainActor in
+            self.isCheckingUsername = true
+            do {
+                try await Task.sleep(nanoseconds: 500_000_000) // 0.5s debounce
+                if Task.isCancelled { return }
+                
+                struct IDResponse: Codable { let id: UUID }
+                let existing: [IDResponse] = try await supabase.database.from("profiles").select("id").eq("username", value: cleanUser).limit(1).execute().value
+                
+                if Task.isCancelled { return }
+                self.isUsernameAvailable = existing.isEmpty
+                self.isCheckingUsername = false
+            } catch {
+                if Task.isCancelled { return }
+                self.isCheckingUsername = false
+                self.isUsernameAvailable = nil
+            }
+        }
+    }
+    
+    func validateAndProceed() {
         errorMessage = nil
         
         Task { @MainActor in
+            self.isChecking = true
+            defer { self.isChecking = false }
+            
             struct IDResponse: Codable { let id: UUID }
             
             switch self.currentStep {
@@ -146,7 +171,7 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                     return
                 }
                 if !RegisterViewModel.isValidUsername(cleanUser) {
-                    self.errorMessage = "O usuário deve ter de 3 a 20 caracteres e conter apenas letras, números, ponto ou underline."
+                    self.errorMessage = "O usuário deve ter de 3 a 20 caracteres e conter apenas letras, números ou underline."
                     return
                 }
                 do {
@@ -219,7 +244,9 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     }
                 func register(authViewModel: AuthViewModel, completion: @escaping () -> Void) {
         self.errorMessage = nil
-        Task {
+        Task { @MainActor in
+            self.isChecking = true
+            defer { self.isChecking = false }
             do {
                 let response = try await supabase.auth.signUp(email: self.email, password: self.password)
                 let user = response.user
