@@ -8,13 +8,10 @@ workflows:
       app_store_connect: "Codemagic"
 
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.achou.com
-
       vars:
         XCODE_PROJECT: "MercadoFacil.xcodeproj"
         XCODE_SCHEME: "MercadoFacil"
+        BUNDLE_ID: "com.achou.com"
 
       xcode: latest
 
@@ -24,18 +21,19 @@ workflows:
           brew install xcodegen
           xcodegen generate
 
+      - name: Fetch signing files
+        script: |
+          app-store-connect fetch-signing-files "$BUNDLE_ID" --type IOS_APP_STORE --create
+
       - name: Set up keychain
         script: |
           keychain initialize
 
-      - name: Check signing identities
+      - name: Add certificates to keychain
         script: |
-          echo "=== CERTIFICADOS DISPONÍVEIS ==="
-          security find-identity -v -p codesigning
-          echo "=== CERTIFICADOS INSTALADOS ==="
-          security find-certificate -a -c "Apple Distribution" "$HOME/Library/Keychains/codemagic.keychain-db" 2>/dev/null || true
+          keychain add-certificates
 
-      - name: Set up code signing
+      - name: Set up code signing settings on Xcode project
         script: |
           xcode-project use-profiles
 
