@@ -11,7 +11,7 @@ workflows:
       vars:
         XCODE_PROJECT: "MercadoFacil.xcodeproj"
         XCODE_SCHEME: "MercadoFacil"
-        BUNDLE_ID: "com.seuuusario.mercadofacil"
+        BUNDLE_ID: "com.achou.com"
       xcode: latest
     scripts:
       - name: Generate Xcode Project using XcodeGen
