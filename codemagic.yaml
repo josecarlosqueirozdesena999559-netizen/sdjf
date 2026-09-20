@@ -4,7 +4,7 @@ workflows:
     max_build_duration: 120
     instance_type: mac_mini_m2
     integrations:
-      app_store_connect: "Codemagic API Key"
+      app_store_connect: "Codemagic"
     environment:
       groups:
         - appstore_credentials
@@ -42,5 +42,6 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
+        integration: Codemagic
         submit_to_testflight: true
         submit_to_app_store: false
