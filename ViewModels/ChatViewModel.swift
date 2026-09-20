@@ -224,9 +224,7 @@ class ChatViewModel: ObservableObject {
             let sender_id: UUID
             let text: String
             let media_url: String?
-            let media_type: String?
             let is_read: Bool
-            let created_at: Date
         }
         let insertData = MsgInsert(
             id: msgId,
@@ -234,9 +232,7 @@ class ChatViewModel: ObservableObject {
             sender_id: currentUser.id,
             text: text,
             media_url: mediaUrl,
-            media_type: mediaType,
-            is_read: false,
-            created_at: Date()
+            is_read: false
         )
         
         do {

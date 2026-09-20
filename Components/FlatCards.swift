@@ -35,15 +35,42 @@ struct FlatProductCard: View {
             // Navigate to Product Detail when tapping the main card content
             NavigationLink(destination: ProductDetailView(product: product)) {
                 VStack(alignment: .leading, spacing: 8) {
-                    Rectangle()
-                        .fill(Theme.inputBackground)
-                        .aspectRatio(1, contentMode: .fill)
-                        .overlay(
-                            Image(systemName: "photo")
-                                .foregroundColor(.gray.opacity(0.5))
-                                .font(.system(size: 40))
-                        )
+                    if let firstImage = product.images.first, let url = URL(string: firstImage) {
+                        AsyncImage(url: url) { phase in
+                            if let image = phase.image {
+                                image
+                                    .resizable()
+                                    .aspectRatio(1, contentMode: .fill)
+                                    .frame(maxWidth: .infinity)
+                                    .clipped()
+                            } else if phase.error != nil {
+                                Rectangle()
+                                    .fill(Theme.inputBackground)
+                                    .aspectRatio(1, contentMode: .fill)
+                                    .overlay(
+                                        Image(systemName: "photo")
+                                            .foregroundColor(.gray.opacity(0.5))
+                                            .font(.system(size: 40))
+                                    )
+                            } else {
+                                Rectangle()
+                                    .fill(Theme.inputBackground)
+                                    .aspectRatio(1, contentMode: .fill)
+                                    .overlay(ProgressView())
+                            }
+                        }
                         .cornerRadius(12)
+                    } else {
+                        Rectangle()
+                            .fill(Theme.inputBackground)
+                            .aspectRatio(1, contentMode: .fill)
+                            .overlay(
+                                Image(systemName: "photo")
+                                    .foregroundColor(.gray.opacity(0.5))
+                                    .font(.system(size: 40))
+                            )
+                            .cornerRadius(12)
+                    }
                     
                     VStack(alignment: .leading, spacing: 4) {
                         Text(product.title)

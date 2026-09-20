@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct UserProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -46,7 +47,34 @@ struct UserProfileView: View {
                                 )
                                 .clipShape(Circle())
                             
-                            Button(action: {}) {
+                            PhotosPicker(selection: Binding(
+                                get: { nil },
+                                set: { newItem in
+                                    guard let newItem = newItem else { return }
+                                    Task {
+                                        if let data = try? await newItem.loadTransferable(type: Data.self),
+                                           let uiImage = UIImage(data: data),
+                                           let jpegData = uiImage.jpegData(compressionQuality: 0.7) {
+                                            do {
+                                                let fileName = "\(UUID().uuidString).jpg"
+                                                try await supabase.storage.from("avatars").upload(path: fileName, file: jpegData)
+                                                let publicUrl = try supabase.storage.from("avatars").getPublicURL(path: fileName)
+                                                
+                                                try await supabase.database.from("profiles")
+                                                    .update(["avatar_url": publicUrl.absoluteString])
+                                                    .eq("id", value: authViewModel.currentUser!.id)
+                                                    .execute()
+                                                
+                                                await MainActor.run {
+                                                    authViewModel.currentUser?.avatarURL = publicUrl.absoluteString
+                                                }
+                                            } catch {
+                                                print("Error uploading avatar: \(error)")
+                                            }
+                                        }
+                                    }
+                                }
+                            ), matching: .images) {
                                 Circle()
                                     .fill(Theme.primary)
                                     .frame(width: 30, height: 30)

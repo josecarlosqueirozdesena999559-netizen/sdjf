@@ -27,15 +27,41 @@ struct ProductDetailView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
-                // Image Placeholder
-                Rectangle()
-                    .fill(Theme.lightGreen)
+                // Product Images
+                if !product.images.isEmpty {
+                    TabView {
+                        ForEach(product.images, id: \.self) { imageUrl in
+                            if let url = URL(string: imageUrl) {
+                                AsyncImage(url: url) { phase in
+                                    if let image = phase.image {
+                                        image
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fill)
+                                    } else if phase.error != nil {
+                                        Rectangle()
+                                            .fill(Theme.inputBackground)
+                                            .overlay(Image(systemName: "photo").font(.largeTitle).foregroundColor(.gray))
+                                    } else {
+                                        Rectangle()
+                                            .fill(Theme.inputBackground)
+                                            .overlay(ProgressView())
+                                    }
+                                }
+                            }
+                        }
+                    }
                     .frame(height: 300)
-                    .overlay(
-                        Image(systemName: "photo")
-                            .font(.system(size: 50))
-                            .foregroundColor(Theme.primary.opacity(0.5))
-                    )
+                    .tabViewStyle(PageTabViewStyle())
+                } else {
+                    Rectangle()
+                        .fill(Theme.lightGreen)
+                        .frame(height: 300)
+                        .overlay(
+                            Image(systemName: "photo")
+                                .font(.system(size: 50))
+                                .foregroundColor(Theme.primary.opacity(0.5))
+                        )
+                }
                 
                 VStack(alignment: .leading, spacing: 16) {
                     Text("\(product.condition.rawValue) • \(Formatters.dateFormatter.string(from: product.createdAt))")
