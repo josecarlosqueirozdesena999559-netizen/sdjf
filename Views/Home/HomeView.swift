@@ -12,8 +12,53 @@ struct HomeView: View {
     
     var body: some View {
         NavigationStack {
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 24) {
+            VStack(spacing: 0) {
+                // Custom Top Header
+                HStack {
+                    if let user = authViewModel.currentUser {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Olá, \(user.visibleName ?? user.name.components(separatedBy: " ").first ?? "Usuário")")
+                                .font(.title3)
+                                .fontWeight(.bold)
+                                .foregroundColor(Theme.textPrimary)
+                            
+                            HStack(spacing: 4) {
+                                Image(systemName: "location.fill")
+                                    .font(.system(size: 14))
+                                    .foregroundColor(Theme.primary)
+                                Text(user.location)
+                                    .font(.subheadline)
+                                    .foregroundColor(Theme.textSecondary)
+                            }
+                        }
+                    } else {
+                        Image("logo")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(height: 36)
+                    }
+                    Spacer()
+                    NavigationLink(destination: NotificationsView()) {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "bell")
+                                .font(.title3)
+                                .foregroundColor(Theme.textPrimary)
+                            if authViewModel.hasUnreadNotifications {
+                                Circle()
+                                    .fill(Color.red)
+                                    .frame(width: 8, height: 8)
+                                    .offset(x: 2, y: -2)
+                            }
+                        }
+                        .padding(8)
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 12)
+                .background(Color.white)
+                
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 24) {
                     
                     // Barra de Pesquisa Flat
                     NavigationLink(destination: SearchResultsView(initialQuery: searchText)) {
@@ -121,53 +166,8 @@ struct HomeView: View {
                 .padding(.vertical)
             }
             .background(Color.white.ignoresSafeArea())
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Group {
-                        if let user = authViewModel.currentUser {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Olá, \(user.visibleName ?? user.name.components(separatedBy: " ").first ?? "Usuário")")
-                                    .font(.headline)
-                                    .foregroundColor(Theme.textPrimary)
-                                
-                                HStack(spacing: 4) {
-                                    Image(systemName: "location.fill")
-                                        .font(.system(size: 12))
-                                        .foregroundColor(Theme.primary)
-                                    Text(user.location)
-                                        .font(.subheadline)
-                                        .foregroundColor(Theme.textSecondary)
-                                }
-                            }
-                            .padding(.leading, 8)
-                        } else {
-                            Image("logo")
-                                .resizable()
-                                .scaledToFit()
-                                .frame(height: 36)
-                        }
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-                ToolbarItem(placement: .navigationBarTrailing) {
-                    NavigationLink(destination: NotificationsView()) {
-                        ZStack(alignment: .topTrailing) {
-                            Image(systemName: "bell")
-                                .font(.title3)
-                                .foregroundColor(.primary)
-                            if authViewModel.hasUnreadNotifications {
-                                Circle()
-                                    .fill(Color.red)
-                                    .frame(width: 8, height: 8)
-                                    .offset(x: 2, y: -2)
-                            }
-                        }
-                        .padding(8)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                }
-            }
+            } // Close new VStack
+            .navigationBarHidden(true)
             .onAppear {
                 viewModel.fetchHomeData()
                 Task { await authViewModel.checkUnreadNotifications() }
