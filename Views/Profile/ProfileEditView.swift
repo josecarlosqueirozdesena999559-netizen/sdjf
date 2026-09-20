@@ -20,6 +20,9 @@ struct ProfileEditView: View {
         "Pode demorar a responder"
     ]
     
+    @State private var isSaving = false
+    @Environment(\.dismiss) var dismiss
+    
     var body: some View {
         Form {
             Section {
@@ -104,11 +107,16 @@ struct ProfileEditView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .navigationBarTrailing) {
-                Button("Salvar") {
-                    // Update authViewModel user mock data here if needed
+                Button(action: saveProfile) {
+                    if isSaving {
+                        ProgressView()
+                    } else {
+                        Text("Salvar")
+                            .foregroundColor(Theme.primary)
+                            .fontWeight(.bold)
+                    }
                 }
-                .foregroundColor(Theme.primary)
-                .fontWeight(.bold)
+                .disabled(isSaving)
             }
         }
         .onAppear {
@@ -117,6 +125,46 @@ struct ProfileEditView: View {
             location = authViewModel.currentUser?.location ?? ""
             // Mocking some defaults for demonstration since Seller isn't in AuthViewModel
             bio = "Vendo itens que não uso mais, tudo bem conservado!"
+        }
+    }
+    
+    private func saveProfile() {
+        guard let userId = authViewModel.currentUser?.id else { return }
+        isSaving = true
+        
+        Task {
+            do {
+                struct UpdateProfile: Codable {
+                    let username: String
+                    let visible_name: String
+                    let location: String
+                    let avg_response_time: String
+                }
+                let updateData = UpdateProfile(
+                    username: username,
+                    visible_name: visibleName,
+                    location: location,
+                    avg_response_time: responseTime
+                )
+                
+                try await supabase.database
+                    .from("profiles")
+                    .update(updateData)
+                    .eq("id", value: userId)
+                    .execute()
+                
+                await MainActor.run {
+                    authViewModel.currentUser?.username = username
+                    authViewModel.currentUser?.visibleName = visibleName
+                    authViewModel.currentUser?.location = location
+                    authViewModel.currentUser?.responseTime = responseTime
+                    isSaving = false
+                    dismiss()
+                }
+            } catch {
+                print("Failed to save profile: \(error)")
+                await MainActor.run { isSaving = false }
+            }
         }
     }
 }

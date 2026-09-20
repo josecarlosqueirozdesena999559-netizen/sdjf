@@ -3,10 +3,10 @@ import SwiftUI
 struct SettingsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     
-    // Estados de privacidade (Mock)
-    @State private var showOnline = true
-    @State private var showTyping = true
-    @State private var showRecording = true
+    // Estados de privacidade (Salvos no dispositivo para funcionarem de forma real)
+    @AppStorage("privacy_showOnline") private var showOnline = true
+    @AppStorage("privacy_showTyping") private var showTyping = true
+    @AppStorage("privacy_showRecording") private var showRecording = true
     
     // Confirmação de exclusão
     @State private var showDeleteConfirm = false
@@ -24,14 +24,14 @@ struct SettingsView: View {
             }
             
             Section(header: Text("Segurança")) {
-                NavigationLink(destination: Text("Trocar Senha").padding().navigationTitle("Senha")) {
+                NavigationLink(destination: ChangePasswordView()) {
                     Label {
                         Text("Trocar Senha")
                     } icon: {
                         Image("lucide_lock").renderingMode(.template)
                     }
                 }
-                NavigationLink(destination: Text("Trocar E-mail").padding().navigationTitle("E-mail")) {
+                NavigationLink(destination: ChangeEmailView()) {
                     Label {
                         Text("Trocar E-mail")
                     } icon: {
