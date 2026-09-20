@@ -19,6 +19,11 @@ struct PublishProductView: View {
     
     var onPublishSuccess: (() -> Void)? = nil
     
+    private var selectedCategoryText: String {
+        guard let id = viewModel.selectedCategoryId else { return "Selecione a categoria" }
+        return MockData.categories.first(where: { $0.id == id })?.name ?? "Selecione"
+    }
+    
     var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
@@ -148,16 +153,11 @@ struct PublishProductView: View {
                                 .font(.headline)
                             HStack {
                                 ForEach(ProductCondition.allCases, id: \.self) { condition in
-                                    Button(action: { viewModel.selectedCondition = condition }) {
-                                        Text(condition.rawValue)
-                                            .font(.subheadline)
-                                            .fontWeight(.semibold)
-                                            .padding(.vertical, 10)
-                                            .frame(maxWidth: .infinity)
-                                            .background(viewModel.selectedCondition == condition ? Theme.primary : Theme.inputBackground)
-                                            .foregroundColor(viewModel.selectedCondition == condition ? .white : Theme.textPrimary)
-                                            .cornerRadius(10)
-                                    }
+                                    ConditionButton(
+                                        condition: condition,
+                                        isSelected: viewModel.selectedCondition == condition,
+                                        action: { viewModel.selectedCondition = condition }
+                                    )
                                 }
                             }
                         }
@@ -174,7 +174,7 @@ struct PublishProductView: View {
                                 }
                             } label: {
                                 HStack {
-                                    Text(viewModel.selectedCategoryId != nil ? MockData.categories.first(where: { $0.id == viewModel.selectedCategoryId })?.name ?? "Selecione" : "Selecione a categoria")
+                                    Text(selectedCategoryText)
                                         .foregroundColor(viewModel.selectedCategoryId != nil ? Theme.textPrimary : Theme.textSecondary)
                                     Spacer()
                                     Image(systemName: "chevron.up.chevron.down")
@@ -333,5 +333,24 @@ struct PublishProductView: View {
         let image = UIGraphicsGetImageFromCurrentImageContext()
         UIGraphicsEndImageContext()
         return image
+    }
+}
+
+struct ConditionButton: View {
+    let condition: ProductCondition
+    let isSelected: Bool
+    let action: () -> Void
+    
+    var body: some View {
+        Button(action: action) {
+            Text(condition.rawValue)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+                .padding(.vertical, 10)
+                .frame(maxWidth: .infinity)
+                .background(isSelected ? Theme.primary : Theme.inputBackground)
+                .foregroundColor(isSelected ? .white : Theme.textPrimary)
+                .cornerRadius(10)
+        }
     }
 }
