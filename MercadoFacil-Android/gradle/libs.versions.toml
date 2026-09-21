@@ -1,4 +1,6 @@
-[versions]
+﻿[versions]
+supabase = "3.0.0"
+ktor = "3.0.0"
 androidGradlePlugin = "9.2.1"
 androidTools = "32.2.1"
 androidxActivity = "1.13.0"
@@ -24,6 +26,10 @@ room = "2.8.4"
 timber = "5.0.1"
 
 [libraries]
+supabase-gotrue = { group = "io.github.jan-tennert.supabase", name = "gotrue-kt", version.ref = "supabase" }
+supabase-postgrest = { group = "io.github.jan-tennert.supabase", name = "postgrest-kt", version.ref = "supabase" }
+supabase-realtime = { group = "io.github.jan-tennert.supabase", name = "realtime-kt", version.ref = "supabase" }
+ktor-client-android = { group = "io.ktor", name = "ktor-client-android", version.ref = "ktor" }
 androidx-activity-compose = { group = "androidx.activity", name = "activity-compose", version.ref = "androidxActivity" }
 androidx-appcompat = { group = "androidx.appcompat", name = "appcompat", version.ref = "appCompat" }
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "androidxComposeBom" }
