@@ -1,7 +1,11 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct WelcomeView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
+    
+    @State private var showTermos = false
+    @State private var showPrivacidade = false
+    @State private var showSeguranca = false
     
     var body: some View {
         NavigationStack {
@@ -47,6 +51,18 @@ struct WelcomeView: View {
                                     .foregroundColor(Theme.primary)
                             }
                             .padding(.top, 8)
+                            
+                            // Links Legais
+                            HStack(spacing: 12) {
+                                Button("Termos de Uso") { showTermos = true }
+                                Text("•").foregroundColor(Theme.textSecondary).font(.caption)
+                                Button("Privacidade") { showPrivacidade = true }
+                                Text("•").foregroundColor(Theme.textSecondary).font(.caption)
+                                Button("Segurança") { showSeguranca = true }
+                            }
+                            .font(.caption2)
+                            .foregroundColor(Theme.textSecondary)
+                            .padding(.top, 16)
                         }
                         .padding(.horizontal, 32)
                         .padding(.top, 40)
@@ -62,6 +78,15 @@ struct WelcomeView: View {
                 }
             }
             .ignoresSafeArea()
+            .sheet(isPresented: $showTermos) {
+                LegalDocumentView(title: "Termos de Uso", content: LegalTexts.termosDeUso)
+            }
+            .sheet(isPresented: $showPrivacidade) {
+                LegalDocumentView(title: "Política de Privacidade", content: LegalTexts.privacidade)
+            }
+            .sheet(isPresented: $showSeguranca) {
+                LegalDocumentView(title: "Segurança de Dados", content: LegalTexts.seguranca)
+            }
         }
     }
 }
