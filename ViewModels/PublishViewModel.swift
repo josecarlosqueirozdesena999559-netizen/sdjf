@@ -9,6 +9,7 @@ class PublishViewModel: ObservableObject {
     @Published var selectedCondition: ProductCondition = .used
     @Published var selectedCategoryId: UUID? = nil
     @Published var location: String = ""
+    @Published var whatsappNumber: String = ""
     @Published var deliveryMethod: String = "Retirada em mãos"
     @Published var acceptsNegotiation: Bool = true
     @Published var isPublishing: Bool = false
@@ -53,6 +54,7 @@ class PublishViewModel: ObservableObject {
                     let category_id: UUID
                     let seller_id: UUID
                     let location: String
+                    let whatsapp_number: String
                     let accepts_negotiation: Bool
                     let status: String
                     let views: Int
@@ -67,6 +69,7 @@ class PublishViewModel: ObservableObject {
                     category_id: selectedCategoryId!,
                     seller_id: sellerId,
                     location: location,
+                    whatsapp_number: whatsappNumber,
                     accepts_negotiation: acceptsNegotiation,
                     status: "active",
                     views: 0,

@@ -45,12 +45,24 @@ struct Product: Identifiable, Codable {
     var categoryId: UUID
     var sellerId: UUID
     var location: String
+    var whatsappNumber: String?
     var images: [String]
     var createdAt: Date
     var views: Int
     var isActive: Bool
     var deliveryMethod: String
     var acceptsNegotiation: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case id, title, description, price, condition, location, images, views
+        case categoryId = "category_id"
+        case sellerId = "seller_id"
+        case whatsappNumber = "whatsapp_number"
+        case createdAt = "created_at"
+        case isActive = "is_active"
+        case deliveryMethod = "delivery_method"
+        case acceptsNegotiation = "accepts_negotiation"
+    }
 }
 
 struct Category: Identifiable, Codable {

@@ -233,6 +233,16 @@ struct PublishProductView: View {
                     .cornerRadius(12)
             }
             
+            VStack(alignment: .leading, spacing: 8) {
+                Text("WhatsApp (Opcional)")
+                    .font(.headline)
+                TextField("Ex: 11999999999", text: $viewModel.whatsappNumber)
+                    .keyboardType(.numberPad)
+                    .padding()
+                    .background(Theme.inputBackground)
+                    .cornerRadius(12)
+            }
+            
             Toggle("Aceita negociação?", isOn: $viewModel.acceptsNegotiation)
                 .font(.headline)
                 .padding(.vertical, 8)

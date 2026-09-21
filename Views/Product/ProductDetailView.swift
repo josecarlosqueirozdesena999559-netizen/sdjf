@@ -423,7 +423,7 @@ struct ProductDetailView: View {
             VStack {
                 Spacer()
                 if !isOwner {
-                    HStack(spacing: 16) {
+                    HStack(spacing: 12) {
                         NavigationLink(destination: ChatView(conversation: Conversation(
                             id: UUID(),
                             productId: product.id,
@@ -438,7 +438,7 @@ struct ProductDetailView: View {
                             ),
                             unreadCount: 0
                                             ), currentUser: authViewModel.currentUser!)) {
-                            Text("Conversar com vendedor")
+                            Text("Chat")
                                 .font(.headline)
                                 .fontWeight(.semibold)
                                 .frame(maxWidth: .infinity)
@@ -446,6 +446,28 @@ struct ProductDetailView: View {
                                 .background(Theme.primary)
                                 .foregroundColor(.white)
                                 .cornerRadius(12)
+                        }
+                        
+                        if let whatsapp = product.whatsappNumber, !whatsapp.isEmpty {
+                            Button(action: {
+                                let cleanNumber = whatsapp.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+                                let message = "Olá! Vi seu anúncio '\(product.title)' no Achou e gostaria de mais informações."
+                                if let url = URL(string: "https://wa.me/\(cleanNumber)?text=\(message.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") {
+                                    UIApplication.shared.open(url)
+                                }
+                            }) {
+                                HStack {
+                                    Image(systemName: "phone.bubble.left.fill")
+                                    Text("WhatsApp")
+                                }
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Color.green)
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
+                            }
                         }
                     }
                     .padding()
