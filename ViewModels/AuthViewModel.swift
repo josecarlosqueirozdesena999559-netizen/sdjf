@@ -1,3 +1,4 @@
+﻿import OneSignalFramework
 import Foundation
 import Combine
 import Supabase
@@ -37,6 +38,7 @@ class AuthViewModel: ObservableObject {
             await loadProfile(for: session.user.id, email: session.user.email ?? "")
         } catch {
             self.isAuthenticated = false
+              OneSignal.logout()
         }
     }
     
@@ -65,7 +67,7 @@ class AuthViewModel: ObservableObject {
                         loginEmail = foundEmail
                     } else {
                         await MainActor.run {
-                            self.errorMessage = "Usuário não encontrado."
+                            self.errorMessage = "UsuÃ¡rio nÃ£o encontrado."
                             self.isLoading = false
                         }
                         return
@@ -94,6 +96,7 @@ class AuthViewModel: ObservableObject {
             }
             self.currentUser = nil
             self.isAuthenticated = false
+              OneSignal.logout()
         }
     }
     
@@ -126,11 +129,13 @@ class AuthViewModel: ObservableObject {
                 responseTime: profile.avg_response_time
             )
             self.isAuthenticated = true
+            OneSignal.login(userId.uuidString)
         } catch {
-            print("Erro ao carregar perfil, talvez não exista: \(error)")
+            print("Erro ao carregar perfil, talvez nÃ£o exista: \(error)")
             // Fallback for demo if profile doesn't exist yet but auth succeeded
-            self.currentUser = User(id: userId, name: "Usuário", cpf: "", birthDate: nil, email: email, phone: "", username: "user", visibleName: nil, avatarURL: nil, location: "Desconhecido", latitude: nil, longitude: nil, memberSince: Date(), isProfessional: false, rating: nil, responseTime: nil)
+            self.currentUser = User(id: userId, name: "UsuÃ¡rio", cpf: "", birthDate: nil, email: email, phone: "", username: "user", visibleName: nil, avatarURL: nil, location: "Desconhecido", latitude: nil, longitude: nil, memberSince: Date(), isProfessional: false, rating: nil, responseTime: nil)
             self.isAuthenticated = true
+            OneSignal.login(userId.uuidString)
         }
         
         await checkUnreadNotifications()
@@ -156,4 +161,5 @@ class AuthViewModel: ObservableObject {
         }
     }
 }
+
 
