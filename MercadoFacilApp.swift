@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import OneSignalFramework
 
 class AppDelegate: NSObject, UIApplicationDelegate {
@@ -6,7 +6,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         OneSignal.initialize("13a04eb5-9922-4a12-a4f6-fcb2b8d412f2", withLaunchOptions: launchOptions)
         
         OneSignal.Notifications.requestPermission({ accepted in
-            print("User accepted notifications: " $("accepted)")
+            print("User accepted notifications: \(accepted)")
         }, fallbackToSettings: true)
         
         return true
