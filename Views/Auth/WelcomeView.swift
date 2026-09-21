@@ -5,74 +5,63 @@ struct WelcomeView: View {
     
     var body: some View {
         NavigationStack {
-            ZStack {
-                Theme.background.ignoresSafeArea()
-                
-                // Graphics Layer - Top
-                VStack {
-                    Image("splash_top")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: UIScreen.main.bounds.width)
+            GeometryReader { geo in
+                ZStack {
+                    Theme.background.ignoresSafeArea()
                     
-                    Spacer()
-                }
-                .ignoresSafeArea() // Anchors to the absolute top
-                
-                // Graphics Layer - Bottom
-                VStack {
-                    Spacer()
-                    
-                    Image("splash_bottom")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: UIScreen.main.bounds.width)
-                }
-                .ignoresSafeArea() // Anchors to the absolute bottom
-                
-                // Buttons Layer (Respects Safe Area)
-                VStack {
-                    Spacer()
-                    
-                    VStack(spacing: 16) {
-                        NavigationLink(destination: LoginView()) {
-                            Text("Iniciar")
-                                .font(.headline)
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Theme.primary)
-                                .cornerRadius(30)
-                        }
+                    VStack(spacing: 0) {
+                        Image("splash_top")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: geo.size.width)
                         
-                        NavigationLink(destination: RegisterView()) {
-                            Text("Cadastro")
-                                .font(.headline)
-                                .foregroundColor(Theme.primary)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.white)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 30)
-                                        .stroke(Theme.primary, lineWidth: 2)
-                                )
-                        }
+                        Spacer(minLength: 16)
                         
-                        NavigationLink(destination: ForgotPasswordView()) {
-                            Text("Esqueceu a senha?")
-                                .font(.subheadline)
-                                .fontWeight(.semibold)
-                                .foregroundColor(Theme.primary)
+                        VStack(spacing: 16) {
+                            NavigationLink(destination: LoginView()) {
+                                Text("Iniciar")
+                                    .font(.headline)
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Theme.primary)
+                                    .cornerRadius(30)
+                            }
+                            
+                            NavigationLink(destination: RegisterView()) {
+                                Text("Cadastro")
+                                    .font(.headline)
+                                    .foregroundColor(Theme.primary)
+                                    .frame(maxWidth: .infinity)
+                                    .padding()
+                                    .background(Color.white)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 30)
+                                            .stroke(Theme.primary, lineWidth: 2)
+                                    )
+                            }
+                            
+                            NavigationLink(destination: ForgotPasswordView()) {
+                                Text("Esqueceu a senha?")
+                                    .font(.subheadline)
+                                    .fontWeight(.semibold)
+                                    .foregroundColor(Theme.primary)
+                            }
+                            .padding(.top, 8)
                         }
-                        .padding(.top, 8)
+                        .padding(.horizontal, 32)
+                        
+                        Spacer(minLength: 16)
+                        
+                        Image("splash_bottom")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: geo.size.width)
                     }
-                    .padding(.horizontal, 32)
-                    // Push buttons above the bottom wave dynamically based on screen width
-                    // New wave height is ~15% of screen width. We add 20pts of gap.
-                    .padding(.bottom, UIScreen.main.bounds.width * 0.15 + 20)
+                    .frame(width: geo.size.width, height: geo.size.height)
                 }
-                .ignoresSafeArea() // Use absolute bounds so the math is perfect across all iPhones
             }
+            .ignoresSafeArea()
         }
     }
 }
