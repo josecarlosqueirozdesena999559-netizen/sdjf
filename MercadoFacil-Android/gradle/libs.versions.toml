@@ -1,7 +1,7 @@
 [versions]
 supabase = "3.0.0"
 ktor = "3.0.0"
-androidGradlePlugin = "9.2.1"
+androidGradlePlugin = "8.1.3"
 androidTools = "32.2.1"
 androidxActivity = "1.13.0"
 androidxComposeBom = "2026.06.00"
