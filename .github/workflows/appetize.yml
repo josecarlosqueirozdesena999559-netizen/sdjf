@@ -23,7 +23,7 @@ jobs:
           xcodebuild -project MercadoFacil.xcodeproj \
             -scheme MercadoFacil \
             -sdk iphonesimulator \
-            -destination 'platform=iOS Simulator,name=iPhone 15' \
+            -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation)' \
             -configuration Debug \
             CODE_SIGN_IDENTITY="" \
             CODE_SIGNING_REQUIRED=NO \
