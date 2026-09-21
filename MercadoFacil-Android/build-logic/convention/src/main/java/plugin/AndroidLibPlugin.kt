@@ -1,4 +1,4 @@
-package plugin
+﻿package plugin
 
 import com.android.build.api.dsl.LibraryExtension
 import config.configAndroid
@@ -20,8 +20,8 @@ class AndroidLibPlugin : Plugin<Project> {
 
             extensions.configure<LibraryExtension> {
                 configAndroid(this)
-                testOptions.targetSdk = MAX_SDK_VERSION
-                lint.targetSdk = MAX_SDK_VERSION
+                
+                
             }
         }
     }
