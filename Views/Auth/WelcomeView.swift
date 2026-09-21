@@ -15,7 +15,7 @@ struct WelcomeView: View {
                             .scaledToFit()
                             .frame(width: geo.size.width)
                         
-                        // Buttons placed completely flush with the top illustration, removing the white gap
+                        // Buttons moved down into the white area
                         VStack(spacing: 16) {
                             NavigationLink(destination: LoginView()) {
                                 Text("Iniciar")
@@ -49,6 +49,7 @@ struct WelcomeView: View {
                             .padding(.top, 8)
                         }
                         .padding(.horizontal, 32)
+                        .padding(.top, 40)
                         
                         Spacer(minLength: 16)
                         
