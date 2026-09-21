@@ -1,4 +1,4 @@
-﻿package com.project.compose.core.data.model
+package com.project.compose.core.data.model
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName

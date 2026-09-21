@@ -1,4 +1,4 @@
-﻿[versions]
+[versions]
 supabase = "3.0.0"
 ktor = "3.0.0"
 androidGradlePlugin = "9.2.1"

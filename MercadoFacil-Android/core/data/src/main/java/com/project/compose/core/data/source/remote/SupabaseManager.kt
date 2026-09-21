@@ -1,4 +1,4 @@
-﻿package com.project.compose.core.data.source.remote
+package com.project.compose.core.data.source.remote
 
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.createSupabaseClient
