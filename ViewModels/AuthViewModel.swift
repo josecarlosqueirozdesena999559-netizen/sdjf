@@ -15,6 +15,8 @@ struct Profile: Codable {
     let rating: Double?
     let avg_response_time: String?
     let bio: String?
+    let latitude: Double?
+    let longitude: Double?
 }
 
 @MainActor
@@ -120,8 +122,8 @@ class AuthViewModel: ObservableObject {
                 visibleName: profile.visible_name,
                 avatarURL: profile.avatar_url,
                 location: profile.location ?? "Desconhecido",
-                latitude: nil,
-                longitude: nil,
+                latitude: profile.latitude,
+                longitude: profile.longitude,
                 memberSince: profile.created_at ?? Date(),
                 isProfessional: false,
                 rating: profile.rating,

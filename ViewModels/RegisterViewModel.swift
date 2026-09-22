@@ -292,7 +292,10 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                     avatar_url: avatarUrlStr,
                     created_at: Date(),
                     rating: nil,
-                    avg_response_time: nil
+                    avg_response_time: nil,
+                    bio: nil,
+                    latitude: self.latitude,
+                    longitude: self.longitude
                 )
                 
                 try await supabase.database

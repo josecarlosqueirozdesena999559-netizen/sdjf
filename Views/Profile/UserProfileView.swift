@@ -4,11 +4,12 @@ import PhotosUI
 struct UserProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     
-    // Agora vai puxar dados reais de produtos
     @State private var myProducts: [Product] = []
     @State private var myCategories: [String] = []
     @State private var isLoading = true
     @State private var productToEdit: Product?
+    @State private var selectedAvatarItem: PhotosPickerItem? = nil
+    @State private var localAvatarImage: UIImage? = nil  // mostra imediatamente sem esperar upload
     
     let columns = [
         GridItem(.flexible(), spacing: 16),
@@ -27,7 +28,14 @@ struct UserProfileView: View {
                                 .frame(width: 100, height: 100)
                                 .overlay(
                                     Group {
-                                        if let avatarURL = authViewModel.currentUser?.avatarURL, let url = URL(string: avatarURL) {
+                                        // 1. Mostra imagem local imediatamente (sem esperar upload)
+                                        if let localImg = localAvatarImage {
+                                            Image(uiImage: localImg)
+                                                .resizable()
+                                                .scaledToFill()
+                                        // 2. Mostra imagem remota se não há preview local
+                                        } else if let avatarURL = authViewModel.currentUser?.avatarURL,
+                                                  let url = URL(string: avatarURL) {
                                             AsyncImage(url: url) { phase in
                                                 if let image = phase.image {
                                                     image.resizable().scaledToFill()
@@ -35,6 +43,7 @@ struct UserProfileView: View {
                                                     Image("lucide_user").resizable().renderingMode(.template).scaledToFit().padding(20)
                                                 }
                                             }
+                                        // 3. Placeholder padrão
                                         } else {
                                             Image("lucide_user")
                                                 .resizable()
@@ -47,34 +56,7 @@ struct UserProfileView: View {
                                 )
                                 .clipShape(Circle())
                             
-                            PhotosPicker(selection: Binding(
-                                get: { nil },
-                                set: { newItem in
-                                    guard let newItem = newItem else { return }
-                                    Task {
-                                        if let data = try? await newItem.loadTransferable(type: Data.self),
-                                           let uiImage = UIImage(data: data),
-                                           let jpegData = uiImage.jpegData(compressionQuality: 0.7) {
-                                            do {
-                                                let fileName = "\(UUID().uuidString).jpg"
-                                                try await supabase.storage.from("avatars").upload(path: fileName, file: jpegData)
-                                                let publicUrl = try supabase.storage.from("avatars").getPublicURL(path: fileName)
-                                                
-                                                try await supabase.database.from("profiles")
-                                                    .update(["avatar_url": publicUrl.absoluteString])
-                                                    .eq("id", value: authViewModel.currentUser!.id)
-                                                    .execute()
-                                                
-                                                await MainActor.run {
-                                                    authViewModel.currentUser?.avatarURL = publicUrl.absoluteString
-                                                }
-                                            } catch {
-                                                print("Error uploading avatar: \(error)")
-                                            }
-                                        }
-                                    }
-                                }
-                            ), matching: .images) {
+                            PhotosPicker(selection: $selectedAvatarItem, matching: .images) {
                                 Circle()
                                     .fill(Theme.primary)
                                     .frame(width: 30, height: 30)
@@ -87,6 +69,35 @@ struct UserProfileView: View {
                                             .foregroundColor(.white)
                                     )
                             }
+                            .onChange(of: selectedAvatarItem) { _, newItem in
+                                guard let newItem = newItem else { return }
+                                Task {
+                                    guard let data = try? await newItem.loadTransferable(type: Data.self),
+                                          let uiImage = UIImage(data: data) else { return }
+                                    
+                                    // Mostra a foto IMEDIATAMENTE na tela
+                                    await MainActor.run {
+                                        localAvatarImage = uiImage
+                                    }
+                                    
+                                    // Faz o upload em background sem bloquear a UI
+                                    guard let jpegData = uiImage.jpegData(compressionQuality: 0.7) else { return }
+                                    do {
+                                        let fileName = "\(UUID().uuidString).jpg"
+                                        try await supabase.storage.from("avatars").upload(path: fileName, file: jpegData)
+                                        let publicUrl = try supabase.storage.from("avatars").getPublicURL(path: fileName)
+                                        try await supabase.database.from("profiles")
+                                            .update(["avatar_url": publicUrl.absoluteString])
+                                            .eq("id", value: authViewModel.currentUser!.id)
+                                            .execute()
+                                        await MainActor.run {
+                                            authViewModel.currentUser?.avatarURL = publicUrl.absoluteString
+                                        }
+                                    } catch {
+                                        print("Erro ao fazer upload do avatar: \(error)")
+                                    }
+                                }
+                            }
                         }
                         
                         Text(authViewModel.currentUser?.visibleName ?? authViewModel.currentUser?.name ?? "Meu Nome")
@@ -96,13 +107,29 @@ struct UserProfileView: View {
                             .foregroundColor(Theme.textSecondary)
                         
                         if let loc = authViewModel.currentUser?.location, !loc.isEmpty, loc != "Desconhecido" {
-                            Text(loc)
-                                .foregroundColor(Theme.textSecondary)
-                                .font(.subheadline)
+                            let parts = loc.components(separatedBy: " - ")
+                            let cityDisplay = parts.count >= 2 ? parts[max(0, parts.count - 2)...].joined(separator: " - ") : loc
+                            HStack(spacing: 4) {
+                                Image(systemName: "mappin.and.ellipse")
+                                    .font(.caption)
+                                    .foregroundColor(Theme.primary)
+                                Text(cityDisplay)
+                                    .foregroundColor(Theme.textSecondary)
+                                    .font(.subheadline)
+                            }
                         } else {
                             Text("Localização não informada")
                                 .foregroundColor(Theme.textSecondary)
                                 .font(.subheadline)
+                        }
+
+                        if let bio = authViewModel.currentUser?.bio, !bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                            Text(bio)
+                                .font(.body)
+                                .foregroundColor(Theme.textSecondary)
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal)
                         }
                         
                         HStack(spacing: 32) {

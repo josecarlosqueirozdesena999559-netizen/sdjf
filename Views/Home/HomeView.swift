@@ -16,6 +16,13 @@ struct HomeView: View {
                 // Custom Top Header
                 HStack {
                     if let user = authViewModel.currentUser {
+                        let loc = user.location
+                        let locParts = loc.components(separatedBy: " - ")
+                        let cityDisplay: String = {
+                            if loc.isEmpty || loc == "Desconhecido" { return "Localização não informada" }
+                            if locParts.count >= 2 { return locParts[max(0, locParts.count - 2)...].joined(separator: " - ") }
+                            return loc
+                        }()
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Olá, \(user.visibleName ?? user.name.components(separatedBy: " ").first ?? "Usuário")")
                                 .font(.title3)
@@ -26,7 +33,7 @@ struct HomeView: View {
                                 Image(systemName: "location.fill")
                                     .font(.system(size: 14))
                                     .foregroundColor(Theme.primary)
-                                Text(user.location)
+                                Text(cityDisplay)
                                     .font(.subheadline)
                                     .foregroundColor(Theme.textSecondary)
                             }
@@ -168,16 +175,25 @@ struct HomeView: View {
             } // Close new VStack
             .navigationBarHidden(true)
             .onAppear {
-                viewModel.fetchHomeData()
+                viewModel.fetchHomeData(
+                    currentUserLat: authViewModel.currentUser?.latitude,
+                    currentUserLon: authViewModel.currentUser?.longitude
+                )
                 Task { await authViewModel.checkUnreadNotifications() }
             }
             .refreshable {
-                viewModel.fetchHomeData()
+                viewModel.fetchHomeData(
+                    currentUserLat: authViewModel.currentUser?.latitude,
+                    currentUserLon: authViewModel.currentUser?.longitude
+                )
                 Task { await authViewModel.checkUnreadNotifications() }
             }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .active {
-                    viewModel.fetchHomeData()
+                    viewModel.fetchHomeData(
+                        currentUserLat: authViewModel.currentUser?.latitude,
+                        currentUserLon: authViewModel.currentUser?.longitude
+                    )
                     Task { await authViewModel.checkUnreadNotifications() }
                 }
             }
