@@ -330,6 +330,7 @@ struct UserProfileView: View {
                     let status: String?
                     let images: [String]?
                     let created_at: Date?
+                    let views: Int?
                 }
                 
                 struct SupabaseCategory: Codable {
@@ -360,7 +361,7 @@ struct UserProfileView: View {
                         location: sb.location ?? "Desconhecido",
                         images: sb.images ?? [],
                         createdAt: sb.created_at ?? Date(),
-                        views: 0,
+                        views: sb.views ?? 0,
                         isActive: sb.status == "active",
                         deliveryMethod: "Em mãos",
                         acceptsNegotiation: sb.accepts_negotiation ?? false
