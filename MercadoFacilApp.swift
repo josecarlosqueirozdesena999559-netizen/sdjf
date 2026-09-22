@@ -23,6 +23,7 @@ struct MercadoFacilApp: App {
             SplashView()
                 .environmentObject(authViewModel)
                 .environment(\.locale, .init(identifier: "pt_BR"))
+                .environment(\.font, .custom("Inter-Regular", size: 16, relativeTo: .body))
         }
     }
 }

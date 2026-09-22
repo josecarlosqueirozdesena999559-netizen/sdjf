@@ -40,8 +40,8 @@ extension Color {
 
 
 struct AppFont {
-    static func regular(_ size: CGFloat) -> Font { .system(size: size) }
-    static func medium(_ size: CGFloat) -> Font { .system(size: size, weight: .medium) }
-    static func semibold(_ size: CGFloat) -> Font { .system(size: size, weight: .semibold) }
-    static func bold(_ size: CGFloat) -> Font { .system(size: size, weight: .bold) }
+    static func regular(_ size: CGFloat) -> Font { .custom("Inter-Regular", size: size) }
+    static func medium(_ size: CGFloat) -> Font { .custom("Inter-Medium", size: size) }
+    static func semibold(_ size: CGFloat) -> Font { .custom("Inter-SemiBold", size: size) }
+    static func bold(_ size: CGFloat) -> Font { .custom("Inter-Bold", size: size) }
 }
