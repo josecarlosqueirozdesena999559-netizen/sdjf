@@ -180,7 +180,7 @@ struct PublishProductView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Descrição")
                     .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
-                TextEditor(text: $viewModel.description)
+                TextEditor(text: $viewModel.productDescription)
                     .frame(height: 120)
                     .padding(8)
                     .background(Theme.inputBackground)

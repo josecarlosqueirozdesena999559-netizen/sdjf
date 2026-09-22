@@ -236,7 +236,7 @@ struct ProductDetailView: View {
                                                         let amount: Double
                                                     }
                                                     let offer = InsertOffer(product_id: product.id, bidder_id: bidderId, amount: amount)
-                                                    try? await supabase.database.from("offers").insert(offer).execute()
+                                                    _ = try? await supabase.database.from("offers").insert(offer).execute()
                                                 }
                                                 offerAmount = ""
                                                 

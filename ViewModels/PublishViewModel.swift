@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import Combine
 import UIKit
 
@@ -6,7 +6,7 @@ import CoreLocation
 
 class PublishViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var title: String = ""
-    @Published var description: String = ""
+    @Published var productDescription: String = ""
     @Published var price: String = ""
     @Published var selectedCondition: ProductCondition = .used
     @Published var selectedCategoryId: UUID? = nil
@@ -111,7 +111,7 @@ class PublishViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                 
                 let newProd = InsertProduct(
                     title: title,
-                    description: description,
+                    description: productDescription,
                     price: pPrice,
                     condition: selectedCondition.rawValue,
                     category_id: selectedCategoryId!,
@@ -143,7 +143,7 @@ class PublishViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     
     private func resetForm() {
         title = ""
-        description = ""
+        productDescription = ""
         price = ""
         selectedCategoryId = nil
         location = ""
