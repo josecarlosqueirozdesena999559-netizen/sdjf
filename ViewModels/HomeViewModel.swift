@@ -71,13 +71,13 @@ class HomeViewModel: ObservableObject {
                     self.categories = MockData.categories
                 }
                 
-                // Fetch Products
+                // Fetch Products — mostra todos os produtos ativos ou sem status (novos cadastros)
                 let sbProducts: [SupabaseProduct] = try await supabase.database
                     .from("products")
                     .select()
-                    .order("views", ascending: false)
+                    .or("status.eq.active,status.is.null")
                     .order("created_at", ascending: false)
-                    .limit(20)
+                    .limit(60)
                     .execute()
                     .value
                 

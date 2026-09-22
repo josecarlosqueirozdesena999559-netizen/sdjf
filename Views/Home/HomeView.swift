@@ -120,17 +120,16 @@ struct HomeView: View {
                     .padding(.horizontal)
                     .padding(.top, -8)
                     
-                    // Menu Explorar
+                    // Menu Explorar — agrupa produtos reais do Supabase por categoria
                     VStack(alignment: .leading, spacing: 24) {
                         Text("Explorar")
                             .font(.title2)
                             .fontWeight(.bold)
                             .padding(.horizontal)
                         
-                        ForEach(MockData.categories) { category in
-                            let catProducts = MockData.products.filter { p in
-                                p.categoryId == category.id &&
-                                p.location == (authViewModel.currentUser?.location ?? "São Paulo - SP")
+                        ForEach(viewModel.categories) { category in
+                            let catProducts = viewModel.featuredProducts.filter { p in
+                                p.categoryId == category.id
                             }
                             
                             if !catProducts.isEmpty {
