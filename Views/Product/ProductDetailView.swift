@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 
 struct ProductOffer: Identifiable {
     let id = UUID()
@@ -18,17 +18,20 @@ struct ProductDetailView: View {
     @State private var localLikes: Int = 0
     @State private var currentImageIndex: Int = 0
     @State private var isFullScreenMedia: Bool = false
-    @State private var realConversation: Conversation? = nil
-    @State private var isLoadingConversation: Bool = false
+    @State private var seller: Seller? = nil
     
     // Timer for auto-sliding images
     let timer = Timer.publish(every: 3.0, on: .main, in: .common).autoconnect()
     
-    var seller: Seller? {
-        MockData.sellers.first { $0.user.id == product.sellerId }
+    private func loadSeller() async {
+        struct ProfileRow: Codable { let id: UUID; let name: String; let visible_name: String?; let username: String?; let email: String?; let location: String?; let avatar_url: String?; let created_at: Date?; let rating: Double?; let avg_response_time: String?; let bio: String? }
+        do {
+            let profile: ProfileRow = try await supabase.database.from("profiles").select("id,name,visible_name,username,email,location,avatar_url,created_at,rating,avg_response_time,bio").eq("id", value: product.sellerId).single().execute().value
+            let user = User(id: profile.id, name: profile.name, cpf: "", birthDate: nil, email: profile.email ?? "", phone: "", username: profile.username ?? "", visibleName: profile.visible_name, avatarURL: profile.avatar_url, location: profile.location ?? "", latitude: nil, longitude: nil, memberSince: profile.created_at ?? Date(), isProfessional: false, rating: profile.rating, responseTime: profile.avg_response_time, bio: profile.bio)
+            seller = Seller(id: profile.id, user: user, isVerified: false, rating: profile.rating ?? 0, reviewCount: 0, salesCount: 0, averageResponseTime: profile.avg_response_time ?? "-", bio: profile.bio ?? "")
+        } catch { print("Failed to load seller: \(error)") }
     }
-    
-    var isOwner: Bool {
+var isOwner: Bool {
         authViewModel.currentUser?.id == product.sellerId
     }
     
@@ -66,10 +69,22 @@ struct ProductDetailView: View {
                             let imageUrl = product.images[index]
                             if let url = URL(string: imageUrl) {
                                 ZStack {
-                                    CachedAsyncImage(url: url)
-                                        .aspectRatio(contentMode: .fill)
-                                        .clipped()
-
+                                    AsyncImage(url: url) { phase in
+                                        if let image = phase.image {
+                                            image
+                                                .resizable()
+                                                .aspectRatio(contentMode: .fill)
+                                        } else if phase.error != nil {
+                                            Rectangle()
+                                                .fill(Theme.inputBackground)
+                                                .overlay(Image(systemName: "photo").font(.largeTitle).foregroundColor(.gray))
+                                        } else {
+                                            Rectangle()
+                                                .fill(Theme.inputBackground)
+                                                .overlay(ProgressView())
+                                        }
+                                    }
+                                    
                                     if isVideo(url: imageUrl) {
                                         Circle()
                                             .fill(Color.black.opacity(0.5))
@@ -77,12 +92,14 @@ struct ProductDetailView: View {
                                             .overlay(
                                                 Image(systemName: "play.fill")
                                                     .foregroundColor(.white)
-                                                    .font(.custom("Inter-Bold", size: 28, relativeTo: .title))
+                                                    .font(.title)
                                             )
                                     }
                                 }
                                 .tag(index)
-                                .onTapGesture { isFullScreenMedia = true }
+                                .onTapGesture {
+                                    isFullScreenMedia = true
+                                }
                             }
                         }
                     }
@@ -104,23 +121,23 @@ struct ProductDetailView: View {
                         .frame(height: 300)
                         .overlay(
                             Image(systemName: "photo")
-                                .font(.custom("Inter-Regular", size: 50))
+                                .font(.system(size: 50))
                                 .foregroundColor(Theme.primary.opacity(0.5))
                         )
                 }
                 
                 VStack(alignment: .leading, spacing: 16) {
                     Text("\(product.condition.rawValue) • \(Formatters.dateFormatter.string(from: product.createdAt))")
-                        .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                        .font(.caption)
                         .foregroundColor(Theme.textSecondary)
                     
                     Text(product.title)
-                        .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
+                        .font(.title2)
                         .fontWeight(.bold)
                         .foregroundColor(Theme.textPrimary)
                     
                     Text(Formatters.formatCurrency(product.price))
-                        .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
+                        .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundColor(Theme.primary)
                     
@@ -128,7 +145,7 @@ struct ProductDetailView: View {
                         Image(systemName: "mappin.and.ellipse")
                         Text(product.location)
                     }
-                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                    .font(.subheadline)
                     .foregroundColor(Theme.textSecondary)
                     
                     Divider()
@@ -139,12 +156,12 @@ struct ProductDetailView: View {
                             Image(systemName: "doc.text.fill")
                                 .foregroundColor(Theme.primary)
                             Text("Descrição do Produto")
-                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                                .font(.headline)
                                 .fontWeight(.bold)
                         }
                         
                         Text(product.description)
-                            .font(.custom("Inter-Regular", size: 17, relativeTo: .body))
+                            .font(.body)
                             .foregroundColor(Theme.textSecondary)
                             .lineSpacing(4)
                             .padding()
@@ -162,18 +179,18 @@ struct ProductDetailView: View {
                                 Image(systemName: "hand.thumbsup.fill")
                                     .foregroundColor(Theme.primary)
                                 Text("Negociação e Lances")
-                                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                                    .font(.headline)
                                     .fontWeight(.bold)
                             }
                             
                             if isOwner {
                                 Text("Como dono deste anúncio, você pode ver os lances e iniciar uma negociação.")
-                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                                    .font(.caption)
                                     .foregroundColor(Theme.textSecondary)
                                 
                                 if offers.isEmpty {
                                     Text("Nenhum lance recebido ainda.")
-                                        .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                                        .font(.subheadline)
                                         .foregroundColor(Theme.textSecondary)
                                         .padding()
                                 } else {
@@ -181,7 +198,7 @@ struct ProductDetailView: View {
                                         HStack {
                                             VStack(alignment: .leading) {
                                                 Text(offer.bidderName)
-                                                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                                                    .font(.subheadline)
                                                     .fontWeight(.bold)
                                                 Text(Formatters.formatCurrency(offer.amount))
                                                     .foregroundColor(Theme.primary)
@@ -197,7 +214,7 @@ struct ProductDetailView: View {
                                                 unreadCount: 0
                                             ), currentUser: authViewModel.currentUser!)) {
                                                 Text("Negociar")
-                                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                                                    .font(.caption)
                                                     .fontWeight(.bold)
                                                     .padding(.horizontal, 12)
                                                     .padding(.vertical, 6)
@@ -220,7 +237,7 @@ struct ProductDetailView: View {
                                             .fontWeight(.bold)
                                         TextField("0,00", text: $offerAmount)
                                             .keyboardType(.decimalPad)
-                                            .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                                            .font(.headline)
                                         
                                         Button(action: {
                                             if let amount = Double(offerAmount.replacingOccurrences(of: ",", with: ".")) {
@@ -228,16 +245,6 @@ struct ProductDetailView: View {
                                                 let bidderId = authViewModel.currentUser?.id ?? UUID()
                                                 let newOffer = ProductOffer(bidderName: bidderName, bidderId: bidderId, amount: amount, time: Date())
                                                 offers.append(newOffer)
-                                                // Salvar lance no Supabase
-                                                Task {
-                                                    struct InsertOffer: Codable {
-                                                        let product_id: UUID
-                                                        let bidder_id: UUID
-                                                        let amount: Double
-                                                    }
-                                                    let offer = InsertOffer(product_id: product.id, bidder_id: bidderId, amount: amount)
-                                                    _ = try? await supabase.database.from("offers").insert(offer).execute()
-                                                }
                                                 offerAmount = ""
                                                 
                                                 if bidderId != product.sellerId {
@@ -246,7 +253,7 @@ struct ProductDetailView: View {
                                             }
                                         }) {
                                             Text("Enviar Lance")
-                                                .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                                                .font(.subheadline)
                                                 .fontWeight(.bold)
                                                 .padding(.horizontal, 12)
                                                 .padding(.vertical, 8)
@@ -262,18 +269,18 @@ struct ProductDetailView: View {
                                     
                                     if !offers.filter({ $0.bidderId == authViewModel.currentUser?.id }).isEmpty {
                                         Text("Seus lances:")
-                                            .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                                            .font(.subheadline)
                                             .fontWeight(.bold)
                                             .padding(.top, 4)
                                         
                                         ForEach(offers.filter({ $0.bidderId == authViewModel.currentUser?.id })) { offer in
                                             HStack {
                                                 Text("Você ofereceu:")
-                                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                                                    .font(.caption)
                                                     .foregroundColor(Theme.textSecondary)
                                                 Spacer()
                                                 Text(Formatters.formatCurrency(offer.amount))
-                                                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                                                    .font(.subheadline)
                                                     .fontWeight(.bold)
                                                     .foregroundColor(Theme.primary)
                                             }
@@ -291,7 +298,7 @@ struct ProductDetailView: View {
                     
                     if let seller = seller {
                         Text("Sobre o vendedor")
-                            .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                            .font(.headline)
                             .fontWeight(.bold)
                         
                         NavigationLink(destination: SellerProfileView(seller: seller)) {
@@ -302,18 +309,18 @@ struct ProductDetailView: View {
                                     .overlay(
                                         Text(String(seller.user.name.prefix(1)))
                                             .foregroundColor(Theme.primary)
-                                            .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                                            .font(.headline)
                                     )
                                 
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
                                         Text(seller.user.name)
-                                            .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                                            .font(.headline)
                                             .foregroundColor(Theme.textPrimary)
                                         if seller.isVerified {
                                             Image(systemName: "checkmark.seal.fill")
                                                 .foregroundColor(.blue)
-                                                .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                                                .font(.caption)
                                         }
                                     }
                                     
@@ -324,7 +331,7 @@ struct ProductDetailView: View {
                                         Text("(\(seller.reviewCount))")
                                             .foregroundColor(Theme.textSecondary)
                                     }
-                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                                    .font(.caption)
                                 }
                                 Spacer()
                                 Image(systemName: "chevron.right")
@@ -370,7 +377,7 @@ struct ProductDetailView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 2) {
                     Text("\(localLikes)")
-                        .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                        .font(.caption)
                         .foregroundColor(Theme.textSecondary)
                         .padding(.trailing, 2)
                         
@@ -392,8 +399,8 @@ struct ProductDetailView: View {
             }
         }
         .onAppear {
-            // Bug 3 fix: não usar views/3 como likes. Inicializar com 0.
-            localLikes = favoritesViewModel.isFavorite(product) ? 1 : 0
+            Task { await loadSeller() }
+            localLikes = (product.views / 3) + (favoritesViewModel.isFavorite(product) ? 1 : 0)
             
             // Increment view count in Supabase (unique per user)
             Task {
@@ -417,63 +424,36 @@ struct ProductDetailView: View {
                     print("Failed to increment views: \(error)")
                 }
             }
-
-            // Buscar lances do banco de dados
-            Task {
-                await fetchOffers()
-            }
         }
         .overlay(
             VStack {
                 Spacer()
                 if !isOwner {
                     HStack(spacing: 12) {
-                        // Bug 4 fix: busca/cria a conversa real no banco antes de abrir o chat
-                        Button(action: {
-                            guard let currentUser = authViewModel.currentUser else { return }
-                            isLoadingConversation = true
-                            Task {
-                                let conv = await findOrCreateConversation(
-                                    buyerId: currentUser.id,
-                                    sellerId: product.sellerId,
-                                    productId: product.id
-                                )
-                                await MainActor.run {
-                                    realConversation = conv
-                                    isLoadingConversation = false
-                                }
-                            }
-                        }) {
-                            HStack {
-                                if isLoadingConversation {
-                                    ProgressView().tint(.white)
-                                } else {
-                                    Text("Chat")
-                                }
-                            }
-                            .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
-                            .fontWeight(.semibold)
-                            .frame(maxWidth: .infinity)
-                            .padding()
-                            .background(Theme.primary)
-                            .foregroundColor(.white)
-                            .cornerRadius(12)
+                        NavigationLink(destination: ChatView(conversation: Conversation(
+                            id: UUID(),
+                            productId: product.id,
+                            participantId: product.sellerId,
+                            lastMessage: Message(
+                                id: UUID(),
+                                senderId: authViewModel.currentUser?.id ?? UUID(),
+                                receiverId: product.sellerId,
+                                text: "Olá! Gostaria de conversar sobre o produto \(product.title).",
+                                timestamp: Date(),
+                                isRead: true
+                            ),
+                            unreadCount: 0
+                                            ), currentUser: authViewModel.currentUser!)) {
+                            Text("Chat")
+                                .font(.headline)
+                                .fontWeight(.semibold)
+                                .frame(maxWidth: .infinity)
+                                .padding()
+                                .background(Theme.primary)
+                                .foregroundColor(.white)
+                                .cornerRadius(12)
                         }
-                        .disabled(isLoadingConversation)
-                        .background(
-                            NavigationLink(
-                                destination: Group {
-                                    if let conv = realConversation, let user = authViewModel.currentUser {
-                                        ChatView(conversation: conv, currentUser: user)
-                                    }
-                                },
-                                isActive: Binding(
-                                    get: { realConversation != nil },
-                                    set: { if !$0 { realConversation = nil } }
-                                )
-                            ) { EmptyView() }
-                        )
-
+                        
                         if let whatsapp = product.whatsappNumber, !whatsapp.isEmpty {
                             Button(action: {
                                 let cleanNumber = whatsapp.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
@@ -486,7 +466,7 @@ struct ProductDetailView: View {
                                     Image(systemName: "phone.bubble.left.fill")
                                     Text("WhatsApp")
                                 }
-                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                                .font(.headline)
                                 .fontWeight(.semibold)
                                 .frame(maxWidth: .infinity)
                                 .padding()
@@ -502,101 +482,6 @@ struct ProductDetailView: View {
             }
             , alignment: .bottom
         )
-    }
-
-    // Busca lances do Supabase
-    private func fetchOffers() async {
-        struct OfferRow: Codable {
-            let id: UUID
-            let product_id: UUID
-            let bidder_id: UUID
-            let amount: Double
-            let created_at: Date
-            let profiles: ProfileName?
-            struct ProfileName: Codable {
-                let name: String?
-            }
-        }
-        do {
-            let rows: [OfferRow] = try await supabase.database
-                .from("offers")
-                .select("*, profiles:bidder_id(name)")
-                .eq("product_id", value: product.id)
-                .order("created_at", ascending: false)
-                .execute()
-                .value
-            let mapped = rows.map { row in
-                ProductOffer(
-                    bidderName: row.profiles?.name ?? "Comprador",
-                    bidderId: row.bidder_id,
-                    amount: row.amount,
-                    time: row.created_at
-                )
-            }
-            await MainActor.run {
-                self.offers = mapped
-            }
-        } catch {
-            print("Erro ao buscar lances: \(error)")
-        }
-    }
-
-    // Bug 4 fix: busca conversa existente ou cria uma nova com ID real no banco
-    private func findOrCreateConversation(buyerId: UUID, sellerId: UUID, productId: UUID) async -> Conversation {
-        struct ConvRow: Codable {
-            let id: UUID
-            let buyer_id: UUID
-            let seller_id: UUID
-            let product_id: UUID
-            let created_at: Date
-        }
-
-        // 1. Buscar se já existe
-        if let existing: ConvRow = try? await supabase.database
-            .from("conversations")
-            .select()
-            .eq("buyer_id", value: buyerId)
-            .eq("seller_id", value: sellerId)
-            .eq("product_id", value: productId)
-            .single()
-            .execute()
-            .value {
-            return Conversation(
-                id: existing.id,
-                productId: existing.product_id,
-                participantId: sellerId,
-                lastMessage: Message(id: UUID(), senderId: buyerId, receiverId: sellerId, text: "", timestamp: existing.created_at, isRead: true),
-                unreadCount: 0
-            )
-        }
-
-        // 2. Criar nova conversa com ID real
-        struct NewConv: Codable {
-            let buyer_id: UUID
-            let seller_id: UUID
-            let product_id: UUID
-        }
-        let newConv = NewConv(buyer_id: buyerId, seller_id: sellerId, product_id: productId)
-        if let created: ConvRow = try? await supabase.database
-            .from("conversations")
-            .insert(newConv)
-            .select()
-            .single()
-            .execute()
-            .value {
-            return Conversation(
-                id: created.id,
-                productId: created.product_id,
-                participantId: sellerId,
-                lastMessage: Message(id: UUID(), senderId: buyerId, receiverId: sellerId, text: "", timestamp: Date(), isRead: true),
-                unreadCount: 0
-            )
-        }
-
-        // Fallback (não deve acontecer)
-        return Conversation(id: UUID(), productId: productId, participantId: sellerId,
-                            lastMessage: Message(id: UUID(), senderId: buyerId, receiverId: sellerId, text: "", timestamp: Date(), isRead: true),
-                            unreadCount: 0)
     }
 }
 

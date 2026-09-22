@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import PhotosUI
 
 struct UserProfileView: View {
@@ -84,7 +84,7 @@ struct UserProfileView: View {
                                     guard let jpegData = uiImage.jpegData(compressionQuality: 0.7) else { return }
                                     do {
                                         let fileName = "\(UUID().uuidString).jpg"
-                                        try await supabase.storage.from("avatars").upload(path: fileName, file: jpegData)
+                                        try await supabase.storage.from("avatars").upload(path: fileName, file: jpegData, options: FileOptions(contentType: "image/jpeg"))
                                         let publicUrl = try supabase.storage.from("avatars").getPublicURL(path: fileName)
                                         try await supabase.database.from("profiles")
                                             .update(["avatar_url": publicUrl.absoluteString])
@@ -101,7 +101,7 @@ struct UserProfileView: View {
                         }
                         
                         Text(authViewModel.currentUser?.visibleName ?? authViewModel.currentUser?.name ?? "Meu Nome")
-                            .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
+                            .font(.title2)
                             .fontWeight(.bold)
                         Text("@\(authViewModel.currentUser?.username ?? "usuario")")
                             .foregroundColor(Theme.textSecondary)
@@ -111,96 +111,82 @@ struct UserProfileView: View {
                             let cityDisplay = parts.count >= 2 ? parts[max(0, parts.count - 2)...].joined(separator: " - ") : loc
                             HStack(spacing: 4) {
                                 Image(systemName: "mappin.and.ellipse")
-                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                                    .font(.caption)
                                     .foregroundColor(Theme.primary)
                                 Text(cityDisplay)
                                     .foregroundColor(Theme.textSecondary)
-                                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                                    .font(.subheadline)
                             }
                         } else {
                             Text("Localização não informada")
                                 .foregroundColor(Theme.textSecondary)
-                                .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                                .font(.subheadline)
                         }
 
                         if let bio = authViewModel.currentUser?.bio, !bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             Text(bio)
-                                .font(.custom("Inter-Regular", size: 17, relativeTo: .body))
+                                .font(.body)
                                 .foregroundColor(Theme.textSecondary)
                                 .multilineTextAlignment(.leading)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .padding(.horizontal)
                         }
                         
-                        HStack(spacing: 0) {
-                            Spacer()
-                            VStack(spacing: 4) {
+                        HStack(spacing: 32) {
+                            VStack {
                                 Text("\(myProducts.count)")
-                                    .font(.custom("Inter-SemiBold", size: 20, relativeTo: .title3))
+                                    .font(.title3)
                                     .fontWeight(.bold)
-                                    .foregroundColor(Theme.textPrimary)
                                 Text("Vendas")
-                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                                    .font(.caption)
                                     .foregroundColor(Theme.textSecondary)
                             }
-                            .frame(maxWidth: .infinity)
-
-                            Divider().frame(height: 36)
-
-                            VStack(spacing: 4) {
-                                HStack(spacing: 3) {
+                            
+                            VStack {
+                                HStack(spacing: 4) {
                                     Text(String(format: "%.1f", authViewModel.currentUser?.rating ?? 0.0))
-                                        .font(.custom("Inter-SemiBold", size: 20, relativeTo: .title3))
+                                        .font(.title3)
                                         .fontWeight(.bold)
-                                        .foregroundColor(Theme.textPrimary)
-                                    Image(systemName: "star.fill")
-                                        .font(.custom("Inter-Medium", size: 11, relativeTo: .caption2))
+                                    Image("lucide_star")
+                                        .resizable()
+                                        .renderingMode(.template)
+                                        .scaledToFit()
+                                        .frame(width: 12, height: 12)
                                         .foregroundColor(.yellow)
                                 }
                                 Text("Avaliação")
-                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                                    .font(.caption)
                                     .foregroundColor(Theme.textSecondary)
                             }
-                            .frame(maxWidth: .infinity)
-
-                            Divider().frame(height: 36)
-
-                            VStack(spacing: 4) {
+                            
+                            VStack {
                                 Text(authViewModel.currentUser?.responseTime ?? "-")
-                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                                    .font(.title3)
                                     .fontWeight(.bold)
-                                    .foregroundColor(Theme.textPrimary)
-                                    .lineLimit(2)
-                                    .multilineTextAlignment(.center)
-                                Text("Responde em")
-                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                                Text("Tempo médio")
+                                    .font(.caption)
                                     .foregroundColor(Theme.textSecondary)
                             }
-                            .frame(maxWidth: .infinity)
-                            Spacer()
                         }
-                        .padding(.vertical, 12)
-                        .background(Theme.inputBackground)
-                        .cornerRadius(12)
-                        .padding(.horizontal)
+                        .padding(.top, 8)
                         
                     }
                     .padding(.top)
                     
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Categorias que costumo vender:")
-                            .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                            .font(.headline)
                         
                         if myCategories.isEmpty {
                             Text("Ainda não vendi nenhum produto ou categoria definida.")
-                                .font(.custom("Inter-Regular", size: 17, relativeTo: .body))
+                                .font(.body)
                                 .foregroundColor(Theme.textSecondary)
                         } else {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack {
                                     ForEach(myCategories, id: \.self) { cat in
                                         Text(cat)
-                                            .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                                            .font(.caption)
                                             .padding(.horizontal, 12)
                                             .padding(.vertical, 6)
                                             .background(Theme.inputBackground)
@@ -218,7 +204,7 @@ struct UserProfileView: View {
                     
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Meus Anúncios")
-                            .font(.custom("Inter-SemiBold", size: 20, relativeTo: .title3))
+                            .font(.title3)
                             .fontWeight(.bold)
                             .padding(.horizontal)
                         
@@ -330,7 +316,6 @@ struct UserProfileView: View {
                     let status: String?
                     let images: [String]?
                     let created_at: Date?
-                    let views: Int?
                 }
                 
                 struct SupabaseCategory: Codable {
@@ -361,7 +346,7 @@ struct UserProfileView: View {
                         location: sb.location ?? "Desconhecido",
                         images: sb.images ?? [],
                         createdAt: sb.created_at ?? Date(),
-                        views: sb.views ?? 0,
+                        views: 0,
                         isActive: sb.status == "active",
                         deliveryMethod: "Em mãos",
                         acceptsNegotiation: sb.accepts_negotiation ?? false

@@ -153,18 +153,11 @@ class HomeViewModel: ObservableObject {
 
                 self.featuredProducts = mappedProducts
                 
-                // Fallback mock se estiver vazio (apenas para o app não ficar pelado nos primeiros testes)
-                if self.featuredProducts.isEmpty {
-                    self.featuredProducts = Array(MockData.products.shuffled().prefix(6))
-                }
+
                 
             } catch {
                 print("Erro ao buscar home data: \(error)")
-                // Fallback mock em caso de erro
-                if self.featuredProducts.isEmpty {
-                    self.categories = MockData.categories
-                    self.featuredProducts = Array(MockData.products.shuffled().prefix(6))
-                }
+
             }
             self.isLoading = false
         }

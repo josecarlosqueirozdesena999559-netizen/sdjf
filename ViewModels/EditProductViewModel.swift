@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import Combine
 import UIKit
 
@@ -42,7 +42,7 @@ class EditProductViewModel: ObservableObject {
                     if let data = image.jpegData(compressionQuality: 0.7) {
                         let fileName = "\(UUID().uuidString).jpg"
                         do {
-                            try await supabase.storage.from("products").upload(path: fileName, file: data)
+                            try await supabase.storage.from("products").upload(path: fileName, file: data, options: FileOptions(contentType: "image/jpeg"))
                             let publicUrl = try supabase.storage.from("products").getPublicURL(path: fileName)
                             imageUrls.append(publicUrl.absoluteString)
                         } catch {

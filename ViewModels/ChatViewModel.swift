@@ -236,6 +236,14 @@ class ChatViewModel: ObservableObject {
         )
         
         do {
+            struct ProductOwner: Codable { let seller_id: UUID }
+            struct ConversationInsert: Codable { let id: UUID; let buyer_id: UUID; let seller_id: UUID; let product_id: UUID }
+            let owner: ProductOwner = try await supabase.database.from("products")
+                .select("seller_id").eq("id", value: conversation.productId).single().execute().value
+            let buyerId = owner.seller_id == currentUser.id ? conversation.participantId : currentUser.id
+            try await supabase.database.from("conversations")
+                .upsert(ConversationInsert(id: conversation.id, buyer_id: buyerId, seller_id: owner.seller_id, product_id: conversation.productId), onConflict: "id")
+                .execute()
             try await supabase.database
                 .from("messages")
                 .insert(insertData)
@@ -259,6 +267,7 @@ class ChatViewModel: ObservableObject {
     
     func markAsRead() async {
         do {
+
             try await supabase.database
                 .from("messages")
                 .update(["is_read": true])

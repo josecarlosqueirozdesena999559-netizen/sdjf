@@ -13,7 +13,6 @@ struct CategoriesView: View {
     }
     
     var body: some View {
-        NavigationStack {
             List {
                 ForEach(filteredCategories) { category in
                     NavigationLink(destination: SearchResultsView(category: category)) {
@@ -41,6 +40,5 @@ struct CategoriesView: View {
             .listStyle(PlainListStyle())
             .searchable(text: $searchText, prompt: "Buscar em categorias...")
             .navigationTitle("Categorias")
-        }
     }
 }
