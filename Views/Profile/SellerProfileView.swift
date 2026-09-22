@@ -24,7 +24,7 @@ struct SellerProfileView: View {
                                 .font(.headline)
                             if seller.isVerified { Image(systemName: "checkmark.seal.fill").foregroundColor(.blue) }
                         }
-                        Text("@\(seller.user.username)")
+                        Text("@\(seller.user.username ?? "")")
                             .font(.caption).foregroundColor(Theme.textSecondary)
                         Label(seller.user.location, systemImage: "mappin.and.ellipse")
                             .font(.caption).foregroundColor(Theme.textSecondary)
