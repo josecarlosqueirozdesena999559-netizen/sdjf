@@ -33,7 +33,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.achou.com
         DEVELOPMENT_TEAM: 3YB4FZDQ82
         ASSETCATALOG_COMPILER_APPICON_NAME: "AppIcon"
-        CURRENT_PROJECT_VERSION: 34
+        CURRENT_PROJECT_VERSION: 35
         MARKETING_VERSION: 1.0
     entitlements:
       path: MercadoFacil.entitlements
@@ -42,7 +42,7 @@ targets:
     info:
       path: Info.plist
       properties:
-        CFBundleVersion: "34"
+        CFBundleVersion: "35"
         CFBundleShortVersionString: "1.0.0"
         UILaunchScreen: {}
         UIAppFonts:
