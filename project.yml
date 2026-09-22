@@ -1,4 +1,4 @@
-﻿name: MercadoFacil
+name: MercadoFacil
 packages:
   Supabase:
     url: https://github.com/supabase/supabase-swift.git
@@ -33,8 +33,8 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.achou.com
         DEVELOPMENT_TEAM: 3YB4FZDQ82
         ASSETCATALOG_COMPILER_APPICON_NAME: "AppIcon"
-        CURRENT_PROJECT_VERSION: 37
-        MARKETING_VERSION: 1.0
+        CURRENT_PROJECT_VERSION: 38
+        MARKETING_VERSION: 1.0.1
     entitlements:
       path: MercadoFacil.entitlements
       properties:
@@ -42,8 +42,8 @@ targets:
     info:
       path: Info.plist
       properties:
-        CFBundleVersion: "37"
-        CFBundleShortVersionString: "1.0.0"
+        CFBundleVersion: "38"
+        CFBundleShortVersionString: "1.0.1"
         UILaunchScreen: {}
         UIAppFonts:
           - Inter-Regular.ttf
