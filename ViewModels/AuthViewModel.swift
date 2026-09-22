@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import Supabase
+import OneSignalFramework
 
 struct Profile: Codable {
     let id: UUID
@@ -96,6 +97,7 @@ class AuthViewModel: ObservableObject {
             } catch {
                 print("Logout erro: \(error)")
             }
+            OneSignal.logout()
             self.currentUser = nil
             self.isAuthenticated = false
         }
@@ -131,6 +133,8 @@ class AuthViewModel: ObservableObject {
                 bio: profile.bio
             )
             self.isAuthenticated = true
+            // Bug 5 fix: registrar o usuário no OneSignal para receber push notifications
+            OneSignal.login(userId.uuidString)
         } catch {
             print("Erro ao carregar perfil, talvez não exista: \(error)")
             // Fallback for demo if profile doesn't exist yet but auth succeeded

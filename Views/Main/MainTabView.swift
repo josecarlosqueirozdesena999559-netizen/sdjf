@@ -1,5 +1,4 @@
 import SwiftUI
-import UserNotifications
 
 struct MainTabView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -12,44 +11,42 @@ struct MainTabView: View {
             TabView(selection: $selectedTab) {
                 HomeView()
                     .tabItem {
-                        Image(systemName: "house")
+                        Image(systemName: selectedTab == 0 ? "house.fill" : "house")
                         Text("Início")
                     }
                     .tag(0)
-                
+
                 CategoriesView()
                     .tabItem {
                         Image(systemName: "square.grid.2x2")
                         Text("Categorias")
                     }
                     .tag(1)
-                
+
+                // Bug 2 fix: tab vazio substituído por placeholder invisível
+                // que não compete visualmente com o botão flutuante
                 Color.clear
-                    .tabItem {
-                        Text("")
-                    }
+                    .tabItem { Label("", systemImage: "plus") }
                     .tag(2)
-                
+
                 MessagesListView(selectedTab: $selectedTab)
                     .tabItem {
-                        Image(systemName: "bubble.left.and.bubble.right")
+                        Image(systemName: selectedTab == 3 ? "bubble.left.and.bubble.right.fill" : "bubble.left.and.bubble.right")
                         Text("Mensagens")
                     }
                     .tag(3)
-                
+
                 UserProfileView()
                     .tabItem {
-                        Image(systemName: "person.crop.circle")
+                        Image(systemName: selectedTab == 4 ? "person.crop.circle.fill" : "person.crop.circle")
                         Text("Perfil")
                     }
                     .tag(4)
             }
             .accentColor(Theme.primary)
-            
-            // Botão central flutuante
-            Button(action: {
-                showPublish = true
-            }) {
+
+            // Botão central flutuante de publicar
+            Button(action: { showPublish = true }) {
                 ZStack {
                     Circle()
                         .fill(Theme.primary)
@@ -61,6 +58,8 @@ struct MainTabView: View {
                 }
             }
             .offset(y: -10)
+            // Impede que tap no botão ative o tab fantasma
+            .simultaneousGesture(TapGesture().onEnded { })
         }
         .environmentObject(favoritesViewModel)
         .fullScreenCover(isPresented: $showPublish) {
@@ -68,23 +67,11 @@ struct MainTabView: View {
                 selectedTab = 4
             }
         }
-        // Popup de configuração de perfil (abre automaticamente após cadastro)
         .sheet(isPresented: $authViewModel.needsProfileSetup) {
             ProfileSetupSheet()
                 .environmentObject(authViewModel)
         }
-        .onAppear {
-            requestNotificationPermissions()
-        }
-    }
-    
-    private func requestNotificationPermissions() {
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, error in
-            if granted {
-                print("Notificações permitidas")
-            } else if let error = error {
-                print("Erro ao pedir permissão: \(error.localizedDescription)")
-            }
-        }
+        // Bug 5 fix: removida a requestNotificationPermissions() duplicada.
+        // OneSignal já gerencia as permissões em MercadoFacilApp.swift
     }
 }

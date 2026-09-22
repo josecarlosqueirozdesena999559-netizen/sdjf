@@ -1,20 +1,79 @@
 import SwiftUI
 
+// MARK: - Cached Image Loader
+// Soluciona: imagens cinza piscando (Bug 1)
+// Usa URLCache para não redownlodar imagens já vistas
+struct CachedAsyncImage: View {
+    let url: URL
+    @State private var image: UIImage? = nil
+    @State private var isLoading = true
+
+    var body: some View {
+        Group {
+            if let img = image {
+                Image(uiImage: img)
+                    .resizable()
+            } else if isLoading {
+                Rectangle()
+                    .fill(Color(UIColor.systemGray5))
+                    .overlay(ProgressView().tint(.gray))
+            } else {
+                Rectangle()
+                    .fill(Color(UIColor.systemGray5))
+                    .overlay(
+                        Image(systemName: "photo")
+                            .foregroundColor(.gray.opacity(0.5))
+                            .font(.system(size: 40))
+                    )
+            }
+        }
+        .onAppear { loadImage() }
+        .onChange(of: url) { _ in loadImage() }
+    }
+
+    private func loadImage() {
+        let request = URLRequest(url: url)
+        if let cached = URLCache.shared.cachedResponse(for: request),
+           let img = UIImage(data: cached.data) {
+            self.image = img
+            self.isLoading = false
+            return
+        }
+        isLoading = true
+        URLSession.shared.dataTask(with: request) { data, response, _ in
+            if let data, let img = UIImage(data: data),
+               let response {
+                let cached = CachedURLResponse(response: response, data: data)
+                URLCache.shared.storeCachedResponse(cached, for: request)
+                DispatchQueue.main.async {
+                    self.image = img
+                    self.isLoading = false
+                }
+            } else {
+                DispatchQueue.main.async {
+                    self.isLoading = false
+                }
+            }
+        }.resume()
+    }
+}
+
+// MARK: - Category Card
 struct FlatCategoryCard: View {
     var category: Category
-    
+
     var body: some View {
         VStack(spacing: 8) {
             ZStack {
                 RoundedRectangle(cornerRadius: 12)
                     .fill(Theme.inputBackground)
                     .frame(width: 60, height: 60)
-                
+
                 Image(systemName: category.iconName)
                     .font(.title2)
                     .foregroundColor(Theme.primary)
             }
-            
+
             Text(category.name)
                 .font(.caption)
                 .foregroundColor(Theme.textPrimary)
@@ -23,91 +82,68 @@ struct FlatCategoryCard: View {
     }
 }
 
+// MARK: - Product Card
 struct FlatProductCard: View {
     var product: Product
-    
+
     @State private var currentImageIndex = 0
-    let timer = Timer.publish(every: 2.5, on: .main, in: .common).autoconnect()
-    
-    var seller: Seller? {
-        MockData.sellers.first { $0.user.id == product.sellerId }
-    }
-    
+    // Timer agora usa 3.5s para dar tempo de carregar a imagem
+    let timer = Timer.publish(every: 3.5, on: .main, in: .common).autoconnect()
+
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            // Navigate to Product Detail when tapping the main card content
             NavigationLink(destination: ProductDetailView(product: product)) {
                 VStack(alignment: .leading, spacing: 8) {
-                    if !product.images.isEmpty {
-                        if let url = URL(string: product.images[currentImageIndex]) {
-                            AsyncImage(url: url) { phase in
-                                if let image = phase.image {
-                                    image
-                                        .resizable()
-                                        .aspectRatio(1, contentMode: .fill)
-                                        .frame(maxWidth: .infinity)
-                                        .clipped()
-                                } else if phase.error != nil {
-                                    Rectangle()
-                                        .fill(Theme.inputBackground)
-                                        .aspectRatio(1, contentMode: .fill)
-                                        .overlay(
-                                            Image(systemName: "photo")
-                                                .foregroundColor(.gray.opacity(0.5))
-                                                .font(.system(size: 40))
-                                        )
-                                } else {
-                                    Rectangle()
-                                        .fill(Theme.inputBackground)
-                                        .aspectRatio(1, contentMode: .fill)
-                                        .overlay(ProgressView())
-                                }
-                            }
-                            .cornerRadius(12)
-                            .onReceive(timer) { _ in
-                                if product.images.count > 1 {
-                                    withAnimation(.easeInOut(duration: 0.5)) {
-                                        currentImageIndex = (currentImageIndex + 1) % product.images.count
-                                    }
-                                }
-                            }
+                    // Área da imagem com CachedAsyncImage (sem piscar)
+                    ZStack {
+                        if !product.images.isEmpty,
+                           let url = URL(string: product.images[currentImageIndex]) {
+                            CachedAsyncImage(url: url)
+                                .aspectRatio(1, contentMode: .fill)
+                                .frame(maxWidth: .infinity)
+                                .clipped()
+                                .cornerRadius(12)
+                        } else {
+                            Rectangle()
+                                .fill(Theme.inputBackground)
+                                .aspectRatio(1, contentMode: .fill)
+                                .overlay(
+                                    Image(systemName: "photo")
+                                        .foregroundColor(.gray.opacity(0.5))
+                                        .font(.system(size: 40))
+                                )
+                                .cornerRadius(12)
                         }
-                    } else {
-                        Rectangle()
-                            .fill(Theme.inputBackground)
-                            .aspectRatio(1, contentMode: .fill)
-                            .overlay(
-                                Image(systemName: "photo")
-                                    .foregroundColor(.gray.opacity(0.5))
-                                    .font(.system(size: 40))
-                            )
-                            .cornerRadius(12)
                     }
-                    
+                    .onReceive(timer) { _ in
+                        guard product.images.count > 1 else { return }
+                        withAnimation(.easeInOut(duration: 0.5)) {
+                            currentImageIndex = (currentImageIndex + 1) % product.images.count
+                        }
+                    }
+
                     VStack(alignment: .leading, spacing: 4) {
                         Text(product.title)
                             .font(.subheadline)
                             .foregroundColor(Theme.textPrimary)
                             .lineLimit(2)
-                        
-                        Text("\(product.condition.rawValue) • \(product.location)")
+
+                        Text("\(product.condition.rawValue) · \(product.location)")
                             .font(.caption2)
                             .foregroundColor(Theme.textSecondary)
                             .lineLimit(1)
+
                         HStack {
                             Text(Formatters.formatCurrency(product.price))
                                 .font(.headline)
                                 .fontWeight(.bold)
                                 .foregroundColor(Theme.primary)
-                                
+
                             Spacer()
-                            
+
                             HStack(spacing: 2) {
-                                Image("lucide_eye")
-                                    .resizable()
-                                    .renderingMode(.template)
-                                    .scaledToFit()
-                                    .frame(width: 12, height: 12)
+                                Image(systemName: "eye")
+                                    .font(.system(size: 10))
                                     .foregroundColor(Theme.textSecondary)
                                 Text("\(product.views)")
                                     .font(.caption2)
@@ -118,29 +154,6 @@ struct FlatProductCard: View {
                 }
             }
             .buttonStyle(PlainButtonStyle())
-            
-            // Navigate to Seller Profile when tapping the seller info
-            if let seller = seller {
-                NavigationLink(destination: SellerProfileView(seller: seller)) {
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(Theme.lightGreen)
-                            .frame(width: 20, height: 20)
-                            .overlay(
-                                Image(systemName: "person.crop.circle.fill")
-                                    .font(.system(size: 14))
-                                    .foregroundColor(Theme.primary)
-                            )
-                        
-                        Text("Vendido por \(seller.user.visibleName ?? seller.user.name)")
-                            .font(.system(size: 10))
-                            .foregroundColor(Theme.textSecondary)
-                            .lineLimit(1)
-                    }
-                    .padding(.top, 4)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
         }
         .background(Color.white)
     }

@@ -38,7 +38,7 @@ targets:
     entitlements:
       path: MercadoFacil.entitlements
       properties:
-        aps-environment: development
+        aps-environment: production
     info:
       path: Info.plist
       properties:

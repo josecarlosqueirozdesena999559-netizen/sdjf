@@ -18,6 +18,8 @@ struct ProductDetailView: View {
     @State private var localLikes: Int = 0
     @State private var currentImageIndex: Int = 0
     @State private var isFullScreenMedia: Bool = false
+    @State private var realConversation: Conversation? = nil
+    @State private var isLoadingConversation: Bool = false
     
     // Timer for auto-sliding images
     let timer = Timer.publish(every: 3.0, on: .main, in: .common).autoconnect()
@@ -394,7 +396,8 @@ struct ProductDetailView: View {
             }
         }
         .onAppear {
-            localLikes = (product.views / 3) + (favoritesViewModel.isFavorite(product) ? 1 : 0)
+            // Bug 3 fix: não usar views/3 como likes. Inicializar com 0.
+            localLikes = favoritesViewModel.isFavorite(product) ? 1 : 0
             
             // Increment view count in Supabase (unique per user)
             Task {
@@ -424,30 +427,52 @@ struct ProductDetailView: View {
                 Spacer()
                 if !isOwner {
                     HStack(spacing: 12) {
-                        NavigationLink(destination: ChatView(conversation: Conversation(
-                            id: UUID(),
-                            productId: product.id,
-                            participantId: product.sellerId,
-                            lastMessage: Message(
-                                id: UUID(),
-                                senderId: authViewModel.currentUser?.id ?? UUID(),
-                                receiverId: product.sellerId,
-                                text: "Olá! Gostaria de conversar sobre o produto \(product.title).",
-                                timestamp: Date(),
-                                isRead: true
-                            ),
-                            unreadCount: 0
-                                            ), currentUser: authViewModel.currentUser!)) {
-                            Text("Chat")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Theme.primary)
-                                .foregroundColor(.white)
-                                .cornerRadius(12)
+                        // Bug 4 fix: busca/cria a conversa real no banco antes de abrir o chat
+                        Button(action: {
+                            guard let currentUser = authViewModel.currentUser else { return }
+                            isLoadingConversation = true
+                            Task {
+                                let conv = await findOrCreateConversation(
+                                    buyerId: currentUser.id,
+                                    sellerId: product.sellerId,
+                                    productId: product.id
+                                )
+                                await MainActor.run {
+                                    realConversation = conv
+                                    isLoadingConversation = false
+                                }
+                            }
+                        }) {
+                            HStack {
+                                if isLoadingConversation {
+                                    ProgressView().tint(.white)
+                                } else {
+                                    Text("Chat")
+                                }
+                            }
+                            .font(.headline)
+                            .fontWeight(.semibold)
+                            .frame(maxWidth: .infinity)
+                            .padding()
+                            .background(Theme.primary)
+                            .foregroundColor(.white)
+                            .cornerRadius(12)
                         }
-                        
+                        .disabled(isLoadingConversation)
+                        .background(
+                            NavigationLink(
+                                destination: Group {
+                                    if let conv = realConversation, let user = authViewModel.currentUser {
+                                        ChatView(conversation: conv, currentUser: user)
+                                    }
+                                },
+                                isActive: Binding(
+                                    get: { realConversation != nil },
+                                    set: { if !$0 { realConversation = nil } }
+                                )
+                            ) { EmptyView() }
+                        )
+
                         if let whatsapp = product.whatsappNumber, !whatsapp.isEmpty {
                             Button(action: {
                                 let cleanNumber = whatsapp.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
@@ -476,6 +501,64 @@ struct ProductDetailView: View {
             }
             , alignment: .bottom
         )
+    }
+
+    // Bug 4 fix: busca conversa existente ou cria uma nova com ID real no banco
+    private func findOrCreateConversation(buyerId: UUID, sellerId: UUID, productId: UUID) async -> Conversation {
+        struct ConvRow: Codable {
+            let id: UUID
+            let buyer_id: UUID
+            let seller_id: UUID
+            let product_id: UUID
+            let created_at: Date
+        }
+
+        // 1. Buscar se já existe
+        if let existing: ConvRow = try? await supabase.database
+            .from("conversations")
+            .select()
+            .eq("buyer_id", value: buyerId)
+            .eq("seller_id", value: sellerId)
+            .eq("product_id", value: productId)
+            .single()
+            .execute()
+            .value {
+            return Conversation(
+                id: existing.id,
+                productId: existing.product_id,
+                participantId: sellerId,
+                lastMessage: Message(id: UUID(), senderId: buyerId, receiverId: sellerId, text: "", timestamp: existing.created_at, isRead: true),
+                unreadCount: 0
+            )
+        }
+
+        // 2. Criar nova conversa com ID real
+        struct NewConv: Codable {
+            let buyer_id: UUID
+            let seller_id: UUID
+            let product_id: UUID
+        }
+        let newConv = NewConv(buyer_id: buyerId, seller_id: sellerId, product_id: productId)
+        if let created: ConvRow = try? await supabase.database
+            .from("conversations")
+            .insert(newConv)
+            .select()
+            .single()
+            .execute()
+            .value {
+            return Conversation(
+                id: created.id,
+                productId: created.product_id,
+                participantId: sellerId,
+                lastMessage: Message(id: UUID(), senderId: buyerId, receiverId: sellerId, text: "", timestamp: Date(), isRead: true),
+                unreadCount: 0
+            )
+        }
+
+        // Fallback (não deve acontecer)
+        return Conversation(id: UUID(), productId: productId, participantId: sellerId,
+                            lastMessage: Message(id: UUID(), senderId: buyerId, receiverId: sellerId, text: "", timestamp: Date(), isRead: true),
+                            unreadCount: 0)
     }
 }
 
