@@ -17,6 +17,7 @@ struct User: Identifiable, Codable {
     var isProfessional: Bool
     var rating: Double?
     var responseTime: String?
+    var bio: String?
 }
 
 struct Seller: Identifiable, Codable {

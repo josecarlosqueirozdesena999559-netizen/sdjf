@@ -1,4 +1,3 @@
-﻿import OneSignalFramework
 import Foundation
 import Combine
 import Supabase
@@ -15,6 +14,7 @@ struct Profile: Codable {
     let created_at: Date?
     let rating: Double?
     let avg_response_time: String?
+    let bio: String?
 }
 
 @MainActor
@@ -22,6 +22,7 @@ class AuthViewModel: ObservableObject {
     @Published var isAuthenticated: Bool = false
     @Published var currentUser: User? = nil
     @Published var hasUnreadNotifications: Bool = false
+    @Published var needsProfileSetup: Bool = false
     
     @Published var isLoading = false
     @Published var errorMessage: String? = nil
@@ -38,7 +39,6 @@ class AuthViewModel: ObservableObject {
             await loadProfile(for: session.user.id, email: session.user.email ?? "")
         } catch {
             self.isAuthenticated = false
-              OneSignal.logout()
         }
     }
     
@@ -67,7 +67,7 @@ class AuthViewModel: ObservableObject {
                         loginEmail = foundEmail
                     } else {
                         await MainActor.run {
-                            self.errorMessage = "UsuÃ¡rio nÃ£o encontrado."
+                            self.errorMessage = "Usuário não encontrado."
                             self.isLoading = false
                         }
                         return
@@ -96,7 +96,6 @@ class AuthViewModel: ObservableObject {
             }
             self.currentUser = nil
             self.isAuthenticated = false
-              OneSignal.logout()
         }
     }
     
@@ -126,16 +125,15 @@ class AuthViewModel: ObservableObject {
                 memberSince: profile.created_at ?? Date(),
                 isProfessional: false,
                 rating: profile.rating,
-                responseTime: profile.avg_response_time
+                responseTime: profile.avg_response_time,
+                bio: profile.bio
             )
             self.isAuthenticated = true
-            OneSignal.login(userId.uuidString)
         } catch {
-            print("Erro ao carregar perfil, talvez nÃ£o exista: \(error)")
+            print("Erro ao carregar perfil, talvez não exista: \(error)")
             // Fallback for demo if profile doesn't exist yet but auth succeeded
-            self.currentUser = User(id: userId, name: "UsuÃ¡rio", cpf: "", birthDate: nil, email: email, phone: "", username: "user", visibleName: nil, avatarURL: nil, location: "Desconhecido", latitude: nil, longitude: nil, memberSince: Date(), isProfessional: false, rating: nil, responseTime: nil)
+            self.currentUser = User(id: userId, name: "Usuário", cpf: "", birthDate: nil, email: email, phone: "", username: "user", visibleName: nil, avatarURL: nil, location: "Desconhecido", latitude: nil, longitude: nil, memberSince: Date(), isProfessional: false, rating: nil, responseTime: nil, bio: nil)
             self.isAuthenticated = true
-            OneSignal.login(userId.uuidString)
         }
         
         await checkUnreadNotifications()
@@ -161,5 +159,4 @@ class AuthViewModel: ObservableObject {
         }
     }
 }
-
 

@@ -304,6 +304,7 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                 let finalPassword = self.password
                 
                 await MainActor.run {
+                    authViewModel.needsProfileSetup = true
                     authViewModel.login(emailOrUsername: finalEmail, password: finalPassword)
                     completion()
                 }

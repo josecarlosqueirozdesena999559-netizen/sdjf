@@ -2,10 +2,11 @@ import SwiftUI
 import UserNotifications
 
 struct MainTabView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var favoritesViewModel = FavoritesViewModel()
     @State private var selectedTab = 0
     @State private var showPublish = false
-    
+
     var body: some View {
         ZStack(alignment: .bottom) {
             TabView(selection: $selectedTab) {
@@ -64,8 +65,13 @@ struct MainTabView: View {
         .environmentObject(favoritesViewModel)
         .fullScreenCover(isPresented: $showPublish) {
             PublishProductView() {
-                selectedTab = 4 // Perfil
+                selectedTab = 4
             }
+        }
+        // Popup de configuração de perfil (abre automaticamente após cadastro)
+        .sheet(isPresented: $authViewModel.needsProfileSetup) {
+            ProfileSetupSheet()
+                .environmentObject(authViewModel)
         }
         .onAppear {
             requestNotificationPermissions()
