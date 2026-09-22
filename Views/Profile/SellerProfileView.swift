@@ -58,6 +58,7 @@ struct SellerProfileView: View {
                         }
                     }
                 }
+                }
 
                 HStack {
                     metric("\(seller.salesCount)", "vendas")
