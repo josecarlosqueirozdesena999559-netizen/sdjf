@@ -132,43 +132,57 @@ struct UserProfileView: View {
                                 .padding(.horizontal)
                         }
                         
-                        HStack(spacing: 32) {
-                            VStack {
+                        HStack(spacing: 0) {
+                            Spacer()
+                            VStack(spacing: 4) {
                                 Text("\(myProducts.count)")
                                     .font(.title3)
                                     .fontWeight(.bold)
+                                    .foregroundColor(Theme.textPrimary)
                                 Text("Vendas")
                                     .font(.caption)
                                     .foregroundColor(Theme.textSecondary)
                             }
-                            
-                            VStack {
-                                HStack(spacing: 4) {
+                            .frame(maxWidth: .infinity)
+
+                            Divider().frame(height: 36)
+
+                            VStack(spacing: 4) {
+                                HStack(spacing: 3) {
                                     Text(String(format: "%.1f", authViewModel.currentUser?.rating ?? 0.0))
                                         .font(.title3)
                                         .fontWeight(.bold)
-                                    Image("lucide_star")
-                                        .resizable()
-                                        .renderingMode(.template)
-                                        .scaledToFit()
-                                        .frame(width: 12, height: 12)
+                                        .foregroundColor(Theme.textPrimary)
+                                    Image(systemName: "star.fill")
+                                        .font(.caption2)
                                         .foregroundColor(.yellow)
                                 }
                                 Text("Avaliação")
                                     .font(.caption)
                                     .foregroundColor(Theme.textSecondary)
                             }
-                            
-                            VStack {
+                            .frame(maxWidth: .infinity)
+
+                            Divider().frame(height: 36)
+
+                            VStack(spacing: 4) {
                                 Text(authViewModel.currentUser?.responseTime ?? "-")
-                                    .font(.title3)
+                                    .font(.caption)
                                     .fontWeight(.bold)
-                                Text("Resposta")
+                                    .foregroundColor(Theme.textPrimary)
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.center)
+                                Text("Responde em")
                                     .font(.caption)
                                     .foregroundColor(Theme.textSecondary)
                             }
+                            .frame(maxWidth: .infinity)
+                            Spacer()
                         }
-                        .padding(.top, 8)
+                        .padding(.vertical, 12)
+                        .background(Theme.inputBackground)
+                        .cornerRadius(12)
+                        .padding(.horizontal)
                         
                     }
                     .padding(.top)

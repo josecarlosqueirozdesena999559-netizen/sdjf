@@ -66,22 +66,10 @@ struct ProductDetailView: View {
                             let imageUrl = product.images[index]
                             if let url = URL(string: imageUrl) {
                                 ZStack {
-                                    AsyncImage(url: url) { phase in
-                                        if let image = phase.image {
-                                            image
-                                                .resizable()
-                                                .aspectRatio(contentMode: .fill)
-                                        } else if phase.error != nil {
-                                            Rectangle()
-                                                .fill(Theme.inputBackground)
-                                                .overlay(Image(systemName: "photo").font(.largeTitle).foregroundColor(.gray))
-                                        } else {
-                                            Rectangle()
-                                                .fill(Theme.inputBackground)
-                                                .overlay(ProgressView())
-                                        }
-                                    }
-                                    
+                                    CachedAsyncImage(url: url)
+                                        .aspectRatio(contentMode: .fill)
+                                        .clipped()
+
                                     if isVideo(url: imageUrl) {
                                         Circle()
                                             .fill(Color.black.opacity(0.5))
@@ -94,9 +82,7 @@ struct ProductDetailView: View {
                                     }
                                 }
                                 .tag(index)
-                                .onTapGesture {
-                                    isFullScreenMedia = true
-                                }
+                                .onTapGesture { isFullScreenMedia = true }
                             }
                         }
                     }
@@ -242,6 +228,16 @@ struct ProductDetailView: View {
                                                 let bidderId = authViewModel.currentUser?.id ?? UUID()
                                                 let newOffer = ProductOffer(bidderName: bidderName, bidderId: bidderId, amount: amount, time: Date())
                                                 offers.append(newOffer)
+                                                // Salvar lance no Supabase
+                                                Task {
+                                                    struct InsertOffer: Codable {
+                                                        let product_id: UUID
+                                                        let bidder_id: UUID
+                                                        let amount: Double
+                                                    }
+                                                    let offer = InsertOffer(product_id: product.id, bidder_id: bidderId, amount: amount)
+                                                    try? await supabase.database.from("offers").insert(offer).execute()
+                                                }
                                                 offerAmount = ""
                                                 
                                                 if bidderId != product.sellerId {
@@ -421,6 +417,11 @@ struct ProductDetailView: View {
                     print("Failed to increment views: \(error)")
                 }
             }
+
+            // Buscar lances do banco de dados
+            Task {
+                await fetchOffers()
+            }
         }
         .overlay(
             VStack {
@@ -501,6 +502,43 @@ struct ProductDetailView: View {
             }
             , alignment: .bottom
         )
+    }
+
+    // Busca lances do Supabase
+    private func fetchOffers() async {
+        struct OfferRow: Codable {
+            let id: UUID
+            let product_id: UUID
+            let bidder_id: UUID
+            let amount: Double
+            let created_at: Date
+            let profiles: ProfileName?
+            struct ProfileName: Codable {
+                let name: String?
+            }
+        }
+        do {
+            let rows: [OfferRow] = try await supabase.database
+                .from("offers")
+                .select("*, profiles:bidder_id(name)")
+                .eq("product_id", value: product.id)
+                .order("created_at", ascending: false)
+                .execute()
+                .value
+            let mapped = rows.map { row in
+                ProductOffer(
+                    bidderName: row.profiles?.name ?? "Comprador",
+                    bidderId: row.bidder_id,
+                    amount: row.amount,
+                    time: row.created_at
+                )
+            }
+            await MainActor.run {
+                self.offers = mapped
+            }
+        } catch {
+            print("Erro ao buscar lances: \(error)")
+        }
     }
 
     // Bug 4 fix: busca conversa existente ou cria uma nova com ID real no banco
