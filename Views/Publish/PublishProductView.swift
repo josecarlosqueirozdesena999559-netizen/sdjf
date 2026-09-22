@@ -227,10 +227,23 @@ struct PublishProductView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Localização")
                     .font(.headline)
-                TextField("Ex: São Paulo - SP", text: $viewModel.location)
-                    .padding()
-                    .background(Theme.inputBackground)
-                    .cornerRadius(12)
+                HStack {
+                    TextField("Ex: São Paulo - SP", text: $viewModel.location)
+                    if viewModel.isFetchingLocation {
+                        ProgressView()
+                    } else {
+                        Button(action: {
+                            viewModel.fetchCurrentLocation()
+                        }) {
+                            Image(systemName: "location.fill")
+                                .foregroundColor(Theme.primary)
+                                .padding(.horizontal, 4)
+                        }
+                    }
+                }
+                .padding()
+                .background(Theme.inputBackground)
+                .cornerRadius(12)
             }
             
             VStack(alignment: .leading, spacing: 8) {

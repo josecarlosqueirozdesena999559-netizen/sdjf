@@ -2,7 +2,9 @@ import Foundation
 import Combine
 import UIKit
 
-class PublishViewModel: ObservableObject {
+import CoreLocation
+
+class PublishViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published var title: String = ""
     @Published var description: String = ""
     @Published var price: String = ""
@@ -15,6 +17,52 @@ class PublishViewModel: ObservableObject {
     @Published var isPublishing: Bool = false
     @Published var publishSuccess: Bool = false
     @Published var publishError: String? = nil
+    
+    @Published var isFetchingLocation: Bool = false
+    private let locationManager = CLLocationManager()
+    
+    override init() {
+        super.init()
+        locationManager.delegate = self
+    }
+    
+    func fetchCurrentLocation() {
+        isFetchingLocation = true
+        locationManager.requestWhenInUseAuthorization()
+        locationManager.startUpdatingLocation()
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let loc = locations.first else { return }
+        locationManager.stopUpdatingLocation()
+        
+        let geocoder = CLGeocoder()
+        geocoder.reverseGeocodeLocation(loc) { placemarks, error in
+            DispatchQueue.main.async {
+                self.isFetchingLocation = false
+                if let placemark = placemarks?.first {
+                    let city = placemark.locality ?? ""
+                    let neighborhood = placemark.subLocality ?? ""
+                    let state = placemark.administrativeArea ?? ""
+                    
+                    var parts: [String] = []
+                    if !neighborhood.isEmpty { parts.append(neighborhood) }
+                    if !city.isEmpty { parts.append(city) }
+                    else if !state.isEmpty { parts.append(state) }
+                    
+                    if !parts.isEmpty {
+                        self.location = parts.joined(separator: ", ")
+                    }
+                }
+            }
+        }
+    }
+    
+    func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        DispatchQueue.main.async {
+            self.isFetchingLocation = false
+        }
+    }
     
     var isFormValid: Bool {
         return !title.isEmpty && !price.isEmpty && selectedCategoryId != nil && !location.isEmpty
