@@ -107,9 +107,7 @@ struct LoginView: View {
                     Spacer()
                     
                     Button(action: {
-                        Task {
-                            await authViewModel.login(emailOrUsername: username, password: password)
-                        }
+                        authViewModel.login(emailOrUsername: username, password: password)
                     }) {
                         if authViewModel.isLoading {
                             ProgressView()
