@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 // MARK: - Cached Image Loader
 // Soluciona: imagens cinza piscando (Bug 1)
@@ -23,7 +23,7 @@ struct CachedAsyncImage: View {
                     .overlay(
                         Image(systemName: "photo")
                             .foregroundColor(.gray.opacity(0.5))
-                            .font(.system(size: 40))
+                            .font(.custom("Inter-Regular", size: 40))
                     )
             }
         }
@@ -70,12 +70,12 @@ struct FlatCategoryCard: View {
                     .frame(width: 60, height: 60)
 
                 Image(systemName: category.iconName)
-                    .font(.title2)
+                    .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                     .foregroundColor(Theme.primary)
             }
 
             Text(category.name)
-                .font(.caption)
+                .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                 .foregroundColor(Theme.textPrimary)
                 .lineLimit(1)
         }
@@ -110,7 +110,7 @@ struct FlatProductCard: View {
                                 .overlay(
                                     Image(systemName: "photo")
                                         .foregroundColor(.gray.opacity(0.5))
-                                        .font(.system(size: 40))
+                                        .font(.custom("Inter-Regular", size: 40))
                                 )
                                 .cornerRadius(12)
                         }
@@ -124,18 +124,18 @@ struct FlatProductCard: View {
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(product.title)
-                            .font(.subheadline)
+                            .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                             .foregroundColor(Theme.textPrimary)
                             .lineLimit(2)
 
                         Text("\(product.condition.rawValue) · \(product.location)")
-                            .font(.caption2)
+                            .font(.custom("Inter-Medium", size: 11, relativeTo: .caption2))
                             .foregroundColor(Theme.textSecondary)
                             .lineLimit(1)
 
                         HStack {
                             Text(Formatters.formatCurrency(product.price))
-                                .font(.headline)
+                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                 .fontWeight(.bold)
                                 .foregroundColor(Theme.primary)
 
@@ -143,10 +143,10 @@ struct FlatProductCard: View {
 
                             HStack(spacing: 2) {
                                 Image(systemName: "eye")
-                                    .font(.system(size: 10))
+                                    .font(.custom("Inter-Regular", size: 10))
                                     .foregroundColor(Theme.textSecondary)
                                 Text("\(product.views)")
-                                    .font(.caption2)
+                                    .font(.custom("Inter-Medium", size: 11, relativeTo: .caption2))
                                     .foregroundColor(Theme.textSecondary)
                             }
                         }

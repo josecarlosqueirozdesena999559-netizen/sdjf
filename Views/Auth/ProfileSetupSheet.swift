@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct ProfileSetupSheet: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -19,12 +19,12 @@ struct ProfileSetupSheet: View {
                     // Header
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Configure seu perfil")
-                            .font(.title2)
+                            .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                             .fontWeight(.bold)
                             .foregroundColor(Theme.textPrimary)
 
                         Text("Essas informações ajudam compradores a conhecer você.")
-                            .font(.subheadline)
+                            .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                             .foregroundColor(Theme.textSecondary)
                     }
                     .padding(.top, 8)
@@ -32,7 +32,7 @@ struct ProfileSetupSheet: View {
                     // Bio field
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Biografia")
-                            .font(.subheadline)
+                            .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                             .fontWeight(.semibold)
                             .foregroundColor(Theme.textSecondary)
 
@@ -40,11 +40,11 @@ struct ProfileSetupSheet: View {
                             if bio.isEmpty {
                                 Text("Escreva um pouco sobre você ou seus produtos…")
                                     .foregroundColor(Color.gray.opacity(0.6))
-                                    .font(.body)
+                                    .font(.custom("Inter-Regular", size: 17, relativeTo: .body))
                                     .padding(14)
                             }
                             TextEditor(text: $bio)
-                                .font(.body)
+                                .font(.custom("Inter-Regular", size: 17, relativeTo: .body))
                                 .frame(minHeight: 110)
                                 .opacity(bio.isEmpty ? 0.98 : 1)
                         }
@@ -56,7 +56,7 @@ struct ProfileSetupSheet: View {
                     // Response time picker
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Tempo de resposta")
-                            .font(.subheadline)
+                            .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                             .fontWeight(.semibold)
                             .foregroundColor(Theme.textSecondary)
 
@@ -65,7 +65,7 @@ struct ProfileSetupSheet: View {
                                 Button(action: { responseTime = option }) {
                                     HStack {
                                         Text(option)
-                                            .font(.body)
+                                            .font(.custom("Inter-Regular", size: 17, relativeTo: .body))
                                             .foregroundColor(Theme.textPrimary)
                                         Spacer()
                                         if responseTime == option {
@@ -94,7 +94,7 @@ struct ProfileSetupSheet: View {
                             Image(systemName: "exclamationmark.triangle.fill")
                             Text(error)
                         }
-                        .font(.subheadline)
+                        .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                         .foregroundColor(.red)
                     }
 
@@ -109,7 +109,7 @@ struct ProfileSetupSheet: View {
                                 .cornerRadius(30)
                         } else {
                             Text("Salvar perfil")
-                                .font(.headline)
+                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
@@ -128,7 +128,7 @@ struct ProfileSetupSheet: View {
                 ToolbarItem(placement: .navigationBarLeading) {
                     Button(action: { skipSetup() }) {
                         Image(systemName: "arrow.left")
-                            .font(.system(size: 16, weight: .semibold))
+                            .font(.custom("Inter-SemiBold", size: 16))
                             .foregroundColor(Theme.textPrimary)
                     }
                 }

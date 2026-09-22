@@ -18,6 +18,11 @@ struct MercadoFacilApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
     @StateObject private var authViewModel = AuthViewModel()
     
+    init() {
+        // Remove text from back button globally (leaving only the arrow)
+        UIBarButtonItem.appearance().setBackButtonTitlePositionAdjustment(UIOffset(horizontal: -1000, vertical: 0), for: .default)
+    }
+    
     var body: some Scene {
         WindowGroup {
             SplashView()

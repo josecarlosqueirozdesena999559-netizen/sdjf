@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct FavoritesView: View {
     @EnvironmentObject var favoritesViewModel: FavoritesViewModel
@@ -13,7 +13,7 @@ struct FavoritesView: View {
             if favoritesViewModel.favoriteProducts.isEmpty {
                 VStack(spacing: 16) {
                     Image(systemName: "heart.slash")
-                        .font(.largeTitle)
+                        .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
                         .foregroundColor(Theme.textSecondary)
                     Text("Você ainda não favoritou nenhum produto.")
                         .foregroundColor(Theme.textSecondary)

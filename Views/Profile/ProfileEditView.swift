@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import PhotosUI
 
 struct ProfileEditView: View {
@@ -42,13 +42,13 @@ struct ProfileEditView: View {
                                     .frame(width: 90, height: 90)
                                     .overlay(
                                         Image(systemName: "person.crop.circle.fill")
-                                            .font(.system(size: 90))
+                                            .font(.custom("Inter-Regular", size: 90))
                                             .foregroundColor(Theme.textSecondary.opacity(0.5))
                                     )
                             }
                             
                             Text("Alterar foto de perfil")
-                                .font(.subheadline)
+                                .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                                 .fontWeight(.semibold)
                                 .foregroundColor(Theme.primary)
                         }

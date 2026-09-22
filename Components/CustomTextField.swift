@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct CustomTextField: View {
     var title: String
@@ -12,7 +12,7 @@ struct CustomTextField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.subheadline)
+                .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                 .foregroundColor(Theme.textSecondary)
             
             HStack {

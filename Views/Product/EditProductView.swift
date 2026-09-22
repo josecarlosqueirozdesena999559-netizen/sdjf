@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 
@@ -70,7 +70,7 @@ struct EditProductView: View {
     @ViewBuilder private var mediaSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Fotos e VÃƒÂ­deos")
-                .font(.headline)
+                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 .foregroundColor(Theme.textPrimary)
                 .padding(.horizontal)
             
@@ -79,9 +79,9 @@ struct EditProductView: View {
                     PhotosPicker(selection: $selectedItems, maxSelectionCount: 10, matching: .any(of: [.images, .videos])) {
                         VStack(spacing: 8) {
                             Image(systemName: "camera.badge.ellipsis")
-                                .font(.system(size: 28))
+                                .font(.custom("Inter-Regular", size: 28))
                             Text("Adicionar")
-                                .font(.caption)
+                                .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                 .fontWeight(.bold)
                         }
                         .frame(width: 100, height: 100)
@@ -113,7 +113,7 @@ struct EditProductView: View {
                                         ZStack {
                                             Color.black.opacity(0.3)
                                             Image(systemName: "play.circle.fill")
-                                                .font(.largeTitle)
+                                                .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
                                                 .foregroundColor(.white)
                                         }
                                     }
@@ -146,16 +146,16 @@ struct EditProductView: View {
     @ViewBuilder private var priceSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("PreÃƒÂ§o do Produto")
-                .font(.headline)
+                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 .foregroundColor(Theme.textPrimary)
             
             HStack {
                 Text("R$")
-                    .font(.title)
+                    .font(.custom("Inter-Bold", size: 28, relativeTo: .title))
                     .fontWeight(.bold)
                     .foregroundColor(Theme.textSecondary)
                 TextField("0,00", text: $viewModel.price)
-                    .font(.system(size: 36, weight: .bold))
+                    .font(.custom("Inter-Bold", size: 36))
                     .keyboardType(.decimalPad)
                     .foregroundColor(Theme.textPrimary)
             }
@@ -170,7 +170,7 @@ struct EditProductView: View {
         VStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("TÃƒÂ­tulo")
-                    .font(.headline)
+                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 TextField("Ex: iPhone 13 128GB impecÃƒÂ¡vel", text: $viewModel.title)
                     .padding()
                     .background(Theme.inputBackground)
@@ -179,7 +179,7 @@ struct EditProductView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("DescriÃƒÂ§ÃƒÂ£o")
-                    .font(.headline)
+                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 TextEditor(text: $viewModel.description)
                     .frame(height: 120)
                     .padding(8)
@@ -189,7 +189,7 @@ struct EditProductView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Estado de conservaÃƒÂ§ÃƒÂ£o")
-                    .font(.headline)
+                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 HStack {
                     ForEach(ProductCondition.allCases, id: \.self) { condition in
                         ConditionButton(
@@ -203,7 +203,7 @@ struct EditProductView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Categoria")
-                    .font(.headline)
+                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 Menu {
                     ForEach(MockData.categories) { cat in
                         Button(action: { viewModel.selectedCategoryId = cat.id }) {
@@ -226,7 +226,7 @@ struct EditProductView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("LocalizaÃƒÂ§ÃƒÂ£o")
-                    .font(.headline)
+                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 TextField("Ex: SÃƒÂ£o Paulo - SP", text: $viewModel.location)
                     .padding()
                     .background(Theme.inputBackground)
@@ -234,7 +234,7 @@ struct EditProductView: View {
             }
             
             Toggle("Aceita negociaÃƒÂ§ÃƒÂ£o?", isOn: $viewModel.acceptsNegotiation)
-                .font(.headline)
+                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 .padding(.vertical, 8)
                 .tint(Theme.primary)
         }
@@ -253,7 +253,7 @@ struct EditProductView: View {
                     ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
                 } else {
                     Text("Publicar AnÃƒÂºncio")
-                        .font(.headline)
+                        .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 }
             }
             .frame(maxWidth: .infinity)
@@ -278,14 +278,14 @@ struct EditProductView: View {
                                 .scaleEffect(1.5)
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             Text("Salvando...")
-                                .font(.headline)
+                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                 .foregroundColor(.white)
                         } else if viewModel.publishSuccess {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 60))
+                                .font(.custom("Inter-Regular", size: 60))
                                 .foregroundColor(.green)
                             Text("AlteraÃ§Ãµes salvas!")
-                                .font(.headline)
+                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                 .foregroundColor(.white)
                         }
                     }

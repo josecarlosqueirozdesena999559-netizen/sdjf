@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct CustomBackButtonModifier: ViewModifier {
     @Environment(\.presentationMode) var presentationMode
@@ -13,7 +13,7 @@ struct CustomBackButtonModifier: ViewModifier {
                     }) {
                         HStack(spacing: 4) {
                             Image(systemName: "chevron.left")
-                                .font(.system(size: 16, weight: .semibold))
+                                .font(.custom("Inter-SemiBold", size: 16))
                             Text("Voltar")
                         }
                         .foregroundColor(Theme.primary)

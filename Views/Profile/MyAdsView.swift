@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct MyAdsView: View {
     @State private var selectedTab = 0
@@ -18,7 +18,7 @@ struct MyAdsView: View {
             
             VStack(spacing: 16) {
                 Image(systemName: "tag.slash")
-                    .font(.largeTitle)
+                    .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
                     .foregroundColor(Theme.textSecondary)
                 Text("Você não possui anúncios nesta categoria.")
                     .foregroundColor(Theme.textSecondary)

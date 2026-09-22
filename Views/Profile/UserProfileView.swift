@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import PhotosUI
 
 struct UserProfileView: View {
@@ -101,7 +101,7 @@ struct UserProfileView: View {
                         }
                         
                         Text(authViewModel.currentUser?.visibleName ?? authViewModel.currentUser?.name ?? "Meu Nome")
-                            .font(.title2)
+                            .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                             .fontWeight(.bold)
                         Text("@\(authViewModel.currentUser?.username ?? "usuario")")
                             .foregroundColor(Theme.textSecondary)
@@ -111,21 +111,21 @@ struct UserProfileView: View {
                             let cityDisplay = parts.count >= 2 ? parts[max(0, parts.count - 2)...].joined(separator: " - ") : loc
                             HStack(spacing: 4) {
                                 Image(systemName: "mappin.and.ellipse")
-                                    .font(.caption)
+                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                     .foregroundColor(Theme.primary)
                                 Text(cityDisplay)
                                     .foregroundColor(Theme.textSecondary)
-                                    .font(.subheadline)
+                                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                             }
                         } else {
                             Text("Localização não informada")
                                 .foregroundColor(Theme.textSecondary)
-                                .font(.subheadline)
+                                .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                         }
 
                         if let bio = authViewModel.currentUser?.bio, !bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                             Text(bio)
-                                .font(.body)
+                                .font(.custom("Inter-Regular", size: 17, relativeTo: .body))
                                 .foregroundColor(Theme.textSecondary)
                                 .multilineTextAlignment(.leading)
                                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -136,11 +136,11 @@ struct UserProfileView: View {
                             Spacer()
                             VStack(spacing: 4) {
                                 Text("\(myProducts.count)")
-                                    .font(.title3)
+                                    .font(.custom("Inter-SemiBold", size: 20, relativeTo: .title3))
                                     .fontWeight(.bold)
                                     .foregroundColor(Theme.textPrimary)
                                 Text("Vendas")
-                                    .font(.caption)
+                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                     .foregroundColor(Theme.textSecondary)
                             }
                             .frame(maxWidth: .infinity)
@@ -150,15 +150,15 @@ struct UserProfileView: View {
                             VStack(spacing: 4) {
                                 HStack(spacing: 3) {
                                     Text(String(format: "%.1f", authViewModel.currentUser?.rating ?? 0.0))
-                                        .font(.title3)
+                                        .font(.custom("Inter-SemiBold", size: 20, relativeTo: .title3))
                                         .fontWeight(.bold)
                                         .foregroundColor(Theme.textPrimary)
                                     Image(systemName: "star.fill")
-                                        .font(.caption2)
+                                        .font(.custom("Inter-Medium", size: 11, relativeTo: .caption2))
                                         .foregroundColor(.yellow)
                                 }
                                 Text("Avaliação")
-                                    .font(.caption)
+                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                     .foregroundColor(Theme.textSecondary)
                             }
                             .frame(maxWidth: .infinity)
@@ -167,13 +167,13 @@ struct UserProfileView: View {
 
                             VStack(spacing: 4) {
                                 Text(authViewModel.currentUser?.responseTime ?? "-")
-                                    .font(.caption)
+                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                     .fontWeight(.bold)
                                     .foregroundColor(Theme.textPrimary)
                                     .lineLimit(2)
                                     .multilineTextAlignment(.center)
                                 Text("Responde em")
-                                    .font(.caption)
+                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                     .foregroundColor(Theme.textSecondary)
                             }
                             .frame(maxWidth: .infinity)
@@ -189,18 +189,18 @@ struct UserProfileView: View {
                     
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Categorias que costumo vender:")
-                            .font(.headline)
+                            .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                         
                         if myCategories.isEmpty {
                             Text("Ainda não vendi nenhum produto ou categoria definida.")
-                                .font(.body)
+                                .font(.custom("Inter-Regular", size: 17, relativeTo: .body))
                                 .foregroundColor(Theme.textSecondary)
                         } else {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack {
                                     ForEach(myCategories, id: \.self) { cat in
                                         Text(cat)
-                                            .font(.caption)
+                                            .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                             .padding(.horizontal, 12)
                                             .padding(.vertical, 6)
                                             .background(Theme.inputBackground)
@@ -218,7 +218,7 @@ struct UserProfileView: View {
                     
                     VStack(alignment: .leading, spacing: 16) {
                         Text("Meus Anúncios")
-                            .font(.title3)
+                            .font(.custom("Inter-SemiBold", size: 20, relativeTo: .title3))
                             .fontWeight(.bold)
                             .padding(.horizontal)
                         

@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct MessagesListView: View {
     @StateObject private var viewModel = MessagesViewModel()
@@ -11,14 +11,14 @@ struct MessagesListView: View {
                 if viewModel.conversations.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "tray")
-                            .font(.system(size: 64))
+                            .font(.custom("Inter-Regular", size: 64))
                             .foregroundColor(Theme.textSecondary.opacity(0.5))
                         Text("Nenhuma mensagem ainda")
-                            .font(.title3)
+                            .font(.custom("Inter-SemiBold", size: 20, relativeTo: .title3))
                             .fontWeight(.semibold)
                             .foregroundColor(Theme.textPrimary)
                         Text("Quando você iniciar ou receber uma conversa, ela aparecerá aqui.")
-                            .font(.subheadline)
+                            .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                             .foregroundColor(Theme.textSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
@@ -77,7 +77,7 @@ struct MessageRowView: View {
                     .frame(width: 56, height: 56)
                     .overlay(
                         Image(systemName: "person.crop.circle.fill")
-                            .font(.system(size: 56))
+                            .font(.custom("Inter-Regular", size: 56))
                             .foregroundColor(Theme.textSecondary.opacity(0.5))
                     )
                 
@@ -87,30 +87,30 @@ struct MessageRowView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text(MockData.users.first(where: { $0.id == conversation.participantId })?.name ?? "Usuário")
-                        .font(.headline)
+                        .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                         .foregroundColor(Theme.textPrimary)
                     
                     Spacer()
                     
                     Text(Formatters.timeFormatter.string(from: conversation.lastMessage.timestamp))
-                        .font(.caption)
+                        .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                         .foregroundColor(conversation.unreadCount > 0 ? Theme.primary : Theme.textSecondary)
                         .fontWeight(conversation.unreadCount > 0 ? .bold : .regular)
                 }
                 
                 HStack {
                     Image(systemName: "tag.fill")
-                        .font(.system(size: 10))
+                        .font(.custom("Inter-Regular", size: 10))
                         .foregroundColor(Theme.primary)
                     Text(MockData.products.first(where: { $0.id == conversation.productId })?.title ?? "Produto")
-                        .font(.caption)
+                        .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                         .foregroundColor(Theme.primary)
                         .lineLimit(1)
                 }
                 
                 HStack {
                     Text(conversation.lastMessage.text)
-                        .font(.subheadline)
+                        .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                         .foregroundColor(conversation.unreadCount > 0 ? Theme.textPrimary : Theme.textSecondary)
                         .fontWeight(conversation.unreadCount > 0 ? .semibold : .regular)
                         .lineLimit(2)
@@ -123,7 +123,7 @@ struct MessageRowView: View {
                                 .fill(Theme.primary)
                                 .frame(width: 22, height: 22)
                             Text("\(conversation.unreadCount)")
-                                .font(.caption2)
+                                .font(.custom("Inter-Medium", size: 11, relativeTo: .caption2))
                                 .fontWeight(.bold)
                                 .foregroundColor(.white)
                         }

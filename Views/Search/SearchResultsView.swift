@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct SearchResultsView: View {
     @StateObject private var viewModel = SearchViewModel()
@@ -25,7 +25,7 @@ struct SearchResultsView: View {
             HStack {
                 Text("\(localResults.count) resultados próximos a você")
                     .foregroundColor(Theme.textSecondary)
-                    .font(.subheadline)
+                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                 Spacer()
                 Button(action: { isGrid.toggle() }) {
                     Image(systemName: isGrid ? "list.bullet" : "square.grid.2x2")
@@ -42,7 +42,7 @@ struct SearchResultsView: View {
                 Spacer()
                 VStack(spacing: 16) {
                     Image(systemName: "location.slash")
-                        .font(.largeTitle)
+                        .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
                         .foregroundColor(Theme.textSecondary)
                     Text("Nenhum produto próximo a você.")
                         .foregroundColor(Theme.textSecondary)
@@ -69,13 +69,13 @@ struct SearchResultsView: View {
                                         
                                         VStack(alignment: .leading, spacing: 4) {
                                             Text(product.title)
-                                                .font(.headline)
+                                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                             Text(Formatters.formatCurrency(product.price))
-                                                .font(.subheadline)
+                                                .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                                                 .fontWeight(.bold)
                                                 .foregroundColor(Theme.primary)
                                             Text("\(product.condition.rawValue) • \(product.location)")
-                                                .font(.caption)
+                                                .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                                 .foregroundColor(Theme.textSecondary)
                                         }
                                         Spacer()

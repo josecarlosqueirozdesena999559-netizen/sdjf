@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct PrimaryButton: View {
     var title: String
@@ -15,7 +15,7 @@ struct PrimaryButton: View {
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                 } else {
                     Text(title)
-                        .font(.headline)
+                        .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                         .fontWeight(.semibold)
                 }
             }

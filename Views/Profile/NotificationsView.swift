@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct NotificationsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -13,7 +13,7 @@ struct NotificationsView: View {
             } else if notifications.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "bell.slash")
-                        .font(.system(size: 48))
+                        .font(.custom("Inter-Regular", size: 48))
                         .foregroundColor(Theme.textSecondary)
                     Text("Nenhuma notificação por enquanto.")
                         .foregroundColor(Theme.textSecondary)
@@ -33,10 +33,10 @@ struct NotificationsView: View {
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(notification.title)
-                                    .font(.headline)
+                                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                     .foregroundColor(notification.is_read ? Theme.textSecondary : Theme.textPrimary)
                                 Text(notification.body)
-                                    .font(.subheadline)
+                                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                                     .foregroundColor(Theme.textSecondary)
                             }
                         }

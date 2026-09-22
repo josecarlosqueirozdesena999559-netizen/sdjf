@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import PhotosUI
 
 struct RegisterView: View {
@@ -19,12 +19,12 @@ struct RegisterView: View {
                     }
                 }) {
                     Image(systemName: "chevron.left")
-                        .font(.title2)
+                        .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                         .foregroundColor(Theme.textPrimary)
                 }
                 Spacer()
                 Text("Passo \(viewModel.currentStep.rawValue + 1) de \(RegisterStep.allCases.count)")
-                    .font(.subheadline)
+                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                     .foregroundColor(Theme.textSecondary)
                 Spacer()
                 if viewModel.currentStep != .name {
@@ -78,7 +78,7 @@ struct RegisterView: View {
     var stepName: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Qual é o seu nome completo?")
-                .font(.title2)
+                .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                 .fontWeight(.bold)
                 .foregroundColor(Theme.textPrimary)
             
@@ -95,7 +95,7 @@ struct RegisterView: View {
     var stepCPF: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("E o seu CPF?")
-                .font(.title2)
+                .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                 .fontWeight(.bold)
                 .foregroundColor(Theme.textPrimary)
             
@@ -122,7 +122,7 @@ struct RegisterView: View {
     var stepBirthDate: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Qual a sua data de nascimento?")
-                .font(.title2)
+                .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                 .fontWeight(.bold)
                 .foregroundColor(Theme.textPrimary)
             
@@ -142,7 +142,7 @@ struct RegisterView: View {
     var stepEmail: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Informe seu melhor e-mail")
-                .font(.title2)
+                .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                 .fontWeight(.bold)
                 .foregroundColor(Theme.textPrimary)
             
@@ -159,7 +159,7 @@ struct RegisterView: View {
     var stepPassword: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Crie uma senha segura")
-                .font(.title2)
+                .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                 .fontWeight(.bold)
                 .foregroundColor(Theme.textPrimary)
             
@@ -176,12 +176,12 @@ struct RegisterView: View {
     var stepUsername: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Escolha seu nome de usuário")
-                .font(.title2)
+                .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                 .fontWeight(.bold)
                 .foregroundColor(Theme.textPrimary)
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("Usuário").font(.subheadline).foregroundColor(Theme.textSecondary)
+                Text("Usuário").font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline)).foregroundColor(Theme.textSecondary)
                 HStack {
                     Text("@").foregroundColor(Theme.primary).fontWeight(.bold)
                     TextField("seunome", text: $viewModel.username)
@@ -207,7 +207,7 @@ struct RegisterView: View {
                 
                 if let available = viewModel.isUsernameAvailable, available {
                     Text("Nome de usuário disponível")
-                        .font(.caption)
+                        .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                         .foregroundColor(Theme.primary)
                 }
             }
@@ -240,14 +240,14 @@ struct RegisterView: View {
                     Text("você ").foregroundColor(Theme.primary) +
                     Text("é?").foregroundColor(Color(hex: "1A1A2E"))
                 }
-                .font(.system(size: 32, weight: .bold))
+                .font(.custom("Inter-Bold", size: 32))
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .padding(.bottom, 12)
                 
                 // Subtitle
                 Text("Usamos sua localização para mostrar\nprodutos próximos a você.")
-                    .font(.system(size: 16))
+                    .font(.custom("Inter-Regular", size: 16))
                     .multilineTextAlignment(.center)
                     .foregroundColor(.gray)
                     .lineSpacing(4)
@@ -261,7 +261,7 @@ struct RegisterView: View {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
                         Text(viewModel.locationName)
-                            .font(.system(size: 15, weight: .semibold))
+                            .font(.custom("Inter-SemiBold", size: 15))
                             .foregroundColor(Theme.textPrimary)
                     }
                     .padding(.horizontal, 16)
@@ -279,9 +279,9 @@ struct RegisterView: View {
                     Button(action: { viewModel.requestLocation() }) {
                         HStack(spacing: 10) {
                             Image(systemName: "paperplane.fill")
-                                .font(.system(size: 16, weight: .bold))
+                                .font(.custom("Inter-Bold", size: 16))
                             Text("Usar minha localização atual")
-                                .font(.system(size: 16, weight: .bold))
+                                .font(.custom("Inter-Bold", size: 16))
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
@@ -316,12 +316,12 @@ struct RegisterView: View {
         VStack(alignment: .center, spacing: 20) {
             VStack(spacing: 6) {
                 Text("Dados do Perfil")
-                    .font(.title2)
+                    .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                     .fontWeight(.bold)
                     .foregroundColor(Theme.textPrimary)
                 
                 Text("Por favor, informe seu nome e adicione uma foto de perfil opcional.")
-                    .font(.subheadline)
+                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                     .multilineTextAlignment(.center)
                     .foregroundColor(Theme.textSecondary)
                     .padding(.horizontal, 16)
@@ -345,7 +345,7 @@ struct RegisterView: View {
                             .frame(width: 130, height: 130)
                             .overlay(
                                 Image(systemName: "person.fill")
-                                    .font(.system(size: 64))
+                                    .font(.custom("Inter-Regular", size: 64))
                                     .foregroundColor(Theme.primary.opacity(0.7))
                             )
                             .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)
@@ -358,7 +358,7 @@ struct RegisterView: View {
                             .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
                         
                         Image(systemName: "camera.fill")
-                            .font(.system(size: 18, weight: .bold))
+                            .font(.custom("Inter-Bold", size: 18))
                             .foregroundColor(.white)
                     }
                     .offset(x: 2, y: 2)
@@ -376,13 +376,13 @@ struct RegisterView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Nome de Exibição")
-                    .font(.subheadline)
+                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                     .fontWeight(.semibold)
                     .foregroundColor(Theme.textSecondary)
                 
                 HStack {
                     TextField("Seu nome (ex: João)", text: $viewModel.visibleName)
-                        .font(.body)
+                        .font(.custom("Inter-Regular", size: 17, relativeTo: .body))
                     
                     Image(systemName: "pencil")
                         .foregroundColor(Theme.textSecondary)
@@ -393,7 +393,7 @@ struct RegisterView: View {
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1))
                 
                 Text("Este é o nome que aparecerá no seu perfil e nas conversas do chat.")
-                    .font(.caption)
+                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                     .foregroundColor(Theme.textSecondary)
             }
             .padding(.horizontal)

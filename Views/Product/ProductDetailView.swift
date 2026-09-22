@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct ProductOffer: Identifiable {
     let id = UUID()
@@ -77,7 +77,7 @@ struct ProductDetailView: View {
                                             .overlay(
                                                 Image(systemName: "play.fill")
                                                     .foregroundColor(.white)
-                                                    .font(.title)
+                                                    .font(.custom("Inter-Bold", size: 28, relativeTo: .title))
                                             )
                                     }
                                 }
@@ -104,23 +104,23 @@ struct ProductDetailView: View {
                         .frame(height: 300)
                         .overlay(
                             Image(systemName: "photo")
-                                .font(.system(size: 50))
+                                .font(.custom("Inter-Regular", size: 50))
                                 .foregroundColor(Theme.primary.opacity(0.5))
                         )
                 }
                 
                 VStack(alignment: .leading, spacing: 16) {
                     Text("\(product.condition.rawValue) • \(Formatters.dateFormatter.string(from: product.createdAt))")
-                        .font(.caption)
+                        .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                         .foregroundColor(Theme.textSecondary)
                     
                     Text(product.title)
-                        .font(.title2)
+                        .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                         .fontWeight(.bold)
                         .foregroundColor(Theme.textPrimary)
                     
                     Text(Formatters.formatCurrency(product.price))
-                        .font(.largeTitle)
+                        .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
                         .fontWeight(.bold)
                         .foregroundColor(Theme.primary)
                     
@@ -128,7 +128,7 @@ struct ProductDetailView: View {
                         Image(systemName: "mappin.and.ellipse")
                         Text(product.location)
                     }
-                    .font(.subheadline)
+                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                     .foregroundColor(Theme.textSecondary)
                     
                     Divider()
@@ -139,12 +139,12 @@ struct ProductDetailView: View {
                             Image(systemName: "doc.text.fill")
                                 .foregroundColor(Theme.primary)
                             Text("Descrição do Produto")
-                                .font(.headline)
+                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                 .fontWeight(.bold)
                         }
                         
                         Text(product.description)
-                            .font(.body)
+                            .font(.custom("Inter-Regular", size: 17, relativeTo: .body))
                             .foregroundColor(Theme.textSecondary)
                             .lineSpacing(4)
                             .padding()
@@ -162,18 +162,18 @@ struct ProductDetailView: View {
                                 Image(systemName: "hand.thumbsup.fill")
                                     .foregroundColor(Theme.primary)
                                 Text("Negociação e Lances")
-                                    .font(.headline)
+                                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                     .fontWeight(.bold)
                             }
                             
                             if isOwner {
                                 Text("Como dono deste anúncio, você pode ver os lances e iniciar uma negociação.")
-                                    .font(.caption)
+                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                     .foregroundColor(Theme.textSecondary)
                                 
                                 if offers.isEmpty {
                                     Text("Nenhum lance recebido ainda.")
-                                        .font(.subheadline)
+                                        .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                                         .foregroundColor(Theme.textSecondary)
                                         .padding()
                                 } else {
@@ -181,7 +181,7 @@ struct ProductDetailView: View {
                                         HStack {
                                             VStack(alignment: .leading) {
                                                 Text(offer.bidderName)
-                                                    .font(.subheadline)
+                                                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                                                     .fontWeight(.bold)
                                                 Text(Formatters.formatCurrency(offer.amount))
                                                     .foregroundColor(Theme.primary)
@@ -197,7 +197,7 @@ struct ProductDetailView: View {
                                                 unreadCount: 0
                                             ), currentUser: authViewModel.currentUser!)) {
                                                 Text("Negociar")
-                                                    .font(.caption)
+                                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                                     .fontWeight(.bold)
                                                     .padding(.horizontal, 12)
                                                     .padding(.vertical, 6)
@@ -220,7 +220,7 @@ struct ProductDetailView: View {
                                             .fontWeight(.bold)
                                         TextField("0,00", text: $offerAmount)
                                             .keyboardType(.decimalPad)
-                                            .font(.headline)
+                                            .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                         
                                         Button(action: {
                                             if let amount = Double(offerAmount.replacingOccurrences(of: ",", with: ".")) {
@@ -246,7 +246,7 @@ struct ProductDetailView: View {
                                             }
                                         }) {
                                             Text("Enviar Lance")
-                                                .font(.subheadline)
+                                                .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                                                 .fontWeight(.bold)
                                                 .padding(.horizontal, 12)
                                                 .padding(.vertical, 8)
@@ -262,18 +262,18 @@ struct ProductDetailView: View {
                                     
                                     if !offers.filter({ $0.bidderId == authViewModel.currentUser?.id }).isEmpty {
                                         Text("Seus lances:")
-                                            .font(.subheadline)
+                                            .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                                             .fontWeight(.bold)
                                             .padding(.top, 4)
                                         
                                         ForEach(offers.filter({ $0.bidderId == authViewModel.currentUser?.id })) { offer in
                                             HStack {
                                                 Text("Você ofereceu:")
-                                                    .font(.caption)
+                                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                                     .foregroundColor(Theme.textSecondary)
                                                 Spacer()
                                                 Text(Formatters.formatCurrency(offer.amount))
-                                                    .font(.subheadline)
+                                                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                                                     .fontWeight(.bold)
                                                     .foregroundColor(Theme.primary)
                                             }
@@ -291,7 +291,7 @@ struct ProductDetailView: View {
                     
                     if let seller = seller {
                         Text("Sobre o vendedor")
-                            .font(.headline)
+                            .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                             .fontWeight(.bold)
                         
                         NavigationLink(destination: SellerProfileView(seller: seller)) {
@@ -302,18 +302,18 @@ struct ProductDetailView: View {
                                     .overlay(
                                         Text(String(seller.user.name.prefix(1)))
                                             .foregroundColor(Theme.primary)
-                                            .font(.headline)
+                                            .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                     )
                                 
                                 VStack(alignment: .leading, spacing: 4) {
                                     HStack {
                                         Text(seller.user.name)
-                                            .font(.headline)
+                                            .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                             .foregroundColor(Theme.textPrimary)
                                         if seller.isVerified {
                                             Image(systemName: "checkmark.seal.fill")
                                                 .foregroundColor(.blue)
-                                                .font(.caption)
+                                                .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                         }
                                     }
                                     
@@ -324,7 +324,7 @@ struct ProductDetailView: View {
                                         Text("(\(seller.reviewCount))")
                                             .foregroundColor(Theme.textSecondary)
                                     }
-                                    .font(.caption)
+                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                 }
                                 Spacer()
                                 Image(systemName: "chevron.right")
@@ -370,7 +370,7 @@ struct ProductDetailView: View {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 2) {
                     Text("\(localLikes)")
-                        .font(.caption)
+                        .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                         .foregroundColor(Theme.textSecondary)
                         .padding(.trailing, 2)
                         
@@ -451,7 +451,7 @@ struct ProductDetailView: View {
                                     Text("Chat")
                                 }
                             }
-                            .font(.headline)
+                            .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                             .fontWeight(.semibold)
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -486,7 +486,7 @@ struct ProductDetailView: View {
                                     Image(systemName: "phone.bubble.left.fill")
                                     Text("WhatsApp")
                                 }
-                                .font(.headline)
+                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                 .fontWeight(.semibold)
                                 .frame(maxWidth: .infinity)
                                 .padding()

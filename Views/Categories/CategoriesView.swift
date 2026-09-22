@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct CategoriesView: View {
     @State private var searchText = ""
@@ -28,9 +28,9 @@ struct CategoriesView: View {
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(category.name)
-                                    .font(.headline)
+                                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                 Text(category.description)
-                                    .font(.subheadline)
+                                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                                     .foregroundColor(Theme.textSecondary)
                             }
                         }

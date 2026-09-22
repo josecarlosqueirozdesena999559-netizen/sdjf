@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct SellerProfileView: View {
     let seller: Seller
@@ -22,12 +22,12 @@ struct SellerProfileView: View {
                         .overlay(
                             Text(String(seller.user.name.prefix(1)))
                                 .foregroundColor(Theme.primary)
-                                .font(.largeTitle)
+                                .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
                         )
                     
                     HStack {
                         Text(seller.user.name)
-                            .font(.title2)
+                            .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                             .fontWeight(.bold)
                         
                         if seller.isVerified {
@@ -42,30 +42,30 @@ struct SellerProfileView: View {
                     HStack(spacing: 32) {
                         VStack {
                             Text("\(seller.salesCount)")
-                                .font(.headline)
+                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                             Text("Vendas")
-                                .font(.caption)
+                                .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                 .foregroundColor(Theme.textSecondary)
                         }
                         
                         VStack {
                             HStack(spacing: 2) {
                                 Text(String(format: "%.1f", seller.rating))
-                                    .font(.headline)
+                                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                 Image(systemName: "star.fill")
                                     .foregroundColor(.yellow)
-                                    .font(.caption)
+                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                             }
                             Text("Avaliação")
-                                .font(.caption)
+                                .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                 .foregroundColor(Theme.textSecondary)
                         }
                         
                         VStack {
                             Text(seller.averageResponseTime)
-                                .font(.headline)
+                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                             Text("Resposta")
-                                .font(.caption)
+                                .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                 .foregroundColor(Theme.textSecondary)
                         }
                     }
@@ -77,10 +77,10 @@ struct SellerProfileView: View {
                 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Sobre")
-                        .font(.headline)
+                        .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                     
                     Text(seller.bio)
-                        .font(.body)
+                        .font(.custom("Inter-Regular", size: 17, relativeTo: .body))
                         .foregroundColor(Theme.textSecondary)
                 }
                 .padding(.horizontal)
@@ -88,7 +88,7 @@ struct SellerProfileView: View {
                 
                 VStack(alignment: .leading, spacing: 12) {
                     Text("Anúncios do vendedor")
-                        .font(.headline)
+                        .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                         .padding(.horizontal)
                     
                     LazyVGrid(columns: columns, spacing: 16) {

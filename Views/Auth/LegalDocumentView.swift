@@ -9,7 +9,7 @@ struct LegalDocumentView: View {
         NavigationStack {
             ScrollView {
                 Text(content)
-                    .font(.body)
+                    .font(.custom("Inter-Regular", size: 17, relativeTo: .body))
                     .foregroundColor(Theme.textPrimary)
                     .padding()
                     // Fix alignment for legal texts

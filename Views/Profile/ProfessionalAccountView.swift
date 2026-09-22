@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct ProfessionalAccountView: View {
     var body: some View {
@@ -13,7 +13,7 @@ struct ProfessionalAccountView: View {
                 
                 VStack(spacing: 8) {
                     Text("Seja um Vendedor Profissional")
-                        .font(.title2)
+                        .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                         .fontWeight(.bold)
                         .multilineTextAlignment(.center)
                     
@@ -58,7 +58,7 @@ struct FeatureRow: View {
                 .foregroundColor(Theme.primary)
                 .frame(width: 30)
             Text(text)
-                .font(.subheadline)
+                .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
         }
     }
 }

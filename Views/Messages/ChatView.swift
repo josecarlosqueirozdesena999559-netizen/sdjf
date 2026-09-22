@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import PhotosUI
 
 struct ChatView: View {
@@ -25,13 +25,13 @@ struct ChatView: View {
             }) {
                 HStack(spacing: 8) {
                     Image("lucide_star").resizable().renderingMode(.template).frame(width: 18, height: 18)
-                        .font(.system(size: 18))
+                        .font(.custom("Inter-Regular", size: 18))
                     Text("Avaliar Vendedor")
-                        .font(.subheadline)
+                        .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                         .fontWeight(.semibold)
                     Spacer()
                     Image("lucide_chevron-right").resizable().renderingMode(.template).frame(width: 14, height: 14)
-                        .font(.caption)
+                        .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
@@ -52,7 +52,7 @@ struct ChatView: View {
                                         Rectangle()
                                             .fill(Theme.lightGreen)
                                             .frame(width: 200, height: 150)
-                                            .overlay(Image(systemName: "photo").font(.largeTitle).foregroundColor(Theme.primary))
+                                            .overlay(Image(systemName: "photo").font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle)).foregroundColor(Theme.primary))
                                             .cornerRadius(12)
                                     } else {
                                         Text(message.text)
@@ -64,7 +64,7 @@ struct ChatView: View {
                                     
                                     HStack(spacing: 4) {
                                         Text(Formatters.timeFormatter.string(from: message.timestamp))
-                                            .font(.system(size: 10))
+                                            .font(.custom("Inter-Regular", size: 10))
                                             .foregroundColor(.gray)
                                         
                                         // WhatsApp style ticks
@@ -72,7 +72,7 @@ struct ChatView: View {
                                             Image(systemName: "checkmark")
                                             Image(systemName: "checkmark")
                                         }
-                                        .font(.system(size: 10, weight: .bold))
+                                        .font(.custom("Inter-Bold", size: 10))
                                         .foregroundColor(message.isRead ? .blue : .gray)
                                     }
                                 }
@@ -86,7 +86,7 @@ struct ChatView: View {
                                                 .frame(height: 20)
                                                 .padding(.horizontal, 8)
                                             Text("0:12")
-                                                .font(.caption)
+                                                .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                                 .foregroundColor(Theme.textPrimary)
                                         }
                                         .padding()
@@ -101,7 +101,7 @@ struct ChatView: View {
                                     }
                                     
                                     Text(Formatters.timeFormatter.string(from: message.timestamp))
-                                        .font(.system(size: 10))
+                                        .font(.custom("Inter-Regular", size: 10))
                                         .foregroundColor(.gray)
                                 }
                                 Spacer()
@@ -116,7 +116,7 @@ struct ChatView: View {
             HStack(spacing: 12) {
                 PhotosPicker(selection: $selectedAttachment, matching: .any(of: [.images, .videos])) {
                     Image(systemName: "plus")
-                        .font(.system(size: 20))
+                        .font(.custom("Inter-Regular", size: 20))
                         .foregroundColor(Theme.textSecondary)
                 }
                 .onChange(of: selectedAttachment) { _, _ in
@@ -155,7 +155,7 @@ struct ChatView: View {
                             }
                         }) {
                             Image(systemName: isRecordingAudio ? "paperplane.fill" : "mic.fill")
-                                .font(.system(size: 20))
+                                .font(.custom("Inter-Regular", size: 20))
                                 .foregroundColor(isRecordingAudio ? Theme.primary : Theme.textSecondary)
                                 .padding(.trailing, 12)
                         }
@@ -170,7 +170,7 @@ struct ChatView: View {
                             }
                         }) {
                             Image(systemName: "arrow.up.circle.fill")
-                                .font(.system(size: 28))
+                                .font(.custom("Inter-Regular", size: 28))
                                 .foregroundColor(Theme.primary)
                                 .padding(.trailing, 4)
                         }
@@ -202,12 +202,12 @@ struct ChatView: View {
                             
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(user.visibleName ?? user.name)
-                                    .font(.headline)
+                                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                     .foregroundColor(Theme.textPrimary)
                                 
                                 let statusText = viewModel.isTyping ? "digitando..." : (viewModel.otherUserOnline ? "online" : (viewModel.lastSeen != nil ? "visto por último hoje" : "offline"))
                                 Text(statusText)
-                                    .font(.caption)
+                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                     .foregroundColor(viewModel.isTyping || viewModel.otherUserOnline ? Theme.primary : Theme.textSecondary)
                             }
                         }
@@ -221,7 +221,7 @@ struct ChatView: View {
         .sheet(isPresented: $showRatingSheet) {
             VStack(spacing: 24) {
                 Text("Avaliar Vendedor")
-                    .font(.title2)
+                    .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                     .fontWeight(.bold)
                 
                 Text("Como foi sua experiência com este vendedor?")
@@ -232,7 +232,7 @@ struct ChatView: View {
                 HStack(spacing: 16) {
                     ForEach(1...5, id: \.self) { star in
                         Image(systemName: star <= selectedStars ? "star.fill" : "star")
-                            .font(.system(size: 40))
+                            .font(.custom("Inter-Regular", size: 40))
                             .foregroundColor(star <= selectedStars ? .yellow : Theme.textSecondary.opacity(0.3))
                             .onTapGesture {
                                 selectedStars = star
@@ -262,7 +262,7 @@ struct ChatView: View {
                     showRatingSuccess = true
                 }) {
                     Text("Enviar Avaliação")
-                        .font(.headline)
+                        .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                         .frame(maxWidth: .infinity)
                         .padding()
                         .background(selectedStars > 0 ? Theme.primary : Theme.textSecondary)

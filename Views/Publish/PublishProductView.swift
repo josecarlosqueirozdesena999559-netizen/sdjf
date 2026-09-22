@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 
@@ -70,7 +70,7 @@ struct PublishProductView: View {
     @ViewBuilder private var mediaSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Fotos e Vídeos")
-                .font(.headline)
+                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 .foregroundColor(Theme.textPrimary)
                 .padding(.horizontal)
             
@@ -79,9 +79,9 @@ struct PublishProductView: View {
                     PhotosPicker(selection: $selectedItems, maxSelectionCount: 10, matching: .any(of: [.images, .videos])) {
                         VStack(spacing: 8) {
                             Image(systemName: "camera.badge.ellipsis")
-                                .font(.system(size: 28))
+                                .font(.custom("Inter-Regular", size: 28))
                             Text("Adicionar")
-                                .font(.caption)
+                                .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                 .fontWeight(.bold)
                         }
                         .frame(width: 100, height: 100)
@@ -113,7 +113,7 @@ struct PublishProductView: View {
                                         ZStack {
                                             Color.black.opacity(0.3)
                                             Image(systemName: "play.circle.fill")
-                                                .font(.largeTitle)
+                                                .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
                                                 .foregroundColor(.white)
                                         }
                                     }
@@ -146,16 +146,16 @@ struct PublishProductView: View {
     @ViewBuilder private var priceSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Preço do Produto")
-                .font(.headline)
+                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 .foregroundColor(Theme.textPrimary)
             
             HStack {
                 Text("R$")
-                    .font(.title)
+                    .font(.custom("Inter-Bold", size: 28, relativeTo: .title))
                     .fontWeight(.bold)
                     .foregroundColor(Theme.textSecondary)
                 TextField("0,00", text: $viewModel.price)
-                    .font(.system(size: 36, weight: .bold))
+                    .font(.custom("Inter-Bold", size: 36))
                     .keyboardType(.decimalPad)
                     .foregroundColor(Theme.textPrimary)
             }
@@ -170,7 +170,7 @@ struct PublishProductView: View {
         VStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Título")
-                    .font(.headline)
+                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 TextField("Ex: iPhone 13 128GB impecável", text: $viewModel.title)
                     .padding()
                     .background(Theme.inputBackground)
@@ -179,7 +179,7 @@ struct PublishProductView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Descrição")
-                    .font(.headline)
+                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 TextEditor(text: $viewModel.description)
                     .frame(height: 120)
                     .padding(8)
@@ -189,7 +189,7 @@ struct PublishProductView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Estado de conservação")
-                    .font(.headline)
+                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 HStack {
                     ForEach(ProductCondition.allCases, id: \.self) { condition in
                         ConditionButton(
@@ -203,7 +203,7 @@ struct PublishProductView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Categoria")
-                    .font(.headline)
+                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 Menu {
                     ForEach(MockData.categories) { cat in
                         Button(action: { viewModel.selectedCategoryId = cat.id }) {
@@ -226,7 +226,7 @@ struct PublishProductView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Localização")
-                    .font(.headline)
+                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 HStack {
                     TextField("Ex: São Paulo - SP", text: $viewModel.location)
                     if viewModel.isFetchingLocation {
@@ -248,7 +248,7 @@ struct PublishProductView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("WhatsApp (Opcional)")
-                    .font(.headline)
+                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 TextField("Ex: 11999999999", text: $viewModel.whatsappNumber)
                     .keyboardType(.numberPad)
                     .padding()
@@ -257,7 +257,7 @@ struct PublishProductView: View {
             }
             
             Toggle("Aceita negociação?", isOn: $viewModel.acceptsNegotiation)
-                .font(.headline)
+                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 .padding(.vertical, 8)
                 .tint(Theme.primary)
         }
@@ -276,7 +276,7 @@ struct PublishProductView: View {
                     ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
                 } else {
                     Text("Publicar Anúncio")
-                        .font(.headline)
+                        .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                 }
             }
             .frame(maxWidth: .infinity)
@@ -301,14 +301,14 @@ struct PublishProductView: View {
                                 .scaleEffect(1.5)
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             Text("Publicando...")
-                                .font(.headline)
+                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                 .foregroundColor(.white)
                         } else if viewModel.publishSuccess {
                             Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 60))
+                                .font(.custom("Inter-Regular", size: 60))
                                 .foregroundColor(.green)
                             Text("Item publicado!")
-                                .font(.headline)
+                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                 .foregroundColor(.white)
                         }
                     }
@@ -373,7 +373,7 @@ struct ConditionButton: View {
     var body: some View {
         Button(action: action) {
             Text(condition.rawValue)
-                .font(.subheadline)
+                .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                 .fontWeight(.semibold)
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)

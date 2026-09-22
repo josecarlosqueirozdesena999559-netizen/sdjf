@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct WelcomeView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -24,11 +24,11 @@ struct WelcomeView: View {
                             .foregroundColor(Theme.primary)
                         
                         Text("Achou")
-                            .font(.system(size: 36, weight: .bold))
+                            .font(.custom("Inter-Bold", size: 36))
                             .foregroundColor(Theme.primary)
                         
                         Text("Compre e venda perto de você")
-                            .font(.subheadline)
+                            .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                             .foregroundColor(Theme.textSecondary)
                     }
                     .padding(.bottom, 60)
@@ -39,7 +39,7 @@ struct WelcomeView: View {
                     VStack(spacing: 16) {
                         NavigationLink(destination: LoginView()) {
                             Text("Iniciar")
-                                .font(.headline)
+                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                 .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .padding()
@@ -49,7 +49,7 @@ struct WelcomeView: View {
                         
                         NavigationLink(destination: RegisterView()) {
                             Text("Cadastro")
-                                .font(.headline)
+                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                 .foregroundColor(Theme.primary)
                                 .frame(maxWidth: .infinity)
                                 .padding()
@@ -62,7 +62,7 @@ struct WelcomeView: View {
                         
                         NavigationLink(destination: ForgotPasswordView()) {
                             Text("Esqueceu a senha?")
-                                .font(.subheadline)
+                                .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                                 .fontWeight(.semibold)
                                 .foregroundColor(Theme.primary)
                         }
@@ -71,12 +71,12 @@ struct WelcomeView: View {
                         // Links Legais
                         HStack(spacing: 8) {
                             Button("Termos de Uso") { showTermos = true }
-                            Text("•").foregroundColor(Theme.textSecondary).font(.caption)
+                            Text("•").foregroundColor(Theme.textSecondary).font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                             Button("Privacidade") { showPrivacidade = true }
-                            Text("•").foregroundColor(Theme.textSecondary).font(.caption)
+                            Text("•").foregroundColor(Theme.textSecondary).font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                             Button("Segurança") { showSeguranca = true }
                         }
-                        .font(.caption2)
+                        .font(.custom("Inter-Medium", size: 11, relativeTo: .caption2))
                         .foregroundColor(Theme.textSecondary)
                         .padding(.top, 8)
                     }

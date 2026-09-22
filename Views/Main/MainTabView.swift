@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct MainTabView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -53,7 +53,7 @@ struct MainTabView: View {
                         .frame(width: 56, height: 56)
                         .shadow(color: Theme.primary.opacity(0.3), radius: 5, x: 0, y: 5)
                     Image(systemName: "plus")
-                        .font(.system(size: 24, weight: .bold))
+                        .font(.custom("Inter-Bold", size: 24))
                         .foregroundColor(.white)
                 }
             }

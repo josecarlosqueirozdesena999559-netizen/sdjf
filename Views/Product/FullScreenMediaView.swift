@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import AVKit
 
 struct FullScreenMediaView: View {
@@ -35,7 +35,7 @@ struct FullScreenMediaView: View {
                         dismiss()
                     }) {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.title2)
+                            .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                             .foregroundColor(.white)
                             .padding()
                     }
@@ -101,7 +101,7 @@ struct ZoomableImageView: View {
                     )
             } else if phase.error != nil {
                 Image(systemName: "photo")
-                    .font(.system(size: 50))
+                    .font(.custom("Inter-Regular", size: 50))
                     .foregroundColor(.gray)
             } else {
                 ProgressView()
