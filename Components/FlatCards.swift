@@ -34,7 +34,7 @@ struct CachedAsyncImage: View {
             }
         }
         .onAppear { loadImage(for: url) }
-        .onChange(of: url) { newURL in loadImage(for: newURL) }
+        .onChange(of: url) { _, newURL in loadImage(for: newURL) }
     }
 
     private func loadImage(for targetURL: URL) {

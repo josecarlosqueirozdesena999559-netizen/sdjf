@@ -298,7 +298,7 @@ class ChatViewModel: ObservableObject {
         }
     }
     func sendMedia(data: Data, isVideo: Bool = false) async {
-        let ext = isVideo ? "mp4" : "jpg"
+        _ = isVideo ? "mp4" : "jpg"
         let path = "${currentUser.id.uuidString}/$(UUID().uuidString).$ext"
         let contentType = isVideo ? "video/mp4" : "image/jpeg"
         do {

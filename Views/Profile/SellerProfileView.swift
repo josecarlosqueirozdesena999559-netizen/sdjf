@@ -151,7 +151,7 @@ struct SellerProfileView: View {
 
     private func metric(_ value: String, _ label: String, icon: String? = nil) -> some View {
         VStack(spacing: 3) {
-            HStack(spacing: 2) { Text(value).typographyCaption() if let icon { Image(systemName: icon).typographyCaption().foregroundColor(.yellow) } }
+            HStack(spacing: 2) { Text(value).typographyCaption(); if let icon { Image(systemName: icon).typographyCaption().foregroundColor(.yellow) } }
             Text(label).typographyCaption().foregroundColor(Theme.textSecondary).lineLimit(1)
         }.frame(maxWidth: .infinity)
     }

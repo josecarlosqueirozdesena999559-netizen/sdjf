@@ -1,10 +1,12 @@
 ﻿import SwiftUI
+import OneSignalFramework
 
 struct MainTabView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var favoritesViewModel = FavoritesViewModel()
     @State private var selectedTab = 0
     @State private var showPublish = false
+    @StateObject private var locationManager = LocationManager.shared
     @AppStorage("hideFloatingButton") private var hideFloatingButton = false
 
     var body: some View {
