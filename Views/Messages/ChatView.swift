@@ -70,7 +70,8 @@ struct ChatView: View {
             }
             .foregroundColor(Theme.textSecondary)
             .frame(width: 36, height: 36)
-            .clipShape(Circle())            VStack(alignment: .leading, spacing: 2) {
+            .clipShape(Circle())
+            VStack(alignment: .leading, spacing: 2) {
                 Text(participantName).typographyButton()
                 if !statusText.isEmpty {
                     HStack(spacing: 4) {
