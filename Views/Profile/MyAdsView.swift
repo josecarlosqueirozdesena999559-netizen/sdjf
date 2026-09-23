@@ -41,6 +41,11 @@ struct MyAdsView: View {
             }
         }
         .navigationTitle("Meus anúncios")
+        .toolbar {
+            ToolbarItem(placement: .navigationBarTrailing) {
+                NavigationLink(destination: SoldItemsView()) { Image(systemName: "checkmark.circle") }
+            }
+        }
         .customBackButton()
         .task { await loadProducts() }
         .alert("Excluir anúncio?", isPresented: Binding(get: { productToDelete != nil }, set: { if !$0 { productToDelete = nil } })) {
