@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct StoryViewer: View {
     let profile: Profile
@@ -92,6 +92,15 @@ struct StoryViewer: View {
                         
                         Spacer()
                         
+                        if profile.id == authViewModel.currentUser?.id {
+                            Button(action: { Task { await deleteStory() } }) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 20, weight: .bold))
+                                    .foregroundColor(.red)
+                                    .padding()
+                            }
+                        }
+                        
                         Button(action: onDismiss) {
                             Image(systemName: "xmark")
                                 .font(.system(size: 20, weight: .bold))
@@ -141,6 +150,16 @@ struct StoryViewer: View {
         }
         .onDisappear {
             timer?.invalidate()
+        }
+    }
+    
+    private func deleteStory() async {
+        let storyId = stories[currentIndex].id
+        do {
+            try await supabase.database.from("stories").delete().eq("id", value: storyId).execute()
+            await MainActor.run { onDismiss() }
+        } catch {
+            print("Error deleting story: \(error)")
         }
     }
     

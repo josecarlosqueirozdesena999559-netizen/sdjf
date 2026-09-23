@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import PhotosUI
 import Supabase
 
@@ -67,7 +67,7 @@ struct StoriesRowView: View {
                                 .clipShape(Circle())
                         }
                     }
-                    Text("Seu Story")
+                    Text("Seu Destaque")
                         .typographyCaption()
                         .foregroundColor(Theme.textSecondary)
                 }

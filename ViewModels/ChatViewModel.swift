@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import Supabase
 import Storage
 import Combine
@@ -378,7 +378,7 @@ class ChatViewModel: ObservableObject {
         guard let data = try? Data(contentsOf: fileURL) else { return }
         let path = "\(currentUser.id.uuidString)/\(UUID().uuidString).m4a"
         let msgId = UUID()
-        let newMsg = Message(id: msgId, senderId: currentUser.id, receiverId: conversation.participantId, text: "Ã°Å¸Å½Â¤ Mensagem de voz (enviando...)", imageName: path, timestamp: Date(), isRead: false)
+        let newMsg = Message(id: msgId, senderId: currentUser.id, receiverId: conversation.participantId, text: "Ã°Å¸Å½Â¤ Mensagem de voz (enviando...)", imageName: nil, timestamp: Date(), isRead: false)
         await MainActor.run { self.messages.append(newMsg) }
         
         do {
@@ -398,6 +398,7 @@ class ChatViewModel: ObservableObject {
             await MainActor.run {
                 if let idx = self.messages.firstIndex(where: { $0.id == msgId }) {
                     self.messages[idx].text = "Ã°Å¸Å½Â¤ Mensagem de voz"
+                    self.messages[idx].imageName = path
                 }
             }
         } catch {
@@ -412,7 +413,7 @@ class ChatViewModel: ObservableObject {
         let text = isVideo ? "Ã°Å¸â€œÂ¹ VÃƒÂ­deo" : "Ã°Å¸â€“Â¼Ã¯Â¸Â Imagem"
         
         let msgId = UUID()
-        let newMsg = Message(id: msgId, senderId: currentUser.id, receiverId: conversation.participantId, text: "\(text) (enviando...)", imageName: path, timestamp: Date(), isRead: false)
+        let newMsg = Message(id: msgId, senderId: currentUser.id, receiverId: conversation.participantId, text: "\(text) (enviando...)", imageName: nil, timestamp: Date(), isRead: false)
         await MainActor.run { self.messages.append(newMsg) }
         
         do {
@@ -432,6 +433,7 @@ class ChatViewModel: ObservableObject {
             await MainActor.run {
                 if let idx = self.messages.firstIndex(where: { $0.id == msgId }) {
                     self.messages[idx].text = text
+                    self.messages[idx].imageName = path
                 }
             }
         } catch {
