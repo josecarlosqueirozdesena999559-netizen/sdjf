@@ -72,6 +72,18 @@ struct ChatView: View {
         }
     }
 
+    private var statusText: String {
+        if viewModel.isTyping { return "Digitando..." }
+        if viewModel.otherUserOnline { return "Online" }
+        if let last = viewModel.lastSeen {
+            let df = DateFormatter()
+            df.dateStyle = .short
+            df.timeStyle = .short
+            return "Visto por último: \(df.string(from: last))"
+        }
+        return ""
+    }
+    
     private var headerContent: some View {
         HStack(spacing: 12) {
             Group {
