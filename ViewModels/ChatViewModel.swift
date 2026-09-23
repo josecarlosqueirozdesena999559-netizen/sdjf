@@ -333,22 +333,65 @@ class ChatViewModel: ObservableObject {
     func sendAudio(fileURL: URL) async {
         guard let data = try? Data(contentsOf: fileURL) else { return }
         let path = "\(currentUser.id.uuidString)/\(UUID().uuidString).m4a"
+        let msgId = UUID()
+        let newMsg = Message(id: msgId, senderId: currentUser.id, receiverId: conversation.participantId, text: "🎤 Mensagem de voz (enviando...)", imageName: path, timestamp: Date(), isRead: false)
+        await MainActor.run { self.messages.append(newMsg) }
+        
         do {
             try await supabase.storage.from("chat-media").upload(path: path, file: data, options: FileOptions(contentType: "audio/mp4"))
-            await sendMessage(text: "🎤 Mensagem de voz", mediaUrl: path, mediaType: "audio")
+            
+            struct MsgInsert: Codable {
+                let id: UUID
+                let conversation_id: UUID
+                let sender_id: UUID
+                let text: String
+                let media_url: String?
+                let is_read: Bool
+            }
+            let insertData = MsgInsert(id: msgId, conversation_id: conversationID, sender_id: currentUser.id, text: "🎤 Mensagem de voz", media_url: path, is_read: false)
+            try await supabase.database.from("messages").insert(insertData).execute()
+            
+            await MainActor.run {
+                if let idx = self.messages.firstIndex(where: { $0.id == msgId }) {
+                    self.messages[idx].text = "🎤 Mensagem de voz"
+                }
+            }
         } catch {
             print("Error uploading audio: \(error)")
         }
     }
+    
     func sendMedia(data: Data, isVideo: Bool = false) async {
-        _ = isVideo ? "mp4" : "jpg"
-        let path = "${currentUser.id.uuidString}/$(UUID().uuidString).$ext"
+        let ext = isVideo ? "mp4" : "jpg"
+        let path = "\(currentUser.id.uuidString)/\(UUID().uuidString).\(ext)"
         let contentType = isVideo ? "video/mp4" : "image/jpeg"
+        let text = isVideo ? "📹 Vídeo" : "🖼️ Imagem"
+        
+        let msgId = UUID()
+        let newMsg = Message(id: msgId, senderId: currentUser.id, receiverId: conversation.participantId, text: "\(text) (enviando...)", imageName: path, timestamp: Date(), isRead: false)
+        await MainActor.run { self.messages.append(newMsg) }
+        
         do {
             try await supabase.storage.from("chat-media").upload(path: path, file: data, options: FileOptions(contentType: contentType))
-            await sendMessage(text: isVideo ? "📹 Vídeo" : "📷 Imagem", mediaUrl: path, mediaType: isVideo ? "video" : "image")
+            
+            struct MsgInsert: Codable {
+                let id: UUID
+                let conversation_id: UUID
+                let sender_id: UUID
+                let text: String
+                let media_url: String?
+                let is_read: Bool
+            }
+            let insertData = MsgInsert(id: msgId, conversation_id: conversationID, sender_id: currentUser.id, text: text, media_url: path, is_read: false)
+            try await supabase.database.from("messages").insert(insertData).execute()
+            
+            await MainActor.run {
+                if let idx = self.messages.firstIndex(where: { $0.id == msgId }) {
+                    self.messages[idx].text = text
+                }
+            }
         } catch {
-            print("Error uploading media: $error")
+            print("Error uploading media: \(error)")
         }
     }
 

@@ -191,7 +191,6 @@ struct ChatView: View {
                             .foregroundColor(message.isRead ? .blue : Color.white.opacity(0.8))
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .trailing)
                 .padding(.top, 2)
             }
             .padding(.horizontal, 12)
