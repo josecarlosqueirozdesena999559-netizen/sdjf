@@ -25,6 +25,11 @@ struct MyAdsView: View {
                             }
                             Spacer()
                         }
+                        .contextMenu {
+                            NavigationLink(destination: EditProductView(product: product)) { Label("Editar", systemImage: "pencil") }
+                            Button { Task { await markAsSold(product) } } label: { Label("Marcar como vendido", systemImage: "checkmark.circle") }
+                            Button(role: .destructive) { productToDelete = product } label: { Label("Excluir", systemImage: "trash") }
+                        }
                         .swipeActions(edge: .trailing, allowsFullSwipe: false) {
                             Button(role: .destructive) { productToDelete = product } label: { Label("Excluir", systemImage: "trash") }
                             Button { Task { await markAsSold(product) } } label: { Label("Vendido", systemImage: "checkmark.circle") }.tint(.green).disabled(!product.isActive)
