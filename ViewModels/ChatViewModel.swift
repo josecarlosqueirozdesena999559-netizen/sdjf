@@ -38,6 +38,63 @@ class ChatViewModel: ObservableObject {
         await fetchParticipantStatus()
         await fetchMessages()
         await setupRealtime()
+        startPollingFallback()
+    }
+    
+    private func startPollingFallback() {
+        pollingTask?.cancel()
+        pollingTask = Task {
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                if Task.isCancelled { break }
+                await smartFetchMessages()
+                await fetchParticipantStatus()
+            }
+        }
+    }
+    
+    private func smartFetchMessages() async {
+        do {
+            struct SupabaseMessage: Codable {
+                let id: UUID
+                let sender_id: UUID
+                let text: String
+                let media_url: String?
+                let is_read: Bool
+                let created_at: Date
+            }
+            let sbMessages: [SupabaseMessage] = try await supabase.database
+                .from("messages")
+                .select()
+                .eq("conversation_id", value: conversationID)
+                .order("created_at", ascending: true)
+                .execute()
+                .value
+            
+            await MainActor.run {
+                for sb in sbMessages {
+                    if let index = self.messages.firstIndex(where: { $0.id == sb.id }) {
+                        self.messages[index].isRead = sb.is_read
+                    } else {
+                        let message = Message(
+                            id: sb.id,
+                            senderId: sb.sender_id,
+                            receiverId: sb.sender_id == self.conversation.participantId ? self.currentUser.id : self.conversation.participantId,
+                            text: sb.text,
+                            imageName: sb.media_url,
+                            timestamp: sb.created_at,
+                            isRead: sb.is_read
+                        )
+                        self.messages.append(message)
+                        if message.senderId != self.currentUser.id {
+                            Task { await self.markAsRead() }
+                        }
+                    }
+                }
+            }
+        } catch {
+            print("Erro no smartFetchMessages: \(error)")
+        }
     }
     
     private func fetchParticipantStatus() async {
@@ -172,7 +229,7 @@ class ChatViewModel: ObservableObject {
             UpdateAction.self,
             schema: "public",
             table: "profiles",
-            filter: "id=eq.(conversation.participantId.uuidString)"
+            filter: "id=eq.\(conversation.participantId.uuidString)"
         )
         
         Task {

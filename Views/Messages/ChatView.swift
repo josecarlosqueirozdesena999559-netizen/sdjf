@@ -237,16 +237,17 @@ struct ChatView: View {
 
     private func loadParticipant() async {
         do {
-            let profile: User = try await supabase.database
+            let p: Profile = try await supabase.database
                 .from("profiles")
                 .select()
                 .eq("id", value: viewModel.conversation.participantId)
                 .single()
                 .execute()
                 .value
-            participantUser = profile
-            participantName = profile.visibleName ?? profile.name
-            participantAvatarURL = profile.avatarURL
+            
+            participantUser = User(id: p.id, name: p.name, cpf: p.document, birthDate: nil, email: p.email ?? "", phone: "", username: p.username, visibleName: p.visible_name, avatarURL: p.avatar_url, location: p.location ?? "Desconhecido", latitude: p.latitude, longitude: p.longitude, memberSince: p.created_at ?? Date(), isProfessional: false, rating: p.rating, responseTime: p.avg_response_time, bio: p.bio, isOnline: p.is_online, lastSeen: p.last_seen)
+            participantName = p.visible_name ?? p.name
+            participantAvatarURL = p.avatar_url
         } catch {
             print("Erro ao carregar participante: \(error)")
         }
