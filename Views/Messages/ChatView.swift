@@ -12,7 +12,7 @@ struct ChatView: View {
     @State private var participantAvatarURL: String?
     @State private var audioPlayer: AVPlayer?
     @State private var selectedItem: PhotosPickerItem? = nil
-    @State private var participantUser: Profile? = nil
+    @State private var participantUser: User? = nil
 
     init(conversation: Conversation, currentUser: User) {
         _viewModel = StateObject(wrappedValue: ChatViewModel(conversation: conversation, currentUser: currentUser))

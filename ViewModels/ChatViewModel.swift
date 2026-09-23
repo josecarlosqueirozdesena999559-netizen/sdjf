@@ -165,7 +165,7 @@ class ChatViewModel: ObservableObject {
         )
 
         // Registra todos os listeners antes da assinatura para nÃƒÂ£o perder o estado inicial.
-        let presenceEvents = await channel.presenceChange()
+        _ = await channel.presenceChange()
         let typingEvents = await channel.broadcast(event: "typing")
 
                 let profilesUpdate = await channel.postgresChange(
