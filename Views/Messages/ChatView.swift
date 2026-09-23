@@ -70,13 +70,20 @@ struct ChatView: View {
             }
             .foregroundColor(Theme.textSecondary)
             .frame(width: 36, height: 36)
-            .clipShape(Circle())
-
-            VStack(alignment: .leading, spacing: 2) {
+            .clipShape(Circle())            VStack(alignment: .leading, spacing: 2) {
                 Text(participantName).font(.subheadline.weight(.semibold))
-                Text(statusText)
-                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
-                    .foregroundColor(viewModel.otherUserOnline || viewModel.isTyping ? Theme.primary : Theme.textSecondary)
+                if !statusText.isEmpty {
+                    HStack(spacing: 4) {
+                        if viewModel.otherUserOnline {
+                            Circle().fill(Theme.primary).frame(width: 8, height: 8)
+                        } else if viewModel.isTyping {
+                            Image(systemName: "ellipsis.bubble.fill").foregroundColor(Theme.primary).font(.system(size: 10))
+                        }
+                        Text(statusText)
+                            .font(.custom("Inter-SemiBold", size: 13, relativeTo: .caption))
+                            .foregroundColor(viewModel.otherUserOnline || viewModel.isTyping ? Theme.primary : Theme.textSecondary)
+                    }
+                }
             }
         }
     }
