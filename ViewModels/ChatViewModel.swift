@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import Supabase
 import Storage
 import Combine
@@ -101,7 +101,7 @@ class ChatViewModel: ObservableObject {
                 activeConversationID = newID
             }
         } catch {
-            // Mantém o identificador recebido para não bloquear a tela caso a rede falhe.
+            // MantÃƒÂ©m o identificador recebido para nÃƒÂ£o bloquear a tela caso a rede falhe.
             print("Erro ao preparar conversa: \(error)")
         }
     }
@@ -175,7 +175,7 @@ class ChatViewModel: ObservableObject {
             filter: "conversation_id=eq.\(conversationID.uuidString)"
         )
 
-        // Registra todos os listeners antes da assinatura para não perder o estado inicial.
+        // Registra todos os listeners antes da assinatura para nÃƒÂ£o perder o estado inicial.
         let presenceEvents = await channel.presenceChange()
         let typingEvents = await channel.broadcast(event: "typing")
 
@@ -208,12 +208,8 @@ class ChatViewModel: ObservableObject {
                     print("Erro ao ler update do profile: \(error)")
                 }
             }
-        } catch {
-                    print("Erro ao atualizar presença: \(error)")
-                }
-            }
-        }
 
+        }
         Task {
             for await payload in typingEvents {
                 if let userID = payload["user_id"]?.stringValue, userID != currentUser.id.uuidString {
@@ -278,7 +274,7 @@ class ChatViewModel: ObservableObject {
         do {
             try await channel.track(["user_id": currentUser.id.uuidString])
         } catch {
-            print("Erro ao registrar presença: \(error)")
+            print("Erro ao registrar presenÃƒÂ§a: \(error)")
         }
     }
     func sendMessage(text: String, mediaUrl: String? = nil, mediaType: String? = nil) async {
@@ -334,7 +330,7 @@ class ChatViewModel: ObservableObject {
         guard let data = try? Data(contentsOf: fileURL) else { return }
         let path = "\(currentUser.id.uuidString)/\(UUID().uuidString).m4a"
         let msgId = UUID()
-        let newMsg = Message(id: msgId, senderId: currentUser.id, receiverId: conversation.participantId, text: "🎤 Mensagem de voz (enviando...)", imageName: path, timestamp: Date(), isRead: false)
+        let newMsg = Message(id: msgId, senderId: currentUser.id, receiverId: conversation.participantId, text: "Ã°Å¸Å½Â¤ Mensagem de voz (enviando...)", imageName: path, timestamp: Date(), isRead: false)
         await MainActor.run { self.messages.append(newMsg) }
         
         do {
@@ -348,12 +344,12 @@ class ChatViewModel: ObservableObject {
                 let media_url: String?
                 let is_read: Bool
             }
-            let insertData = MsgInsert(id: msgId, conversation_id: conversationID, sender_id: currentUser.id, text: "🎤 Mensagem de voz", media_url: path, is_read: false)
+            let insertData = MsgInsert(id: msgId, conversation_id: conversationID, sender_id: currentUser.id, text: "Ã°Å¸Å½Â¤ Mensagem de voz", media_url: path, is_read: false)
             try await supabase.database.from("messages").insert(insertData).execute()
             
             await MainActor.run {
                 if let idx = self.messages.firstIndex(where: { $0.id == msgId }) {
-                    self.messages[idx].text = "🎤 Mensagem de voz"
+                    self.messages[idx].text = "Ã°Å¸Å½Â¤ Mensagem de voz"
                 }
             }
         } catch {
@@ -365,7 +361,7 @@ class ChatViewModel: ObservableObject {
         let ext = isVideo ? "mp4" : "jpg"
         let path = "\(currentUser.id.uuidString)/\(UUID().uuidString).\(ext)"
         let contentType = isVideo ? "video/mp4" : "image/jpeg"
-        let text = isVideo ? "📹 Vídeo" : "🖼️ Imagem"
+        let text = isVideo ? "Ã°Å¸â€œÂ¹ VÃƒÂ­deo" : "Ã°Å¸â€“Â¼Ã¯Â¸Â Imagem"
         
         let msgId = UUID()
         let newMsg = Message(id: msgId, senderId: currentUser.id, receiverId: conversation.participantId, text: "\(text) (enviando...)", imageName: path, timestamp: Date(), isRead: false)
