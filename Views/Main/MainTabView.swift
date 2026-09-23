@@ -1,10 +1,11 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct MainTabView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var favoritesViewModel = FavoritesViewModel()
     @State private var selectedTab = 0
     @State private var showPublish = false
+    @AppStorage("hideFloatingButton") private var hideFloatingButton = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -46,7 +47,7 @@ struct MainTabView: View {
             .accentColor(Theme.primary)
 
             // Não sobrepõe o compositor de mensagens.
-            if selectedTab != 3 {
+            if selectedTab != 3 && !hideFloatingButton {
             Button(action: { showPublish = true }) {
                 ZStack {
                     Circle()

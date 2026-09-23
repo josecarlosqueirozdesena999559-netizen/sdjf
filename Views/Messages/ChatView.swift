@@ -1,9 +1,10 @@
-import SwiftUI
+﻿import SwiftUI
 import AVFoundation
 
 struct ChatView: View {
     @StateObject var viewModel: ChatViewModel
     @State private var messageText = ""
+    @AppStorage("hideFloatingButton") private var hideFloatingButton = false
     @StateObject private var audioRecorder = AudioRecorder()
     @State private var participantName = "Usuário"
     @State private var participantAvatarURL: String?
@@ -15,7 +16,6 @@ struct ChatView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            chatHeader
             Divider()
             ScrollViewReader { proxy in
                 ScrollView {
@@ -46,6 +46,13 @@ struct ChatView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .task { await loadParticipant() }
+        .onAppear { hideFloatingButton = true }
+        .onDisappear { hideFloatingButton = false }
+        .toolbar {
+            ToolbarItem(placement: .principal) {
+                chatHeader
+            }
+        }
     }
 
     private var chatHeader: some View {
@@ -68,10 +75,7 @@ struct ChatView: View {
                     .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                     .foregroundColor(viewModel.otherUserOnline || viewModel.isTyping ? Theme.primary : Theme.textSecondary)
             }
-            Spacer()
         }
-        .padding(.horizontal)
-        .padding(.vertical, 10)
     }
 
     private var composer: some View {
