@@ -3,6 +3,7 @@ import Supabase
 
 struct SellerProfileView: View {
     let seller: Seller
+    var showsBackButton = true
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var isFollowing = false
     @State private var followersCount = 0
@@ -23,7 +24,7 @@ struct SellerProfileView: View {
                         HStack(spacing: 5) {
                             Text(seller.user.visibleName ?? seller.user.name)
                                 .font(.headline)
-                            if seller.isVerified { Image(systemName: "checkmark.seal.fill").foregroundColor(.blue) }
+
                         }
                         Text("@\(seller.user.username ?? "")")
                             .font(.caption).foregroundColor(Theme.textSecondary)
@@ -97,7 +98,7 @@ struct SellerProfileView: View {
         .background(Theme.background.ignoresSafeArea())
         .navigationTitle("Perfil")
         .navigationBarTitleDisplayMode(.inline)
-        .customBackButton()
+        .modifier(ProfileBackButton(show: showsBackButton))
         .task { await loadFollowState(); await loadProducts(); await subscribeToFollowUpdates() }
     }
 
@@ -177,5 +178,11 @@ private struct ProductThumbnail: View {
             } else { Theme.inputBackground.overlay(Image(systemName: "photo").foregroundColor(Theme.textSecondary)) }
         }
         .frame(height: 105).clipShape(RoundedRectangle(cornerRadius: 10))
+    }
+}
+private struct ProfileBackButton: ViewModifier {
+    let show: Bool
+    func body(content: Content) -> some View {
+        if show { content.customBackButton() } else { content }
     }
 }

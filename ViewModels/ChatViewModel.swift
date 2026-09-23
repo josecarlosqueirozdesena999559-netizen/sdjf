@@ -1,5 +1,6 @@
 import Foundation
 import Supabase
+import Storage
 import Combine
 
 @MainActor
@@ -254,6 +255,16 @@ class ChatViewModel: ObservableObject {
         }
     }
     
+    func sendAudio(fileURL: URL) async {
+        guard let data = try? Data(contentsOf: fileURL) else { return }
+        let path = "\(currentUser.id.uuidString)/\(UUID().uuidString).m4a"
+        do {
+            try await supabase.storage.from("chat-media").upload(path: path, file: data, options: FileOptions(contentType: "audio/mp4"))
+            await sendMessage(text: "🎤 Mensagem de voz", mediaUrl: path, mediaType: "audio")
+        } catch {
+            print("Error uploading audio: \(error)")
+        }
+    }
     func sendTypingEvent() {
         guard let channel = self.channel else { return }
         Task {
