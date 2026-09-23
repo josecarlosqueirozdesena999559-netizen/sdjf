@@ -83,9 +83,13 @@ struct MainTabView: View {
             }
         }
         .onChange(of: locationManager.addressString) { _, newAddress in
-            if let loc = locationManager.location {
-                authViewModel.updateLocation(lat: loc.latitude, lon: loc.longitude, address: newAddress)
-            }
+            handleLocationUpdate(newAddress: newAddress)
+        }
+    }
+    
+    private func handleLocationUpdate(newAddress: String?) {
+        if let loc = locationManager.location {
+            authViewModel.updateLocation(lat: loc.latitude, lon: loc.longitude, address: newAddress)
         }
     }
 }
