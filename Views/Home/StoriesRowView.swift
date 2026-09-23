@@ -18,7 +18,7 @@ struct StoriesRowView: View {
                 VStack {
                     ZStack(alignment: .bottomTrailing) {
                         if let user = authViewModel.currentUser {
-                            if let firstMyStory = viewModel.myStories.first {
+                            if !viewModel.myStories.isEmpty {
                                 // Has active story
                                 Button(action: {
                                     selectedStoryUser = Profile(id: user.id, name: user.name, visible_name: user.visibleName, username: user.username, email: user.email, document: nil, location: user.location, avatar_url: user.avatarURL, created_at: nil, rating: nil, avg_response_time: nil, bio: nil, latitude: nil, longitude: nil, is_online: nil, last_seen: nil)
