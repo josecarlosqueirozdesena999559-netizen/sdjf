@@ -20,7 +20,7 @@ struct WelcomeView: View {
                         Image("achei_logo")
                             .resizable()
                             .scaledToFit()
-                            .frame(height: 72)
+                            .frame(width: 280)
                         
                         Text("Compre e venda perto de você")
                             .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
