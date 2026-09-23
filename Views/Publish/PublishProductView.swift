@@ -48,6 +48,14 @@ struct PublishProductView: View {
                 loadMedia(from: newItems)
             }
             .overlay(loadingOverlay)
+            .onAppear {
+                if viewModel.location.isEmpty {
+                    viewModel.location = authViewModel.currentUser?.location ?? ""
+                    if viewModel.location.isEmpty || viewModel.location == "Desconhecido" {
+                        viewModel.fetchCurrentLocation()
+                    }
+                }
+            }
             .onChange(of: viewModel.publishSuccess) { _, success in
                 if success {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {

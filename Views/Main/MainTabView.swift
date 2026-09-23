@@ -76,7 +76,19 @@ struct MainTabView: View {
             ProfileSetupSheet()
                 .environmentObject(authViewModel)
         }
-        // Bug 5 fix: removida a requestNotificationPermissions() duplicada.
-        // OneSignal já gerencia as permissões em MercadoFacilApp.swift
-    }
-}
+        .onAppear {
+            locationManager.requestLocation()
+            if let userId = authViewModel.currentUser?.id {
+                OneSignal.login(userId.uuidString)
+            }
+        }
+        .onChange(of: locationManager.location) { _, newLoc in
+            if let loc = newLoc {
+                authViewModel.updateLocation(lat: loc.latitude, lon: loc.longitude, address: locationManager.addressString)
+            }
+        }
+        .onChange(of: locationManager.addressString) { _, newAddress in
+            if let loc = locationManager.location {
+                authViewModel.updateLocation(lat: loc.latitude, lon: loc.longitude, address: newAddress)
+            }
+        }
