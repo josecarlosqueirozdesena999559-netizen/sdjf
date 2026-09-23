@@ -59,6 +59,19 @@ struct ChatView: View {
     }
 
     private var chatHeader: some View {
+        Group {
+            if let user = participantUser {
+                NavigationLink(destination: SellerProfileView(seller: Seller(id: user.id, user: user, isVerified: false, rating: 0, reviewCount: 0, salesCount: 0, averageResponseTime: "", bio: ""))) {
+                    headerContent
+                }
+                .buttonStyle(PlainButtonStyle())
+            } else {
+                headerContent
+            }
+        }
+    }
+
+    private var headerContent: some View {
         HStack(spacing: 10) {
             Group {
                 if let value = participantAvatarURL, let url = URL(string: value) {
@@ -69,10 +82,11 @@ struct ChatView: View {
                 } else { Image(systemName: "person.crop.circle.fill") }
             }
             .foregroundColor(Theme.textSecondary)
-            .frame(width: 36, height: 36)
+            .frame(width: 44, height: 44)
             .clipShape(Circle())
+            
             VStack(alignment: .leading, spacing: 2) {
-                Text(participantName).typographyButton()
+                Text(participantName).font(.custom("Inter-SemiBold", size: 18))
                 if !statusText.isEmpty {
                     HStack(spacing: 4) {
                         if viewModel.otherUserOnline {
@@ -86,150 +100,26 @@ struct ChatView: View {
                     }
                 }
             }
-        }
-    }
-
-    private var composer: some View {
-        HStack {
-            PhotosPicker(selection: $selectedItem, matching: .any(of: [.images, .videos])) {
-                Image(systemName: "plus")
-                    .typographyScreenTitle()
-                    .foregroundColor(Theme.primary)
-                    .padding(.leading, 10)
-            }
-            .onChange(of: selectedItem) { _, newItem in
-                guard let newItem else { return }
-                Task {
-                    if let data = try? await newItem.loadTransferable(type: Data.self) {
-                        let isVideo = newItem.supportedContentTypes.contains(where: { it in it.conforms(to: .movie) || it.conforms(to: .video) })
-                        await viewModel.sendMedia(data: data, isVideo: isVideo)
-                    }
-                    selectedItem = nil
-                }
-            }
-
-            if audioRecorder.isRecording {
-                Label("Gravando áudio…", systemImage: "waveform")
-                    .foregroundColor(.red)
-                    .padding(.leading, 14)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                TextField("Mensagem...", text: $messageText)
-                    .padding(.horizontal, 14)
-                    .onChange(of: messageText) { _, _ in viewModel.sendTypingEvent() }
-            }
-
-            Button {
-                if audioRecorder.isRecording {
-                    guard let fileURL = audioRecorder.stop() else { return }
-                    Task { await viewModel.sendAudio(fileURL: fileURL) }
-                } else if messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Task { _ = await audioRecorder.start() }
-                } else {
-                    let text = messageText
-                    messageText = ""
-                    Task { await viewModel.sendMessage(text: text) }
-                }
-            } label: {
-                Image(systemName: audioRecorder.isRecording ? "stop.circle.fill" : (messageText.isEmpty ? "mic.fill" : "arrow.up.circle.fill"))
-                    .typographyScreenTitle()
-                    .foregroundColor(audioRecorder.isRecording ? .red : Theme.primary)
-                    .padding(8)
-            }
-            .accessibilityLabel(audioRecorder.isRecording ? "Parar gravação" : "Enviar ou gravar áudio")
-        }
-        .padding(6)
-        .background(Color.black.opacity(0.05))
-        .clipShape(Capsule())
-        .padding(.horizontal)
-        .padding(.vertical, 10)
-        .background(Color.white)
-    }
-
-    private var statusText: String {
-        if viewModel.isTyping { return "digitando..." }
-        if viewModel.otherUserOnline { return "online" }
-        guard let lastSeen = viewModel.lastSeen else { return "" }
-        let formatter = RelativeDateTimeFormatter()
-        formatter.unitsStyle = .full
-        formatter.locale = Locale(identifier: "pt_BR")
-        return "visto " + formatter.localizedString(for: lastSeen, relativeTo: Date())
-    }
-
-    @ViewBuilder private func messageBubble(_ message: Message, isMine: Bool) -> some View {
-        HStack {
-            if isMine { Spacer(minLength: 40) }
-            VStack(alignment: .leading, spacing: 2) {
-                                if let path = message.imageName {
-                    if path.hasSuffix(".m4a") {
-                        Button { Task { await playAudio(path: path) } } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: "play.circle.fill")
-                                    .font(.custom("Inter-Regular", size: 32))
-                                Text("Áudio")
-                                    .typographyBody()
-                            }
-                            .padding(.vertical, 4)
-                            .padding(.horizontal, 4)
-                        }
-                    } else {
-                        ChatMediaRenderer(path: path)
-                    }
-                } else {
-                    Text(message.text)
-                        .typographyBody()
-                }
-                
-                HStack(spacing: 4) {
-                    Text(Formatters.timeFormatter.string(from: message.timestamp))
-                        .typographyCaption()
-                        .foregroundColor(isMine ? Color.white.opacity(0.8) : Theme.textSecondary)
-                    
-                    if isMine {
-                        Image(systemName: message.isRead ? "checkmark" : "checkmark")
-                            .typographyCaption()
-                            .foregroundColor(message.isRead ? .blue : Color.white.opacity(0.8))
-                    }
-                }
-                .padding(.top, 2)
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .foregroundColor(isMine ? .white : Theme.textPrimary)
-            .background(isMine ? Theme.primary : Theme.inputBackground)
-            .cornerRadius(16, corners: isMine ? [.topLeft, .topRight, .bottomLeft] : [.topLeft, .topRight, .bottomRight])
-            .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
-            
-            if !isMine { Spacer(minLength: 40) }
-        }
-    }
-
-    private func playAudio(path: String) async {
-        do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
-            try AVAudioSession.sharedInstance().setActive(true)
-            let url = try await supabase.storage.from("chat-media").createSignedURL(path: path, expiresIn: 3_600)
-            let player = AVPlayer(url: url)
-            audioPlayer = player
-            player.play()
-        } catch {
-            print("Erro ao reproduzir áudio: \(error)")
+            Spacer()
         }
     }
 
     private func loadParticipant() async {
-        struct Profile: Decodable { let name: String?; let visible_name: String?; let avatar_url: String? }
         do {
-            let profile: Profile = try await supabase.database
+            let profile: User = try await supabase.database
                 .from("profiles")
-                .select("name,visible_name,avatar_url")
+                .select()
                 .eq("id", value: viewModel.conversation.participantId)
                 .single()
                 .execute()
                 .value
-            participantName = profile.visible_name ?? profile.name ?? "Usuário"
-            participantAvatarURL = profile.avatar_url
+            participantUser = profile
+            participantName = profile.visibleName ?? profile.name
+            participantAvatarURL = profile.avatarURL
         } catch {
+            print("Erro ao carregar participante: \")
+        }
+    } catch {
             print("Erro ao carregar participante: \(error)")
         }
     }
