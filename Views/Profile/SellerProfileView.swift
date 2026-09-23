@@ -53,7 +53,7 @@ struct SellerProfileView: View {
                         }.disabled(isFollowLoading)
                         if let product = sellerProducts.first, let user = authViewModel.currentUser {
                             NavigationLink(destination: ChatView(conversation: Conversation(id: UUID(), productId: product.id, participantId: seller.user.id, lastMessage: Message(id: UUID(), senderId: user.id, receiverId: seller.user.id, text: "", timestamp: Date(), isRead: true), unreadCount: 0), currentUser: user)) {
-                            Label("Mensagem", systemImage: "message")
+                            Label("Mensagem", systemImage: "paperplane.fill")
                                 .font(.subheadline.weight(.semibold)).frame(maxWidth: .infinity).padding(.vertical, 11)
                                 .foregroundColor(Theme.primary).background(Theme.lightGreen).clipShape(Capsule())
                         }
@@ -75,8 +75,6 @@ struct SellerProfileView: View {
                 VStack(alignment: .leading, spacing: 8) {
                     Text("Sobre o vendedor").font(.headline)
                     Text(seller.bio).font(.subheadline).foregroundColor(Theme.textSecondary).lineSpacing(3)
-                    Label("Perfil verificado", systemImage: "checkmark.seal.fill")
-                        .font(.caption).foregroundColor(Theme.primary)
                 }
                 .padding(14).background(Color.white).clipShape(RoundedRectangle(cornerRadius: 14))
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.border, lineWidth: 1))
