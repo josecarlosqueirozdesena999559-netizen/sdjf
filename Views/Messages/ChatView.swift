@@ -71,16 +71,16 @@ struct ChatView: View {
             .foregroundColor(Theme.textSecondary)
             .frame(width: 36, height: 36)
             .clipShape(Circle())            VStack(alignment: .leading, spacing: 2) {
-                Text(participantName).font(.subheadline.weight(.semibold))
+                Text(participantName).typographyButton()
                 if !statusText.isEmpty {
                     HStack(spacing: 4) {
                         if viewModel.otherUserOnline {
                             Circle().fill(Theme.primary).frame(width: 8, height: 8)
                         } else if viewModel.isTyping {
-                            Image(systemName: "ellipsis.bubble.fill").foregroundColor(Theme.primary).font(.system(size: 10))
+                            Image(systemName: "ellipsis.bubble.fill").foregroundColor(Theme.primary).typographyCaption()
                         }
                         Text(statusText)
-                            .font(.custom("Inter-SemiBold", size: 13, relativeTo: .caption))
+                            .typographyLabel()
                             .foregroundColor(viewModel.otherUserOnline || viewModel.isTyping ? Theme.primary : Theme.textSecondary)
                     }
                 }
@@ -92,7 +92,7 @@ struct ChatView: View {
         HStack {
             PhotosPicker(selection: $selectedItem, matching: .any(of: [.images, .videos])) {
                 Image(systemName: "plus")
-                    .font(.system(size: 24))
+                    .typographyScreenTitle()
                     .foregroundColor(Theme.primary)
                     .padding(.leading, 10)
             }
@@ -131,7 +131,7 @@ struct ChatView: View {
                 }
             } label: {
                 Image(systemName: audioRecorder.isRecording ? "stop.circle.fill" : (messageText.isEmpty ? "mic.fill" : "arrow.up.circle.fill"))
-                    .font(.system(size: 24))
+                    .typographyScreenTitle()
                     .foregroundColor(audioRecorder.isRecording ? .red : Theme.primary)
                     .padding(8)
             }
@@ -166,7 +166,7 @@ struct ChatView: View {
                                 Image(systemName: "play.circle.fill")
                                     .font(.custom("Inter-Regular", size: 32))
                                 Text("Áudio")
-                                    .font(.custom("Inter-Medium", size: 16))
+                                    .typographyBody()
                             }
                             .padding(.vertical, 4)
                             .padding(.horizontal, 4)
@@ -176,17 +176,17 @@ struct ChatView: View {
                     }
                 } else {
                     Text(message.text)
-                        .font(.custom("Inter-Regular", size: 16))
+                        .typographyBody()
                 }
                 
                 HStack(spacing: 4) {
                     Text(Formatters.timeFormatter.string(from: message.timestamp))
-                        .font(.custom("Inter-Regular", size: 11))
+                        .typographyCaption()
                         .foregroundColor(isMine ? Color.white.opacity(0.8) : Theme.textSecondary)
                     
                     if isMine {
                         Image(systemName: message.isRead ? "checkmark" : "checkmark")
-                            .font(.custom("Inter-Bold", size: 10))
+                            .typographyCaption()
                             .foregroundColor(message.isRead ? .blue : Color.white.opacity(0.8))
                     }
                 }

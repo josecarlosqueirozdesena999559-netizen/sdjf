@@ -13,7 +13,7 @@ struct ProfessionalAccountView: View {
                 
                 VStack(spacing: 8) {
                     Text("Seja um Vendedor Profissional")
-                        .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
+                        .typographySubtitle()
                         
                         .multilineTextAlignment(.center)
                     
@@ -58,7 +58,7 @@ struct FeatureRow: View {
                 .foregroundColor(Theme.primary)
                 .frame(width: 30)
             Text(text)
-                .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                .typographyLabel()
         }
     }
 }

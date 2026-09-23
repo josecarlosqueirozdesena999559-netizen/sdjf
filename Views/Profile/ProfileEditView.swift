@@ -48,7 +48,7 @@ struct ProfileEditView: View {
                             }
                             
                             Text("Alterar foto de perfil")
-                                .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                                .typographyLabel()
                                 
                                 .foregroundColor(Theme.primary)
                         }

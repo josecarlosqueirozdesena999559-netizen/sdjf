@@ -33,10 +33,10 @@ struct NotificationsView: View {
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(notification.title)
-                                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                                    .typographySectionTitle()
                                     .foregroundColor(notification.is_read ? Theme.textSecondary : Theme.textPrimary)
                                 Text(notification.body)
-                                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                                    .typographyLabel()
                                     .foregroundColor(Theme.textSecondary)
                             }
                         }

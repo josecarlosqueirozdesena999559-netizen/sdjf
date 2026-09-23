@@ -16,9 +16,9 @@ struct SoldItemsView: View {
                     HStack(spacing: 12) {
                         SoldItemImage(product: product)
                         VStack(alignment: .leading, spacing: 5) {
-                            Text(product.title).font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline)).lineLimit(1)
-                            Text(Formatters.formatCurrency(product.price)).font(.subheadline.weight(.bold)).foregroundColor(Theme.primary)
-                            Label("Vendido", systemImage: "checkmark.circle.fill").font(.custom("Inter-Regular", size: 12, relativeTo: .caption)).foregroundColor(.green)
+                            Text(product.title).typographySectionTitle().lineLimit(1)
+                            Text(Formatters.formatCurrency(product.price)).typographyButton().foregroundColor(Theme.primary)
+                            Label("Vendido", systemImage: "checkmark.circle.fill").typographyCaption().foregroundColor(.green)
                         }
                         Spacer()
                     }

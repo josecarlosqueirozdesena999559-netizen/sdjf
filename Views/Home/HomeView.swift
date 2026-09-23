@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
@@ -25,16 +25,16 @@ struct HomeView: View {
                         }()
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Olá, \(user.visibleName ?? user.name.components(separatedBy: " ").first ?? "Usuário")")
-                                .font(.custom("Inter-SemiBold", size: 20, relativeTo: .title3))
+                                .typographySubtitle()
                                 
                                 .foregroundColor(Theme.textPrimary)
                             
                             HStack(spacing: 4) {
                                 Image(systemName: "location.fill")
-                                    .font(.custom("Inter-Regular", size: 14))
+                                    .typographyBodySecondary()
                                     .foregroundColor(Theme.primary)
                                 Text(cityDisplay)
-                                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                                    .typographyLabel()
                                     .foregroundColor(Theme.textSecondary)
                             }
                         }
@@ -48,7 +48,7 @@ struct HomeView: View {
                     NavigationLink(destination: NotificationsView()) {
                         ZStack(alignment: .topTrailing) {
                             Image(systemName: "bell")
-                                .font(.custom("Inter-SemiBold", size: 20, relativeTo: .title3))
+                                .typographySubtitle()
                                 .foregroundColor(Theme.textPrimary)
                             if authViewModel.hasUnreadNotifications {
                                 Circle()
@@ -104,11 +104,11 @@ struct HomeView: View {
                                         .fill(Theme.inputBackground)
                                         .frame(width: 60, height: 60)
                                     Image(systemName: "ellipsis")
-                                        .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
+                                        .typographySubtitle()
                                         .foregroundColor(Theme.primary)
                                 }
                                 Text("Mais")
-                                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                                    .typographyCaption()
                                     .foregroundColor(Theme.textPrimary)
                             }
                         }
@@ -120,7 +120,7 @@ struct HomeView: View {
                         Image(systemName: "location.north.circle.fill")
                             .foregroundColor(Theme.primary)
                         Text("Mostrando anúncios próximos a você")
-                            .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                            .typographyLabel()
                             
                             .foregroundColor(Theme.textSecondary)
                     }
@@ -130,7 +130,7 @@ struct HomeView: View {
                     // Menu Explorar — agrupa produtos reais do Supabase por categoria
                     VStack(alignment: .leading, spacing: 24) {
                         Text("Explorar")
-                            .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
+                            .typographySubtitle()
                             
                             .padding(.horizontal)
                         
@@ -143,11 +143,11 @@ struct HomeView: View {
                                 VStack(alignment: .leading, spacing: 12) {
                                     HStack {
                                         Text(category.name)
-                                            .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                                            .typographySectionTitle()
                                         Spacer()
                                         NavigationLink(destination: SearchResultsView(category: category)) {
                                             Text("Ver tudo")
-                                                .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                                                .typographyLabel()
                                                 .foregroundColor(Theme.primary)
                                         }
                                     }

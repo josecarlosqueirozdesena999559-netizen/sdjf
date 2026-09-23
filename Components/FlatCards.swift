@@ -79,12 +79,12 @@ struct FlatCategoryCard: View {
                     .frame(width: 60, height: 60)
 
                 Image(systemName: category.iconName)
-                    .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
+                    .typographySubtitle()
                     .foregroundColor(Theme.primary)
             }
 
             Text(category.name)
-                .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                .typographyCaption()
                 .foregroundColor(Theme.textPrimary)
                 .lineLimit(1)
         }
@@ -133,18 +133,18 @@ struct FlatProductCard: View {
 
                     VStack(alignment: .leading, spacing: 4) {
                         Text(product.title)
-                            .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                            .typographyLabel()
                             .foregroundColor(Theme.textPrimary)
                             .lineLimit(2)
 
                         Text("\(product.condition.rawValue) · \(product.location)")
-                            .font(.custom("Inter-Medium", size: 11, relativeTo: .caption2))
+                            .typographyCaption()
                             .foregroundColor(Theme.textSecondary)
                             .lineLimit(1)
 
                         HStack {
                             Text(Formatters.formatCurrency(product.price))
-                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                                .typographySectionTitle()
                                 
                                 .foregroundColor(Theme.primary)
 
@@ -152,10 +152,10 @@ struct FlatProductCard: View {
 
                             HStack(spacing: 2) {
                                 Image(systemName: "eye")
-                                    .font(.custom("Inter-Regular", size: 10))
+                                    .typographyCaption()
                                     .foregroundColor(Theme.textSecondary)
                                 Text("\(product.views)")
-                                    .font(.custom("Inter-Medium", size: 11, relativeTo: .caption2))
+                                    .typographyCaption()
                                     .foregroundColor(Theme.textSecondary)
                             }
                         }

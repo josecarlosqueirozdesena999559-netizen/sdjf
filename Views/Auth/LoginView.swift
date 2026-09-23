@@ -24,7 +24,7 @@ struct LoginView: View {
                     }
                 }) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .semibold))
+                        .typographyButton()
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                     .foregroundColor(Theme.primary)
@@ -37,7 +37,7 @@ struct LoginView: View {
                 if step == .username {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Qual é o seu usuário?")
-                            .font(.custom("Inter-Bold", size: 24, relativeTo: .title))
+                            .typographyScreenTitle()
                             
                             .foregroundColor(Theme.textPrimary)
                     }
@@ -56,7 +56,7 @@ struct LoginView: View {
                         withAnimation(.easeInOut(duration: 0.25)) { step = .password }
                     }) {
                         Text("Continuar")
-                            .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                            .typographySectionTitle()
                             .foregroundColor(username.isEmpty ? .gray : .white)
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -67,7 +67,7 @@ struct LoginView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Digite sua senha")
-                            .font(.custom("Inter-Bold", size: 24, relativeTo: .title))
+                            .typographyScreenTitle()
                             
                             .foregroundColor(Theme.textPrimary)
                         Text("Quase lá! Insira sua senha para acessar.")
@@ -87,7 +87,7 @@ struct LoginView: View {
                                 Text(error)
                             }
                             .foregroundColor(Theme.error)
-                            .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                            .typographyLabel()
                             .padding(.top, 4)
                         }
                         
@@ -95,7 +95,7 @@ struct LoginView: View {
                             Spacer()
                             NavigationLink(destination: ForgotPasswordView()) {
                                 Text("Esqueceu a senha?")
-                                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                                    .typographyLabel()
                                     
                                     .foregroundColor(Theme.primary)
                             }
@@ -117,7 +117,7 @@ struct LoginView: View {
                                 .cornerRadius(12)
                         } else {
                             Text("Entrar")
-                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                                .typographySectionTitle()
                                 .foregroundColor(password.isEmpty ? .gray : .white)
                                 .frame(maxWidth: .infinity)
                                 .padding()

@@ -15,7 +15,7 @@ struct PrimaryButton: View {
                         .progressViewStyle(CircularProgressViewStyle(tint: .white))
                 } else {
                     Text(title)
-                        .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                        .typographySectionTitle()
                         
                 }
             }

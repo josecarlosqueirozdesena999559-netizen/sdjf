@@ -14,11 +14,11 @@ struct MessagesListView: View {
                             .font(.system(size: 48))
                             .foregroundColor(Theme.textSecondary.opacity(0.5))
                         Text("Nenhuma mensagem ainda")
-                            .font(.custom("Inter-SemiBold", size: 20, relativeTo: .title3))
+                            .typographySubtitle()
                             
                             .foregroundColor(Theme.textPrimary)
                         Text("Quando você iniciar ou receber uma conversa, ela aparecerá aqui.")
-                            .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                            .typographyLabel()
                             .foregroundColor(Theme.textSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
@@ -78,30 +78,30 @@ struct MessageRowView: View {
             VStack(alignment: .leading, spacing: 6) {
                 HStack {
                     Text(participantName)
-                        .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                        .typographySectionTitle()
                         .foregroundColor(Theme.textPrimary)
                     
                     Spacer()
                     
                     Text(Formatters.timeFormatter.string(from: conversation.lastMessage.timestamp))
-                        .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                        .typographyCaption()
                         .foregroundColor(conversation.unreadCount > 0 ? Theme.primary : Theme.textSecondary)
                         .fontWeight(conversation.unreadCount > 0 ? .bold : .regular)
                 }
                 
                 HStack {
                     Image(systemName: "tag.fill")
-                        .font(.system(size: 10))
+                        .typographyCaption()
                         .foregroundColor(Theme.primary)
                     Text(productTitle)
-                        .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                        .typographyCaption()
                         .foregroundColor(Theme.primary)
                         .lineLimit(1)
                 }
                 
                 HStack {
                     Text(conversation.lastMessage.text)
-                        .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                        .typographyLabel()
                         .foregroundColor(conversation.unreadCount > 0 ? Theme.textPrimary : Theme.textSecondary)
                         .fontWeight(conversation.unreadCount > 0 ? .semibold : .regular)
                         .lineLimit(2)
@@ -114,7 +114,7 @@ struct MessageRowView: View {
                                 .fill(Theme.primary)
                                 .frame(width: 22, height: 22)
                             Text("\(conversation.unreadCount)")
-                                .font(.custom("Inter-Regular", size: 11, relativeTo: .caption2))
+                                .typographyCaption()
                                 
                                 .foregroundColor(.white)
                         }

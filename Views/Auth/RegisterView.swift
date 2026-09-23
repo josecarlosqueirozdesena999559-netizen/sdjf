@@ -19,12 +19,12 @@ struct RegisterView: View {
                     }
                 }) {
                     Image(systemName: "chevron.left")
-                        .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
+                        .typographySubtitle()
                         .foregroundColor(Theme.textPrimary)
                 }
                 Spacer()
                 Text("Passo \(viewModel.currentStep.rawValue + 1) de \(RegisterStep.allCases.count)")
-                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                    .typographyLabel()
                     .foregroundColor(Theme.textSecondary)
                 Spacer()
                 if viewModel.currentStep != .name {
@@ -78,7 +78,7 @@ struct RegisterView: View {
     var stepName: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Qual é o seu nome completo?")
-                .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
+                .typographySubtitle()
                 
                 .foregroundColor(Theme.textPrimary)
             
@@ -95,7 +95,7 @@ struct RegisterView: View {
     var stepCPF: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("E o seu CPF?")
-                .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
+                .typographySubtitle()
                 
                 .foregroundColor(Theme.textPrimary)
             
@@ -122,7 +122,7 @@ struct RegisterView: View {
     var stepBirthDate: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Qual a sua data de nascimento?")
-                .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
+                .typographySubtitle()
                 
                 .foregroundColor(Theme.textPrimary)
             
@@ -142,7 +142,7 @@ struct RegisterView: View {
     var stepEmail: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Informe seu melhor e-mail")
-                .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
+                .typographySubtitle()
                 
                 .foregroundColor(Theme.textPrimary)
             
@@ -159,7 +159,7 @@ struct RegisterView: View {
     var stepPassword: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Crie uma senha segura")
-                .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
+                .typographySubtitle()
                 
                 .foregroundColor(Theme.textPrimary)
             
@@ -176,12 +176,12 @@ struct RegisterView: View {
     var stepUsername: some View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Escolha seu nome de usuário")
-                .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
+                .typographySubtitle()
                 
                 .foregroundColor(Theme.textPrimary)
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("Usuário").font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline)).foregroundColor(Theme.textSecondary)
+                Text("Usuário").typographyLabel().foregroundColor(Theme.textSecondary)
                 HStack {
                     Text("@").foregroundColor(Theme.primary)
                     TextField("seunome", text: $viewModel.username)
@@ -207,7 +207,7 @@ struct RegisterView: View {
                 
                 if let available = viewModel.isUsernameAvailable, available {
                     Text("Nome de usuário disponível")
-                        .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                        .typographyCaption()
                         .foregroundColor(Theme.primary)
                 }
             }
@@ -240,14 +240,14 @@ struct RegisterView: View {
                     Text("você ").foregroundColor(Theme.primary) +
                     Text("é?").foregroundColor(Color(hex: "1A1A2E"))
                 }
-                .font(.custom("Inter-Bold", size: 24))
+                .typographyScreenTitle()
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .padding(.bottom, 12)
                 
                 // Subtitle
                 Text("Usamos sua localização para mostrar\nprodutos próximos a você.")
-                    .font(.custom("Inter-Regular", size: 16))
+                    .typographyBody()
                     .multilineTextAlignment(.center)
                     .foregroundColor(.gray)
                     .lineSpacing(4)
@@ -261,7 +261,7 @@ struct RegisterView: View {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
                         Text(viewModel.locationName)
-                            .font(.custom("Inter-SemiBold", size: 15))
+                            .typographyButton()
                             .foregroundColor(Theme.textPrimary)
                     }
                     .padding(.horizontal, 16)
@@ -279,9 +279,9 @@ struct RegisterView: View {
                     Button(action: { viewModel.requestLocation() }) {
                         HStack(spacing: 10) {
                             Image(systemName: "paperplane.fill")
-                                .font(.custom("Inter-Bold", size: 16))
+                                .typographyButton()
                             Text("Usar minha localização atual")
-                                .font(.custom("Inter-Bold", size: 16))
+                                .typographyButton()
                         }
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 18)
@@ -316,12 +316,12 @@ struct RegisterView: View {
         VStack(alignment: .center, spacing: 20) {
             VStack(spacing: 6) {
                 Text("Dados do Perfil")
-                    .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
+                    .typographySubtitle()
                     
                     .foregroundColor(Theme.textPrimary)
                 
                 Text("Por favor, informe seu nome e adicione uma foto de perfil opcional.")
-                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                    .typographyLabel()
                     .multilineTextAlignment(.center)
                     .foregroundColor(Theme.textSecondary)
                     .padding(.horizontal, 16)
@@ -358,7 +358,7 @@ struct RegisterView: View {
                             .shadow(color: Color.black.opacity(0.15), radius: 4, x: 0, y: 2)
                         
                         Image(systemName: "camera.fill")
-                            .font(.custom("Inter-Bold", size: 18))
+                            .typographySubtitle()
                             .foregroundColor(.white)
                     }
                     .offset(x: 2, y: 2)
@@ -376,13 +376,13 @@ struct RegisterView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Nome de Exibição")
-                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                    .typographyLabel()
                     
                     .foregroundColor(Theme.textSecondary)
                 
                 HStack {
                     TextField("Seu nome (ex: João)", text: $viewModel.visibleName)
-                        .font(.custom("Inter-Regular", size: 17, relativeTo: .body))
+                        .typographyBody()
                     
                     Image(systemName: "pencil")
                         .foregroundColor(Theme.textSecondary)
@@ -393,7 +393,7 @@ struct RegisterView: View {
                 .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1))
                 
                 Text("Este é o nome que aparecerá no seu perfil e nas conversas do chat.")
-                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                    .typographyCaption()
                     .foregroundColor(Theme.textSecondary)
             }
             .padding(.horizontal)

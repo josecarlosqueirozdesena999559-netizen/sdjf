@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct UserProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel

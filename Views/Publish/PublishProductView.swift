@@ -70,7 +70,7 @@ struct PublishProductView: View {
     @ViewBuilder private var mediaSection: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Fotos e Vídeos")
-                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                .typographySectionTitle()
                 .foregroundColor(Theme.textPrimary)
                 .padding(.horizontal)
             
@@ -81,7 +81,7 @@ struct PublishProductView: View {
                             Image(systemName: "camera.badge.ellipsis")
                                 .font(.custom("Inter-Regular", size: 28))
                             Text("Adicionar")
-                                .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                                .typographyCaption()
                                 
                         }
                         .frame(width: 100, height: 100)
@@ -113,7 +113,7 @@ struct PublishProductView: View {
                                         ZStack {
                                             Color.black.opacity(0.3)
                                             Image(systemName: "play.circle.fill")
-                                                .font(.custom("Inter-Bold", size: 24, relativeTo: .title))
+                                                .typographyScreenTitle()
                                                 .foregroundColor(.white)
                                         }
                                     }
@@ -146,16 +146,16 @@ struct PublishProductView: View {
     @ViewBuilder private var priceSection: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text("Preço do Produto")
-                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                .typographySectionTitle()
                 .foregroundColor(Theme.textPrimary)
             
             HStack {
                 Text("R$")
-                    .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
+                    .typographySubtitle()
                     
                     .foregroundColor(Theme.textSecondary)
                 TextField("0,00", text: $viewModel.price)
-                    .font(.custom("Inter-Bold", size: 24))
+                    .typographyScreenTitle()
                     .keyboardType(.decimalPad)
                     .foregroundColor(Theme.textPrimary)
             }
@@ -170,7 +170,7 @@ struct PublishProductView: View {
         VStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Título")
-                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                    .typographySectionTitle()
                 TextField("Ex: iPhone 13 128GB impecável", text: $viewModel.title)
                     .padding()
                     .background(Theme.inputBackground)
@@ -179,7 +179,7 @@ struct PublishProductView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Descrição")
-                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                    .typographySectionTitle()
                 TextEditor(text: $viewModel.productDescription)
                     .frame(height: 120)
                     .padding(8)
@@ -189,7 +189,7 @@ struct PublishProductView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Estado de conservação")
-                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                    .typographySectionTitle()
                 HStack {
                     ForEach(ProductCondition.allCases, id: \.self) { condition in
                         ConditionButton(
@@ -203,7 +203,7 @@ struct PublishProductView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Categoria")
-                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                    .typographySectionTitle()
                 Menu {
                     ForEach(MockData.categories) { cat in
                         Button(action: { viewModel.selectedCategoryId = cat.id }) {
@@ -226,7 +226,7 @@ struct PublishProductView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Localização")
-                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                    .typographySectionTitle()
                 HStack {
                     TextField("Ex: São Paulo - SP", text: $viewModel.location)
                     if viewModel.isFetchingLocation {
@@ -248,7 +248,7 @@ struct PublishProductView: View {
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("WhatsApp (Opcional)")
-                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                    .typographySectionTitle()
                 TextField("Ex: 11999999999", text: $viewModel.whatsappNumber)
                     .keyboardType(.numberPad)
                     .padding()
@@ -257,7 +257,7 @@ struct PublishProductView: View {
             }
             
             Toggle("Aceita negociação?", isOn: $viewModel.acceptsNegotiation)
-                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                .typographySectionTitle()
                 .padding(.vertical, 8)
                 .tint(Theme.primary)
         }
@@ -276,7 +276,7 @@ struct PublishProductView: View {
                     ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
                 } else {
                     Text("Publicar Anúncio")
-                        .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                        .typographySectionTitle()
                 }
             }
             .frame(maxWidth: .infinity)
@@ -301,14 +301,14 @@ struct PublishProductView: View {
                                 .scaleEffect(1.5)
                                 .progressViewStyle(CircularProgressViewStyle(tint: .white))
                             Text("Publicando...")
-                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                                .typographySectionTitle()
                                 .foregroundColor(.white)
                         } else if viewModel.publishSuccess {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.custom("Inter-Regular", size: 60))
                                 .foregroundColor(.green)
                             Text("Item publicado!")
-                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                                .typographySectionTitle()
                                 .foregroundColor(.white)
                         }
                     }
@@ -373,7 +373,7 @@ struct ConditionButton: View {
     var body: some View {
         Button(action: action) {
             Text(condition.rawValue)
-                .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                .typographyLabel()
                 
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)

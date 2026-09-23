@@ -12,7 +12,7 @@ struct CustomTextField: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             Text(title)
-                .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                .typographyLabel()
                 .foregroundColor(Theme.textSecondary)
             
             HStack {

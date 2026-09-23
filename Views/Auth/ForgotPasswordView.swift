@@ -14,7 +14,7 @@ struct ForgotPasswordView: View {
             HStack {
                 Button(action: { dismiss() }) {
                     Image(systemName: "chevron.left")
-                        .font(.system(size: 16, weight: .semibold))
+                        .typographyButton()
                         .frame(width: 44, height: 44)
                         .contentShape(Rectangle())
                     .foregroundColor(Theme.primary)
@@ -34,17 +34,17 @@ struct ForgotPasswordView: View {
                                 .fill(Color.green.opacity(0.1))
                                 .frame(width: 100, height: 100)
                             Image(systemName: "envelope.badge.fill")
-                                .font(.system(size: 32))
+                                .typographyDisplay()
                                 .foregroundColor(.green)
                         }
                         
                         Text("E-mail Enviado!")
-                            .font(.custom("Inter-Bold", size: 24, relativeTo: .title))
+                            .typographyScreenTitle()
                             
                             .foregroundColor(Theme.textPrimary)
                         
                         Text(message)
-                            .font(.custom("Inter-Regular", size: 17, relativeTo: .body))
+                            .typographyBody()
                             .foregroundColor(Theme.textSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 20)
@@ -56,7 +56,7 @@ struct ForgotPasswordView: View {
                     // Form View
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Recuperar Senha")
-                            .font(.custom("Inter-Bold", size: 24, relativeTo: .title))
+                            .typographyScreenTitle()
                             
                             .foregroundColor(Theme.textPrimary)
                         Text("Digite seu e-mail cadastrado. Enviaremos um link seguro para você redefinir sua senha.")
@@ -74,7 +74,7 @@ struct ForgotPasswordView: View {
                             Text(message)
                         }
                         .foregroundColor(Theme.error)
-                        .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                        .typographyLabel()
                         .padding(.top, 8)
                     }
                     
@@ -92,7 +92,7 @@ struct ForgotPasswordView: View {
                                 .cornerRadius(12)
                         } else {
                             Text("Enviar Link de Recuperação")
-                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                                .typographySectionTitle()
                                 .foregroundColor(email.isEmpty || !email.contains("@") ? .gray : .white)
                                 .frame(maxWidth: .infinity)
                                 .padding()

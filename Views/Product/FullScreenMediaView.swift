@@ -35,7 +35,7 @@ struct FullScreenMediaView: View {
                         dismiss()
                     }) {
                         Image(systemName: "xmark.circle.fill")
-                            .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
+                            .typographySubtitle()
                             .foregroundColor(.white)
                             .padding()
                     }

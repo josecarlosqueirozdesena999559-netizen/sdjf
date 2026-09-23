@@ -24,13 +24,13 @@ struct SellerProfileView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 5) {
                             Text(seller.user.visibleName ?? seller.user.name)
-                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                                .typographySectionTitle()
 
                         }
                         Text("@\(seller.user.username ?? "")")
-                            .font(.custom("Inter-Regular", size: 12, relativeTo: .caption)).foregroundColor(Theme.textSecondary)
+                            .typographyCaption().foregroundColor(Theme.textSecondary)
                         Label(seller.user.location, systemImage: "mappin.and.ellipse")
-                            .font(.custom("Inter-Regular", size: 12, relativeTo: .caption)).foregroundColor(Theme.textSecondary)
+                            .typographyCaption().foregroundColor(Theme.textSecondary)
                     }
                     Spacer()
                     Menu {
@@ -61,7 +61,7 @@ struct SellerProfileView: View {
                                 Image(systemName: isFollowing ? "checkmark" : "plus")
                                 Text(isFollowing ? "Deixar de seguir" : "Seguir")
                             }
-                            .font(.subheadline.weight(.semibold))
+                            .typographyButton()
                             .frame(maxWidth: .infinity).padding(.vertical, 11)
                             .foregroundColor(isFollowing ? Theme.primary : .white)
                             .background(isFollowing ? Theme.lightGreen : Theme.primary)
@@ -70,7 +70,7 @@ struct SellerProfileView: View {
                         if let product = sellerProducts.first, let user = authViewModel.currentUser {
                             NavigationLink(destination: ChatView(conversation: Conversation(id: UUID(), productId: product.id, participantId: seller.user.id, lastMessage: Message(id: UUID(), senderId: user.id, receiverId: seller.user.id, text: "", timestamp: Date(), isRead: true), unreadCount: 0), currentUser: user)) {
                             Label("Mensagem", systemImage: "paperplane.fill")
-                                .font(.subheadline.weight(.semibold)).frame(maxWidth: .infinity).padding(.vertical, 11)
+                                .typographyButton().frame(maxWidth: .infinity).padding(.vertical, 11)
                                 .foregroundColor(Theme.primary).background(Theme.lightGreen).clipShape(Capsule())
                         }
                     }
@@ -92,7 +92,7 @@ struct SellerProfileView: View {
 
                 if !seller.bio.isEmpty {
                     Text(seller.bio)
-                        .font(.custom("Inter-Regular", size: 15, relativeTo: .subheadline))
+                        .typographyBody()
                         .foregroundColor(Theme.textPrimary)
                         .lineSpacing(3)
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -100,7 +100,7 @@ struct SellerProfileView: View {
                 }
 
                 Text(isOwnProfile ? "Meus anúncios" : "Anúncios do vendedor")
-                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                    .typographySectionTitle()
                     .frame(maxWidth: .infinity, alignment: .leading)
                 LazyVGrid(columns: columns, spacing: 14) {
                     ForEach(sellerProducts) { product in
@@ -108,8 +108,8 @@ struct SellerProfileView: View {
                             NavigationLink(destination: ProductDetailView(product: product)) {
                                 VStack(alignment: .leading, spacing: 5) {
                                     ProductThumbnail(product: product)
-                                    Text(product.title).font(.custom("Inter-Regular", size: 12, relativeTo: .caption)).lineLimit(1).foregroundColor(Theme.textPrimary)
-                                    Text(Formatters.formatCurrency(product.price)).font(.caption.weight(.bold)).foregroundColor(Theme.primary)
+                                    Text(product.title).typographyCaption().lineLimit(1).foregroundColor(Theme.textPrimary)
+                                    Text(Formatters.formatCurrency(product.price)).typographyCaption()).foregroundColor(Theme.primary)
                                 }
                             }
                         }
@@ -146,13 +146,13 @@ struct SellerProfileView: View {
     }
 
     private var avatarFallback: some View {
-        Circle().fill(Theme.lightGreen).overlay(Text(String(seller.user.name.prefix(1))).font(.title2.weight(.bold)).foregroundColor(Theme.primary))
+        Circle().fill(Theme.lightGreen).overlay(Text(String(seller.user.name.prefix(1))).typographySubtitle()).foregroundColor(Theme.primary))
     }
 
     private func metric(_ value: String, _ label: String, icon: String? = nil) -> some View {
         VStack(spacing: 3) {
-            HStack(spacing: 2) { Text(value).font(.caption.weight(.bold)); if let icon { Image(systemName: icon).font(.custom("Inter-Regular", size: 11, relativeTo: .caption2)).foregroundColor(.yellow) } }
-            Text(label).font(.custom("Inter-Regular", size: 11, relativeTo: .caption2)).foregroundColor(Theme.textSecondary).lineLimit(1)
+            HStack(spacing: 2) { Text(value).typographyCaption()); if let icon { Image(systemName: icon).typographyCaption().foregroundColor(.yellow) } }
+            Text(label).typographyCaption().foregroundColor(Theme.textSecondary).lineLimit(1)
         }.frame(maxWidth: .infinity)
     }
 

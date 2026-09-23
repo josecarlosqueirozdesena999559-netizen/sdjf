@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct CustomBackButtonModifier: ViewModifier {
     @Environment(\.presentationMode) var presentationMode
@@ -12,7 +12,7 @@ struct CustomBackButtonModifier: ViewModifier {
                         presentationMode.wrappedValue.dismiss()
                     }) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 14, weight: .semibold))
+                            .typographyButton()
                             .frame(width: 32, height: 32)
                             .contentShape(Rectangle())
                         .foregroundColor(Theme.primary)

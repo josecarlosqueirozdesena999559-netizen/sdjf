@@ -27,9 +27,9 @@ struct CategoriesView: View {
                             
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(category.name)
-                                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                                    .typographySectionTitle()
                                 Text(category.description)
-                                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                                    .typographyLabel()
                                     .foregroundColor(Theme.textSecondary)
                             }
                         }

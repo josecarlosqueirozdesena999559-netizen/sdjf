@@ -25,7 +25,7 @@ struct SearchResultsView: View {
             HStack {
                 Text("\(localResults.count) resultados próximos a você")
                     .foregroundColor(Theme.textSecondary)
-                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                    .typographyLabel()
                 Spacer()
                 Button(action: { isGrid.toggle() }) {
                     Image(systemName: isGrid ? "list.bullet" : "square.grid.2x2")
@@ -42,7 +42,7 @@ struct SearchResultsView: View {
                 Spacer()
                 VStack(spacing: 16) {
                     Image(systemName: "location.slash")
-                        .font(.custom("Inter-Bold", size: 24, relativeTo: .title))
+                        .typographyScreenTitle()
                         .foregroundColor(Theme.textSecondary)
                     Text("Nenhum produto próximo a você.")
                         .foregroundColor(Theme.textSecondary)
@@ -69,13 +69,13 @@ struct SearchResultsView: View {
                                         
                                         VStack(alignment: .leading, spacing: 4) {
                                             Text(product.title)
-                                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                                                .typographySectionTitle()
                                             Text(Formatters.formatCurrency(product.price))
-                                                .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                                                .typographyLabel()
                                                 
                                                 .foregroundColor(Theme.primary)
                                             Text("\(product.condition.rawValue) • \(product.location)")
-                                                .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
+                                                .typographyCaption()
                                                 .foregroundColor(Theme.textSecondary)
                                         }
                                         Spacer()
