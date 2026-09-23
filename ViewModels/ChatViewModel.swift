@@ -261,8 +261,10 @@ class ChatViewModel: ObservableObject {
                 do {
                     struct Payload: Codable { let id: UUID; let is_read: Bool }
                     let record = try update.decodeRecord(decoder: JSONDecoder()) as Payload
-                    if let index = messages.firstIndex(where: { $0.id == record.id }) {
-                        messages[index].isRead = record.is_read
+                    await MainActor.run {
+                        if let index = self.messages.firstIndex(where: { $0.id == record.id }) {
+                            self.messages[index].isRead = record.is_read
+                        }
                     }
                 } catch {
                     print("Erro ao atualizar leitura: \(error)")
@@ -403,8 +405,17 @@ class ChatViewModel: ObservableObject {
     }
     
     func markAsRead() async {
+        // Atualiza o estado local imediatamente
+        await MainActor.run {
+            for i in 0..<self.messages.count {
+                if self.messages[i].senderId == self.conversation.participantId && !self.messages[i].isRead {
+                    self.messages[i].isRead = true
+                }
+            }
+        }
+        
+        // Sincroniza com o Supabase
         do {
-
             try await supabase.database
                 .from("messages")
                 .update(["is_read": true])

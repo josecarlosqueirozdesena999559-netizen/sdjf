@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import AVFoundation
 import AVKit
 import PhotosUI
@@ -72,21 +72,21 @@ struct ChatView: View {
     }
 
     private var headerContent: some View {
-        HStack(spacing: 10) {
+        HStack(spacing: 12) {
             Group {
                 if let value = participantAvatarURL, let url = URL(string: value) {
                     AsyncImage(url: url) { phase in
                         if let image = phase.image { image.resizable().scaledToFill() }
-                        else { Image(systemName: "person.crop.circle.fill") }
+                        else { Image(systemName: "person.crop.circle.fill").resizable() }
                     }
-                } else { Image(systemName: "person.crop.circle.fill") }
+                } else { Image(systemName: "person.crop.circle.fill").resizable() }
             }
             .foregroundColor(Theme.textSecondary)
-            .frame(width: 44, height: 44)
+            .frame(width: 52, height: 52)
             .clipShape(Circle())
             
             VStack(alignment: .leading, spacing: 2) {
-                Text(participantName).font(.custom("Inter-SemiBold", size: 18))
+                Text(participantName).font(.custom("Inter-Bold", size: 20))
                 if !statusText.isEmpty {
                     HStack(spacing: 4) {
                         if viewModel.otherUserOnline {
