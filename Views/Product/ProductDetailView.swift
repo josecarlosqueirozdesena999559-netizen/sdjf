@@ -22,6 +22,7 @@ struct ProductDetailView: View {
     @State private var isFullScreenMedia: Bool = false
     @State private var seller: Seller? = nil
     @State private var offerError: String? = nil
+    @AppStorage("hideFloatingButton") private var hideFloatingButton = false
     
     // Timer for auto-sliding images
     let timer = Timer.publish(every: 3.0, on: .main, in: .common).autoconnect()
@@ -245,10 +246,8 @@ var isOwner: Bool {
                             .font(.custom("Inter-Regular", size: 17, relativeTo: .body))
                             .foregroundColor(Theme.textSecondary)
                             .lineSpacing(4)
-                            .padding()
+                            .padding(.top, 4)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(Theme.inputBackground)
-                            .cornerRadius(12)
                     }
                     
                     Divider()
@@ -304,6 +303,7 @@ var isOwner: Bool {
         
         .toolbar(.hidden, for: .tabBar)
 .onAppear {
+            hideFloatingButton = true
             Task { await loadViewCount() }
             Task { await subscribeToViewCount() }
             Task { await loadOffers() }
@@ -332,7 +332,10 @@ var isOwner: Bool {
                 }
             }
         }
-                .safeAreaInset(edge: .bottom, spacing: 0) {
+                .onDisappear {
+            hideFloatingButton = false
+        }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
             if !isOwner, let currentUser = authViewModel.currentUser {
                 HStack(spacing: 12) {
                     NavigationLink(destination: ChatView(conversation: Conversation(id: UUID(), productId: product.id, participantId: product.sellerId, lastMessage: Message(id: UUID(), senderId: currentUser.id, receiverId: product.sellerId, text: "", timestamp: Date(), isRead: true), unreadCount: 0), currentUser: currentUser)) {

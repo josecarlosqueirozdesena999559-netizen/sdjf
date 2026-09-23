@@ -297,6 +297,18 @@ class ChatViewModel: ObservableObject {
             print("Error uploading audio: \(error)")
         }
     }
+    func sendMedia(data: Data, isVideo: Bool = false) async {
+        let ext = isVideo ? "mp4" : "jpg"
+        let path = "${currentUser.id.uuidString}/$(UUID().uuidString).$ext"
+        let contentType = isVideo ? "video/mp4" : "image/jpeg"
+        do {
+            try await supabase.storage.from("chat-media").upload(path: path, file: data, options: FileOptions(contentType: contentType))
+            await sendMessage(text: isVideo ? "📹 Vídeo" : "📷 Imagem", mediaUrl: path, mediaType: isVideo ? "video" : "image")
+        } catch {
+            print("Error uploading media: $error")
+        }
+    }
+
     func sendTypingEvent() {
         guard let channel = self.channel else { return }
         Task {

@@ -1,5 +1,7 @@
 ﻿import SwiftUI
 import AVFoundation
+import AVKit
+import PhotosUI
 
 struct ChatView: View {
     @StateObject var viewModel: ChatViewModel
@@ -9,6 +11,7 @@ struct ChatView: View {
     @State private var participantName = "Usuário"
     @State private var participantAvatarURL: String?
     @State private var audioPlayer: AVPlayer?
+    @State private var selectedItem: PhotosPickerItem? = nil
 
     init(conversation: Conversation, currentUser: User) {
         _viewModel = StateObject(wrappedValue: ChatViewModel(conversation: conversation, currentUser: currentUser))
@@ -80,6 +83,27 @@ struct ChatView: View {
 
     private var composer: some View {
         HStack {
+            PhotosPicker(selection: $selectedItem, matching: .any(of: [.images, .videos])) {
+                Image(systemName: "plus")
+                    .font(.system(size: 24))
+                    .foregroundColor(Theme.primary)
+                    .padding(.leading, 10)
+            }
+            .onChange(of: selectedItem) { _, newItem in
+                guard let newItem else { return }
+                Task {
+                    if let data = try? await newItem.loadTransferable(type: Data.self) {
+                        let isVideo = newItem.supportedContentTypes.contains(where: {     private var composer: some View {
+        HStack {
+            if audioRecorder.isRecording {.conforms(to: .movie) ||     private var composer: some View {
+        HStack {
+            if audioRecorder.isRecording {.conforms(to: .video) })
+                        await viewModel.sendMedia(data: data, isVideo: isVideo)
+                    }
+                    selectedItem = nil
+                }
+            }
+
             if audioRecorder.isRecording {
                 Label("Gravando áudio…", systemImage: "waveform")
                     .foregroundColor(.red)
@@ -143,10 +167,13 @@ struct ChatView: View {
                         .padding(.vertical, 4)
                         .padding(.horizontal, 4)
                     }
-                } else {
-                    Text(message.text)
-                        .font(.custom("Inter-Regular", size: 16))
+                                } else {
+                    ChatMediaRenderer(path: path)
                 }
+            } else {
+                Text(message.text)
+                    .font(.custom("Inter-Regular", size: 16))
+            }
                 
                 HStack(spacing: 4) {
                     Text(Formatters.timeFormatter.string(from: message.timestamp))
@@ -200,6 +227,36 @@ struct ChatView: View {
             participantAvatarURL = profile.avatar_url
         } catch {
             print("Erro ao carregar participante: \(error)")
+        }
+    }
+}
+struct ChatMediaRenderer: View {
+    let path: String
+    @State private var url: URL?
+    var body: some View {
+        Group {
+            if let url = url {
+                if path.hasSuffix(".mp4") {
+                    VideoPlayer(player: AVPlayer(url: url))
+                        .frame(width: 250, height: 250)
+                        .cornerRadius(10)
+                } else {
+                    AsyncImage(url: url) { phase in
+                        if let image = phase.image {
+                            image.resizable().scaledToFill().frame(maxWidth: 250, maxHeight: 250).clipped().cornerRadius(10)
+                        } else {
+                            ProgressView()
+                        }
+                    }
+                }
+            } else {
+                ProgressView().onAppear { loadURL() }
+            }
+        }
+    }
+    func loadURL() {
+        Task {
+            url = try? await supabase.storage.from("chat-media").createSignedURL(path: path, expiresIn: 3600)
         }
     }
 }
