@@ -93,11 +93,7 @@ struct ChatView: View {
                 guard let newItem else { return }
                 Task {
                     if let data = try? await newItem.loadTransferable(type: Data.self) {
-                        let isVideo = newItem.supportedContentTypes.contains(where: {     private var composer: some View {
-        HStack {
-            if audioRecorder.isRecording {.conforms(to: .movie) ||     private var composer: some View {
-        HStack {
-            if audioRecorder.isRecording {.conforms(to: .video) })
+                        let isVideo = newItem.supportedContentTypes.contains(where: { it in it.conforms(to: .movie) || it.conforms(to: .video) })
                         await viewModel.sendMedia(data: data, isVideo: isVideo)
                     }
                     selectedItem = nil
@@ -230,6 +226,7 @@ struct ChatView: View {
         }
     }
 }
+
 struct ChatMediaRenderer: View {
     let path: String
     @State private var url: URL?
