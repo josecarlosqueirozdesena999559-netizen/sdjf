@@ -27,6 +27,23 @@ class AuthViewModel: ObservableObject {
     @Published var hasUnreadNotifications: Bool = false
     @Published var needsProfileSetup: Bool = false
     
+    private var cancellables = Set<AnyCancellable>()
+    
+    init() {
+        LocationManager.shared.$addressString
+            .compactMap { class AuthViewModel: ObservableObject {
+    @Published var isAuthenticated: Bool = false
+    @Published var currentUser: User? = nil
+    @Published var hasUnreadNotifications: Bool = false
+    @Published var needsProfileSetup: Bool = false }
+            .sink { [weak self] newAddress in
+                if let loc = LocationManager.shared.location {
+                    self?.updateLocation(lat: loc.latitude, lon: loc.longitude, address: newAddress)
+                }
+            }
+            .store(in: &cancellables)
+    }
+    
     @Published var isLoading = false
     @Published var errorMessage: String? = nil
     
@@ -86,6 +103,32 @@ class AuthViewModel: ObservableObject {
             }
             await MainActor.run {
                 self.isLoading = false
+            }
+        }
+    }
+    
+    func updateLocation(lat: Double, lon: Double, address: String?) {
+        guard let userId = currentUser?.id else { return }
+        
+        Task {
+            do {
+                struct LocUpdate: Encodable {
+                    let latitude: Double
+                    let longitude: Double
+                    let location: String?
+                }
+                let finalAddress = address ?? currentUser?.location ?? "Desconhecido"
+                let update = LocUpdate(latitude: lat, longitude: lon, location: finalAddress)
+                try await supabase.database.from("profiles").update(update).eq("id", value: userId.uuidString).execute()
+                await MainActor.run {
+                    self.currentUser?.latitude = lat
+                    self.currentUser?.longitude = lon
+                    if let address = address {
+                        self.currentUser?.location = address
+                    }
+                }
+            } catch {
+                print("Error updating location: $error")
             }
         }
     }

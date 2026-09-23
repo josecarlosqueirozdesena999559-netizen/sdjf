@@ -82,14 +82,6 @@ struct MainTabView: View {
                 OneSignal.login(userId.uuidString)
             }
         }
-        .onChange(of: locationManager.addressString) { _, newAddress in
-            handleLocationUpdate(newAddress: newAddress)
-        }
-    }
-    
-    private func handleLocationUpdate(newAddress: String?) {
-        if let loc = locationManager.location {
-            authViewModel.updateLocation(lat: loc.latitude, lon: loc.longitude, address: newAddress)
-        }
+        
     }
 }
