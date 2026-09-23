@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import PhotosUI
 
 struct ChatView: View {
@@ -114,19 +114,6 @@ struct ChatView: View {
             }
             
             HStack(spacing: 12) {
-                PhotosPicker(selection: $selectedAttachment, matching: .any(of: [.images, .videos])) {
-                    Image(systemName: "plus")
-                        .font(.custom("Inter-Regular", size: 20))
-                        .foregroundColor(Theme.textSecondary)
-                }
-                .onChange(of: selectedAttachment) { _, _ in
-                    if selectedAttachment != nil {
-                        Task {
-                            await viewModel.sendMessage(text: "📷 Mídia", mediaUrl: "mock_image")
-                        }
-                        selectedAttachment = nil
-                    }
-                }
                 
                 HStack(spacing: 8) {
                     if isRecordingAudio {
