@@ -92,3 +92,5 @@ struct MainTabView: View {
                 authViewModel.updateLocation(lat: loc.latitude, lon: loc.longitude, address: newAddress)
             }
         }
+    }
+}
