@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import Combine
 import Supabase
 import OneSignalFramework
@@ -143,6 +143,18 @@ class AuthViewModel: ObservableObject {
         }
         
         await checkUnreadNotifications()
+        startNotifPolling()
+    }
+    
+        private var notifTimer: Timer?
+    
+    func startNotifPolling() {
+        notifTimer?.invalidate()
+        notifTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
+            Task {
+                await self?.checkUnreadNotifications()
+            }
+        }
     }
     
     func checkUnreadNotifications() async {

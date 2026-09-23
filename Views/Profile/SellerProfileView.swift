@@ -90,14 +90,12 @@ struct SellerProfileView: View {
                 }
                 .frame(maxWidth: .infinity).padding(.vertical, 6)
 
-                if !isOwnProfile {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Sobre o vendedor").font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
-                        Text(seller.bio).font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline)).foregroundColor(Theme.textSecondary).lineSpacing(3)
-                    }
-                    .padding(14).background(Color.white).clipShape(RoundedRectangle(cornerRadius: 14))
-                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.border, lineWidth: 1))
+                                VStack(alignment: .leading, spacing: 8) {
+                    Text("Sobre").font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                    Text(seller.bio.isEmpty ? "Nenhuma biografia informada." : seller.bio).font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline)).foregroundColor(Theme.textSecondary).lineSpacing(3)
                 }
+                .padding(14).background(Color.white).clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.border, lineWidth: 1))
 
                 HStack {
                     Text(isOwnProfile ? "Meus anúncios" : "Anúncios do vendedor").font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))

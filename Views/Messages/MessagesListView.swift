@@ -48,7 +48,7 @@ struct MessagesListView: View {
                 guard let userID = authViewModel.currentUser?.id else { return }
                 while !Task.isCancelled {
                     await viewModel.fetchConversations(for: userID)
-                    try? await Task.sleep(for: .seconds(2))
+                    try? await Task.sleep(for: .seconds(1))
                 }
             }
         }

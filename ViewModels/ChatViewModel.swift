@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import Supabase
 import Storage
 import Combine
@@ -83,7 +83,7 @@ class ChatViewModel: ObservableObject {
         pollingTask?.cancel()
         pollingTask = Task { [weak self] in
             while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(2))
+                try? await Task.sleep(for: .seconds(1))
                 guard let self, !Task.isCancelled else { return }
                 await self.fetchMessages()
             }

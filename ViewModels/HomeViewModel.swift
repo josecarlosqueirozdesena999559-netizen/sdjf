@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import Combine
 
 struct SupabaseProduct: Codable {
@@ -44,7 +44,7 @@ class HomeViewModel: ObservableObject {
     
     func startPolling() {
         // Atualiza o feed a cada 30 segundos
-        timer = Timer.scheduledTimer(withTimeInterval: 30.0, repeats: true) { [weak self] _ in
+        timer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: true) { [weak self] _ in
             Task {
                 await self?.fetchHomeData()
             }
