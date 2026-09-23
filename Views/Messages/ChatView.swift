@@ -152,24 +152,25 @@ struct ChatView: View {
         HStack {
             if isMine { Spacer(minLength: 40) }
             VStack(alignment: .leading, spacing: 2) {
-                if let path = message.imageName, path.hasSuffix(".m4a") {
-                    Button { Task { await playAudio(path: path) } } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "play.circle.fill")
-                                .font(.custom("Inter-Regular", size: 32))
-                            Text("Áudio")
-                                .font(.custom("Inter-Medium", size: 16))
+                                if let path = message.imageName {
+                    if path.hasSuffix(".m4a") {
+                        Button { Task { await playAudio(path: path) } } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "play.circle.fill")
+                                    .font(.custom("Inter-Regular", size: 32))
+                                Text("Áudio")
+                                    .font(.custom("Inter-Medium", size: 16))
+                            }
+                            .padding(.vertical, 4)
+                            .padding(.horizontal, 4)
                         }
-                        .padding(.vertical, 4)
-                        .padding(.horizontal, 4)
+                    } else {
+                        ChatMediaRenderer(path: path)
                     }
-                                } else {
-                    ChatMediaRenderer(path: path)
+                } else {
+                    Text(message.text)
+                        .font(.custom("Inter-Regular", size: 16))
                 }
-            } else {
-                Text(message.text)
-                    .font(.custom("Inter-Regular", size: 16))
-            }
                 
                 HStack(spacing: 4) {
                     Text(Formatters.timeFormatter.string(from: message.timestamp))
