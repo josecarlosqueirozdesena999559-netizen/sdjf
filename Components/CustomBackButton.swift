@@ -12,8 +12,8 @@ struct CustomBackButtonModifier: ViewModifier {
                         presentationMode.wrappedValue.dismiss()
                     }) {
                         Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .semibold))
-                            .frame(width: 44, height: 44)
+                            .font(.system(size: 14, weight: .semibold))
+                            .frame(width: 32, height: 32)
                             .contentShape(Rectangle())
                         .foregroundColor(Theme.primary)
                     }

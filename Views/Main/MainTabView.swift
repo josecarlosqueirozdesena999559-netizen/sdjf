@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 
 struct MainTabView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -45,7 +45,8 @@ struct MainTabView: View {
             }
             .accentColor(Theme.primary)
 
-            // Botão central flutuante de publicar
+            // Não sobrepõe o compositor de mensagens.
+            if selectedTab != 3 {
             Button(action: { showPublish = true }) {
                 ZStack {
                     Circle()
@@ -60,6 +61,7 @@ struct MainTabView: View {
             .offset(y: -10)
             // Impede que tap no botão ative o tab fantasma
             .simultaneousGesture(TapGesture().onEnded { })
+            }
         }
         .environmentObject(favoritesViewModel)
         .fullScreenCover(isPresented: $showPublish) {

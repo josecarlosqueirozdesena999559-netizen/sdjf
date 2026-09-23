@@ -9,6 +9,7 @@ struct SellerProfileView: View {
     @State private var followersCount = 0
     @State private var isFollowLoading = false
     @State private var sellerProducts: [Product] = []
+    @State private var productToDelete: Product? = nil
 
     private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
@@ -33,9 +34,25 @@ struct SellerProfileView: View {
                     }
                     Spacer()
                     Menu {
-                        Button("Denunciar", role: .destructive) { }
-                        Button("Bloquear", role: .destructive) { }
-                    } label: { Image(systemName: "ellipsis").foregroundColor(Theme.textPrimary).frame(width: 36, height: 36) }
+                        if isOwnProfile {
+                            NavigationLink(destination: SettingsView()) {
+                                Label("Configurações", systemImage: "gearshape")
+                            }
+                            NavigationLink(destination: MyAdsView()) {
+                                Label("Meus anúncios", systemImage: "square.grid.2x2")
+                            }
+                            NavigationLink(destination: SoldItemsView()) {
+                                Label("Itens vendidos", systemImage: "checkmark.circle")
+                            }
+                        } else {
+                            Button("Denunciar", role: .destructive) { }
+                            Button("Bloquear", role: .destructive) { }
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis")
+                            .foregroundColor(Theme.textPrimary)
+                            .frame(width: 36, height: 36)
+                    }
                 }
 
                 if !isOwnProfile {
@@ -73,21 +90,54 @@ struct SellerProfileView: View {
                 }
                 .frame(maxWidth: .infinity).padding(.vertical, 6)
 
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Sobre o vendedor").font(.headline)
-                    Text(seller.bio).font(.subheadline).foregroundColor(Theme.textSecondary).lineSpacing(3)
+                if !isOwnProfile {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Sobre o vendedor").font(.headline)
+                        Text(seller.bio).font(.subheadline).foregroundColor(Theme.textSecondary).lineSpacing(3)
+                    }
+                    .padding(14).background(Color.white).clipShape(RoundedRectangle(cornerRadius: 14))
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.border, lineWidth: 1))
                 }
-                .padding(14).background(Color.white).clipShape(RoundedRectangle(cornerRadius: 14))
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.border, lineWidth: 1))
 
-                HStack { Text("Anúncios do vendedor").font(.headline); Spacer(); Text("Ver todos").font(.caption.weight(.semibold)).foregroundColor(Theme.primary) }
+                HStack {
+                    Text(isOwnProfile ? "Meus anúncios" : "Anúncios do vendedor").font(.headline)
+                    Spacer()
+                    if isOwnProfile {
+                        NavigationLink(destination: MyAdsView()) {
+                            Text("Ver todos").font(.caption.weight(.semibold)).foregroundColor(Theme.primary)
+                        }
+                    }
+                }
                 LazyVGrid(columns: columns, spacing: 14) {
                     ForEach(sellerProducts) { product in
-                        NavigationLink(destination: ProductDetailView(product: product)) {
-                            VStack(alignment: .leading, spacing: 5) {
-                                ProductThumbnail(product: product)
-                                Text(product.title).font(.caption).lineLimit(1).foregroundColor(Theme.textPrimary)
-                                Text(Formatters.formatCurrency(product.price)).font(.caption.weight(.bold)).foregroundColor(Theme.primary)
+                        ZStack(alignment: .topTrailing) {
+                            NavigationLink(destination: ProductDetailView(product: product)) {
+                                VStack(alignment: .leading, spacing: 5) {
+                                    ProductThumbnail(product: product)
+                                    Text(product.title).font(.caption).lineLimit(1).foregroundColor(Theme.textPrimary)
+                                    Text(Formatters.formatCurrency(product.price)).font(.caption.weight(.bold)).foregroundColor(Theme.primary)
+                                }
+                            }
+                            if isOwnProfile {
+                                Menu {
+                                    NavigationLink(destination: EditProductView(product: product)) {
+                                        Label("Editar", systemImage: "pencil")
+                                    }
+                                    Button { Task { await markAsSold(product) } } label: {
+                                        Label("Marcar como vendido", systemImage: "checkmark.circle")
+                                    }
+                                    Button(role: .destructive) { productToDelete = product } label: {
+                                        Label("Excluir", systemImage: "trash")
+                                    }
+                                } label: {
+                                    Image(systemName: "ellipsis")
+                                        .font(.caption.weight(.bold))
+                                        .foregroundColor(Theme.textPrimary)
+                                        .padding(7)
+                                        .background(.white.opacity(0.9))
+                                        .clipShape(Circle())
+                                }
+                                .padding(5)
                             }
                         }
                     }
@@ -100,6 +150,14 @@ struct SellerProfileView: View {
         .navigationBarTitleDisplayMode(.inline)
         .modifier(ProfileBackButton(show: showsBackButton))
         .task { await loadFollowState(); await loadProducts(); await subscribeToFollowUpdates() }
+        .alert("Excluir anúncio?", isPresented: Binding(get: { productToDelete != nil }, set: { if !$0 { productToDelete = nil } })) {
+            Button("Cancelar", role: .cancel) { productToDelete = nil }
+            Button("Excluir", role: .destructive) {
+                if let productToDelete { Task { await deleteProduct(productToDelete) } }
+            }
+        } message: {
+            Text("Esta ação não pode ser desfeita.")
+        }
     }
 
     private var avatar: some View {
@@ -131,6 +189,24 @@ struct SellerProfileView: View {
             let rows: [Row] = try await supabase.database.from("products").select().eq("seller_id", value: seller.user.id).or("status.eq.active,status.is.null").order("created_at", ascending: false).execute().value
             sellerProducts = rows.map { Product(id: $0.id, title: $0.title, description: $0.description ?? "", price: $0.price, condition: ProductCondition(rawValue: $0.condition) ?? .used, categoryId: $0.category_id ?? UUID(), sellerId: $0.seller_id, location: $0.location ?? "", images: $0.images ?? [], createdAt: $0.created_at ?? Date(), views: $0.views ?? 0, isActive: $0.status == "active", deliveryMethod: "", acceptsNegotiation: $0.accepts_negotiation ?? false) }
         } catch { print("Failed to load seller products: \(error)") }
+    }
+    private func markAsSold(_ product: Product) async {
+        do {
+            try await supabase.database.from("products").update(["status": "sold"]).eq("id", value: product.id).execute()
+            await loadProducts()
+        } catch {
+            print("Não foi possível marcar como vendido: \(error)")
+        }
+    }
+
+    private func deleteProduct(_ product: Product) async {
+        do {
+            try await supabase.database.from("products").delete().eq("id", value: product.id).execute()
+            productToDelete = nil
+            await loadProducts()
+        } catch {
+            print("Não foi possível excluir: \(error)")
+        }
     }
     private func subscribeToFollowUpdates() async {
         let channel = await supabase.realtimeV2.channel("follows_\(seller.user.id.uuidString)")

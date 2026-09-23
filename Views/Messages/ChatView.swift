@@ -45,6 +45,7 @@ struct ChatView: View {
         .background(Theme.background.ignoresSafeArea())
         .customBackButton()
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar(.hidden, for: .tabBar)
         .task { await loadParticipant() }
     }
 
