@@ -117,9 +117,6 @@ struct ChatView: View {
             participantName = profile.visibleName ?? profile.name
             participantAvatarURL = profile.avatarURL
         } catch {
-            print("Erro ao carregar participante: \")
-        }
-    } catch {
             print("Erro ao carregar participante: \(error)")
         }
     }
