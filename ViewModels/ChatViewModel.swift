@@ -193,7 +193,7 @@ class ChatViewModel: ObservableObject {
                         let is_online: Bool?
                         let last_seen: String?
                     }
-                    let record = try update.decodeRecord(as: ProfileUpdate.self)
+                    let record = try update.decodeRecord(decoder: JSONDecoder()) as ProfileUpdate
                     if let isOnline = record.is_online {
                         await MainActor.run { self.otherUserOnline = isOnline }
                     }
