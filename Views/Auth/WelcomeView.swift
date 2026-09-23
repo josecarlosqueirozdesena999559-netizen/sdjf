@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 
 struct WelcomeView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -17,15 +17,10 @@ struct WelcomeView: View {
                     
                     // Logo / Ícone central
                     VStack(spacing: 12) {
-                        Image(systemName: "tag.fill")
+                        Image("achei_logo")
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 72, height: 72)
-                            .foregroundColor(Theme.primary)
-                        
-                        Text("Achou")
-                            .font(.custom("Inter-Bold", size: 24))
-                            .foregroundColor(Theme.primary)
+                            .frame(height: 72)
                         
                         Text("Compre e venda perto de você")
                             .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))

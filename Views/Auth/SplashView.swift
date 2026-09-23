@@ -14,7 +14,7 @@ struct SplashView: View {
         } else {
             VStack {
                 Spacer()
-                Image("logo")
+                Image("achei_logo")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 300)

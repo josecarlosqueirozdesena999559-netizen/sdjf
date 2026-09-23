@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
@@ -39,7 +39,7 @@ struct HomeView: View {
                             }
                         }
                     } else {
-                        Image("logo")
+                        Image("achei_logo")
                             .resizable()
                             .scaledToFit()
                             .frame(height: 36)
