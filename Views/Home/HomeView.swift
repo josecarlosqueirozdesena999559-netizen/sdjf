@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
@@ -24,10 +24,12 @@ struct HomeView: View {
                             return loc
                         }()
                         VStack(alignment: .leading, spacing: 4) {
+                            Text("Achou - Marketplace")
+                                .font(.custom("Inter-Bold", size: 22))
+                                .foregroundColor(Theme.primary)
                             Text("Olá, \(user.visibleName ?? user.name.components(separatedBy: " ").first ?? "Usuário")")
-                                .typographySubtitle()
-                                
-                                .foregroundColor(Theme.textPrimary)
+                                .font(.custom("Inter-Medium", size: 14))
+                                .foregroundColor(Theme.textSecondary)
                             
                             HStack(spacing: 4) {
                                 Image(systemName: "location.fill")
@@ -39,10 +41,15 @@ struct HomeView: View {
                             }
                         }
                     } else {
-                        Image("achei_logo")
-                            .resizable()
-                            .scaledToFit()
-                            .frame(height: 36)
+                        HStack {
+                            Image("achei_logo")
+                                .resizable()
+                                .scaledToFit()
+                                .frame(height: 36)
+                            Text("Achou - Marketplace")
+                                .font(.custom("Inter-Bold", size: 22))
+                                .foregroundColor(Theme.primary)
+                        }
                     }
                     Spacer()
                     NavigationLink(destination: NotificationsView()) {
@@ -179,4 +186,5 @@ struct HomeView: View {
         }
     }
 }
+
 
