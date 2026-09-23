@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import OneSignalFramework
 
 class AppDelegate: NSObject, UIApplicationDelegate {
@@ -7,6 +7,13 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         
         OneSignal.Notifications.requestPermission({ accepted in
             print("User accepted notifications: \(accepted)")
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                authViewModel.updatePresence(isOnline: true)
+            } else if newPhase == .background {
+                authViewModel.updatePresence(isOnline: false)
+            }
         }, fallbackToSettings: true)
         
         return true
@@ -16,6 +23,7 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 @main
 struct MercadoFacilApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+    @Environment(\.scenePhase) var scenePhase
     @StateObject private var authViewModel = AuthViewModel()
     
     init() {
@@ -29,6 +37,13 @@ struct MercadoFacilApp: App {
                 .environmentObject(authViewModel)
                 .environment(\.locale, .init(identifier: "pt_BR"))
                 .environment(\.font, .custom("Inter-Regular", size: 16, relativeTo: .body))
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .active {
+                authViewModel.updatePresence(isOnline: true)
+            } else if newPhase == .background {
+                authViewModel.updatePresence(isOnline: false)
+            }
         }
     }
 }

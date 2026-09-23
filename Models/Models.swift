@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 
 struct User: Identifiable, Codable {
     let id: UUID
@@ -18,6 +18,8 @@ struct User: Identifiable, Codable {
     var rating: Double?
     var responseTime: String?
     var bio: String?
+    var isOnline: Bool?
+    var lastSeen: Date?
 }
 
 struct Seller: Identifiable, Codable {

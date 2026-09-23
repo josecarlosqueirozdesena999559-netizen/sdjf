@@ -18,6 +18,8 @@ struct Profile: Codable {
     let bio: String?
     let latitude: Double?
     let longitude: Double?
+    let is_online: Bool?
+    let last_seen: Date?
 }
 
 @MainActor
@@ -126,6 +128,27 @@ class AuthViewModel: ObservableObject {
         }
     }
     
+    func updatePresence(isOnline: Bool) {
+        guard let userId = currentUser?.id else { return }
+        Task {
+            do {
+                struct PresenceUpdate: Encodable {
+                    let is_online: Bool
+                    let last_seen: String
+                }
+                
+                let formatter = ISO8601DateFormatter()
+                formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                let nowString = formatter.string(from: Date())
+                
+                let update = PresenceUpdate(is_online: isOnline, last_seen: nowString)
+                try await supabase.database.from("profiles").update(update).eq("id", value: userId.uuidString).execute()
+            } catch {
+                print("Error updating presence: $error")
+            }
+        }
+    }
+    
     func logout() {
         Task {
             do {
@@ -166,13 +189,15 @@ class AuthViewModel: ObservableObject {
                 isProfessional: false,
                 rating: profile.rating,
                 responseTime: profile.avg_response_time,
-                bio: profile.bio
+                bio: profile.bio,
+                isOnline: profile.is_online,
+                lastSeen: profile.last_seen
             )
             self.isAuthenticated = true
             OneSignal.login(userId.uuidString)
         } catch {
             print("Erro ao carregar perfil: \(error)")
-            self.currentUser = User(id: userId, name: "Usuário", cpf: "", birthDate: nil, email: email, phone: "", username: "user", visibleName: nil, avatarURL: nil, location: "Desconhecido", latitude: nil, longitude: nil, memberSince: Date(), isProfessional: false, rating: nil, responseTime: nil, bio: nil)
+            self.currentUser = User(id: userId, name: "Usuário", cpf: "", birthDate: nil, email: email, phone: "", username: "user", visibleName: nil, avatarURL: nil, location: "Desconhecido", latitude: nil, longitude: nil, memberSince: Date(), isProfessional: false, rating: nil, responseTime: nil, bio: nil, isOnline: nil, lastSeen: nil)
             self.isAuthenticated = true
         }
         

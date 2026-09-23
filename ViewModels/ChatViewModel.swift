@@ -33,12 +33,39 @@ class ChatViewModel: ObservableObject {
     }
     
     private var conversationID: UUID { activeConversationID ?? conversation.id }
-
     private func prepareChat() async {
         await resolveConversation()
+        await fetchParticipantStatus()
         await fetchMessages()
         await setupRealtime()
         startPollingFallback()
+    }
+    
+    private func fetchParticipantStatus() async {
+        do {
+            struct ProfileStatus: Codable {
+                let is_online: Bool?
+                let last_seen: String?
+            }
+            let status: ProfileStatus = try await supabase.database
+                .from("profiles")
+                .select("is_online, last_seen")
+                .eq("id", value: conversation.participantId.uuidString)
+                .single()
+                .execute()
+                .value
+            
+            await MainActor.run {
+                self.otherUserOnline = status.is_online ?? false
+                if let lastSeenStr = status.last_seen {
+                    let formatter = ISO8601DateFormatter()
+                    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                    self.lastSeen = formatter.date(from: lastSeenStr)
+                }
+            }
+        } catch {
+            print("Erro status participante: $error")
+        }
     }
 
     private func resolveConversation() async {
@@ -152,20 +179,36 @@ class ChatViewModel: ObservableObject {
         let presenceEvents = await channel.presenceChange()
         let typingEvents = await channel.broadcast(event: "typing")
 
+                let profilesUpdate = await channel.postgresChange(
+            UpdateAction.self,
+            schema: "public",
+            table: "profiles",
+            filter: "id=eq.(conversation.participantId.uuidString)"
+        )
+        
         Task {
-            struct PresencePayload: Codable { let user_id: String }
-            var onlineUsers = Set<String>()
-            for await action in presenceEvents {
+            for await update in profilesUpdate {
                 do {
-                    for presence in try action.decodeJoins(as: PresencePayload.self) {
-                        onlineUsers.insert(presence.user_id)
+                    struct ProfileUpdate: Codable {
+                        let is_online: Bool?
+                        let last_seen: String?
                     }
-                    for presence in try action.decodeLeaves(as: PresencePayload.self) {
-                        onlineUsers.remove(presence.user_id)
+                    let record = try update.decodeRecord(as: ProfileUpdate.self)
+                    if let isOnline = record.is_online {
+                        await MainActor.run { self.otherUserOnline = isOnline }
                     }
-                    otherUserOnline = onlineUsers.contains(conversation.participantId.uuidString)
-                    if !otherUserOnline { lastSeen = Date() }
+                    if let lastSeenStr = record.last_seen {
+                        let formatter = ISO8601DateFormatter()
+                        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                        if let date = formatter.date(from: lastSeenStr) {
+                            await MainActor.run { self.lastSeen = date }
+                        }
+                    }
                 } catch {
+                    print("Erro ao ler update do profile: \(error)")
+                }
+            }
+        } catch {
                     print("Erro ao atualizar presença: \(error)")
                 }
             }
