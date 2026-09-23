@@ -1,4 +1,5 @@
 import SwiftUI
+import Realtime
 
 struct ProductOffer: Identifiable {
     let id = UUID()
