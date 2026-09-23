@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import Supabase
 
 struct ForgotPasswordView: View {
@@ -39,12 +39,12 @@ struct ForgotPasswordView: View {
                         }
                         
                         Text("E-mail Enviado!")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
+                            .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
+                            
                             .foregroundColor(Theme.textPrimary)
                         
                         Text(message)
-                            .font(.body)
+                            .font(.custom("Inter-Regular", size: 17, relativeTo: .body))
                             .foregroundColor(Theme.textSecondary)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 20)
@@ -56,8 +56,8 @@ struct ForgotPasswordView: View {
                     // Form View
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Recuperar Senha")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
+                            .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
+                            
                             .foregroundColor(Theme.textPrimary)
                         Text("Digite seu e-mail cadastrado. Enviaremos um link seguro para você redefinir sua senha.")
                             .foregroundColor(Theme.textSecondary)
@@ -74,7 +74,7 @@ struct ForgotPasswordView: View {
                             Text(message)
                         }
                         .foregroundColor(Theme.error)
-                        .font(.subheadline)
+                        .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                         .padding(.top, 8)
                     }
                     
@@ -92,7 +92,7 @@ struct ForgotPasswordView: View {
                                 .cornerRadius(12)
                         } else {
                             Text("Enviar Link de Recuperação")
-                                .font(.headline)
+                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                 .foregroundColor(email.isEmpty || !email.contains("@") ? .gray : .white)
                                 .frame(maxWidth: .infinity)
                                 .padding()

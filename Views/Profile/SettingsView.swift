@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct SettingsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -89,7 +89,7 @@ struct SettingsView: View {
                     Text("Sair da Conta")
                         .frame(maxWidth: .infinity)
                         .foregroundColor(Theme.error)
-                        .fontWeight(.bold)
+                        
                 }
             }
         }

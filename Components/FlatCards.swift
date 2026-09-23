@@ -3,6 +3,12 @@
 // MARK: - Cached Image Loader
 // Soluciona: imagens cinza piscando (Bug 1)
 // Usa URLCache para não redownlodar imagens já vistas
+import SwiftUI
+
+class ImageCache {
+    static let shared = NSCache<NSString, UIImage>()
+}
+
 struct CachedAsyncImage: View {
     let url: URL
     @State private var image: UIImage? = nil
@@ -27,31 +33,34 @@ struct CachedAsyncImage: View {
                     )
             }
         }
-        .onAppear { loadImage() }
-        .onChange(of: url) { _ in loadImage() }
+        .onAppear { loadImage(for: url) }
+        .onChange(of: url) { newURL in loadImage(for: newURL) }
     }
 
-    private func loadImage() {
-        let request = URLRequest(url: url)
-        if let cached = URLCache.shared.cachedResponse(for: request),
-           let img = UIImage(data: cached.data) {
-            self.image = img
+    private func loadImage(for targetURL: URL) {
+        let key = targetURL.absoluteString as NSString
+        if let cached = ImageCache.shared.object(forKey: key) {
+            self.image = cached
             self.isLoading = false
             return
         }
-        isLoading = true
-        URLSession.shared.dataTask(with: request) { data, response, _ in
-            if let data, let img = UIImage(data: data),
-               let response {
-                let cached = CachedURLResponse(response: response, data: data)
-                URLCache.shared.storeCachedResponse(cached, for: request)
+        
+        self.isLoading = true
+        
+        URLSession.shared.dataTask(with: targetURL) { data, response, error in
+            if let data = data, let img = UIImage(data: data) {
+                ImageCache.shared.setObject(img, forKey: key)
                 DispatchQueue.main.async {
-                    self.image = img
-                    self.isLoading = false
+                    if self.url == targetURL {
+                        self.image = img
+                        self.isLoading = false
+                    }
                 }
             } else {
                 DispatchQueue.main.async {
-                    self.isLoading = false
+                    if self.url == targetURL {
+                        self.isLoading = false
+                    }
                 }
             }
         }.resume()
@@ -136,7 +145,7 @@ struct FlatProductCard: View {
                         HStack {
                             Text(Formatters.formatCurrency(product.price))
                                 .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
-                                .fontWeight(.bold)
+                                
                                 .foregroundColor(Theme.primary)
 
                             Spacer()

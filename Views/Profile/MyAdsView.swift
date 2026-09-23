@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 struct MyAdsView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -19,7 +19,7 @@ struct MyAdsView: View {
                         HStack(spacing: 12) {
                             ProductImage(product: product)
                             VStack(alignment: .leading, spacing: 5) {
-                                Text(product.title).font(.headline).lineLimit(1)
+                                Text(product.title).font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline)).lineLimit(1)
                                 Text(Formatters.formatCurrency(product.price)).font(.subheadline.weight(.bold)).foregroundColor(Theme.primary)
                                 Text(product.isActive ? "Ativo" : "Vendido").font(.caption.weight(.semibold)).foregroundColor(product.isActive ? Theme.primary : Theme.textSecondary)
                             }

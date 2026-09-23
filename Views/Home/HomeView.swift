@@ -26,7 +26,7 @@ struct HomeView: View {
                         VStack(alignment: .leading, spacing: 4) {
                             Text("Olá, \(user.visibleName ?? user.name.components(separatedBy: " ").first ?? "Usuário")")
                                 .font(.custom("Inter-SemiBold", size: 20, relativeTo: .title3))
-                                .fontWeight(.bold)
+                                
                                 .foregroundColor(Theme.textPrimary)
                             
                             HStack(spacing: 4) {
@@ -121,7 +121,7 @@ struct HomeView: View {
                             .foregroundColor(Theme.primary)
                         Text("Mostrando anúncios próximos a você")
                             .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
-                            .fontWeight(.semibold)
+                            
                             .foregroundColor(Theme.textSecondary)
                     }
                     .padding(.horizontal)
@@ -131,7 +131,7 @@ struct HomeView: View {
                     VStack(alignment: .leading, spacing: 24) {
                         Text("Explorar")
                             .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
-                            .fontWeight(.bold)
+                            
                             .padding(.horizontal)
                         
                         ForEach(viewModel.categories) { category in

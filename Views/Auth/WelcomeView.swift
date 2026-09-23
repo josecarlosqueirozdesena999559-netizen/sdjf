@@ -63,7 +63,7 @@ struct WelcomeView: View {
                         NavigationLink(destination: ForgotPasswordView()) {
                             Text("Esqueceu a senha?")
                                 .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
-                                .fontWeight(.semibold)
+                                
                                 .foregroundColor(Theme.primary)
                         }
                         .padding(.top, 8)

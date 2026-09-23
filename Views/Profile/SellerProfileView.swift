@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import Supabase
 
 struct SellerProfileView: View {
@@ -24,13 +24,13 @@ struct SellerProfileView: View {
                     VStack(alignment: .leading, spacing: 4) {
                         HStack(spacing: 5) {
                             Text(seller.user.visibleName ?? seller.user.name)
-                                .font(.headline)
+                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
 
                         }
                         Text("@\(seller.user.username ?? "")")
-                            .font(.caption).foregroundColor(Theme.textSecondary)
+                            .font(.custom("Inter-Regular", size: 12, relativeTo: .caption)).foregroundColor(Theme.textSecondary)
                         Label(seller.user.location, systemImage: "mappin.and.ellipse")
-                            .font(.caption).foregroundColor(Theme.textSecondary)
+                            .font(.custom("Inter-Regular", size: 12, relativeTo: .caption)).foregroundColor(Theme.textSecondary)
                     }
                     Spacer()
                     Menu {
@@ -92,15 +92,15 @@ struct SellerProfileView: View {
 
                 if !isOwnProfile {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Sobre o vendedor").font(.headline)
-                        Text(seller.bio).font(.subheadline).foregroundColor(Theme.textSecondary).lineSpacing(3)
+                        Text("Sobre o vendedor").font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                        Text(seller.bio).font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline)).foregroundColor(Theme.textSecondary).lineSpacing(3)
                     }
                     .padding(14).background(Color.white).clipShape(RoundedRectangle(cornerRadius: 14))
                     .overlay(RoundedRectangle(cornerRadius: 14).stroke(Theme.border, lineWidth: 1))
                 }
 
                 HStack {
-                    Text(isOwnProfile ? "Meus anúncios" : "Anúncios do vendedor").font(.headline)
+                    Text(isOwnProfile ? "Meus anúncios" : "Anúncios do vendedor").font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                     Spacer()
                     if isOwnProfile {
                         NavigationLink(destination: MyAdsView()) {
@@ -114,7 +114,7 @@ struct SellerProfileView: View {
                             NavigationLink(destination: ProductDetailView(product: product)) {
                                 VStack(alignment: .leading, spacing: 5) {
                                     ProductThumbnail(product: product)
-                                    Text(product.title).font(.caption).lineLimit(1).foregroundColor(Theme.textPrimary)
+                                    Text(product.title).font(.custom("Inter-Regular", size: 12, relativeTo: .caption)).lineLimit(1).foregroundColor(Theme.textPrimary)
                                     Text(Formatters.formatCurrency(product.price)).font(.caption.weight(.bold)).foregroundColor(Theme.primary)
                                 }
                             }
@@ -178,8 +178,8 @@ struct SellerProfileView: View {
 
     private func metric(_ value: String, _ label: String, icon: String? = nil) -> some View {
         VStack(spacing: 3) {
-            HStack(spacing: 2) { Text(value).font(.caption.weight(.bold)); if let icon { Image(systemName: icon).font(.caption2).foregroundColor(.yellow) } }
-            Text(label).font(.caption2).foregroundColor(Theme.textSecondary).lineLimit(1)
+            HStack(spacing: 2) { Text(value).font(.caption.weight(.bold)); if let icon { Image(systemName: icon).font(.custom("Inter-Regular", size: 11, relativeTo: .caption2)).foregroundColor(.yellow) } }
+            Text(label).font(.custom("Inter-Regular", size: 11, relativeTo: .caption2)).foregroundColor(Theme.textSecondary).lineLimit(1)
         }.frame(maxWidth: .infinity)
     }
 

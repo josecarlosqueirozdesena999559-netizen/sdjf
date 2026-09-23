@@ -14,7 +14,7 @@ struct ProfessionalAccountView: View {
                 VStack(spacing: 8) {
                     Text("Seja um Vendedor Profissional")
                         .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
-                        .fontWeight(.bold)
+                        
                         .multilineTextAlignment(.center)
                     
                     Text("Aumente suas vendas com ferramentas exclusivas.")

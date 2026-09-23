@@ -82,7 +82,7 @@ struct EditProductView: View {
                                 .font(.custom("Inter-Regular", size: 28))
                             Text("Adicionar")
                                 .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
-                                .fontWeight(.bold)
+                                
                         }
                         .frame(width: 100, height: 100)
                         .background(Theme.primary.opacity(0.1))
@@ -152,7 +152,7 @@ struct EditProductView: View {
             HStack {
                 Text("R$")
                     .font(.custom("Inter-Bold", size: 28, relativeTo: .title))
-                    .fontWeight(.bold)
+                    
                     .foregroundColor(Theme.textSecondary)
                 TextField("0,00", text: $viewModel.price)
                     .font(.custom("Inter-Bold", size: 36))

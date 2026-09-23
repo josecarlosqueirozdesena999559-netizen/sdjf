@@ -79,7 +79,7 @@ struct RegisterView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Qual é o seu nome completo?")
                 .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
-                .fontWeight(.bold)
+                
                 .foregroundColor(Theme.textPrimary)
             
             CustomTextField(title: "Nome e Sobrenome", placeholder: "Seu nome completo", text: $viewModel.name)
@@ -96,7 +96,7 @@ struct RegisterView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("E o seu CPF?")
                 .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
-                .fontWeight(.bold)
+                
                 .foregroundColor(Theme.textPrimary)
             
             CustomTextField(title: "CPF", placeholder: "000.000.000-00", text: $viewModel.cpf, keyboardType: .numberPad)
@@ -123,7 +123,7 @@ struct RegisterView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Qual a sua data de nascimento?")
                 .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
-                .fontWeight(.bold)
+                
                 .foregroundColor(Theme.textPrimary)
             
             DatePicker("Data de Nascimento", selection: $viewModel.birthDate, displayedComponents: .date)
@@ -143,7 +143,7 @@ struct RegisterView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Informe seu melhor e-mail")
                 .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
-                .fontWeight(.bold)
+                
                 .foregroundColor(Theme.textPrimary)
             
             CustomTextField(title: "E-mail", placeholder: "exemplo@email.com", text: $viewModel.email, keyboardType: .emailAddress)
@@ -160,7 +160,7 @@ struct RegisterView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Crie uma senha segura")
                 .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
-                .fontWeight(.bold)
+                
                 .foregroundColor(Theme.textPrimary)
             
             CustomTextField(title: "Senha", placeholder: "Mínimo 6 caracteres", text: $viewModel.password, isSecure: true)
@@ -177,13 +177,13 @@ struct RegisterView: View {
         VStack(alignment: .leading, spacing: 16) {
             Text("Escolha seu nome de usuário")
                 .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
-                .fontWeight(.bold)
+                
                 .foregroundColor(Theme.textPrimary)
             
             VStack(alignment: .leading, spacing: 8) {
                 Text("Usuário").font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline)).foregroundColor(Theme.textSecondary)
                 HStack {
-                    Text("@").foregroundColor(Theme.primary).fontWeight(.bold)
+                    Text("@").foregroundColor(Theme.primary)
                     TextField("seunome", text: $viewModel.username)
                         .autocapitalization(.none)
                         .disableAutocorrection(true)
@@ -317,7 +317,7 @@ struct RegisterView: View {
             VStack(spacing: 6) {
                 Text("Dados do Perfil")
                     .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
-                    .fontWeight(.bold)
+                    
                     .foregroundColor(Theme.textPrimary)
                 
                 Text("Por favor, informe seu nome e adicione uma foto de perfil opcional.")
@@ -377,7 +377,7 @@ struct RegisterView: View {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Nome de Exibição")
                     .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
-                    .fontWeight(.semibold)
+                    
                     .foregroundColor(Theme.textSecondary)
                 
                 HStack {

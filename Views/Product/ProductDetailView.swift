@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import Realtime
 
 struct ProductOffer: Identifiable {
@@ -118,7 +118,7 @@ var isOwner: Bool {
                                         } else if phase.error != nil {
                                             Rectangle()
                                                 .fill(Theme.inputBackground)
-                                                .overlay(Image(systemName: "photo").font(.largeTitle).foregroundColor(.gray))
+                                                .overlay(Image(systemName: "photo").font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle)).foregroundColor(.gray))
                                         } else {
                                             Rectangle()
                                                 .fill(Theme.inputBackground)
@@ -133,7 +133,7 @@ var isOwner: Bool {
                                             .overlay(
                                                 Image(systemName: "play.fill")
                                                     .foregroundColor(.white)
-                                                    .font(.title)
+                                                    .font(.custom("Inter-Bold", size: 28, relativeTo: .title))
                                             )
                                     }
                                 }
@@ -169,28 +169,28 @@ var isOwner: Bool {
                 
                 VStack(alignment: .leading, spacing: 16) {
                     Text("\(product.condition.rawValue) • \(Formatters.dateFormatter.string(from: product.createdAt))")
-                        .font(.caption)
+                        .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                         .foregroundColor(Theme.textSecondary)
                     
                     Text(product.title)
-                        .font(.title2)
-                        .fontWeight(.bold)
+                        .font(.custom("Inter-SemiBold", size: 22, relativeTo: .title2))
+                        
                         .foregroundColor(Theme.textPrimary)
                     
                     Text(Formatters.formatCurrency(product.price))
-                        .font(.largeTitle)
-                        .fontWeight(.bold)
+                        .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
+                        
                         .foregroundColor(Theme.primary)
 
                     Label("\(viewCount) visualizações", systemImage: "eye")
-                        .font(.caption)
+                        .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                         .foregroundColor(Theme.textSecondary)
                     
                     HStack {
                         Image(systemName: "mappin.and.ellipse")
                         Text(product.location)
                     }
-                    .font(.subheadline)
+                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                     .foregroundColor(Theme.textSecondary)
                     
                     Divider()
@@ -201,12 +201,12 @@ var isOwner: Bool {
                             Image(systemName: "doc.text.fill")
                                 .foregroundColor(Theme.primary)
                             Text("Descrição do Produto")
-                                .font(.headline)
-                                .fontWeight(.bold)
+                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                                
                         }
                         
                         Text(product.description)
-                            .font(.body)
+                            .font(.custom("Inter-Regular", size: 17, relativeTo: .body))
                             .foregroundColor(Theme.textSecondary)
                             .lineSpacing(4)
                             .padding()
@@ -220,7 +220,7 @@ var isOwner: Bool {
                     if product.acceptsNegotiation {
                         VStack(alignment: .leading, spacing: 12) {
                             Label("Negociação e lances", systemImage: "hand.thumbsup.fill")
-                                .font(.headline).foregroundColor(Theme.primary)
+                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline)).foregroundColor(Theme.primary)
                             if isOwner {
                                 if offers.isEmpty {
                                     Text("Nenhum lance recebido ainda.").foregroundColor(Theme.textSecondary)
@@ -228,8 +228,8 @@ var isOwner: Bool {
                                     ForEach(offers) { offer in
                                         HStack {
                                             VStack(alignment: .leading) {
-                                                Text(Formatters.formatCurrency(offer.amount)).fontWeight(.bold).foregroundColor(Theme.primary)
-                                                Text("Lance recebido").font(.caption).foregroundColor(Theme.textSecondary)
+                                                Text(Formatters.formatCurrency(offer.amount)).foregroundColor(Theme.primary)
+                                                Text("Lance recebido").font(.custom("Inter-Regular", size: 12, relativeTo: .caption)).foregroundColor(Theme.textSecondary)
                                             }
                                             Spacer()
                                             if let user = authViewModel.currentUser {
@@ -250,7 +250,7 @@ var isOwner: Bool {
                                     HStack {
                                         Text("Seu lance: \(Formatters.formatCurrency(offer.amount))").font(.subheadline.weight(.semibold))
                                         Spacer()
-                                        Button("Excluir", role: .destructive) { Task { await deleteOffer(offer) } }.font(.caption)
+                                        Button("Excluir", role: .destructive) { Task { await deleteOffer(offer) } }.font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                                     }.padding(10).background(Theme.inputBackground.opacity(0.7)).clipShape(RoundedRectangle(cornerRadius: 10))
                                 }
                             }
@@ -290,7 +290,7 @@ var isOwner: Bool {
             ToolbarItem(placement: .navigationBarTrailing) {
                 HStack(spacing: 2) {
                     Text("\(localLikes)")
-                        .font(.caption)
+                        .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                         .foregroundColor(Theme.textSecondary)
                         .padding(.trailing, 2)
                         

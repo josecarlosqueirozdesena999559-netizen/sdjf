@@ -82,7 +82,7 @@ struct PublishProductView: View {
                                 .font(.custom("Inter-Regular", size: 28))
                             Text("Adicionar")
                                 .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
-                                .fontWeight(.bold)
+                                
                         }
                         .frame(width: 100, height: 100)
                         .background(Theme.primary.opacity(0.1))
@@ -152,7 +152,7 @@ struct PublishProductView: View {
             HStack {
                 Text("R$")
                     .font(.custom("Inter-Bold", size: 28, relativeTo: .title))
-                    .fontWeight(.bold)
+                    
                     .foregroundColor(Theme.textSecondary)
                 TextField("0,00", text: $viewModel.price)
                     .font(.custom("Inter-Bold", size: 36))
@@ -374,7 +374,7 @@ struct ConditionButton: View {
         Button(action: action) {
             Text(condition.rawValue)
                 .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
-                .fontWeight(.semibold)
+                
                 .padding(.vertical, 10)
                 .frame(maxWidth: .infinity)
                 .background(isSelected ? Theme.primary : Theme.inputBackground)

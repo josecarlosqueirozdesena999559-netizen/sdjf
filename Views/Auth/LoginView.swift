@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 enum LoginStep {
     case username
@@ -37,8 +37,8 @@ struct LoginView: View {
                 if step == .username {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Qual é o seu usuário?")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
+                            .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
+                            
                             .foregroundColor(Theme.textPrimary)
                     }
                     .transition(.asymmetric(
@@ -56,7 +56,7 @@ struct LoginView: View {
                         withAnimation(.easeInOut(duration: 0.25)) { step = .password }
                     }) {
                         Text("Continuar")
-                            .font(.headline)
+                            .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                             .foregroundColor(username.isEmpty ? .gray : .white)
                             .frame(maxWidth: .infinity)
                             .padding()
@@ -67,8 +67,8 @@ struct LoginView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Digite sua senha")
-                            .font(.largeTitle)
-                            .fontWeight(.bold)
+                            .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
+                            
                             .foregroundColor(Theme.textPrimary)
                         Text("Quase lá! Insira sua senha para acessar.")
                             .foregroundColor(Theme.textSecondary)
@@ -87,7 +87,7 @@ struct LoginView: View {
                                 Text(error)
                             }
                             .foregroundColor(Theme.error)
-                            .font(.subheadline)
+                            .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
                             .padding(.top, 4)
                         }
                         
@@ -95,8 +95,8 @@ struct LoginView: View {
                             Spacer()
                             NavigationLink(destination: ForgotPasswordView()) {
                                 Text("Esqueceu a senha?")
-                                    .font(.subheadline)
-                                    .fontWeight(.medium)
+                                    .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
+                                    
                                     .foregroundColor(Theme.primary)
                             }
                         }
@@ -117,7 +117,7 @@ struct LoginView: View {
                                 .cornerRadius(12)
                         } else {
                             Text("Entrar")
-                                .font(.headline)
+                                .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                 .foregroundColor(password.isEmpty ? .gray : .white)
                                 .frame(maxWidth: .infinity)
                                 .padding()

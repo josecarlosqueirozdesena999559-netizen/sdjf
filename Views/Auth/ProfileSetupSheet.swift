@@ -20,7 +20,7 @@ struct ProfileSetupSheet: View {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Configure seu perfil")
                             .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
-                            .fontWeight(.bold)
+                            
                             .foregroundColor(Theme.textPrimary)
 
                         Text("Essas informações ajudam compradores a conhecer você.")
@@ -33,7 +33,7 @@ struct ProfileSetupSheet: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Biografia")
                             .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
-                            .fontWeight(.semibold)
+                            
                             .foregroundColor(Theme.textSecondary)
 
                         ZStack(alignment: .topLeading) {
@@ -57,7 +57,7 @@ struct ProfileSetupSheet: View {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Tempo de resposta")
                             .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
-                            .fontWeight(.semibold)
+                            
                             .foregroundColor(Theme.textSecondary)
 
                         VStack(spacing: 10) {

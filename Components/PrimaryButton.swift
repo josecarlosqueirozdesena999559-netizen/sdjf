@@ -16,7 +16,7 @@ struct PrimaryButton: View {
                 } else {
                     Text(title)
                         .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
-                        .fontWeight(.semibold)
+                        
                 }
             }
             .frame(maxWidth: .infinity)

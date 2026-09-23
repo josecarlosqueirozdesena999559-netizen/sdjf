@@ -72,7 +72,7 @@ struct SearchResultsView: View {
                                                 .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
                                             Text(Formatters.formatCurrency(product.price))
                                                 .font(.custom("Inter-Medium", size: 15, relativeTo: .subheadline))
-                                                .fontWeight(.bold)
+                                                
                                                 .foregroundColor(Theme.primary)
                                             Text("\(product.condition.rawValue) • \(product.location)")
                                                 .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))

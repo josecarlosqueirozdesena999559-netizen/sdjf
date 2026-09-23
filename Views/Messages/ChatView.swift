@@ -43,7 +43,6 @@ struct ChatView: View {
             composer
         }
         .background(Theme.background.ignoresSafeArea())
-        .customBackButton()
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .task { await loadParticipant() }
@@ -66,7 +65,7 @@ struct ChatView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(participantName).font(.subheadline.weight(.semibold))
                 Text(statusText)
-                    .font(.caption)
+                    .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                     .foregroundColor(viewModel.otherUserOnline || viewModel.isTyping ? Theme.primary : Theme.textSecondary)
             }
             Spacer()
@@ -118,34 +117,62 @@ struct ChatView: View {
     private var statusText: String {
         if viewModel.isTyping { return "digitando..." }
         if viewModel.otherUserOnline { return "online" }
-        return viewModel.lastSeen == nil ? "visto por último indisponível" : "visto por último hoje"
+        guard let lastSeen = viewModel.lastSeen else { return "" }
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .full
+        formatter.locale = Locale(identifier: "pt_BR")
+        return "visto " + formatter.localizedString(for: lastSeen, relativeTo: Date())
     }
 
     @ViewBuilder private func messageBubble(_ message: Message, isMine: Bool) -> some View {
-        VStack(alignment: isMine ? .trailing : .leading, spacing: 4) {
-            if let path = message.imageName, path.hasSuffix(".m4a") {
-                Button { Task { await playAudio(path: path) } } label: {
-                    Label("Mensagem de voz", systemImage: "play.fill").padding(12)
+        HStack {
+            if isMine { Spacer(minLength: 40) }
+            VStack(alignment: .leading, spacing: 2) {
+                if let path = message.imageName, path.hasSuffix(".m4a") {
+                    Button { Task { await playAudio(path: path) } } label: {
+                        HStack(spacing: 12) {
+                            Image(systemName: "play.circle.fill")
+                                .font(.custom("Inter-Regular", size: 32))
+                            Text("Áudio")
+                                .font(.custom("Inter-Medium", size: 16))
+                        }
+                        .padding(.vertical, 4)
+                        .padding(.horizontal, 4)
+                    }
+                } else {
+                    Text(message.text)
+                        .font(.custom("Inter-Regular", size: 16))
                 }
-            } else {
-                Text(message.text).padding(12)
-            }
-            HStack(spacing: 4) {
-                Text(Formatters.timeFormatter.string(from: message.timestamp)).font(.caption2)
-                if isMine {
-                    Image(systemName: message.isRead ? "checkmark.circle.fill" : "checkmark.circle")
-                        .foregroundColor(message.isRead ? .blue : .secondary)
+                
+                HStack(spacing: 4) {
+                    Text(Formatters.timeFormatter.string(from: message.timestamp))
+                        .font(.custom("Inter-Regular", size: 11))
+                        .foregroundColor(isMine ? Color.white.opacity(0.8) : Theme.textSecondary)
+                    
+                    if isMine {
+                        Image(systemName: message.isRead ? "checkmark" : "checkmark")
+                            .font(.custom("Inter-Bold", size: 10))
+                            .foregroundColor(message.isRead ? .blue : Color.white.opacity(0.8))
+                    }
                 }
+                .frame(maxWidth: .infinity, alignment: .trailing)
+                .padding(.top, 2)
             }
-            .foregroundColor(.secondary)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .foregroundColor(isMine ? .white : Theme.textPrimary)
+            .background(isMine ? Theme.primary : Theme.inputBackground)
+            .cornerRadius(16, corners: isMine ? [.topLeft, .topRight, .bottomLeft] : [.topLeft, .topRight, .bottomRight])
+            .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
+            
+            if !isMine { Spacer(minLength: 40) }
         }
-        .foregroundColor(isMine ? .white : Theme.textPrimary)
-        .background(isMine ? Theme.primary : Theme.border)
-        .clipShape(RoundedRectangle(cornerRadius: 16))
     }
 
     private func playAudio(path: String) async {
         do {
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
             let url = try await supabase.storage.from("chat-media").createSignedURL(path: path, expiresIn: 3_600)
             let player = AVPlayer(url: url)
             audioPlayer = player
