@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import Supabase
 
 struct SellerProfileView: View {
@@ -38,9 +38,7 @@ struct SellerProfileView: View {
                             NavigationLink(destination: SettingsView()) {
                                 Label("Configurações", systemImage: "gearshape")
                             }
-                            NavigationLink(destination: MyAdsView()) {
-                                Label("Meus anúncios", systemImage: "square.grid.2x2")
-                            }
+
                             NavigationLink(destination: SoldItemsView()) {
                                 Label("Itens vendidos", systemImage: "checkmark.circle")
                             }
@@ -85,8 +83,10 @@ struct SellerProfileView: View {
                     metric("\(followersCount)", "seguidores")
                     Divider().frame(height: 34)
                     metric(String(format: "%.1f", seller.rating), "avaliação", icon: "star.fill")
-                    Divider().frame(height: 34)
-                    metric(seller.averageResponseTime.replacingOccurrences(of: "Responde em ", with: ""), "tempo médio")
+                    if seller.averageResponseTime != "1 hora" && seller.averageResponseTime != "-" {
+                        Divider().frame(height: 34)
+                        metric(seller.averageResponseTime.replacingOccurrences(of: "Responde em ", with: ""), "tempo médio")
+                    }
                 }
                 .frame(maxWidth: .infinity).padding(.vertical, 6)
 
@@ -99,15 +99,9 @@ struct SellerProfileView: View {
                         .padding(.vertical, 4)
                 }
 
-                HStack {
-                    Text(isOwnProfile ? "Meus anúncios" : "Anúncios do vendedor").font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
-                    Spacer()
-                    if isOwnProfile {
-                        NavigationLink(destination: MyAdsView()) {
-                            Text("Ver todos").font(.caption.weight(.semibold)).foregroundColor(Theme.primary)
-                        }
-                    }
-                }
+                Text(isOwnProfile ? "Meus anúncios" : "Anúncios do vendedor")
+                    .font(.custom("Inter-SemiBold", size: 17, relativeTo: .headline))
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 LazyVGrid(columns: columns, spacing: 14) {
                     ForEach(sellerProducts) { product in
                         ZStack(alignment: .topTrailing) {
@@ -117,27 +111,6 @@ struct SellerProfileView: View {
                                     Text(product.title).font(.custom("Inter-Regular", size: 12, relativeTo: .caption)).lineLimit(1).foregroundColor(Theme.textPrimary)
                                     Text(Formatters.formatCurrency(product.price)).font(.caption.weight(.bold)).foregroundColor(Theme.primary)
                                 }
-                            }
-                            if isOwnProfile {
-                                Menu {
-                                    NavigationLink(destination: EditProductView(product: product)) {
-                                        Label("Editar", systemImage: "pencil")
-                                    }
-                                    Button { Task { await markAsSold(product) } } label: {
-                                        Label("Marcar como vendido", systemImage: "checkmark.circle")
-                                    }
-                                    Button(role: .destructive) { productToDelete = product } label: {
-                                        Label("Excluir", systemImage: "trash")
-                                    }
-                                } label: {
-                                    Image(systemName: "ellipsis")
-                                        .font(.caption.weight(.bold))
-                                        .foregroundColor(Theme.textPrimary)
-                                        .padding(7)
-                                        .background(.white.opacity(0.9))
-                                        .clipShape(Circle())
-                                }
-                                .padding(5)
                             }
                         }
                     }

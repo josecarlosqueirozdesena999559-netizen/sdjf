@@ -335,8 +335,22 @@ var isOwner: Bool {
                 .onDisappear {
             hideFloatingButton = false
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
-            if !isOwner, let currentUser = authViewModel.currentUser {
+        .safeAreaInset(edge: .bottom, spacing: 0) {            if isOwner {
+                HStack(spacing: 12) {
+                    NavigationLink(destination: EditProductView(product: product)) {
+                        Label("Editar Anúncio", systemImage: "pencil")
+                            .font(.headline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .foregroundColor(.white)
+                            .background(Theme.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial)
+            } else if let currentUser = authViewModel.currentUser {
                 HStack(spacing: 12) {
                     NavigationLink(destination: ChatView(conversation: Conversation(id: UUID(), productId: product.id, participantId: product.sellerId, lastMessage: Message(id: UUID(), senderId: currentUser.id, receiverId: product.sellerId, text: "", timestamp: Date(), isRead: true), unreadCount: 0), currentUser: currentUser)) {
                         Label("Conversar", systemImage: "bubble.left.and.bubble.right.fill")
