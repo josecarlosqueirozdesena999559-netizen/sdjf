@@ -44,11 +44,11 @@ struct MessagesListView: View {
             .background(Theme.background)
             .navigationTitle("Mensagens")
             .navigationBarTitleDisplayMode(.inline)
-            .onAppear {
-                if let user = authViewModel.currentUser {
-                    Task {
-                        await viewModel.fetchConversations(for: user.id)
-                    }
+            .task(id: authViewModel.currentUser?.id) {
+                guard let userID = authViewModel.currentUser?.id else { return }
+                while !Task.isCancelled {
+                    await viewModel.fetchConversations(for: userID)
+                    try? await Task.sleep(for: .seconds(2))
                 }
             }
         }

@@ -13,25 +13,82 @@ class ChatViewModel: ObservableObject {
     let conversation: Conversation
     let currentUser: User
     private var channel: RealtimeChannelV2?
+    private var pollingTask: Task<Void, Never>?
+    private var activeConversationID: UUID?
     private var typingTimer: Timer?
     
     init(conversation: Conversation, currentUser: User) {
         self.conversation = conversation
         self.currentUser = currentUser
         
-        Task {
-            await fetchMessages()
-            await setupRealtime()
-        }
+        Task { await prepareChat() }
     }
     
     deinit {
+        pollingTask?.cancel()
         let chan = self.channel
         Task {
             await chan?.unsubscribe()
         }
     }
     
+    private var conversationID: UUID { activeConversationID ?? conversation.id }
+
+    private func prepareChat() async {
+        await resolveConversation()
+        await fetchMessages()
+        await setupRealtime()
+        startPollingFallback()
+    }
+
+    private func resolveConversation() async {
+        struct ProductOwner: Decodable { let seller_id: UUID }
+        struct ExistingConversation: Decodable { let id: UUID }
+        struct NewConversation: Encodable {
+            let id: UUID
+            let buyer_id: UUID
+            let seller_id: UUID
+            let product_id: UUID
+        }
+
+        do {
+            let owner: ProductOwner = try await supabase.database.from("products")
+                .select("seller_id").eq("id", value: conversation.productId).single().execute().value
+            let buyerID = owner.seller_id == currentUser.id ? conversation.participantId : currentUser.id
+            let existing: [ExistingConversation] = try await supabase.database.from("conversations")
+                .select("id")
+                .eq("product_id", value: conversation.productId)
+                .eq("buyer_id", value: buyerID)
+                .eq("seller_id", value: owner.seller_id)
+                .limit(1)
+                .execute()
+                .value
+
+            if let found = existing.first {
+                activeConversationID = found.id
+            } else {
+                let newID = UUID()
+                try await supabase.database.from("conversations")
+                    .insert(NewConversation(id: newID, buyer_id: buyerID, seller_id: owner.seller_id, product_id: conversation.productId))
+                    .execute()
+                activeConversationID = newID
+            }
+        } catch {
+            // Mantém o identificador recebido para não bloquear a tela caso a rede falhe.
+            print("Erro ao preparar conversa: \(error)")
+        }
+    }
+
+    private func startPollingFallback() {
+        pollingTask?.cancel()
+        pollingTask = Task { [weak self] in
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(2))
+                guard let self, !Task.isCancelled else { return }
+                await self.fetchMessages()
+            }
+        }
+    }
     func fetchMessages() async {
         do {
             struct SupabaseMessage: Codable {
@@ -45,7 +102,7 @@ class ChatViewModel: ObservableObject {
             let sbMessages: [SupabaseMessage] = try await supabase.database
                 .from("messages")
                 .select()
-                .eq("conversation_id", value: conversation.id)
+                .eq("conversation_id", value: conversationID)
                 .order("created_at", ascending: true)
                 .execute()
                 .value
@@ -71,8 +128,11 @@ class ChatViewModel: ObservableObject {
     }
     
     func setupRealtime() async {
-        let roomName = "room_\(conversation.id.uuidString)"
-        self.channel = await supabase.realtimeV2.channel(roomName)
+        let roomName = "room_\(conversationID.uuidString)"
+        self.channel = await supabase.realtimeV2.channel(roomName) { config in
+            config.presence.key = currentUser.id.uuidString
+            config.broadcast.acknowledgeBroadcasts = true
+        }
         
         guard let channel = self.channel else { return }
         
@@ -81,7 +141,7 @@ class ChatViewModel: ObservableObject {
             InsertAction.self,
             schema: "public",
             table: "messages",
-            filter: "conversation_id=eq.\(conversation.id.uuidString)"
+            filter: "conversation_id=eq.\(conversationID.uuidString)"
         )
         
         // Listen for updates (e.g. is_read)
@@ -89,7 +149,7 @@ class ChatViewModel: ObservableObject {
             UpdateAction.self,
             schema: "public",
             table: "messages",
-            filter: "conversation_id=eq.\(conversation.id.uuidString)"
+            filter: "conversation_id=eq.\(conversationID.uuidString)"
         )
         
         await channel.subscribe()
@@ -229,7 +289,7 @@ class ChatViewModel: ObservableObject {
         }
         let insertData = MsgInsert(
             id: msgId,
-            conversation_id: conversation.id,
+            conversation_id: conversationID,
             sender_id: currentUser.id,
             text: text,
             media_url: mediaUrl,
@@ -243,7 +303,7 @@ class ChatViewModel: ObservableObject {
                 .select("seller_id").eq("id", value: conversation.productId).single().execute().value
             let buyerId = owner.seller_id == currentUser.id ? conversation.participantId : currentUser.id
             try await supabase.database.from("conversations")
-                .upsert(ConversationInsert(id: conversation.id, buyer_id: buyerId, seller_id: owner.seller_id, product_id: conversation.productId), onConflict: "id")
+                .upsert(ConversationInsert(id: conversationID, buyer_id: buyerId, seller_id: owner.seller_id, product_id: conversation.productId), onConflict: "id")
                 .execute()
             try await supabase.database
                 .from("messages")
@@ -282,7 +342,7 @@ class ChatViewModel: ObservableObject {
             try await supabase.database
                 .from("messages")
                 .update(["is_read": true])
-                .eq("conversation_id", value: conversation.id)
+                .eq("conversation_id", value: conversationID)
                 .eq("sender_id", value: conversation.participantId)
                 .eq("is_read", value: false)
                 .execute()
