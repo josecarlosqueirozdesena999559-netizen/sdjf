@@ -16,6 +16,7 @@ struct ProductDetailView: View {
     @State private var offers: [ProductOffer] = []
     @State private var offerAmount: String = ""
     @State private var localLikes: Int = 0
+    @State private var viewCount: Int = 0
     @State private var currentImageIndex: Int = 0
     @State private var isFullScreenMedia: Bool = false
     @State private var seller: Seller? = nil
@@ -35,6 +36,19 @@ var isOwner: Bool {
         authViewModel.currentUser?.id == product.sellerId
     }
     
+    private func loadViewCount() async {
+        struct ProductViews: Codable { let views: Int }
+        if let result: ProductViews = try? await supabase.database.from("products").select("views").eq("id", value: product.id).single().execute().value {
+            viewCount = result.views
+        }
+    }
+
+    private func subscribeToViewCount() async {
+        let channel = await supabase.realtimeV2.channel("product_views_\(product.id.uuidString)")
+        let updates = await channel.postgresChange(UpdateAction.self, schema: "public", table: "products", filter: "id=eq.\(product.id.uuidString)")
+        await channel.subscribe()
+        for await _ in updates { await loadViewCount() }
+    }
     private func isVideo(url: String) -> Bool {
         let lowercased = url.lowercased()
         return lowercased.hasSuffix(".mp4") || lowercased.hasSuffix(".mov") || lowercased.hasSuffix(".m3u8") || lowercased.contains("video")
@@ -140,6 +154,10 @@ var isOwner: Bool {
                         .font(.largeTitle)
                         .fontWeight(.bold)
                         .foregroundColor(Theme.primary)
+
+                    Label("\(viewCount) visualizações", systemImage: "eye")
+                        .font(.caption)
+                        .foregroundColor(Theme.textSecondary)
                     
                     HStack {
                         Image(systemName: "mappin.and.ellipse")
@@ -399,6 +417,8 @@ var isOwner: Bool {
             }
         }
         .onAppear {
+            Task { await loadViewCount() }
+            Task { await subscribeToViewCount() }
             Task { await loadSeller() }
             localLikes = (product.views / 3) + (favoritesViewModel.isFavorite(product) ? 1 : 0)
             
