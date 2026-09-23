@@ -295,7 +295,9 @@ class RegisterViewModel: NSObject, ObservableObject, CLLocationManagerDelegate {
                     avg_response_time: nil,
                     bio: nil,
                     latitude: self.latitude,
-                    longitude: self.longitude
+                    longitude: self.longitude,
+                    is_online: true,
+                    last_seen: Date()
                 )
                 
                 try await supabase.database

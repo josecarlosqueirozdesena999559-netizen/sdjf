@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import OneSignalFramework
 
 class AppDelegate: NSObject, UIApplicationDelegate {
@@ -7,13 +7,6 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         
         OneSignal.Notifications.requestPermission({ accepted in
             print("User accepted notifications: \(accepted)")
-        }
-        .onChange(of: scenePhase) { _, newPhase in
-            if newPhase == .active {
-                authViewModel.updatePresence(isOnline: true)
-            } else if newPhase == .background {
-                authViewModel.updatePresence(isOnline: false)
-            }
         }, fallbackToSettings: true)
         
         return true
