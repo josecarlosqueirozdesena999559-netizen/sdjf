@@ -27,10 +27,10 @@ struct ProductDetailView: View {
     let timer = Timer.publish(every: 3.0, on: .main, in: .common).autoconnect()
     
     private func loadSeller() async {
-        struct ProfileRow: Codable { let id: UUID; let name: String; let visible_name: String?; let username: String?; let email: String?; let location: String?; let avatar_url: String?; let created_at: Date?; let rating: Double?; let avg_response_time: String?; let bio: String? }
+        struct ProfileRow: Codable { let id: UUID; let name: String; let visible_name: String?; let username: String?; let email: String?; let location: String?; let avatar_url: String?; let created_at: Date?; let rating: Double?; let avg_response_time: String?; let bio: String?; let phone: String? }
         do {
-            let profile: ProfileRow = try await supabase.database.from("profiles").select("id,name,visible_name,username,email,location,avatar_url,created_at,rating,avg_response_time,bio").eq("id", value: product.sellerId).single().execute().value
-            let user = User(id: profile.id, name: profile.name, cpf: "", birthDate: nil, email: profile.email ?? "", phone: "", username: profile.username ?? "", visibleName: profile.visible_name, avatarURL: profile.avatar_url, location: profile.location ?? "", latitude: nil, longitude: nil, memberSince: profile.created_at ?? Date(), isProfessional: false, rating: profile.rating, responseTime: profile.avg_response_time, bio: profile.bio)
+            let profile: ProfileRow = try await supabase.database.from("profiles").select("id,name,visible_name,username,email,location,avatar_url,created_at,rating,avg_response_time,bio,phone").eq("id", value: product.sellerId).single().execute().value
+            let user = User(id: profile.id, name: profile.name, cpf: "", birthDate: nil, email: profile.email ?? "", phone: profile.phone ?? "", username: profile.username ?? "", visibleName: profile.visible_name, avatarURL: profile.avatar_url, location: profile.location ?? "", latitude: nil, longitude: nil, memberSince: profile.created_at ?? Date(), isProfessional: false, rating: profile.rating, responseTime: profile.avg_response_time, bio: profile.bio)
             seller = Seller(id: profile.id, user: user, isVerified: false, rating: profile.rating ?? 0, reviewCount: 0, salesCount: 0, averageResponseTime: profile.avg_response_time ?? "-", bio: profile.bio ?? "")
         } catch { print("Failed to load seller: \(error)") }
     }
@@ -172,10 +172,46 @@ var isOwner: Bool {
                         .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
                         .foregroundColor(Theme.textSecondary)
                     
-                    Text(product.title)
-                        .font(.custom("Inter-SemiBold", size: 22, relativeTo: .title2))
+                    HStack {
+                        Text(product.title)
+                            .font(.custom("Inter-SemiBold", size: 22, relativeTo: .title2))
+                            .foregroundColor(Theme.textPrimary)
+                        Spacer()
                         
-                        .foregroundColor(Theme.textPrimary)
+                        Button(action: {
+                            if let user = authViewModel.currentUser, user.id != product.sellerId {
+                                sendNotification(to: product.sellerId, type: "system", title: "Produto compartilhado!", body: "Alguém compartilhou o seu produto '\(product.title)'.")
+                            }
+                            let activityVC = UIActivityViewController(activityItems: ["Olha esse produto que encontrei: \(product.title) por \(Formatters.formatCurrency(product.price))!", URL(string: "https://achou.com/product/\(product.id.uuidString)")!], applicationActivities: nil)
+                            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+                               let window = windowScene.windows.first,
+                               let rootVC = window.rootViewController {
+                                var topController = rootVC
+                                while let presented = topController.presentedViewController {
+                                    topController = presented
+                                }
+                                topController.present(activityVC, animated: true)
+                            }
+                        }) {
+                            Image(systemName: "square.and.arrow.up")
+                                .foregroundColor(Theme.textPrimary)
+                        }
+                        
+                        Button(action: {
+                            favoritesViewModel.toggleFavorite(product: product)
+                            if favoritesViewModel.isFavorite(product) {
+                                localLikes += 1
+                                if let user = authViewModel.currentUser, user.id != product.sellerId {
+                                    sendNotification(to: product.sellerId, type: "system", title: "Nova curtida!", body: "\(user.name) curtiu o seu produto '\(product.title)'.")
+                                }
+                            } else {
+                                localLikes -= 1
+                            }
+                        }) {
+                            Image(systemName: favoritesViewModel.isFavorite(product) ? "heart.fill" : "heart")
+                                .foregroundColor(favoritesViewModel.isFavorite(product) ? Theme.primary : Theme.textPrimary)
+                        }
+                    }
                     
                     Text(Formatters.formatCurrency(product.price))
                         .font(.custom("Inter-Bold", size: 24, relativeTo: .title))
@@ -265,53 +301,9 @@ var isOwner: Bool {
         .background(Theme.background.ignoresSafeArea())
         .customBackButton()
         .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .navigationBarTrailing) {
-                Button(action: {
-                    if let user = authViewModel.currentUser, user.id != product.sellerId {
-                        sendNotification(to: product.sellerId, type: "system", title: "Produto compartilhado!", body: "Alguém compartilhou o seu produto '\(product.title)'.")
-                    }
-                    
-                    let activityVC = UIActivityViewController(activityItems: ["Olha esse produto que encontrei no Achou: \(product.title) por \(Formatters.formatCurrency(product.price))!", URL(string: "https://achou.com/product/\(product.id.uuidString)")!], applicationActivities: nil)
-                    if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-                       let window = windowScene.windows.first,
-                       let rootVC = window.rootViewController {
-                        var topController = rootVC
-                        while let presented = topController.presentedViewController {
-                            topController = presented
-                        }
-                        topController.present(activityVC, animated: true)
-                    }
-                }) {
-                    Image(systemName: "square.and.arrow.up")
-                        .foregroundColor(Theme.textPrimary)
-                }
-            }
-            ToolbarItem(placement: .navigationBarTrailing) {
-                HStack(spacing: 2) {
-                    Text("\(localLikes)")
-                        .font(.custom("Inter-Regular", size: 12, relativeTo: .caption))
-                        .foregroundColor(Theme.textSecondary)
-                        .padding(.trailing, 2)
-                        
-                    Button(action: {
-                        favoritesViewModel.toggleFavorite(product: product)
-                        if favoritesViewModel.isFavorite(product) {
-                            localLikes += 1
-                            if let user = authViewModel.currentUser, user.id != product.sellerId {
-                                sendNotification(to: product.sellerId, type: "system", title: "Nova curtida!", body: "\(user.name) curtiu o seu produto '\(product.title)'.")
-                            }
-                        } else {
-                            localLikes -= 1
-                        }
-                    }) {
-                        Image(systemName: favoritesViewModel.isFavorite(product) ? "heart.fill" : "heart")
-                            .foregroundColor(favoritesViewModel.isFavorite(product) ? Theme.primary : Theme.textPrimary)
-                    }
-                }
-            }
-        }
-        .onAppear {
+        
+        .toolbar(.hidden, for: .tabBar)
+.onAppear {
             Task { await loadViewCount() }
             Task { await subscribeToViewCount() }
             Task { await loadOffers() }
@@ -340,11 +332,39 @@ var isOwner: Bool {
                 }
             }
         }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+                .safeAreaInset(edge: .bottom, spacing: 0) {
             if !isOwner, let currentUser = authViewModel.currentUser {
-                NavigationLink(destination: ChatView(conversation: Conversation(id: UUID(), productId: product.id, participantId: product.sellerId, lastMessage: Message(id: UUID(), senderId: currentUser.id, receiverId: product.sellerId, text: "", timestamp: Date(), isRead: true), unreadCount: 0), currentUser: currentUser)) {
-                    Label("Conversar", systemImage: "message.fill").font(.headline.weight(.semibold)).frame(maxWidth: .infinity).padding(.vertical, 14).foregroundColor(.white).background(Theme.primary).clipShape(RoundedRectangle(cornerRadius: 14))
-                }.padding(.horizontal).padding(.vertical, 10).background(.ultraThinMaterial)
+                HStack(spacing: 12) {
+                    NavigationLink(destination: ChatView(conversation: Conversation(id: UUID(), productId: product.id, participantId: product.sellerId, lastMessage: Message(id: UUID(), senderId: currentUser.id, receiverId: product.sellerId, text: "", timestamp: Date(), isRead: true), unreadCount: 0), currentUser: currentUser)) {
+                        Label("Conversar", systemImage: "bubble.left.and.bubble.right.fill")
+                            .font(.headline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 14)
+                            .foregroundColor(.white)
+                            .background(Theme.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    
+                    if let phone = seller?.user.phone, !phone.isEmpty {
+                        Button(action: {
+                            let cleanPhone = phone.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
+                            if let url = URL(string: "https://wa.me/55$cleanPhone") {
+                                UIApplication.shared.open(url)
+                            }
+                        }) {
+                            Label("WhatsApp", systemImage: "phone.circle.fill")
+                                .font(.headline.weight(.semibold))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 14)
+                                .foregroundColor(.white)
+                                .background(Color(red: 37/255, green: 211/255, blue: 102/255))
+                                .clipShape(RoundedRectangle(cornerRadius: 14))
+                        }
+                    }
+                }
+                .padding(.horizontal)
+                .padding(.vertical, 10)
+                .background(.ultraThinMaterial)
             }
         }
         .alert("Lances", isPresented: Binding(get: { offerError != nil }, set: { if !$0 { offerError = nil } })) {
