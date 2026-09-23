@@ -38,7 +38,6 @@ class ChatViewModel: ObservableObject {
         await fetchParticipantStatus()
         await fetchMessages()
         await setupRealtime()
-        startPollingFallback()
     }
     
     private func fetchParticipantStatus() async {
@@ -106,16 +105,6 @@ class ChatViewModel: ObservableObject {
         }
     }
 
-    private func startPollingFallback() {
-        pollingTask?.cancel()
-        pollingTask = Task { [weak self] in
-            while !Task.isCancelled {
-                try? await Task.sleep(for: .seconds(1))
-                guard let self, !Task.isCancelled else { return }
-                await self.fetchMessages()
-            }
-        }
-    }
     func fetchMessages() async {
         do {
             struct SupabaseMessage: Codable {
