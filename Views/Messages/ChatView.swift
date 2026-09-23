@@ -73,7 +73,7 @@ struct ChatView: View {
                                             Image(systemName: "checkmark")
                                         }
                                         .font(.custom("Inter-Bold", size: 10))
-                                        .foregroundColor(message.isRead ? .blue : .gray)
+                                        .foregroundColor(message.isRead ? .blue : (viewModel.otherUserOnline ? Theme.primary : .gray))
                                     }
                                 }
                             } else {
