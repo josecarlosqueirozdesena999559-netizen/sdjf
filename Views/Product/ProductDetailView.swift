@@ -2,7 +2,7 @@ import SwiftUI
 import Realtime
 
 struct ProductOffer: Identifiable {
-    let id = UUID()
+    let id: UUID
     let bidderName: String
     let bidderId: UUID
     let amount: Double
@@ -21,6 +21,7 @@ struct ProductDetailView: View {
     @State private var currentImageIndex: Int = 0
     @State private var isFullScreenMedia: Bool = false
     @State private var seller: Seller? = nil
+    @State private var offerError: String? = nil
     
     // Timer for auto-sliding images
     let timer = Timer.publish(every: 3.0, on: .main, in: .common).autoconnect()
@@ -37,6 +38,31 @@ var isOwner: Bool {
         authViewModel.currentUser?.id == product.sellerId
     }
     
+    private func loadOffers() async {
+        struct Row: Decodable { let id: UUID; let bidder_id: UUID; let amount: Double; let created_at: Date }
+        do {
+            let rows: [Row] = try await supabase.database.from("product_offers").select()
+                .eq("product_id", value: product.id).order("created_at", ascending: false).execute().value
+            offers = rows.map { ProductOffer(id: $0.id, bidderName: "Interessado", bidderId: $0.bidder_id, amount: $0.amount, time: $0.created_at) }
+        } catch { offerError = "Não foi possível carregar os lances." }
+    }
+
+    private func createOffer() async {
+        guard let userID = authViewModel.currentUser?.id,
+              let amount = Double(offerAmount.replacingOccurrences(of: ",", with: ".")), amount > 0 else { return }
+        struct NewOffer: Encodable { let product_id: UUID; let bidder_id: UUID; let amount: Double }
+        do {
+            try await supabase.database.from("product_offers").insert(NewOffer(product_id: product.id, bidder_id: userID, amount: amount)).execute()
+            offerAmount = ""; await loadOffers()
+        } catch { offerError = "Não foi possível enviar o lance." }
+    }
+
+    private func deleteOffer(_ offer: ProductOffer) async {
+        do {
+            try await supabase.database.from("product_offers").delete().eq("id", value: offer.id).execute()
+            await loadOffers()
+        } catch { offerError = "Não foi possível excluir o lance." }
+    }
     private func loadViewCount() async {
         struct ProductViews: Codable { let views: Int }
         if let result: ProductViews = try? await supabase.database.from("products").select("views").eq("id", value: product.id).single().execute().value {
@@ -191,179 +217,47 @@ var isOwner: Bool {
                     
                     Divider()
                     
-                    // NEW: NEGOTIATION / BIDS SECTION
                     if product.acceptsNegotiation {
                         VStack(alignment: .leading, spacing: 12) {
-                            HStack {
-                                Image(systemName: "hand.thumbsup.fill")
-                                    .foregroundColor(Theme.primary)
-                                Text("Negociação e Lances")
-                                    .font(.headline)
-                                    .fontWeight(.bold)
-                            }
-                            
+                            Label("Negociação e lances", systemImage: "hand.thumbsup.fill")
+                                .font(.headline).foregroundColor(Theme.primary)
                             if isOwner {
-                                Text("Como dono deste anúncio, você pode ver os lances e iniciar uma negociação.")
-                                    .font(.caption)
-                                    .foregroundColor(Theme.textSecondary)
-                                
                                 if offers.isEmpty {
-                                    Text("Nenhum lance recebido ainda.")
-                                        .font(.subheadline)
-                                        .foregroundColor(Theme.textSecondary)
-                                        .padding()
+                                    Text("Nenhum lance recebido ainda.").foregroundColor(Theme.textSecondary)
                                 } else {
                                     ForEach(offers) { offer in
                                         HStack {
                                             VStack(alignment: .leading) {
-                                                Text(offer.bidderName)
-                                                    .font(.subheadline)
-                                                    .fontWeight(.bold)
-                                                Text(Formatters.formatCurrency(offer.amount))
-                                                    .foregroundColor(Theme.primary)
-                                                    .fontWeight(.bold)
+                                                Text(Formatters.formatCurrency(offer.amount)).fontWeight(.bold).foregroundColor(Theme.primary)
+                                                Text("Lance recebido").font(.caption).foregroundColor(Theme.textSecondary)
                                             }
                                             Spacer()
-                                            
-                                            NavigationLink(destination: ChatView(conversation: Conversation(
-                                                id: UUID(),
-                                                productId: product.id,
-                                                participantId: offer.bidderId,
-                                                lastMessage: Message(id: UUID(), senderId: product.sellerId, receiverId: offer.bidderId, text: "Olá! Vi seu lance de \(Formatters.formatCurrency(offer.amount)). Vamos negociar?", timestamp: Date(), isRead: true),
-                                                unreadCount: 0
-                                            ), currentUser: authViewModel.currentUser!)) {
-                                                Text("Negociar")
-                                                    .font(.caption)
-                                                    .fontWeight(.bold)
-                                                    .padding(.horizontal, 12)
-                                                    .padding(.vertical, 6)
-                                                    .background(Theme.primary)
-                                                    .foregroundColor(.white)
-                                                    .cornerRadius(8)
+                                            if let user = authViewModel.currentUser {
+                                                NavigationLink(destination: ChatView(conversation: Conversation(id: UUID(), productId: product.id, participantId: offer.bidderId, lastMessage: Message(id: UUID(), senderId: user.id, receiverId: offer.bidderId, text: "", timestamp: Date(), isRead: true), unreadCount: 0), currentUser: user)) {
+                                                    Label("Responder", systemImage: "paperplane.fill").font(.caption.weight(.semibold))
+                                                }
                                             }
-                                        }
-                                        .padding()
-                                        .background(Theme.inputBackground)
-                                        .cornerRadius(8)
+                                        }.padding(12).background(Theme.inputBackground).clipShape(RoundedRectangle(cornerRadius: 10))
                                     }
                                 }
                             } else {
-                                // If not owner, user can place bids
-                                VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    TextField("Seu lance", text: $offerAmount).keyboardType(.decimalPad)
+                                    Button("Enviar") { Task { await createOffer() } }
+                                        .buttonStyle(.borderedProminent).tint(Theme.primary).disabled(offerAmount.isEmpty)
+                                }.padding(10).background(Theme.inputBackground).clipShape(RoundedRectangle(cornerRadius: 10))
+                                ForEach(offers.filter { $0.bidderId == authViewModel.currentUser?.id }) { offer in
                                     HStack {
-                                        Text("R$")
-                                            .foregroundColor(Theme.textSecondary)
-                                            .fontWeight(.bold)
-                                        TextField("0,00", text: $offerAmount)
-                                            .keyboardType(.decimalPad)
-                                            .font(.headline)
-                                        
-                                        Button(action: {
-                                            if let amount = Double(offerAmount.replacingOccurrences(of: ",", with: ".")) {
-                                                let bidderName = authViewModel.currentUser?.name ?? "Você"
-                                                let bidderId = authViewModel.currentUser?.id ?? UUID()
-                                                let newOffer = ProductOffer(bidderName: bidderName, bidderId: bidderId, amount: amount, time: Date())
-                                                offers.append(newOffer)
-                                                offerAmount = ""
-                                                
-                                                if bidderId != product.sellerId {
-                                                    sendNotification(to: product.sellerId, type: "sale", title: "Novo lance recebido!", body: "\(bidderName) fez um lance de \(Formatters.formatCurrency(amount)) no seu produto '\(product.title)'.")
-                                                }
-                                            }
-                                        }) {
-                                            Text("Enviar Lance")
-                                                .font(.subheadline)
-                                                .fontWeight(.bold)
-                                                .padding(.horizontal, 12)
-                                                .padding(.vertical, 8)
-                                                .background(offerAmount.isEmpty ? Theme.textSecondary : Theme.primary)
-                                                .foregroundColor(.white)
-                                                .cornerRadius(8)
-                                        }
-                                        .disabled(offerAmount.isEmpty)
-                                    }
-                                    .padding()
-                                    .background(Theme.inputBackground)
-                                    .cornerRadius(8)
-                                    
-                                    if !offers.filter({ $0.bidderId == authViewModel.currentUser?.id }).isEmpty {
-                                        Text("Seus lances:")
-                                            .font(.subheadline)
-                                            .fontWeight(.bold)
-                                            .padding(.top, 4)
-                                        
-                                        ForEach(offers.filter({ $0.bidderId == authViewModel.currentUser?.id })) { offer in
-                                            HStack {
-                                                Text("Você ofereceu:")
-                                                    .font(.caption)
-                                                    .foregroundColor(Theme.textSecondary)
-                                                Spacer()
-                                                Text(Formatters.formatCurrency(offer.amount))
-                                                    .font(.subheadline)
-                                                    .fontWeight(.bold)
-                                                    .foregroundColor(Theme.primary)
-                                            }
-                                            .padding()
-                                            .background(Theme.inputBackground.opacity(0.5))
-                                            .cornerRadius(8)
-                                        }
-                                    }
+                                        Text("Seu lance: \(Formatters.formatCurrency(offer.amount))").font(.subheadline.weight(.semibold))
+                                        Spacer()
+                                        Button("Excluir", role: .destructive) { Task { await deleteOffer(offer) } }.font(.caption)
+                                    }.padding(10).background(Theme.inputBackground.opacity(0.7)).clipShape(RoundedRectangle(cornerRadius: 10))
                                 }
                             }
                         }
-                        
                         Divider()
                     }
-                    
-                    if let seller = seller {
-                        Text("Sobre o vendedor")
-                            .font(.headline)
-                            .fontWeight(.bold)
-                        
-                        NavigationLink(destination: SellerProfileView(seller: seller)) {
-                            HStack(spacing: 12) {
-                                Circle()
-                                    .fill(Theme.lightGreen)
-                                    .frame(width: 50, height: 50)
-                                    .overlay(
-                                        Text(String(seller.user.name.prefix(1)))
-                                            .foregroundColor(Theme.primary)
-                                            .font(.headline)
-                                    )
-                                
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack {
-                                        Text(seller.user.name)
-                                            .font(.headline)
-                                            .foregroundColor(Theme.textPrimary)
-                                        if seller.isVerified {
-                                            Image(systemName: "checkmark.seal.fill")
-                                                .foregroundColor(.blue)
-                                                .font(.caption)
-                                        }
-                                    }
-                                    
-                                    HStack {
-                                        Image(systemName: "star.fill")
-                                            .foregroundColor(.yellow)
-                                        Text(String(format: "%.1f", seller.rating))
-                                        Text("(\(seller.reviewCount))")
-                                            .foregroundColor(Theme.textSecondary)
-                                    }
-                                    .font(.caption)
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(Theme.textSecondary)
-                            }
-                            .padding()
-                            .background(Color.white)
-                            .cornerRadius(12)
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(Theme.border, lineWidth: 1))
-                        }
-                    }
-                    
-                    Spacer(minLength: 100)
+
                 }
                 .padding()
             }
@@ -420,7 +314,7 @@ var isOwner: Bool {
         .onAppear {
             Task { await loadViewCount() }
             Task { await subscribeToViewCount() }
-            Task { await loadSeller() }
+            Task { await loadOffers() }
             localLikes = (product.views / 3) + (favoritesViewModel.isFavorite(product) ? 1 : 0)
             
             // Increment view count in Supabase (unique per user)
@@ -446,63 +340,15 @@ var isOwner: Bool {
                 }
             }
         }
-        .overlay(
-            VStack {
-                Spacer()
-                if !isOwner {
-                    HStack(spacing: 12) {
-                        NavigationLink(destination: ChatView(conversation: Conversation(
-                            id: UUID(),
-                            productId: product.id,
-                            participantId: product.sellerId,
-                            lastMessage: Message(
-                                id: UUID(),
-                                senderId: authViewModel.currentUser?.id ?? UUID(),
-                                receiverId: product.sellerId,
-                                text: "Olá! Gostaria de conversar sobre o produto \(product.title).",
-                                timestamp: Date(),
-                                isRead: true
-                            ),
-                            unreadCount: 0
-                                            ), currentUser: authViewModel.currentUser!)) {
-                            Text("Chat")
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Theme.primary)
-                                .foregroundColor(.white)
-                                .cornerRadius(12)
-                        }
-                        
-                        if let whatsapp = product.whatsappNumber, !whatsapp.isEmpty {
-                            Button(action: {
-                                let cleanNumber = whatsapp.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
-                                let message = "Olá! Vi seu anúncio '\(product.title)' no Achou e gostaria de mais informações."
-                                if let url = URL(string: "https://wa.me/\(cleanNumber)?text=\(message.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")") {
-                                    UIApplication.shared.open(url)
-                                }
-                            }) {
-                                HStack {
-                                    Image(systemName: "phone.bubble.left.fill")
-                                    Text("WhatsApp")
-                                }
-                                .font(.headline)
-                                .fontWeight(.semibold)
-                                .frame(maxWidth: .infinity)
-                                .padding()
-                                .background(Color.green)
-                                .foregroundColor(.white)
-                                .cornerRadius(12)
-                            }
-                        }
-                    }
-                    .padding()
-                    .background(Color.white.shadow(color: Color.black.opacity(0.1), radius: 10, y: -5))
-                }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            if !isOwner, let currentUser = authViewModel.currentUser {
+                NavigationLink(destination: ChatView(conversation: Conversation(id: UUID(), productId: product.id, participantId: product.sellerId, lastMessage: Message(id: UUID(), senderId: currentUser.id, receiverId: product.sellerId, text: "", timestamp: Date(), isRead: true), unreadCount: 0), currentUser: currentUser)) {
+                    Label("Conversar", systemImage: "message.fill").font(.headline.weight(.semibold)).frame(maxWidth: .infinity).padding(.vertical, 14).foregroundColor(.white).background(Theme.primary).clipShape(RoundedRectangle(cornerRadius: 14))
+                }.padding(.horizontal).padding(.vertical, 10).background(.ultraThinMaterial)
             }
-            , alignment: .bottom
-        )
+        }
+        .alert("Lances", isPresented: Binding(get: { offerError != nil }, set: { if !$0 { offerError = nil } })) {
+            Button("OK", role: .cancel) { }
+        } message: { Text(offerError ?? "") }
     }
 }
-
