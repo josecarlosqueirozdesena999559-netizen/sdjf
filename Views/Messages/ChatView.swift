@@ -17,18 +17,28 @@ struct ChatView: View {
         VStack(spacing: 0) {
             chatHeader
             Divider()
-            ScrollView {
-                LazyVStack(spacing: 12) {
-                    ForEach(viewModel.messages) { message in
-                        HStack {
-                            if message.senderId == viewModel.currentUser.id { Spacer() }
-                            messageBubble(message, isMine: message.senderId == viewModel.currentUser.id)
-                            if message.senderId != viewModel.currentUser.id { Spacer() }
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: 8) {
+                        ForEach(viewModel.messages) { message in
+                            HStack {
+                                if message.senderId == viewModel.currentUser.id { Spacer(minLength: 48) }
+                                messageBubble(message, isMine: message.senderId == viewModel.currentUser.id)
+                                if message.senderId != viewModel.currentUser.id { Spacer(minLength: 48) }
+                            }
+                            .padding(.horizontal)
+                            .id(message.id)
                         }
-                        .padding(.horizontal)
+                        Color.clear.frame(height: 1).id("chat-bottom")
+                    }
+                    .padding(.vertical, 12)
+                }
+                .onAppear { proxy.scrollTo("chat-bottom", anchor: .bottom) }
+                .onChange(of: viewModel.messages.count) { _, _ in
+                    withAnimation(.easeOut(duration: 0.2)) {
+                        proxy.scrollTo("chat-bottom", anchor: .bottom)
                     }
                 }
-                .padding(.vertical, 12)
             }
             composer
         }

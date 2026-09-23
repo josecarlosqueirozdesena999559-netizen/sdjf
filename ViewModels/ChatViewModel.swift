@@ -133,85 +133,60 @@ class ChatViewModel: ObservableObject {
             config.presence.key = currentUser.id.uuidString
             config.broadcast.acknowledgeBroadcasts = true
         }
-        
-        guard let channel = self.channel else { return }
-        
-        // Listen for new messages via Postgres Changes
+        guard let channel else { return }
+
         let insertions = await channel.postgresChange(
             InsertAction.self,
             schema: "public",
             table: "messages",
             filter: "conversation_id=eq.\(conversationID.uuidString)"
         )
-        
-        // Listen for updates (e.g. is_read)
         let updates = await channel.postgresChange(
             UpdateAction.self,
             schema: "public",
             table: "messages",
             filter: "conversation_id=eq.\(conversationID.uuidString)"
         )
-        
-        await channel.subscribe()
-        
-        // Track presence
-        do {
-            try await channel.track(["user_id": currentUser.id.uuidString, "status": "online"])
-        } catch {
-            print("Error tracking presence: \(error)")
-        }
-        
-        // Listen for presence changes
+
+        // Registra todos os listeners antes da assinatura para não perder o estado inicial.
+        let presenceEvents = await channel.presenceChange()
+        let typingEvents = await channel.broadcast(event: "typing")
+
         Task {
-            struct PresencePayload: Codable {
-                let user_id: String
-                let status: String
-            }
-            var onlineUsers: Set<String> = []
-            
-            for await action in await channel.presenceChange() {
+            struct PresencePayload: Codable { let user_id: String }
+            var onlineUsers = Set<String>()
+            for await action in presenceEvents {
                 do {
-                    let joins = try action.decodeJoins(as: PresencePayload.self)
-                    let leaves = try action.decodeLeaves(as: PresencePayload.self)
-                    
-                    for p in joins {
-                        onlineUsers.insert(p.user_id)
+                    for presence in try action.decodeJoins(as: PresencePayload.self) {
+                        onlineUsers.insert(presence.user_id)
                     }
-                    for p in leaves {
-                        onlineUsers.remove(p.user_id)
+                    for presence in try action.decodeLeaves(as: PresencePayload.self) {
+                        onlineUsers.remove(presence.user_id)
                     }
-                    
-                    Task { @MainActor in
-                        self.otherUserOnline = onlineUsers.contains(self.conversation.participantId.uuidString)
-                        if !self.otherUserOnline {
-                            self.lastSeen = Date() // Approximate
-                        }
-                    }
+                    otherUserOnline = onlineUsers.contains(conversation.participantId.uuidString)
+                    if !otherUserOnline { lastSeen = Date() }
                 } catch {
-                    print("Error decoding presence: \(error)")
+                    print("Erro ao atualizar presença: \(error)")
                 }
             }
         }
-        
-        // Listen for typing broadcast
+
         Task {
-            let typingEvents = await channel.broadcast(event: "typing")
             for await payload in typingEvents {
-                if let userId = payload["user_id"]?.stringValue, userId != self.currentUser.id.uuidString {
-                    self.isTyping = true
-                    
-                    self.typingTimer?.invalidate()
-                    self.typingTimer = Timer.scheduledTimer(withTimeInterval: 3.0, repeats: false) { _ in
+                if let userID = payload["user_id"]?.stringValue, userID != currentUser.id.uuidString {
+                    isTyping = true
+                    typingTimer?.invalidate()
+                    typingTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { _ in
                         Task { @MainActor in self.isTyping = false }
                     }
                 }
             }
         }
-        
+
         Task {
             for await insert in insertions {
                 do {
-                    struct MsgPayload: Codable {
+                    struct Payload: Codable {
                         let id: UUID
                         let sender_id: UUID
                         let text: String
@@ -219,53 +194,50 @@ class ChatViewModel: ObservableObject {
                         let is_read: Bool
                         let created_at: String
                     }
-                    let decoded = try insert.decodeRecord(decoder: JSONDecoder()) as MsgPayload
-                    
-                    let formatter = ISO8601DateFormatter()
-                    formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-                    let date = formatter.date(from: decoded.created_at) ?? Date()
-                    
-                    let newMsg = Message(
-                        id: decoded.id,
-                        senderId: decoded.sender_id,
-                        receiverId: decoded.sender_id == self.conversation.participantId ? self.currentUser.id : self.conversation.participantId,
-                        text: decoded.text,
-                        imageName: decoded.media_url,
-                        timestamp: date,
-                        isRead: decoded.is_read
+                    let record = try insert.decodeRecord(decoder: JSONDecoder()) as Payload
+                    let dateFormatter = ISO8601DateFormatter()
+                    dateFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                    let createdAt = dateFormatter.date(from: record.created_at) ?? Date()
+                    let message = Message(
+                        id: record.id,
+                        senderId: record.sender_id,
+                        receiverId: record.sender_id == conversation.participantId ? currentUser.id : conversation.participantId,
+                        text: record.text,
+                        imageName: record.media_url,
+                        timestamp: createdAt,
+                        isRead: record.is_read
                     )
-                    
-                    if !self.messages.contains(where: { $0.id == newMsg.id }) {
-                        self.messages.append(newMsg)
-                        // If we are receiving, mark as read
-                        if newMsg.senderId != self.currentUser.id {
-                            await self.markAsRead()
-                        }
+                    if !messages.contains(where: { $0.id == message.id }) {
+                        messages.append(message)
+                        if message.senderId != currentUser.id { await markAsRead() }
                     }
                 } catch {
-                    print("Error decoding insert: \(error)")
+                    print("Erro ao receber mensagem: \(error)")
                 }
             }
         }
-        
+
         Task {
             for await update in updates {
                 do {
-                    struct MsgPayload: Codable {
-                        let id: UUID
-                        let is_read: Bool
-                    }
-                    let decoded = try update.decodeRecord(decoder: JSONDecoder()) as MsgPayload
-                    if let idx = self.messages.firstIndex(where: { $0.id == decoded.id }) {
-                        self.messages[idx].isRead = decoded.is_read
+                    struct Payload: Codable { let id: UUID; let is_read: Bool }
+                    let record = try update.decodeRecord(decoder: JSONDecoder()) as Payload
+                    if let index = messages.firstIndex(where: { $0.id == record.id }) {
+                        messages[index].isRead = record.is_read
                     }
                 } catch {
-                    print("Error decoding update: \(error)")
+                    print("Erro ao atualizar leitura: \(error)")
                 }
             }
         }
+
+        await channel.subscribe()
+        do {
+            try await channel.track(["user_id": currentUser.id.uuidString])
+        } catch {
+            print("Erro ao registrar presença: \(error)")
+        }
     }
-    
     func sendMessage(text: String, mediaUrl: String? = nil, mediaType: String? = nil) async {
         let msgId = UUID()
         let newMsg = Message(
