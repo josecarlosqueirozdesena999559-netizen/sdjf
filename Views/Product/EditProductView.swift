@@ -113,7 +113,7 @@ struct EditProductView: View {
                                         ZStack {
                                             Color.black.opacity(0.3)
                                             Image(systemName: "play.circle.fill")
-                                                .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
+                                                .font(.custom("Inter-Bold", size: 24, relativeTo: .title))
                                                 .foregroundColor(.white)
                                         }
                                     }
@@ -151,11 +151,11 @@ struct EditProductView: View {
             
             HStack {
                 Text("R$")
-                    .font(.custom("Inter-Bold", size: 28, relativeTo: .title))
+                    .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                     
                     .foregroundColor(Theme.textSecondary)
                 TextField("0,00", text: $viewModel.price)
-                    .font(.custom("Inter-Bold", size: 36))
+                    .font(.custom("Inter-Bold", size: 24))
                     .keyboardType(.decimalPad)
                     .foregroundColor(Theme.textPrimary)
             }

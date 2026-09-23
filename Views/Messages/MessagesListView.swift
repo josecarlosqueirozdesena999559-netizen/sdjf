@@ -11,7 +11,7 @@ struct MessagesListView: View {
                 if viewModel.conversations.isEmpty {
                     VStack(spacing: 16) {
                         Image(systemName: "tray")
-                            .font(.system(size: 64))
+                            .font(.system(size: 48))
                             .foregroundColor(Theme.textSecondary.opacity(0.5))
                         Text("Nenhuma mensagem ainda")
                             .font(.custom("Inter-SemiBold", size: 20, relativeTo: .title3))

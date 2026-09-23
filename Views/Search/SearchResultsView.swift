@@ -42,7 +42,7 @@ struct SearchResultsView: View {
                 Spacer()
                 VStack(spacing: 16) {
                     Image(systemName: "location.slash")
-                        .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
+                        .font(.custom("Inter-Bold", size: 24, relativeTo: .title))
                         .foregroundColor(Theme.textSecondary)
                     Text("Nenhum produto próximo a você.")
                         .foregroundColor(Theme.textSecondary)

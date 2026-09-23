@@ -37,7 +37,7 @@ struct LoginView: View {
                 if step == .username {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Qual é o seu usuário?")
-                            .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
+                            .font(.custom("Inter-Bold", size: 24, relativeTo: .title))
                             
                             .foregroundColor(Theme.textPrimary)
                     }
@@ -67,7 +67,7 @@ struct LoginView: View {
                 } else {
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Digite sua senha")
-                            .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
+                            .font(.custom("Inter-Bold", size: 24, relativeTo: .title))
                             
                             .foregroundColor(Theme.textPrimary)
                         Text("Quase lá! Insira sua senha para acessar.")

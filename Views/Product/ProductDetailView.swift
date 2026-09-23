@@ -118,7 +118,7 @@ var isOwner: Bool {
                                         } else if phase.error != nil {
                                             Rectangle()
                                                 .fill(Theme.inputBackground)
-                                                .overlay(Image(systemName: "photo").font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle)).foregroundColor(.gray))
+                                                .overlay(Image(systemName: "photo").font(.custom("Inter-Bold", size: 24, relativeTo: .title)).foregroundColor(.gray))
                                         } else {
                                             Rectangle()
                                                 .fill(Theme.inputBackground)
@@ -133,7 +133,7 @@ var isOwner: Bool {
                                             .overlay(
                                                 Image(systemName: "play.fill")
                                                     .foregroundColor(.white)
-                                                    .font(.custom("Inter-Bold", size: 28, relativeTo: .title))
+                                                    .font(.custom("Inter-Bold", size: 22, relativeTo: .title2))
                                             )
                                     }
                                 }
@@ -178,7 +178,7 @@ var isOwner: Bool {
                         .foregroundColor(Theme.textPrimary)
                     
                     Text(Formatters.formatCurrency(product.price))
-                        .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
+                        .font(.custom("Inter-Bold", size: 24, relativeTo: .title))
                         
                         .foregroundColor(Theme.primary)
 

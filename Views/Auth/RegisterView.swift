@@ -240,7 +240,7 @@ struct RegisterView: View {
                     Text("você ").foregroundColor(Theme.primary) +
                     Text("é?").foregroundColor(Color(hex: "1A1A2E"))
                 }
-                .font(.custom("Inter-Bold", size: 32))
+                .font(.custom("Inter-Bold", size: 24))
                 .multilineTextAlignment(.center)
                 .frame(maxWidth: .infinity)
                 .padding(.bottom, 12)
@@ -345,7 +345,7 @@ struct RegisterView: View {
                             .frame(width: 130, height: 130)
                             .overlay(
                                 Image(systemName: "person.fill")
-                                    .font(.custom("Inter-Regular", size: 64))
+                                    .font(.custom("Inter-Regular", size: 48))
                                     .foregroundColor(Theme.primary.opacity(0.7))
                             )
                             .shadow(color: Color.black.opacity(0.08), radius: 6, x: 0, y: 3)

@@ -13,7 +13,7 @@ struct FavoritesView: View {
             if favoritesViewModel.favoriteProducts.isEmpty {
                 VStack(spacing: 16) {
                     Image(systemName: "heart.slash")
-                        .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
+                        .font(.custom("Inter-Bold", size: 24, relativeTo: .title))
                         .foregroundColor(Theme.textSecondary)
                     Text("Você ainda não favoritou nenhum produto.")
                         .foregroundColor(Theme.textSecondary)

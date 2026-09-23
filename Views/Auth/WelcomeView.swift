@@ -24,7 +24,7 @@ struct WelcomeView: View {
                             .foregroundColor(Theme.primary)
                         
                         Text("Achou")
-                            .font(.custom("Inter-Bold", size: 36))
+                            .font(.custom("Inter-Bold", size: 24))
                             .foregroundColor(Theme.primary)
                         
                         Text("Compre e venda perto de você")

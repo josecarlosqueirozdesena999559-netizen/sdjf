@@ -34,12 +34,12 @@ struct ForgotPasswordView: View {
                                 .fill(Color.green.opacity(0.1))
                                 .frame(width: 100, height: 100)
                             Image(systemName: "envelope.badge.fill")
-                                .font(.system(size: 40))
+                                .font(.system(size: 32))
                                 .foregroundColor(.green)
                         }
                         
                         Text("E-mail Enviado!")
-                            .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
+                            .font(.custom("Inter-Bold", size: 24, relativeTo: .title))
                             
                             .foregroundColor(Theme.textPrimary)
                         
@@ -56,7 +56,7 @@ struct ForgotPasswordView: View {
                     // Form View
                     VStack(alignment: .leading, spacing: 8) {
                         Text("Recuperar Senha")
-                            .font(.custom("Inter-Bold", size: 34, relativeTo: .largeTitle))
+                            .font(.custom("Inter-Bold", size: 24, relativeTo: .title))
                             
                             .foregroundColor(Theme.textPrimary)
                         Text("Digite seu e-mail cadastrado. Enviaremos um link seguro para você redefinir sua senha.")
