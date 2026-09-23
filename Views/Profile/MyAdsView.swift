@@ -21,7 +21,7 @@ struct MyAdsView: View {
                             VStack(alignment: .leading, spacing: 5) {
                                 Text(product.title).typographySectionTitle().lineLimit(1)
                                 Text(Formatters.formatCurrency(product.price)).typographyButton().foregroundColor(Theme.primary)
-                                Text(product.isActive ? "Ativo" : "Vendido").typographyCaption()).foregroundColor(product.isActive ? Theme.primary : Theme.textSecondary)
+                                Text(product.isActive ? "Ativo" : "Vendido").typographyCaption().foregroundColor(product.isActive ? Theme.primary : Theme.textSecondary)
                             }
                             Spacer()
                         }

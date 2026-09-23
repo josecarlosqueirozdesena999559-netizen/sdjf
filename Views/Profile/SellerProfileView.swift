@@ -109,7 +109,7 @@ struct SellerProfileView: View {
                                 VStack(alignment: .leading, spacing: 5) {
                                     ProductThumbnail(product: product)
                                     Text(product.title).typographyCaption().lineLimit(1).foregroundColor(Theme.textPrimary)
-                                    Text(Formatters.formatCurrency(product.price)).typographyCaption()).foregroundColor(Theme.primary)
+                                    Text(Formatters.formatCurrency(product.price)).typographyCaption().foregroundColor(Theme.primary)
                                 }
                             }
                         }
@@ -146,12 +146,12 @@ struct SellerProfileView: View {
     }
 
     private var avatarFallback: some View {
-        Circle().fill(Theme.lightGreen).overlay(Text(String(seller.user.name.prefix(1))).typographySubtitle()).foregroundColor(Theme.primary))
+        Circle().fill(Theme.lightGreen).overlay(Text(String(seller.user.name.prefix(1))).typographySubtitle().foregroundColor(Theme.primary))
     }
 
     private func metric(_ value: String, _ label: String, icon: String? = nil) -> some View {
         VStack(spacing: 3) {
-            HStack(spacing: 2) { Text(value).typographyCaption()); if let icon { Image(systemName: icon).typographyCaption().foregroundColor(.yellow) } }
+            HStack(spacing: 2) { Text(value).typographyCaption() if let icon { Image(systemName: icon).typographyCaption().foregroundColor(.yellow) } }
             Text(label).typographyCaption().foregroundColor(Theme.textSecondary).lineLimit(1)
         }.frame(maxWidth: .infinity)
     }

@@ -269,7 +269,7 @@ var isOwner: Bool {
                                             Spacer()
                                             if let user = authViewModel.currentUser {
                                                 NavigationLink(destination: ChatView(conversation: Conversation(id: UUID(), productId: product.id, participantId: offer.bidderId, lastMessage: Message(id: UUID(), senderId: user.id, receiverId: offer.bidderId, text: "", timestamp: Date(), isRead: true), unreadCount: 0), currentUser: user)) {
-                                                    Label("Responder", systemImage: "paperplane.fill").typographyCaption())
+                                                    Label("Responder", systemImage: "paperplane.fill").typographyCaption()
                                                 }
                                             }
                                         }.padding(12).background(Theme.inputBackground).clipShape(RoundedRectangle(cornerRadius: 10))
@@ -339,7 +339,7 @@ var isOwner: Bool {
                 HStack(spacing: 12) {
                     NavigationLink(destination: EditProductView(product: product)) {
                         Label("Editar Anúncio", systemImage: "pencil")
-                            .typographySectionTitle())
+                            .typographySectionTitle()
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .foregroundColor(.white)
@@ -354,7 +354,7 @@ var isOwner: Bool {
                 HStack(spacing: 12) {
                     NavigationLink(destination: ChatView(conversation: Conversation(id: UUID(), productId: product.id, participantId: product.sellerId, lastMessage: Message(id: UUID(), senderId: currentUser.id, receiverId: product.sellerId, text: "", timestamp: Date(), isRead: true), unreadCount: 0), currentUser: currentUser)) {
                         Label("Conversar", systemImage: "bubble.left.and.bubble.right.fill")
-                            .typographySectionTitle())
+                            .typographySectionTitle()
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, 14)
                             .foregroundColor(.white)
@@ -370,7 +370,7 @@ var isOwner: Bool {
                             }
                         }) {
                             Label("WhatsApp", systemImage: "phone.circle.fill")
-                                .typographySectionTitle())
+                                .typographySectionTitle()
                                 .frame(maxWidth: .infinity)
                                 .padding(.vertical, 14)
                                 .foregroundColor(.white)
