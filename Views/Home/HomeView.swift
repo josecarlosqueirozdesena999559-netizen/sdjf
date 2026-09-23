@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 
 struct HomeView: View {
     @StateObject private var viewModel = HomeViewModel()
@@ -81,6 +81,8 @@ struct HomeView: View {
                         .cornerRadius(12)
                     }
                     .padding(.horizontal)
+                    // Aba de Destaques (Stories)
+                    StoriesRowView(viewModel: viewModel)
                     
                     // Banner da Imagem Fornecida
                     Image("banner_home")
@@ -88,32 +90,6 @@ struct HomeView: View {
                         .scaledToFit()
                         .cornerRadius(16)
                         .padding(.horizontal)
-                    
-                    // Categorias em Grid (4x2)
-                    LazyVGrid(columns: categoryColumns, spacing: 20) {
-                        ForEach(viewModel.categories.prefix(7)) { category in
-                            NavigationLink(destination: SearchResultsView(category: category)) {
-                                FlatCategoryCard(category: category)
-                            }
-                        }
-                        // Botão "Mais"
-                        NavigationLink(destination: CategoriesView()) {
-                            VStack(spacing: 8) {
-                                ZStack {
-                                    RoundedRectangle(cornerRadius: 12)
-                                        .fill(Theme.inputBackground)
-                                        .frame(width: 60, height: 60)
-                                    Image(systemName: "ellipsis")
-                                        .typographySubtitle()
-                                        .foregroundColor(Theme.primary)
-                                }
-                                Text("Mais")
-                                    .typographyCaption()
-                                    .foregroundColor(Theme.textPrimary)
-                            }
-                        }
-                    }
-                    .padding(.horizontal)
                     
                     // Indicador Visual (Para o usuário saber que já está filtrado)
                     HStack {
@@ -180,6 +156,7 @@ struct HomeView: View {
                     currentUserLon: authViewModel.currentUser?.longitude
                 )
                 Task { await authViewModel.checkUnreadNotifications() }
+                viewModel.fetchStories(currentUserId: authViewModel.currentUser?.id)
             }
             .refreshable {
                 viewModel.fetchHomeData(
@@ -187,6 +164,7 @@ struct HomeView: View {
                     currentUserLon: authViewModel.currentUser?.longitude
                 )
                 Task { await authViewModel.checkUnreadNotifications() }
+                viewModel.fetchStories(currentUserId: authViewModel.currentUser?.id)
             }
             .onChange(of: scenePhase) { _, newPhase in
                 if newPhase == .active {
@@ -195,6 +173,7 @@ struct HomeView: View {
                         currentUserLon: authViewModel.currentUser?.longitude
                     )
                     Task { await authViewModel.checkUnreadNotifications() }
+                    viewModel.fetchStories(currentUserId: authViewModel.currentUser?.id)
                 }
             }
         }

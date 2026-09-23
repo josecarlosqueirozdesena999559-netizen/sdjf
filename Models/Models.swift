@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 
 struct User: Identifiable, Codable {
     let id: UUID
@@ -105,4 +105,28 @@ struct AppNotification: Identifiable, Codable {
     let body: String
     let created_at: Date
     var is_read: Bool
+}
+
+struct Story: Identifiable, Codable {
+    let id: UUID
+    let userId: UUID
+    let mediaUrl: String
+    let mediaType: String
+    let createdAt: Date
+    let expiresAt: Date
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case mediaUrl = "media_url"
+        case mediaType = "media_type"
+        case createdAt = "created_at"
+        case expiresAt = "expires_at"
+    }
+}
+
+struct Follow: Codable {
+    let follower_id: UUID
+    let following_id: UUID
+    let created_at: Date
 }

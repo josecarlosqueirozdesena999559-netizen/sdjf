@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import Supabase
 
 struct SellerProfileView: View {
@@ -7,9 +7,11 @@ struct SellerProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var isFollowing = false
     @State private var followersCount = 0
+    @State private var followingCount = 0
     @State private var isFollowLoading = false
     @State private var sellerProducts: [Product] = []
     @State private var productToDelete: Product? = nil
+    @State private var selectedListMode: FollowListMode? = nil
 
     private let columns = [GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12), GridItem(.flexible(), spacing: 12)]
 
@@ -80,13 +82,15 @@ struct SellerProfileView: View {
                 HStack {
                     metric("\(seller.salesCount)", "vendas")
                     Divider().frame(height: 34)
-                    metric("\(followersCount)", "seguidores")
+                    Button(action: { selectedListMode = .followers }) {
+                        metric("\(followersCount)", "seguidores")
+                    }.buttonStyle(.plain)
+                    Divider().frame(height: 34)
+                    Button(action: { selectedListMode = .following }) {
+                        metric("\(followingCount)", "seguindo")
+                    }.buttonStyle(.plain)
                     Divider().frame(height: 34)
                     metric(String(format: "%.1f", seller.rating), "avaliação", icon: "star.fill")
-                    if seller.averageResponseTime != "1 hora" && seller.averageResponseTime != "-" {
-                        Divider().frame(height: 34)
-                        metric(seller.averageResponseTime.replacingOccurrences(of: "Responde em ", with: ""), "tempo médio")
-                    }
                 }
                 .frame(maxWidth: .infinity).padding(.vertical, 6)
 
@@ -130,6 +134,9 @@ struct SellerProfileView: View {
             }
         } message: {
             Text("Esta ação não pode ser desfeita.")
+        }
+        .sheet(item: $selectedListMode) { mode in
+            FollowListSheet(userId: seller.user.id, mode: mode)
         }
     }
 
@@ -190,11 +197,14 @@ struct SellerProfileView: View {
         for await _ in deletions { await loadFollowState() }
     }
     private func loadFollowState() async {
-        struct Follow: Codable { let follower_id: UUID }
+        struct Follow: Codable { let follower_id: UUID; let following_id: UUID }
         do {
-            let all: [Follow] = try await supabase.database.from("follows").select("follower_id").eq("following_id", value: seller.user.id).execute().value
-            followersCount = all.count
-            isFollowing = all.contains { $0.follower_id == authViewModel.currentUser?.id }
+            let followers: [Follow] = try await supabase.database.from("follows").select("follower_id, following_id").eq("following_id", value: seller.user.id).execute().value
+            followersCount = followers.count
+            isFollowing = followers.contains { $0.follower_id == authViewModel.currentUser?.id }
+            
+            let following: [Follow] = try await supabase.database.from("follows").select("follower_id, following_id").eq("follower_id", value: seller.user.id).execute().value
+            followingCount = following.count
         } catch { print("Failed to load follows: \(error)") }
     }
 

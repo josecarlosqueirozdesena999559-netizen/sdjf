@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import Combine
 
 struct SupabaseProduct: Codable {
@@ -29,6 +29,10 @@ class HomeViewModel: ObservableObject {
     @Published var featuredProducts: [Product] = []
     @Published var categories: [Category] = []
     @Published var isLoading: Bool = false
+    
+    @Published var myStories: [Story] = []
+    @Published var followedUsersWithStories: [Profile] = []
+    @Published var storiesByUser: [UUID: [Story]] = [:]
     
     // Configura polling real-time básico (ou realtime SDK)
     private var timer: Timer?
@@ -160,6 +164,82 @@ class HomeViewModel: ObservableObject {
 
             }
             self.isLoading = false
+        }
+    }
+
+    func fetchStories(currentUserId: UUID?) {
+        guard let userId = currentUserId else { return }
+        Task {
+            do {
+                // 1. Obter IDs das pessoas que eu sigo
+                struct FollowRes: Codable { let following_id: UUID }
+                let follows: [FollowRes] = try await supabase.database
+                    .from("follows")
+                    .select("following_id")
+                    .eq("follower_id", value: userId)
+                    .execute()
+                    .value
+                let followingIds = follows.map { $0.following_id }
+
+                // 2. Obter stories não expirados
+                let formatter = ISO8601DateFormatter()
+                formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+                let nowString = formatter.string(from: Date())
+
+                struct StoryRes: Codable {
+                    let id: UUID
+                    let user_id: UUID
+                    let media_url: String
+                    let media_type: String
+                    let created_at: Date
+                    let expires_at: Date
+                    let profiles: Profile
+                }
+
+                let allStories: [StoryRes] = try await supabase.database
+                    .from("stories")
+                    .select("*, profiles(*)")
+                    .gt("expires_at", value: nowString)
+                    .execute()
+                    .value
+
+                var tempMyStories: [Story] = []
+                var tempFollowingUsers: [UUID: Profile] = [:]
+                var tempStoriesByUser: [UUID: [Story]] = [:]
+
+                for s in allStories {
+                    let story = Story(id: s.id, userId: s.user_id, mediaUrl: s.media_url, mediaType: s.media_type, createdAt: s.created_at, expiresAt: s.expires_at)
+                    if s.user_id == userId {
+                        tempMyStories.append(story)
+                    } else if followingIds.contains(s.user_id) {
+                        tempFollowingUsers[s.user_id] = s.profiles
+                        tempStoriesByUser[s.user_id, default: []].append(story)
+                    }
+                }
+
+                // Sort my stories
+                tempMyStories.sort { $0.createdAt < $1.createdAt }
+                
+                // Sort users by who posted most recently
+                for key in tempStoriesByUser.keys {
+                    tempStoriesByUser[key]?.sort { $0.createdAt < $1.createdAt }
+                }
+                
+                let sortedUsers = tempFollowingUsers.values.sorted { u1, u2 in
+                    let last1 = tempStoriesByUser[u1.id]?.last?.createdAt ?? Date.distantPast
+                    let last2 = tempStoriesByUser[u2.id]?.last?.createdAt ?? Date.distantPast
+                    return last1 > last2
+                }
+
+                await MainActor.run {
+                    self.myStories = tempMyStories
+                    self.followedUsersWithStories = sortedUsers
+                    self.storiesByUser = tempStoriesByUser
+                }
+
+            } catch {
+                print("Erro ao buscar stories: \(error)")
+            }
         }
     }
 }
