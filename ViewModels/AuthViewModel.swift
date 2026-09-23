@@ -26,28 +26,21 @@ class AuthViewModel: ObservableObject {
     @Published var currentUser: User? = nil
     @Published var hasUnreadNotifications: Bool = false
     @Published var needsProfileSetup: Bool = false
+    @Published var isLoading = false
+    @Published var errorMessage: String? = nil
     
     private var cancellables = Set<AnyCancellable>()
     
     init() {
         LocationManager.shared.$addressString
-            .compactMap { class AuthViewModel: ObservableObject {
-    @Published var isAuthenticated: Bool = false
-    @Published var currentUser: User? = nil
-    @Published var hasUnreadNotifications: Bool = false
-    @Published var needsProfileSetup: Bool = false }
+            .compactMap { x in x }
             .sink { [weak self] newAddress in
                 if let loc = LocationManager.shared.location {
                     self?.updateLocation(lat: loc.latitude, lon: loc.longitude, address: newAddress)
                 }
             }
             .store(in: &cancellables)
-    }
-    
-    @Published var isLoading = false
-    @Published var errorMessage: String? = nil
-    
-    init() {
+            
         Task {
             await checkSession()
         }
@@ -62,7 +55,7 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-        func login(emailOrUsername: String, password: String) {
+    func login(emailOrUsername: String, password: String) {
         Task {
             self.isLoading = true
             self.errorMessage = nil
@@ -107,7 +100,7 @@ class AuthViewModel: ObservableObject {
         }
     }
     
-    func updateLocation(lat: Double, lon: Double, address: String?) {
+    func updateLocation(lat: Double, lon: Double, address: String? = nil) {
         guard let userId = currentUser?.id else { return }
         
         Task {
@@ -155,7 +148,7 @@ class AuthViewModel: ObservableObject {
                 .single()
                 .execute()
                 .value
-            // Map to our User struct
+                
             self.currentUser = User(
                 id: userId,
                 name: profile.name,
@@ -176,11 +169,9 @@ class AuthViewModel: ObservableObject {
                 bio: profile.bio
             )
             self.isAuthenticated = true
-            // Bug 5 fix: registrar o usuário no OneSignal para receber push notifications
             OneSignal.login(userId.uuidString)
         } catch {
-            print("Erro ao carregar perfil, talvez não exista: \(error)")
-            // Fallback for demo if profile doesn't exist yet but auth succeeded
+            print("Erro ao carregar perfil: \(error)")
             self.currentUser = User(id: userId, name: "Usuário", cpf: "", birthDate: nil, email: email, phone: "", username: "user", visibleName: nil, avatarURL: nil, location: "Desconhecido", latitude: nil, longitude: nil, memberSince: Date(), isProfessional: false, rating: nil, responseTime: nil, bio: nil)
             self.isAuthenticated = true
         }
@@ -189,7 +180,7 @@ class AuthViewModel: ObservableObject {
         startNotifPolling()
     }
     
-        private var notifTimer: Timer?
+    private var notifTimer: Timer?
     
     func startNotifPolling() {
         notifTimer?.invalidate()
@@ -203,9 +194,6 @@ class AuthViewModel: ObservableObject {
     func checkUnreadNotifications() async {
         guard let userId = self.currentUser?.id else { return }
         do {
-            struct CountResponse: Codable {
-                let count: Int
-            }
             let count: Int = try await supabase.database
                 .from("notifications")
                 .select("id", head: true, count: .exact)
@@ -220,4 +208,3 @@ class AuthViewModel: ObservableObject {
         }
     }
 }
-
