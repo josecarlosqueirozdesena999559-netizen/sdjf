@@ -1,4 +1,5 @@
 import SwiftUI
+import Supabase
 
 struct SellerProfileView: View {
     let seller: Seller
@@ -99,7 +100,7 @@ struct SellerProfileView: View {
         .navigationTitle("Perfil")
         .navigationBarTitleDisplayMode(.inline)
         .customBackButton()
-        .task { await loadFollowState(); await loadProducts() }
+        .task { await loadFollowState(); await loadProducts(); await subscribeToFollowUpdates() }
     }
 
     private var avatar: some View {
@@ -131,6 +132,14 @@ struct SellerProfileView: View {
             let rows: [Row] = try await supabase.database.from("products").select().eq("seller_id", value: seller.user.id).or("status.eq.active,status.is.null").order("created_at", ascending: false).execute().value
             sellerProducts = rows.map { Product(id: $0.id, title: $0.title, description: $0.description ?? "", price: $0.price, condition: ProductCondition(rawValue: $0.condition) ?? .used, categoryId: $0.category_id ?? UUID(), sellerId: $0.seller_id, location: $0.location ?? "", images: $0.images ?? [], createdAt: $0.created_at ?? Date(), views: $0.views ?? 0, isActive: $0.status == "active", deliveryMethod: "", acceptsNegotiation: $0.accepts_negotiation ?? false) }
         } catch { print("Failed to load seller products: \(error)") }
+    }
+    private func subscribeToFollowUpdates() async {
+        let channel = await supabase.realtimeV2.channel("follows_\(seller.user.id.uuidString)")
+        let insertions = await channel.postgresChange(InsertAction.self, schema: "public", table: "follows", filter: "following_id=eq.\(seller.user.id.uuidString)")
+        let deletions = await channel.postgresChange(DeleteAction.self, schema: "public", table: "follows", filter: "following_id=eq.\(seller.user.id.uuidString)")
+        await channel.subscribe()
+        Task { for await _ in insertions { await loadFollowState() } }
+        for await _ in deletions { await loadFollowState() }
     }
     private func loadFollowState() async {
         struct Follow: Codable { let follower_id: UUID }
