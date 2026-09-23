@@ -365,7 +365,7 @@ var isOwner: Bool {
                     if let phone = seller?.user.phone, !phone.isEmpty {
                         Button(action: {
                             let cleanPhone = phone.components(separatedBy: CharacterSet.decimalDigits.inverted).joined()
-                            if let url = URL(string: "https://wa.me/55$cleanPhone") {
+                            if let url = URL(string: "https://wa.me/55\(cleanPhone)") {
                                 UIApplication.shared.open(url)
                             }
                         }) {

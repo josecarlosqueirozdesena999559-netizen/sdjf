@@ -6,6 +6,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     
     @Published var location: CLLocationCoordinate2D?
     @Published var authorizationStatus: CLAuthorizationStatus
+    @Published var addressString: String?
     
     static let shared = LocationManager()
     
@@ -24,6 +25,20 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         if let location = locations.first {
             self.location = location.coordinate
             manager.stopUpdatingLocation()
+            
+            // Reverse geocode
+            let geocoder = CLGeocoder()
+            geocoder.reverseGeocodeLocation(location) { [weak self] placemarks, error in
+                if let placemark = placemarks?.first {
+                    let city = placemark.locality ?? placemark.subAdministrativeArea ?? ""
+                    let state = placemark.administrativeArea ?? ""
+                    if !city.isEmpty && !state.isEmpty {
+                        self?.addressString = "$city - $state"
+                    } else {
+                        self?.addressString = city.isEmpty ? state : city
+                    }
+                }
+            }
         }
     }
     
@@ -32,5 +47,10 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
         if authorizationStatus == .authorizedWhenInUse || authorizationStatus == .authorizedAlways {
             manager.startUpdatingLocation()
         }
+    }
+}
+extension CLLocationCoordinate2D: Equatable {
+    public static func == (lhs: CLLocationCoordinate2D, rhs: CLLocationCoordinate2D) -> Bool {
+        return lhs.latitude == rhs.latitude && lhs.longitude == rhs.longitude
     }
 }
