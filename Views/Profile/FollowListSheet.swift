@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 
 enum FollowListMode: String, Identifiable {
     case followers = "Seguidores"
@@ -85,26 +85,25 @@ struct FollowListSheet: View {
     private func fetchUsers() async {
         do {
             isLoading = true
-            let query = supabase.database.from("follows")
-            
-            struct FollowResponse: Codable {
-                let profiles: Profile
+            struct FollowRow: Codable {
+                let follower_id: UUID
+                let following_id: UUID
             }
+            let follows: [FollowRow] = try await supabase.database.from("follows")
+                .select()
+                .eq(mode == .followers ? "following_id" : "follower_id", value: userId)
+                .execute()
+                .value
             
-            if mode == .followers {
-                let data: [FollowResponse] = try await query
-                    .select("profiles!follower_id(id, name, visible_name, username, avatar_url, location)")
-                    .eq("following_id", value: userId)
-                    .execute()
-                    .value
-                self.users = data.map { $0.profiles }
+            let ids = follows.map { mode == .followers ? $0.follower_id : $0.following_id }
+            if ids.isEmpty {
+                self.users = []
             } else {
-                let data: [FollowResponse] = try await query
-                    .select("profiles!following_id(id, name, visible_name, username, avatar_url, location)")
-                    .eq("follower_id", value: userId)
+                self.users = try await supabase.database.from("profiles")
+                    .select()
+                    .in("id", values: ids.map { $0.uuidString })
                     .execute()
                     .value
-                self.users = data.map { $0.profiles }
             }
         } catch {
             print("Error fetching follow list: \(error)")

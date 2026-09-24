@@ -106,7 +106,12 @@ struct StoriesRowView: View {
         .fullScreenCover(isPresented: $showStoryViewer) {
             if let profile = selectedStoryUser {
                 let stories = profile.id == authViewModel.currentUser?.id ? viewModel.myStories : (viewModel.storiesByUser[profile.id] ?? [])
-                StoryViewer(profile: profile, stories: stories, onDismiss: { showStoryViewer = false })
+                StoryViewer(profile: profile, stories: stories, onDismiss: { 
+                    showStoryViewer = false 
+                    if profile.id == authViewModel.currentUser?.id {
+                        viewModel.fetchStories(currentUserId: profile.id)
+                    }
+                })
             }
         }
         .onChange(of: selectedItem) { _, newItem in

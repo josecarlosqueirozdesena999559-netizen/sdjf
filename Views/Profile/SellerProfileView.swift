@@ -55,28 +55,58 @@ struct SellerProfileView: View {
                     }
                 }
 
-                if !isOwnProfile {
+                if isOwnProfile {
+                    HStack(spacing: 10) {
+                        NavigationLink(destination: ProfileEditView()) {
+                            Text("Editar perfil")
+                                .font(.custom("Inter-SemiBold", size: 14))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .foregroundColor(Theme.textPrimary)
+                                .background(Color(UIColor.systemGray5))
+                                .cornerRadius(8)
+                        }
+                        
+                        Button(action: {
+                            let activityVC = UIActivityViewController(activityItems: ["Confira meu perfil no Achou!", URL(string: "https://achou.com/profile/\(seller.user.id.uuidString)")!], applicationActivities: nil)
+                            if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene, let window = windowScene.windows.first, let rootVC = window.rootViewController {
+                                var top = rootVC; while let p = top.presentedViewController { top = p }; top.present(activityVC, animated: true)
+                            }
+                        }) {
+                            Text("Compartilhar perfil")
+                                .font(.custom("Inter-SemiBold", size: 14))
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, 8)
+                                .foregroundColor(Theme.textPrimary)
+                                .background(Color(UIColor.systemGray5))
+                                .cornerRadius(8)
+                        }
+                    }
+                } else {
                     HStack(spacing: 10) {
                         Button(action: { Task { await toggleFollow() } }) {
                             HStack(spacing: 6) {
-                                if isFollowLoading { ProgressView().tint(.white) }
-                                Image(systemName: isFollowing ? "checkmark" : "plus")
-                                Text(isFollowing ? "Deixar de seguir" : "Seguir")
+                                if isFollowLoading { ProgressView().tint(isFollowing ? Theme.textPrimary : .white) }
+                                Text(isFollowing ? "Seguindo" : "Seguir")
                             }
-                            .typographyButton()
-                            .frame(maxWidth: .infinity).padding(.vertical, 11)
-                            .foregroundColor(isFollowing ? Theme.primary : .white)
-                            .background(isFollowing ? Theme.lightGreen : Theme.primary)
-                            .clipShape(Capsule())
+                            .font(.custom("Inter-SemiBold", size: 14))
+                            .frame(maxWidth: .infinity).padding(.vertical, 8)
+                            .foregroundColor(isFollowing ? Theme.textPrimary : .white)
+                            .background(isFollowing ? Color(UIColor.systemGray5) : Theme.primary)
+                            .cornerRadius(8)
                         }.disabled(isFollowLoading)
+                        
                         if let product = sellerProducts.first, let user = authViewModel.currentUser {
                             NavigationLink(destination: ChatView(conversation: Conversation(id: UUID(), productId: product.id, participantId: seller.user.id, lastMessage: Message(id: UUID(), senderId: user.id, receiverId: seller.user.id, text: "", timestamp: Date(), isRead: true), unreadCount: 0), currentUser: user)) {
-                            Label("Mensagem", systemImage: "paperplane.fill")
-                                .typographyButton().frame(maxWidth: .infinity).padding(.vertical, 11)
-                                .foregroundColor(Theme.primary).background(Theme.lightGreen).clipShape(Capsule())
+                                Text("Mensagem")
+                                    .font(.custom("Inter-SemiBold", size: 14))
+                                    .frame(maxWidth: .infinity).padding(.vertical, 8)
+                                    .foregroundColor(Theme.textPrimary)
+                                    .background(Color(UIColor.systemGray5))
+                                    .cornerRadius(8)
+                            }
                         }
                     }
-                }
                 }
 
                 HStack {

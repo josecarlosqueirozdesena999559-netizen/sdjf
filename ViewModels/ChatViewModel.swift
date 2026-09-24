@@ -15,7 +15,7 @@ class ChatViewModel: ObservableObject {
     private var channel: RealtimeChannelV2?
     private var pollingTask: Task<Void, Never>?
     private var activeConversationID: UUID?
-    private var typingTimer: Timer?
+    private var typingTask: Task<Void, Never>?
     
     init(conversation: Conversation, currentUser: User) {
         self.conversation = conversation
@@ -320,7 +320,7 @@ class ChatViewModel: ObservableObject {
 
         await channel.subscribe()
         do {
-            try await channel.track(["user_id": currentUser.id.uuidString])
+            try await channel.track(["user_id": .string(currentUser.id.uuidString)])
         } catch {
             print("Erro ao registrar presenÃƒÂ§a: \(error)")
         }
@@ -445,7 +445,7 @@ class ChatViewModel: ObservableObject {
         guard let channel = self.channel else { return }
         Task {
             do {
-                try await channel.broadcast(event: "typing", message: ["user_id": currentUser.id.uuidString])
+                try await channel.broadcast(event: "typing", message: ["user_id": .string(currentUser.id.uuidString)])
             } catch {
                 print("Broadcast error: \(error)")
             }
