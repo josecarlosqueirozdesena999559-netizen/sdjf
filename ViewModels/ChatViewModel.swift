@@ -444,11 +444,7 @@ class ChatViewModel: ObservableObject {
     func sendTypingEvent() {
         guard let channel = self.channel else { return }
         Task {
-            do {
-                try await channel.broadcast(event: "typing", message: ["user_id": .string(currentUser.id.uuidString)])
-            } catch {
-                print("Broadcast error: \(error)")
-            }
+            await channel.broadcast(event: "typing", message: ["user_id": .string(currentUser.id.uuidString)])
         }
     }
     

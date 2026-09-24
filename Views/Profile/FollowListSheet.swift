@@ -101,7 +101,7 @@ struct FollowListSheet: View {
             } else {
                 self.users = try await supabase.database.from("profiles")
                     .select()
-                    .in("id", values: ids.map { $0.uuidString })
+                    .in("id", value: ids.map { $0.uuidString })
                     .execute()
                     .value
             }
