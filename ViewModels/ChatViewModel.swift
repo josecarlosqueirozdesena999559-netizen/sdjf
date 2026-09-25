@@ -1,4 +1,4 @@
-﻿import Foundation
+import Foundation
 import Supabase
 import Storage
 import Combine
@@ -16,6 +16,7 @@ class ChatViewModel: ObservableObject {
     private var pollingTask: Task<Void, Never>?
     private var activeConversationID: UUID?
     private var typingTask: Task<Void, Never>?
+    private var typingTimer: Timer?
     
     init(conversation: Conversation, currentUser: User) {
         self.conversation = conversation
@@ -320,7 +321,7 @@ class ChatViewModel: ObservableObject {
 
         await channel.subscribe()
         do {
-            try await channel.track(["user_id": .string(currentUser.id.uuidString)])
+            try await channel.track(state: ["user_id": .string(currentUser.id.uuidString)])
         } catch {
             print("Erro ao registrar presenÃƒÂ§a: \(error)")
         }
