@@ -158,7 +158,7 @@ class ChatViewModel: ObservableObject {
                 activeConversationID = newID
             }
         } catch {
-            // MantÃƒÂ©m o identificador recebido para nÃƒÂ£o bloquear a tela caso a rede falhe.
+            // MantÃƒÆ’Ã‚Â©m o identificador recebido para nÃƒÆ’Ã‚Â£o bloquear a tela caso a rede falhe.
             print("Erro ao preparar conversa: \(error)")
         }
     }
@@ -222,9 +222,36 @@ class ChatViewModel: ObservableObject {
             filter: "conversation_id=eq.\(conversationID.uuidString)"
         )
 
-        // Registra todos os listeners antes da assinatura para nÃƒÂ£o perder o estado inicial.
+        // Registra todos os listeners antes da assinatura para nÃƒÆ’Ã‚Â£o perder o estado inicial.
         _ = await channel.presenceChange()
         let typingEvents = await channel.broadcast(event: "typing")
+        let messageEvents = await channel.broadcast(event: "new_message")
+        Task {
+            for await payload in messageEvents {
+                if let msgIdStr = payload["id"]?.stringValue,
+                   let msgId = UUID(uuidString: msgIdStr),
+                   let senderIdStr = payload["sender_id"]?.stringValue,
+                   let senderId = UUID(uuidString: senderIdStr),
+                   let text = payload["text"]?.stringValue {
+                    let mediaUrl = payload["media_url"]?.stringValue
+                    
+                    let message = Message(
+                        id: msgId,
+                        senderId: senderId,
+                        receiverId: senderId == conversation.participantId ? currentUser.id : conversation.participantId,
+                        text: text,
+                        imageName: mediaUrl,
+                        timestamp: Date(),
+                        isRead: false
+                    )
+                    
+                    if senderId != currentUser.id && !messages.contains(where: { let typingEvents = await channel.broadcast(event: "typing").id == message.id }) {
+                        messages.append(message)
+                        await markAsRead()
+                    }
+                }
+            }
+        }
 
                 let profilesUpdate = await channel.postgresChange(
             UpdateAction.self,
@@ -323,7 +350,7 @@ class ChatViewModel: ObservableObject {
         do {
             try await channel.track(state: ["user_id": .string(currentUser.id.uuidString)])
         } catch {
-            print("Erro ao registrar presenÃƒÂ§a: \(error)")
+            print("Erro ao registrar presenÃƒÆ’Ã‚Â§a: \(error)")
         }
     }
     func sendMessage(text: String, mediaUrl: String? = nil, mediaType: String? = nil) async {
@@ -339,6 +366,7 @@ class ChatViewModel: ObservableObject {
         )
         self.messages.append(newMsg) // Optimistic UI
         
+        do { try await channel?.broadcast(event: "new_message", message: ["id": .string(msgId.uuidString), "sender_id": .string(currentUser.id.uuidString), "text": .string(text), "media_url": mediaUrl != nil ? .string(mediaUrl!) : .null]) } catch {}
         struct MsgInsert: Codable {
             let id: UUID
             let conversation_id: UUID
@@ -379,13 +407,14 @@ class ChatViewModel: ObservableObject {
         guard let data = try? Data(contentsOf: fileURL) else { return }
         let path = "\(currentUser.id.uuidString)/\(UUID().uuidString).m4a"
         let msgId = UUID()
-        let newMsg = Message(id: msgId, senderId: currentUser.id, receiverId: conversation.participantId, text: "Ã°Å¸Å½Â¤ Mensagem de voz (enviando...)", imageName: nil, timestamp: Date(), isRead: false)
+        let newMsg = Message(id: msgId, senderId: currentUser.id, receiverId: conversation.participantId, text: "ÃƒÂ°Ã…Â¸Ã…Â½Ã‚Â¤ Mensagem de voz (enviando...)", imageName: nil, timestamp: Date(), isRead: false)
         await MainActor.run { self.messages.append(newMsg) }
         
         do {
             try await supabase.storage.from("chat-media").upload(path: path, file: data, options: FileOptions(contentType: "audio/mp4"))
             
-            struct MsgInsert: Codable {
+            do { try await channel?.broadcast(event: "new_message", message: ["id": .string(msgId.uuidString), "sender_id": .string(currentUser.id.uuidString), "text": .string(text), "media_url": mediaUrl != nil ? .string(mediaUrl!) : .null]) } catch {}
+        struct MsgInsert: Codable {
                 let id: UUID
                 let conversation_id: UUID
                 let sender_id: UUID
@@ -393,12 +422,12 @@ class ChatViewModel: ObservableObject {
                 let media_url: String?
                 let is_read: Bool
             }
-            let insertData = MsgInsert(id: msgId, conversation_id: conversationID, sender_id: currentUser.id, text: "Ã°Å¸Å½Â¤ Mensagem de voz", media_url: path, is_read: false)
+            let insertData = MsgInsert(id: msgId, conversation_id: conversationID, sender_id: currentUser.id, text: "ÃƒÂ°Ã…Â¸Ã…Â½Ã‚Â¤ Mensagem de voz", media_url: path, is_read: false)
             try await supabase.database.from("messages").insert(insertData).execute()
             
             await MainActor.run {
                 if let idx = self.messages.firstIndex(where: { $0.id == msgId }) {
-                    self.messages[idx].text = "Ã°Å¸Å½Â¤ Mensagem de voz"
+                    self.messages[idx].text = "ÃƒÂ°Ã…Â¸Ã…Â½Ã‚Â¤ Mensagem de voz"
                     self.messages[idx].imageName = path
                 }
             }
@@ -411,7 +440,7 @@ class ChatViewModel: ObservableObject {
         let ext = isVideo ? "mp4" : "jpg"
         let path = "\(currentUser.id.uuidString)/\(UUID().uuidString).\(ext)"
         let contentType = isVideo ? "video/mp4" : "image/jpeg"
-        let text = isVideo ? "Ã°Å¸â€œÂ¹ VÃƒÂ­deo" : "Ã°Å¸â€“Â¼Ã¯Â¸Â Imagem"
+        let text = isVideo ? "ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â¹ VÃƒÆ’Ã‚Â­deo" : "ÃƒÂ°Ã…Â¸Ã¢â‚¬â€œÃ‚Â¼ÃƒÂ¯Ã‚Â¸Ã‚Â Imagem"
         
         let msgId = UUID()
         let newMsg = Message(id: msgId, senderId: currentUser.id, receiverId: conversation.participantId, text: "\(text) (enviando...)", imageName: nil, timestamp: Date(), isRead: false)
@@ -420,7 +449,8 @@ class ChatViewModel: ObservableObject {
         do {
             try await supabase.storage.from("chat-media").upload(path: path, file: data, options: FileOptions(contentType: contentType))
             
-            struct MsgInsert: Codable {
+            do { try await channel?.broadcast(event: "new_message", message: ["id": .string(msgId.uuidString), "sender_id": .string(currentUser.id.uuidString), "text": .string(text), "media_url": mediaUrl != nil ? .string(mediaUrl!) : .null]) } catch {}
+        struct MsgInsert: Codable {
                 let id: UUID
                 let conversation_id: UUID
                 let sender_id: UUID
