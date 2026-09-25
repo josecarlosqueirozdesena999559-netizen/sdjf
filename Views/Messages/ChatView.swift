@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import AVFoundation
 import AVKit
 import PhotosUI
@@ -7,10 +7,10 @@ struct ChatView: View {
     @StateObject var viewModel: ChatViewModel
     @State private var messageText = ""
     @AppStorage("hideFloatingButton") private var hideFloatingButton = false
-    @StateObject private var audioRecorder = AudioRecorder()
-    @State private var participantName = "Usuário"
+    @StateObject private var aÁudioRecorder = AudioRecorder()
+    @State private var participantName = "UsuÃ¡rio"
     @State private var participantAvatarURL: String?
-    @State private var audioPlayer: AVPlayer?
+    @State private var aÁudioPlayer: AVPlayer?
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var participantUser: User? = nil
 
@@ -46,7 +46,7 @@ struct ChatView: View {
             }
             composer
         }
-        .background(Color(red: 229/255, green: 221/255, blue: 213/255).ignoresSafeArea())
+        .background(Theme.background.ignoresSafeArea())
         .navigationBarTitleDisplayMode(.inline)
         .toolbar(.hidden, for: .tabBar)
         .task { await loadParticipant() }
@@ -79,7 +79,7 @@ struct ChatView: View {
             let df = DateFormatter()
             df.dateStyle = .short
             df.timeStyle = .short
-            return "Visto por último: \(df.string(from: last))"
+            return "Visto por Ãºltimo: \(df.string(from: last))"
         }
         return ""
     }
@@ -129,27 +129,28 @@ struct ChatView: View {
                     }
                 }
 
-                if audioRecorder.isRecording {
+                if aÁudioRecorder.isRecording {
                     Label("Gravando...", systemImage: "waveform")
                         .foregroundColor(.red)
+                        .typographyBody()
                         .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
-                    TextField("Mensagem", text: $messageText)
-                        .font(.custom("Inter-Regular", size: 16))
+                    TextField("Mensagem...", text: $messageText)
+                        .typographyBody()
                         .onChange(of: messageText) { _, _ in viewModel.sendTypingEvent() }
                 }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
-            .background(Color.white)
+            .background(Theme.inputBackground)
             .clipShape(Capsule())
 
             Button {
-                if audioRecorder.isRecording {
-                    guard let fileURL = audioRecorder.stop() else { return }
+                if aÁudioRecorder.isRecording {
+                    guard let fileURL = aÁudioRecorder.stop() else { return }
                     Task { await viewModel.sendAudio(fileURL: fileURL) }
                 } else if messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Task { _ = await audioRecorder.start() }
+                    Task { _ = await aÁudioRecorder.start() }
                 } else {
                     let text = messageText
                     messageText = ""
@@ -160,15 +161,15 @@ struct ChatView: View {
                     Circle()
                         .fill(Theme.primary)
                         .frame(width: 44, height: 44)
-                    Image(systemName: audioRecorder.isRecording ? "stop.fill" : (messageText.isEmpty ? "mic.fill" : "paperplane.fill"))
+                    Image(systemName: aÁudioRecorder.isRecording ? "stop.fill" : (messageText.isEmpty ? "mic.fill" : "paperplane.fill"))
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(.white)
                 }
             }
         }
-        .padding(.horizontal, 8)
+        .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color(white: 0.95))
+        .background(Theme.background)
     }
 
         @ViewBuilder private func messageBubble(_ message: Message, isMine: Bool) -> some View {
@@ -180,9 +181,9 @@ struct ChatView: View {
                         Button { Task { await playAudio(path: path) } } label: {
                             HStack(spacing: 12) {
                                 Image(systemName: "play.circle.fill")
-                                    .font(.custom("Inter-Regular", size: 32))
+                                    .font(.system(size: 32))
                                 Text("Áudio")
-                                    .font(.custom("Inter-Regular", size: 14))
+                                    .typographyBody()
                             }
                             .padding(.vertical, 4)
                             .padding(.horizontal, 4)
@@ -192,30 +193,29 @@ struct ChatView: View {
                     }
                 } else {
                     Text(message.text)
-                        .font(.custom("Inter-Regular", size: 15))
-                        .foregroundColor(Color.black)
+                        .typographyBody()
                 }
                 
-                HStack(spacing: 2) {
+                HStack(spacing: 4) {
                     Text(Formatters.timeFormatter.string(from: message.timestamp))
-                        .font(.system(size: 11))
-                        .foregroundColor(Color.black.opacity(0.45))
+                        .typographyCaption()
+                        .foregroundColor(isMine ? Color.white.opacity(0.8) : Theme.textSecondary)
                     
                     if isMine {
                         Image(systemName: message.isRead ? "checkmark.circle.fill" : "checkmark")
                             .font(.system(size: 10, weight: .bold))
-                            .foregroundColor(message.isRead ? .blue : Color.black.opacity(0.45))
+                            .foregroundColor(message.isRead ? .blue : Color.white.opacity(0.8))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .trailing)
-                .padding(.top, -2)
+                .padding(.top, 2)
             }
-            .padding(.horizontal, 10)
-            .padding(.top, 8)
-            .padding(.bottom, 6)
-            .background(isMine ? Color(red: 220/255, green: 248/255, blue: 198/255) : Color.white)
-            .cornerRadius(12, corners: isMine ? [.topLeft, .topRight, .bottomLeft] : [.topLeft, .topRight, .bottomRight])
-            .shadow(color: Color.black.opacity(0.08), radius: 1, x: 0, y: 1)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 10)
+            .foregroundColor(isMine ? .white : Theme.textPrimary)
+            .background(isMine ? Theme.primary : Theme.inputBackground)
+            .cornerRadius(16, corners: isMine ? [.topLeft, .topRight, .bottomLeft] : [.topLeft, .topRight, .bottomRight])
+            .shadow(color: Color.black.opacity(0.05), radius: 1, x: 0, y: 1)
             
             if !isMine { Spacer(minLength: 40) }
         }
@@ -227,10 +227,10 @@ struct ChatView: View {
             try AVAudioSession.sharedInstance().setActive(true)
             let url = try await supabase.storage.from("chat-media").createSignedURL(path: path, expiresIn: 3_600)
             let player = AVPlayer(url: url)
-            audioPlayer = player
+            aÁudioPlayer = player
             player.play()
         } catch {
-            print("Erro ao reproduzir áudio: \(error)")
+            print("Erro ao reproduzir Ã¡Áudio: \(error)")
         }
     }
 
