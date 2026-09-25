@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import AVFoundation
 import AVKit
 import PhotosUI
@@ -7,10 +7,10 @@ struct ChatView: View {
     @StateObject var viewModel: ChatViewModel
     @State private var messageText = ""
     @AppStorage("hideFloatingButton") private var hideFloatingButton = false
-    @StateObject private var aÁudioRecorder = AudioRecorder()
+    @StateObject private var aÁÁudioRecorder = AÁudioRecorder()
     @State private var participantName = "UsuÃ¡rio"
     @State private var participantAvatarURL: String?
-    @State private var aÁudioPlayer: AVPlayer?
+    @State private var aÁÁudioPlayer: AVPlayer?
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var participantUser: User? = nil
 
@@ -129,13 +129,27 @@ struct ChatView: View {
                     }
                 }
 
-                if aÁudioRecorder.isRecording {
-                    Label("Gravando...", systemImage: "waveform")
-                        .foregroundColor(.red)
-                        .typographyBody()
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                if audioRecorder.isRecording {
+                    HStack(spacing: 8) {
+                        Circle().fill(Color.red).frame(width: 8, height: 8)
+                        Text(Formatters.timeFormatter.string(from: Date(timeIntervalSince1970: audioRecorder.duration)))
+                            .font(.system(size: 14, weight: .medium).monospacedDigit())
+                            .foregroundColor(.red)
+                        
+                        // Waveform animation
+                        HStack(spacing: 3) {
+                            ForEach(0..<15) { index in
+                                let level = index < audioRecorder.powerLevels.count ? audioRecorder.powerLevels[index] : 0.1
+                                RoundedRectangle(cornerRadius: 2)
+                                    .fill(Color.red)
+                                    .frame(width: 3, height: 4 + (level * 20))
+                                    .animation(.linear(duration: 0.1), value: level)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 } else {
-                    TextField("Mensagem...", text: $messageText)
+                    TextField("Mensagem", text: $messageText)
                         .typographyBody()
                         .onChange(of: messageText) { _, _ in viewModel.sendTypingEvent() }
                 }
@@ -146,11 +160,11 @@ struct ChatView: View {
             .clipShape(Capsule())
 
             Button {
-                if aÁudioRecorder.isRecording {
-                    guard let fileURL = aÁudioRecorder.stop() else { return }
+                if audioRecorder.isRecording {
+                    guard let fileURL = audioRecorder.stop() else { return }
                     Task { await viewModel.sendAudio(fileURL: fileURL) }
                 } else if messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Task { _ = await aÁudioRecorder.start() }
+                    Task { _ = await audioRecorder.start() }
                 } else {
                     let text = messageText
                     messageText = ""
@@ -161,7 +175,7 @@ struct ChatView: View {
                     Circle()
                         .fill(Theme.primary)
                         .frame(width: 44, height: 44)
-                    Image(systemName: aÁudioRecorder.isRecording ? "stop.fill" : (messageText.isEmpty ? "mic.fill" : "paperplane.fill"))
+                    Image(systemName: audioRecorder.isRecording ? "stop.fill" : (messageText.isEmpty ? "mic.fill" : "paperplane.fill"))
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(.white)
                 }
@@ -178,11 +192,11 @@ struct ChatView: View {
             VStack(alignment: .leading, spacing: 2) {
                 if let path = message.imageName {
                     if path.hasSuffix(".m4a") {
-                        Button { Task { await playAudio(path: path) } } label: {
+                        Button { Task { await playAÁudio(path: path) } } label: {
                             HStack(spacing: 12) {
                                 Image(systemName: "play.circle.fill")
                                     .font(.system(size: 32))
-                                Text("Áudio")
+                                Text("ÁÁudio")
                                     .typographyBody()
                             }
                             .padding(.vertical, 4)
@@ -221,16 +235,16 @@ struct ChatView: View {
         }
     }
 
-    private func playAudio(path: String) async {
+    private func playAÁudio(path: String) async {
         do {
-            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
-            try AVAudioSession.sharedInstance().setActive(true)
+            try AVAÁudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAÁudioSession.sharedInstance().setActive(true)
             let url = try await supabase.storage.from("chat-media").createSignedURL(path: path, expiresIn: 3_600)
             let player = AVPlayer(url: url)
-            aÁudioPlayer = player
+            aÁÁudioPlayer = player
             player.play()
         } catch {
-            print("Erro ao reproduzir Ã¡Áudio: \(error)")
+            print("Erro ao reproduzir áÁudio: \(error)")
         }
     }
 

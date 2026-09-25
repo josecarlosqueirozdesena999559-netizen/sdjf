@@ -1,4 +1,4 @@
-import SwiftUI
+﻿import SwiftUI
 import OneSignalFramework
 
 struct MainTabView: View {
@@ -15,7 +15,7 @@ struct MainTabView: View {
                 HomeView()
                     .tabItem {
                         Image(systemName: selectedTab == 0 ? "house.fill" : "house")
-                        Text("InÃƒÆ’Ã‚Â­cio")
+                        Text("Início")
                     }
                     .tag(0)
 
@@ -26,8 +26,8 @@ struct MainTabView: View {
                     }
                     .tag(1)
 
-                // Bug 2 fix: tab vazio substituÃƒÆ’Ã‚Â­do por placeholder invisÃƒÆ’Ã‚Â­vel
-                // que nÃƒÆ’Ã‚Â£o compete visualmente com o botÃƒÆ’Ã‚Â£o flutuante
+                // Bug 2 fix: tab vazio
+                // que não compete visualmente com o botão flutuante
                 Color.clear
                     .tabItem { Text("") }
                     .tag(2)
@@ -54,7 +54,7 @@ struct MainTabView: View {
                 }
             }
 
-            // NÃƒÆ’Ã‚Â£o sobrepÃƒÆ’Ã‚Âµe o compositor de mensagens.
+            // Não sobrepõe o compositor de mensagens.
             if !hideFloatingButton {
             Button(action: { showPublish = true }) {
                 ZStack {
