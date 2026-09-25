@@ -413,7 +413,7 @@ class ChatViewModel: ObservableObject {
         do {
             try await supabase.storage.from("chat-media").upload(path: path, file: data, options: FileOptions(contentType: "audio/mp4"))
             
-            do { try await channel?.broadcast(event: "new_message", message: ["id": .string(msgId.uuidString), "sender_id": .string(currentUser.id.uuidString), "text": .string(text), "media_url": mediaUrl != nil ? .string(mediaUrl!) : .null]) } catch {}
+            do { try await channel?.broadcast(event: "new_message", message: ["id": .string(msgId.uuidString), "sender_id": .string(currentUser.id.uuidString), "text": .string(""), "media_url": .string(path)]) } catch {}
         struct MsgInsert: Codable {
                 let id: UUID
                 let conversation_id: UUID
@@ -449,7 +449,7 @@ class ChatViewModel: ObservableObject {
         do {
             try await supabase.storage.from("chat-media").upload(path: path, file: data, options: FileOptions(contentType: contentType))
             
-            do { try await channel?.broadcast(event: "new_message", message: ["id": .string(msgId.uuidString), "sender_id": .string(currentUser.id.uuidString), "text": .string(text), "media_url": mediaUrl != nil ? .string(mediaUrl!) : .null]) } catch {}
+            do { try await channel?.broadcast(event: "new_message", message: ["id": .string(msgId.uuidString), "sender_id": .string(currentUser.id.uuidString), "text": .string(""), "media_url": .string(path)]) } catch {}
         struct MsgInsert: Codable {
                 let id: UUID
                 let conversation_id: UUID
