@@ -42,7 +42,7 @@ targets:
     info:
       path: Info.plist
       properties:
-        CFBundleVersion: "65"
+        CFBundleVersion: "66"
         CFBundleShortVersionString: "1.0.3"
         UILaunchScreen: {}
         UIAppFonts:
@@ -53,7 +53,7 @@ targets:
         NSMicrophoneUsageDescription: "Precisamos do microfone para gravar mensagens de voz."
         UIBackgroundModes:
           - remote-notification
-        NSLocationWhenInUseUsageDescription: "Precisamos da sua localizaÃƒÂ§ÃƒÂ£o para exibir produtos na sua regiÃƒÂ£o."
+        NSLocationWhenInUseUsageDescription: "Precisamos da sua localizaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o para exibir produtos na sua regiÃƒÆ’Ã‚Â£o."
         CFBundleDevelopmentRegion: "pt-BR"
         CFBundleAllowMixedLocalizations: true
         CFBundleLocalizations:
