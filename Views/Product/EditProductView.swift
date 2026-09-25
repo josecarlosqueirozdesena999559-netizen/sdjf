@@ -24,7 +24,36 @@ struct EditProductView: View {
         return MockData.categories.first(where: { $0.id == id })?.name ?? "Selecione"
     }
     
+    @AppStorage("hideFloatingButton") private var hideFloatingButton = false
+
     var body: some View {
+        ScrollView(showsIndicators: false) {
+            VStack(spacing: 24) {
+                mediaSection
+                priceSection
+                mainInfoSection
+                Spacer(minLength: 40)
+            }
+        }
+        .background(Color.white)
+        .navigationTitle("Editar Anúncio")
+        .navigationBarTitleDisplayMode(.inline)
+        .safeAreaInset(edge: .bottom) { bottomButton }
+        .onChange(of: selectedItems) { _, newItems in
+            loadMedia(from: newItems)
+        }
+        .overlay(loadingOverlay)
+        .onChange(of: viewModel.publishSuccess) { _, success in
+            if success {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                    dismiss()
+                    onPublishSuccess?()
+                }
+            }
+        }
+        .alert("Erro", isPresented: Binding<Bool>(
+            get: { viewModel.publishError != nil },
+            set: { if !    var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 24) {
@@ -65,6 +94,16 @@ struct EditProductView: View {
                 Text(viewModel.publishError ?? "Erro desconhecido")
             }
         }
+    }
+    
+    @ViewBuilder private var mediaSection: some View { viewModel.publishError = nil } }
+        )) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(viewModel.publishError ?? "Erro desconhecido")
+        }
+        .onAppear { hideFloatingButton = true }
+        .onDisappear { hideFloatingButton = false }
     }
     
     @ViewBuilder private var mediaSection: some View {
