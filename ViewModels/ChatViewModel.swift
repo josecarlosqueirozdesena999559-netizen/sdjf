@@ -158,7 +158,7 @@ class ChatViewModel: ObservableObject {
                 activeConversationID = newID
             }
         } catch {
-            // MantÃƒÆ’Ã‚Â©m o identificador recebido para nÃƒÆ’Ã‚Â£o bloquear a tela caso a rede falhe.
+            // MantÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©m o identificador recebido para nÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o bloquear a tela caso a rede falhe.
             print("Erro ao preparar conversa: \(error)")
         }
     }
@@ -222,7 +222,7 @@ class ChatViewModel: ObservableObject {
             filter: "conversation_id=eq.\(conversationID.uuidString)"
         )
 
-        // Registra todos os listeners antes da assinatura para nÃƒÆ’Ã‚Â£o perder o estado inicial.
+        // Registra todos os listeners antes da assinatura para nÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o perder o estado inicial.
         _ = await channel.presenceChange()
         let typingEvents = await channel.broadcast(event: "typing")
         let messageEvents = await channel.broadcast(event: "new_message")
@@ -245,7 +245,7 @@ class ChatViewModel: ObservableObject {
                         isRead: false
                     )
                     
-                    if senderId != currentUser.id && !messages.contains(where: { let typingEvents = await channel.broadcast(event: "typing").id == message.id }) {
+                    if senderId != currentUser.id && !messages.contains(where: { m in m.id == message.id }) {
                         messages.append(message)
                         await markAsRead()
                     }
@@ -350,7 +350,7 @@ class ChatViewModel: ObservableObject {
         do {
             try await channel.track(state: ["user_id": .string(currentUser.id.uuidString)])
         } catch {
-            print("Erro ao registrar presenÃƒÆ’Ã‚Â§a: \(error)")
+            print("Erro ao registrar presenÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§a: \(error)")
         }
     }
     func sendMessage(text: String, mediaUrl: String? = nil, mediaType: String? = nil) async {
@@ -407,7 +407,7 @@ class ChatViewModel: ObservableObject {
         guard let data = try? Data(contentsOf: fileURL) else { return }
         let path = "\(currentUser.id.uuidString)/\(UUID().uuidString).m4a"
         let msgId = UUID()
-        let newMsg = Message(id: msgId, senderId: currentUser.id, receiverId: conversation.participantId, text: "ÃƒÂ°Ã…Â¸Ã…Â½Ã‚Â¤ Mensagem de voz (enviando...)", imageName: nil, timestamp: Date(), isRead: false)
+        let newMsg = Message(id: msgId, senderId: currentUser.id, receiverId: conversation.participantId, text: "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â½ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¤ Mensagem de voz (enviando...)", imageName: nil, timestamp: Date(), isRead: false)
         await MainActor.run { self.messages.append(newMsg) }
         
         do {
@@ -422,12 +422,12 @@ class ChatViewModel: ObservableObject {
                 let media_url: String?
                 let is_read: Bool
             }
-            let insertData = MsgInsert(id: msgId, conversation_id: conversationID, sender_id: currentUser.id, text: "ÃƒÂ°Ã…Â¸Ã…Â½Ã‚Â¤ Mensagem de voz", media_url: path, is_read: false)
+            let insertData = MsgInsert(id: msgId, conversation_id: conversationID, sender_id: currentUser.id, text: "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â½ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¤ Mensagem de voz", media_url: path, is_read: false)
             try await supabase.database.from("messages").insert(insertData).execute()
             
             await MainActor.run {
                 if let idx = self.messages.firstIndex(where: { $0.id == msgId }) {
-                    self.messages[idx].text = "ÃƒÂ°Ã…Â¸Ã…Â½Ã‚Â¤ Mensagem de voz"
+                    self.messages[idx].text = "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â½ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¤ Mensagem de voz"
                     self.messages[idx].imageName = path
                 }
             }
@@ -440,7 +440,7 @@ class ChatViewModel: ObservableObject {
         let ext = isVideo ? "mp4" : "jpg"
         let path = "\(currentUser.id.uuidString)/\(UUID().uuidString).\(ext)"
         let contentType = isVideo ? "video/mp4" : "image/jpeg"
-        let text = isVideo ? "ÃƒÂ°Ã…Â¸Ã¢â‚¬Å“Ã‚Â¹ VÃƒÆ’Ã‚Â­deo" : "ÃƒÂ°Ã…Â¸Ã¢â‚¬â€œÃ‚Â¼ÃƒÂ¯Ã‚Â¸Ã‚Â Imagem"
+        let text = isVideo ? "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬Ãƒâ€¦Ã¢â‚¬Å“ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¹ VÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­deo" : "ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â°ÃƒÆ’Ã¢â‚¬Â¦Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã‚Â¢ÃƒÂ¢Ã¢â‚¬Å¡Ã‚Â¬ÃƒÂ¢Ã¢â€šÂ¬Ã…â€œÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¼ÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¯ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¸ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â Imagem"
         
         let msgId = UUID()
         let newMsg = Message(id: msgId, senderId: currentUser.id, receiverId: conversation.participantId, text: "\(text) (enviando...)", imageName: nil, timestamp: Date(), isRead: false)

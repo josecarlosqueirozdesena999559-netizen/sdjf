@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import AVFoundation
 import AVKit
 import PhotosUI
@@ -169,44 +169,6 @@ struct ChatView: View {
         .padding(.horizontal, 8)
         .padding(.vertical, 8)
         .background(Color(white: 0.95))
-    }
-
-            if audioRecorder.isRecording {
-                Label("Gravando áudio...", systemImage: "waveform")
-                    .foregroundColor(.red)
-                    .padding(.leading, 14)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            } else {
-                TextField("Mensagem...", text: $messageText)
-                    .padding(.horizontal, 14)
-                    .onChange(of: messageText) { _, _ in viewModel.sendTypingEvent() }
-            }
-
-            Button {
-                if audioRecorder.isRecording {
-                    guard let fileURL = audioRecorder.stop() else { return }
-                    Task { await viewModel.sendAudio(fileURL: fileURL) }
-                } else if messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Task { _ = await audioRecorder.start() }
-                } else {
-                    let text = messageText
-                    messageText = ""
-                    Task { await viewModel.sendMessage(text: text) }
-                }
-            } label: {
-                Image(systemName: audioRecorder.isRecording ? "stop.circle.fill" : (messageText.isEmpty ? "mic.fill" : "arrow.up.circle.fill"))
-                    .typographyScreenTitle()
-                    .foregroundColor(audioRecorder.isRecording ? .red : Theme.primary)
-                    .padding(8)
-            }
-            .accessibilityLabel(audioRecorder.isRecording ? "Parar gravação" : "Enviar ou gravar áudio")
-        }
-        .padding(6)
-        .background(Color.black.opacity(0.05))
-        .clipShape(Capsule())
-        .padding(.horizontal)
-        .padding(.vertical, 10)
-        .background(Color.white)
     }
 
         @ViewBuilder private func messageBubble(_ message: Message, isMine: Bool) -> some View {
