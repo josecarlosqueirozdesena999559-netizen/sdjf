@@ -15,7 +15,7 @@ struct MainTabView: View {
                 HomeView()
                     .tabItem {
                         Image(systemName: selectedTab == 0 ? "house.fill" : "house")
-                        Text("InÃƒÂ­cio")
+                        Text("InÃƒÆ’Ã‚Â­cio")
                     }
                     .tag(0)
 
@@ -26,8 +26,8 @@ struct MainTabView: View {
                     }
                     .tag(1)
 
-                // Bug 2 fix: tab vazio substituÃƒÂ­do por placeholder invisÃƒÂ­vel
-                // que nÃƒÂ£o compete visualmente com o botÃƒÂ£o flutuante
+                // Bug 2 fix: tab vazio substituÃƒÆ’Ã‚Â­do por placeholder invisÃƒÆ’Ã‚Â­vel
+                // que nÃƒÆ’Ã‚Â£o compete visualmente com o botÃƒÆ’Ã‚Â£o flutuante
                 Color.clear
                     .tabItem { Text("") }
                     .tag(2)
@@ -54,8 +54,8 @@ struct MainTabView: View {
                 }
             }
 
-            // NÃƒÂ£o sobrepÃƒÂµe o compositor de mensagens.
-            if selectedTab != 3 && !hideFloatingButton {
+            // NÃƒÆ’Ã‚Â£o sobrepÃƒÆ’Ã‚Âµe o compositor de mensagens.
+            if !hideFloatingButton {
             Button(action: { showPublish = true }) {
                 ZStack {
                     Circle()
@@ -68,7 +68,7 @@ struct MainTabView: View {
                 }
             }
             .offset(y: -10)
-            // Impede que tap no botÃƒÂ£o ative o tab fantasma
+            // Impede que tap no botÃƒÆ’Ã‚Â£o ative o tab fantasma
             .simultaneousGesture(TapGesture().onEnded { })
             }
         }
