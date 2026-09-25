@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import OneSignalFramework
 
 struct MainTabView: View {
@@ -15,7 +15,7 @@ struct MainTabView: View {
                 HomeView()
                     .tabItem {
                         Image(systemName: selectedTab == 0 ? "house.fill" : "house")
-                        Text("Início")
+                        Text("InÃƒÂ­cio")
                     }
                     .tag(0)
 
@@ -26,10 +26,10 @@ struct MainTabView: View {
                     }
                     .tag(1)
 
-                // Bug 2 fix: tab vazio substituído por placeholder invisível
-                // que não compete visualmente com o botão flutuante
+                // Bug 2 fix: tab vazio substituÃƒÂ­do por placeholder invisÃƒÂ­vel
+                // que nÃƒÂ£o compete visualmente com o botÃƒÂ£o flutuante
                 Color.clear
-                    .tabItem { Label("", systemImage: "plus") }
+                    .tabItem { Text("") }
                     .tag(2)
 
                 MessagesListView(selectedTab: $selectedTab)
@@ -47,8 +47,14 @@ struct MainTabView: View {
                     .tag(4)
             }
             .accentColor(Theme.primary)
+            .onChange(of: selectedTab) { old, new in
+                if new == 2 {
+                    selectedTab = old
+                    showPublish = true
+                }
+            }
 
-            // Não sobrepõe o compositor de mensagens.
+            // NÃƒÂ£o sobrepÃƒÂµe o compositor de mensagens.
             if selectedTab != 3 && !hideFloatingButton {
             Button(action: { showPublish = true }) {
                 ZStack {
@@ -62,10 +68,11 @@ struct MainTabView: View {
                 }
             }
             .offset(y: -10)
-            // Impede que tap no botão ative o tab fantasma
+            // Impede que tap no botÃƒÂ£o ative o tab fantasma
             .simultaneousGesture(TapGesture().onEnded { })
             }
         }
+        .ignoresSafeArea(.keyboard, edges: .bottom)
         .environmentObject(favoritesViewModel)
         .fullScreenCover(isPresented: $showPublish) {
             PublishProductView() {
