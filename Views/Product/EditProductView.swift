@@ -108,7 +108,7 @@ struct EditProductView: View {
     
     @ViewBuilder private var mediaSection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Fotos e VÃƒÂ­deos")
+            Text("Fotos e Vídeos")
                 .typographySectionTitle()
                 .foregroundColor(Theme.textPrimary)
                 .padding(.horizontal)
@@ -208,16 +208,16 @@ struct EditProductView: View {
     @ViewBuilder private var mainInfoSection: some View {
         VStack(spacing: 16) {
             VStack(alignment: .leading, spacing: 8) {
-                Text("TÃƒÂ­tulo")
+                Text("Título")
                     .typographySectionTitle()
-                TextField("Ex: iPhone 13 128GB impecÃƒÂ¡vel", text: $viewModel.title)
+                TextField("Ex: iPhone 13 128GB impecável", text: $viewModel.title)
                     .padding()
                     .background(Theme.inputBackground)
                     .cornerRadius(12)
             }
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("DescriÃƒÂ§ÃƒÂ£o")
+                Text("Descrição")
                     .typographySectionTitle()
                 TextEditor(text: $viewModel.description)
                     .frame(height: 120)
@@ -227,7 +227,7 @@ struct EditProductView: View {
             }
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("Estado de conservaÃƒÂ§ÃƒÂ£o")
+                Text("Estado de conservação")
                     .typographySectionTitle()
                 HStack {
                     ForEach(ProductCondition.allCases, id: \.self) { condition in
@@ -264,15 +264,15 @@ struct EditProductView: View {
             }
             
             VStack(alignment: .leading, spacing: 8) {
-                Text("LocalizaÃƒÂ§ÃƒÂ£o")
+                Text("Localização")
                     .typographySectionTitle()
-                TextField("Ex: SÃƒÂ£o Paulo - SP", text: $viewModel.location)
+                TextField("Ex: São Paulo - SP", text: $viewModel.location)
                     .padding()
                     .background(Theme.inputBackground)
                     .cornerRadius(12)
             }
             
-            Toggle("Aceita negociaÃƒÂ§ÃƒÂ£o?", isOn: $viewModel.acceptsNegotiation)
+            Toggle("Aceita negociação?", isOn: $viewModel.acceptsNegotiation)
                 .typographySectionTitle()
                 .padding(.vertical, 8)
                 .tint(Theme.primary)
@@ -291,7 +291,7 @@ struct EditProductView: View {
                 if viewModel.isPublishing {
                     ProgressView().progressViewStyle(CircularProgressViewStyle(tint: .white))
                 } else {
-                    Text("Publicar AnÃƒÂºncio")
+                    Text("Publicar Anúncio")
                         .typographySectionTitle()
                 }
             }
@@ -323,7 +323,7 @@ struct EditProductView: View {
                             Image(systemName: "checkmark.circle.fill")
                                 .font(.custom("Inter-Regular", size: 60))
                                 .foregroundColor(.green)
-                            Text("AlteraÃ§Ãµes salvas!")
+                            Text("Alterações salvas!")
                                 .typographySectionTitle()
                                 .foregroundColor(.white)
                         }
