@@ -1,4 +1,4 @@
-﻿import SwiftUI
+import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 
@@ -53,50 +53,7 @@ struct EditProductView: View {
         }
         .alert("Erro", isPresented: Binding<Bool>(
             get: { viewModel.publishError != nil },
-            set: { if !    var body: some View {
-        NavigationStack {
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 24) {
-                    mediaSection
-                    priceSection
-                    mainInfoSection
-                    Spacer(minLength: 40)
-                }
-            }
-            .background(Color.white)
-            .navigationTitle("Editar AnÃºncio")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) {
-                    Button("Cancelar") { dismiss() }
-                        .foregroundColor(Theme.primary)
-                }
-            }
-            .safeAreaInset(edge: .bottom) { bottomButton }
-            .onChange(of: selectedItems) { _, newItems in
-                loadMedia(from: newItems)
-            }
-            .overlay(loadingOverlay)
-            .onChange(of: viewModel.publishSuccess) { _, success in
-                if success {
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                        dismiss()
-                        onPublishSuccess?()
-                    }
-                }
-            }
-            .alert("Erro", isPresented: Binding<Bool>(
-                get: { viewModel.publishError != nil },
-                set: { if !$0 { viewModel.publishError = nil } }
-            )) {
-                Button("OK", role: .cancel) { }
-            } message: {
-                Text(viewModel.publishError ?? "Erro desconhecido")
-            }
-        }
-    }
-    
-    @ViewBuilder private var mediaSection: some View { viewModel.publishError = nil } }
+            set: { if !$0 { viewModel.publishError = nil } }
         )) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -184,7 +141,7 @@ struct EditProductView: View {
     
     @ViewBuilder private var priceSection: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text("PreÃƒÂ§o do Produto")
+            Text("Preço do Produto")
                 .typographySectionTitle()
                 .foregroundColor(Theme.textPrimary)
             
