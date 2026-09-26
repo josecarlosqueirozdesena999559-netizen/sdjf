@@ -1,4 +1,4 @@
-import Foundation
+﻿import Foundation
 import Supabase
 import Storage
 import Combine
@@ -16,8 +16,6 @@ class ChatViewModel: ObservableObject {
     private var pollingTask: Task<Void, Never>?
     private var activeConversationID: UUID?
     private var typingTask: Task<Void, Never>?
-    private var typingTimer: Timer?
-    
     init(conversation: Conversation, currentUser: User) {
         self.conversation = conversation
         self.currentUser = currentUser
@@ -287,10 +285,13 @@ class ChatViewModel: ObservableObject {
         Task {
             for await payload in typingEvents {
                 if let userID = payload["user_id"]?.stringValue, userID != currentUser.id.uuidString {
-                    isTyping = true
-                    typingTimer?.invalidate()
-                    typingTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { _ in
-                        Task { @MainActor in self.isTyping = false }
+                    await MainActor.run { self.isTyping = true }
+                    self.typingTask?.cancel()
+                    self.typingTask = Task {
+                        try? await Task.sleep(nanoseconds: 2_500_000_000)
+                        if !Task.isCancelled {
+                            await MainActor.run { self.isTyping = false }
+                        }
                     }
                 }
             }
