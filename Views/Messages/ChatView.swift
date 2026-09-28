@@ -7,10 +7,10 @@ struct ChatView: View {
     @StateObject var viewModel: ChatViewModel
     @State private var messageText = ""
     @AppStorage("hideFloatingButton") private var hideFloatingButton = false
-    @StateObject private var aÁÁudioRecorder = AÁudioRecorder()
-    @State private var participantName = "UsuÃ¡rio"
+    @StateObject private var audioRecorder = AudioRecorder()
+    @State private var participantName = "Usuário"
     @State private var participantAvatarURL: String?
-    @State private var aÁÁudioPlayer: AVPlayer?
+    @State private var audioPlayer: AVPlayer?
     @State private var selectedItem: PhotosPickerItem? = nil
     @State private var participantUser: User? = nil
 
@@ -79,7 +79,7 @@ struct ChatView: View {
             let df = DateFormatter()
             df.dateStyle = .short
             df.timeStyle = .short
-            return "Visto por Ãºltimo: \(df.string(from: last))"
+            return "Visto por último: \(df.string(from: last))"
         }
         return ""
     }
@@ -192,11 +192,11 @@ struct ChatView: View {
             VStack(alignment: .leading, spacing: 2) {
                 if let path = message.imageName {
                     if path.hasSuffix(".m4a") {
-                        Button { Task { await playAÁudio(path: path) } } label: {
+                        Button { Task { await playAudio(path: path) } } label: {
                             HStack(spacing: 12) {
                                 Image(systemName: "play.circle.fill")
                                     .font(.system(size: 32))
-                                Text("ÁÁudio")
+                                Text("Áudio")
                                     .typographyBody()
                             }
                             .padding(.vertical, 4)
@@ -235,16 +235,16 @@ struct ChatView: View {
         }
     }
 
-    private func playAÁudio(path: String) async {
+    private func playAudio(path: String) async {
         do {
-            try AVAÁudioSession.sharedInstance().setCategory(.playback, mode: .default)
-            try AVAÁudioSession.sharedInstance().setActive(true)
+            try AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
+            try AVAudioSession.sharedInstance().setActive(true)
             let url = try await supabase.storage.from("chat-media").createSignedURL(path: path, expiresIn: 3_600)
             let player = AVPlayer(url: url)
-            aÁÁudioPlayer = player
+            audioPlayer = player
             player.play()
         } catch {
-            print("Erro ao reproduzir áÁudio: \(error)")
+            print("Erro ao reproduzir áudio: \(error)")
         }
     }
 
