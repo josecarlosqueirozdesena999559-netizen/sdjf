@@ -1,0 +1,486 @@
+﻿2026-09-23T19:32:18.9773360Z Current runner version: '2.337.0'
+2026-09-23T19:32:18.9790190Z ##[group]Runner Image Provisioner
+2026-09-23T19:32:18.9790850Z Hosted Compute Agent
+2026-09-23T19:32:18.9791920Z Version: 20260828.587
+2026-09-23T19:32:18.9793640Z Commit: abac92662cab4cc7352de4f9f9d2e2419aad9c29
+2026-09-23T19:32:18.9795140Z Build Date: 2026-08-28T16:44:25Z
+2026-09-23T19:32:18.9796470Z Worker ID: {ab469890-b7ab-42dc-b607-14cd32fdbb23}
+2026-09-23T19:32:18.9797820Z Azure Region: westus
+2026-09-23T19:32:18.9798930Z ##[endgroup]
+2026-09-23T19:32:18.9802690Z ##[group]Operating System
+2026-09-23T19:32:18.9803870Z macOS
+2026-09-23T19:32:18.9804910Z 15.7.9
+2026-09-23T19:32:18.9805870Z 24G830
+2026-09-23T19:32:18.9806860Z ##[endgroup]
+2026-09-23T19:32:18.9807950Z ##[group]Runner Image
+2026-09-23T19:32:18.9809080Z Image: macos-15-arm64
+2026-09-23T19:32:18.9810240Z Version: 20260907.0337.1
+2026-09-23T19:32:18.9812840Z Included Software: https://github.com/actions/runner-images/blob/macos-15-arm64/20260907.0337/images/macos/macos-15-arm64-Readme.md
+2026-09-23T19:32:18.9815830Z Image Release: https://github.com/actions/runner-images/releases/tag/macos-15-arm64%2F20260907.0337
+2026-09-23T19:32:18.9817840Z ##[endgroup]
+2026-09-23T19:32:18.9820170Z ##[group]GITHUB_TOKEN Permissions
+2026-09-23T19:32:18.9825120Z Contents: read
+2026-09-23T19:32:18.9826180Z Metadata: read
+2026-09-23T19:32:18.9827210Z Packages: read
+2026-09-23T19:32:18.9828210Z ##[endgroup]
+2026-09-23T19:32:18.9833700Z Secret source: Actions
+2026-09-23T19:32:18.9835550Z Cache mode: write
+2026-09-23T19:32:18.9836930Z Prepare workflow directory
+2026-09-23T19:32:19.0141430Z Prepare all required actions
+2026-09-23T19:32:19.0218880Z Getting action download info
+2026-09-23T19:32:19.4965540Z Download action repository 'actions/checkout@v4' (SHA:11d5960a326750d5838078e36cf38b85af677262)
+2026-09-23T19:32:19.8062910Z Download action repository 'actions/upload-artifact@v4' (SHA:ea165f8d65b6e75b540449e92b4886f43607fa02)
+2026-09-23T19:32:20.0527630Z Complete job name: build
+2026-09-23T19:32:20.1129430Z ##[group]Run actions/checkout@v4
+2026-09-23T19:32:20.1130670Z with:
+2026-09-23T19:32:20.1131150Z   repository: josecarlosqueirozdesena999559-netizen/sdjf
+2026-09-23T19:32:20.1133960Z   token: ***
+2026-09-23T19:32:20.1134280Z   ssh-strict: true
+2026-09-23T19:32:20.1134610Z   ssh-user: git
+2026-09-23T19:32:20.1140060Z   persist-credentials: true
+2026-09-23T19:32:20.1141340Z   clean: true
+2026-09-23T19:32:20.1142560Z   sparse-checkout-cone-mode: true
+2026-09-23T19:32:20.1143970Z   fetch-depth: 1
+2026-09-23T19:32:20.1145050Z   fetch-tags: false
+2026-09-23T19:32:20.1148030Z   show-progress: true
+2026-09-23T19:32:20.1153120Z   lfs: false
+2026-09-23T19:32:20.1153450Z   submodules: false
+2026-09-23T19:32:20.1153850Z   set-safe-directory: true
+2026-09-23T19:32:20.1154300Z   allow-unsafe-pr-checkout: false
+2026-09-23T19:32:20.1160810Z ##[endgroup]
+2026-09-23T19:32:20.5627850Z Syncing repository: josecarlosqueirozdesena999559-netizen/sdjf
+2026-09-23T19:32:20.5631530Z ##[group]Getting Git version info
+2026-09-23T19:32:20.5632180Z Working directory is '/Users/runner/work/sdjf/sdjf'
+2026-09-23T19:32:20.5633260Z [command]/opt/homebrew/bin/git version
+2026-09-23T19:32:20.6155740Z git version 2.55.0
+2026-09-23T19:32:20.6177640Z ##[endgroup]
+2026-09-23T19:32:20.6189330Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/bc24cc32-d9b3-4556-8f31-c4c8cee73152/.gitconfig'
+2026-09-23T19:32:20.6199800Z Temporarily overriding HOME='/Users/runner/work/_temp/bc24cc32-d9b3-4556-8f31-c4c8cee73152' before making global git config changes
+2026-09-23T19:32:20.6203640Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-23T19:32:20.6207140Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/sdjf/sdjf
+2026-09-23T19:32:20.6363850Z Deleting the contents of '/Users/runner/work/sdjf/sdjf'
+2026-09-23T19:32:20.6368400Z ##[group]Initializing the repository
+2026-09-23T19:32:20.6370750Z [command]/opt/homebrew/bin/git init /Users/runner/work/sdjf/sdjf
+2026-09-23T19:32:20.6781530Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-09-23T19:32:20.6782640Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-09-23T19:32:20.6783990Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-09-23T19:32:20.6784740Z hint: call:
+2026-09-23T19:32:20.6785130Z hint:
+2026-09-23T19:32:20.6785640Z hint: 	git config --global init.defaultBranch <name>
+2026-09-23T19:32:20.6786190Z hint:
+2026-09-23T19:32:20.6786750Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-09-23T19:32:20.6787510Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-09-23T19:32:20.6788150Z hint:
+2026-09-23T19:32:20.6788610Z hint: 	git branch -m <name>
+2026-09-23T19:32:20.6789040Z hint:
+2026-09-23T19:32:20.6789580Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-09-23T19:32:20.6790810Z Initialized empty Git repository in /Users/runner/work/sdjf/sdjf/.git/
+2026-09-23T19:32:20.6810480Z [command]/opt/homebrew/bin/git remote add origin https://github.com/josecarlosqueirozdesena999559-netizen/sdjf
+2026-09-23T19:32:20.6934690Z ##[endgroup]
+2026-09-23T19:32:20.6937600Z ##[group]Disabling automatic garbage collection
+2026-09-23T19:32:20.6942670Z [command]/opt/homebrew/bin/git config --local gc.auto 0
+2026-09-23T19:32:20.6970440Z ##[endgroup]
+2026-09-23T19:32:20.6972610Z ##[group]Setting up auth
+2026-09-23T19:32:20.6987360Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-23T19:32:20.7078270Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-23T19:32:20.9689270Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-23T19:32:20.9764700Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-23T19:32:21.1183830Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-23T19:32:21.1194100Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-23T19:32:21.2246620Z [command]/opt/homebrew/bin/git config --local http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-09-23T19:32:21.2329280Z ##[endgroup]
+2026-09-23T19:32:21.2332330Z ##[group]Fetching the repository
+2026-09-23T19:32:21.2338450Z [command]/opt/homebrew/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +d134b5f62b2ca9ed98f900a8158371a7f74f4dc0:refs/remotes/origin/main
+2026-09-23T19:32:23.5637640Z From https://github.com/josecarlosqueirozdesena999559-netizen/sdjf
+2026-09-23T19:32:23.5639420Z  * [new ref]         d134b5f62b2ca9ed98f900a8158371a7f74f4dc0 -> origin/main
+2026-09-23T19:32:23.5648970Z ##[endgroup]
+2026-09-23T19:32:23.5649510Z ##[group]Determining the checkout info
+2026-09-23T19:32:23.5653160Z ##[endgroup]
+2026-09-23T19:32:23.5665900Z [command]/opt/homebrew/bin/git sparse-checkout disable
+2026-09-23T19:32:23.5760470Z [command]/opt/homebrew/bin/git config --local --unset-all extensions.worktreeConfig
+2026-09-23T19:32:23.5842170Z ##[group]Checking out the ref
+2026-09-23T19:32:23.5844590Z [command]/opt/homebrew/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-09-23T19:32:24.0860270Z Switched to a new branch 'main'
+2026-09-23T19:32:24.0872830Z branch 'main' set up to track 'origin/main'.
+2026-09-23T19:32:24.0924190Z ##[endgroup]
+2026-09-23T19:32:24.1081860Z [command]/opt/homebrew/bin/git log -1 --format=%H
+2026-09-23T19:32:24.1191070Z d134b5f62b2ca9ed98f900a8158371a7f74f4dc0
+2026-09-23T19:32:24.1496510Z ##[group]Run brew install xcodegen
+2026-09-23T19:32:24.1497820Z [36;1mbrew install xcodegen[0m
+2026-09-23T19:32:24.1563140Z shell: /bin/bash -e {0}
+2026-09-23T19:32:24.1563500Z ##[endgroup]
+2026-09-23T19:32:29.5449360Z [32m==>[0m [1mDownloading bottle manifests[0m
+2026-09-23T19:32:29.5770540Z ✔︎ Bottle Manifest xcodegen (2.46.0)
+2026-09-23T19:32:29.5771120Z [34m==>[0m [1mWould install 1 formula:[0m
+2026-09-23T19:32:29.5874260Z [32m==>[0m [1mFetching downloads for: [32mxcodegen[39m[0m
+2026-09-23T19:32:29.5874680Z xcodegen
+2026-09-23T19:32:30.0541140Z ✔︎ Bottle xcodegen (2.46.0)
+2026-09-23T19:32:30.1135580Z [34m==>[0m [1mPouring xcodegen--2.46.0.arm64_sequoia.bottle.1.tar.gz[0m
+2026-09-23T19:32:30.3161400Z 🍺  /opt/homebrew/Cellar/xcodegen/2.46.0: 38 files, 7.5MB
+2026-09-23T19:32:30.3431250Z ##[group]Run xcodegen generate
+2026-09-23T19:32:30.3432000Z [36;1mxcodegen generate[0m
+2026-09-23T19:32:30.3492730Z shell: /bin/bash -e {0}
+2026-09-23T19:32:30.3494400Z ##[endgroup]
+2026-09-23T19:32:30.4634530Z ⚙️  Generating plists...
+2026-09-23T19:32:30.4650330Z ⚙️  Generating project...
+2026-09-23T19:32:30.4926300Z ⚙️  Writing project...
+2026-09-23T19:32:30.5069790Z Created project at /Users/runner/work/sdjf/sdjf/MercadoFacil.xcodeproj
+2026-09-23T19:32:30.5224470Z ##[group]Run set -o pipefail
+2026-09-23T19:32:30.5224750Z [36;1mset -o pipefail[0m
+2026-09-23T19:32:30.5225000Z [36;1mxcodebuild -project MercadoFacil.xcodeproj \[0m
+2026-09-23T19:32:30.5225260Z [36;1m  -scheme MercadoFacil \[0m
+2026-09-23T19:32:30.5225490Z [36;1m  -sdk iphonesimulator \[0m
+2026-09-23T19:32:30.5225870Z [36;1m  -destination 'platform=iOS Simulator,name=iPhone SE (3rd generation)' \[0m
+2026-09-23T19:32:30.5226210Z [36;1m  -configuration Debug \[0m
+2026-09-23T19:32:30.5226500Z [36;1m  CODE_SIGN_IDENTITY="" \[0m
+2026-09-23T19:32:30.5226710Z [36;1m  CODE_SIGNING_REQUIRED=NO \[0m
+2026-09-23T19:32:30.5226920Z [36;1m  CODE_SIGNING_ALLOWED=NO \[0m
+2026-09-23T19:32:30.5227120Z [36;1m  build | xcpretty[0m
+2026-09-23T19:32:30.5227290Z [36;1m  [0m
+2026-09-23T19:32:30.5284340Z shell: /bin/bash -e {0}
+2026-09-23T19:32:30.5284800Z ##[endgroup]
+2026-09-23T19:35:15.3145740Z --- xcodebuild: WARNING: Using the first of multiple matching destinations:
+2026-09-23T19:35:15.3212810Z { platform:iOS Simulator, arch:arm64, id:48B2DA2E-AF18-4E36-BB25-B25969A4EBCF, OS:26.2, name:iPhone SE (3rd generation) }
+2026-09-23T19:35:15.3215090Z { platform:iOS Simulator, arch:x86_64, id:48B2DA2E-AF18-4E36-BB25-B25969A4EBCF, OS:26.2, name:iPhone SE (3rd generation) }
+2026-09-23T19:35:30.5643700Z ▸ Compiling dummy.m
+2026-09-23T19:35:32.9560110Z ▸ Linking OneSignalFrameworkWrapper.o
+2026-09-23T19:35:33.4826160Z ▸ Linking KeychainAccess.o
+2026-09-23T19:35:33.6205300Z ▸ Linking Crypto.o
+2026-09-23T19:35:33.6308140Z ▸ Linking ConcurrencyExtras.o
+2026-09-23T19:35:40.1067350Z ▸ Linking _Helpers.o
+2026-09-23T19:35:57.7881700Z 
+2026-09-23T19:35:57.8020150Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:217:9: expressions are not allowed at the top level
+2026-09-23T19:35:57.8086170Z 
+2026-09-23T19:35:57.8187400Z         Task {
+2026-09-23T19:35:57.8296790Z         ^
+2026-09-23T19:35:57.8397190Z 
+2026-09-23T19:35:57.8498030Z 
+2026-09-23T19:35:57.8599930Z 
+2026-09-23T19:35:57.8710840Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:229:9: expressions are not allowed at the top level
+2026-09-23T19:35:57.8813600Z 
+2026-09-23T19:35:57.8915600Z ** BUILD FAILED **
+2026-09-23T19:35:57.8916230Z         Task {
+2026-09-23T19:35:57.9018200Z 
+2026-09-23T19:35:57.9018640Z         ^
+2026-09-23T19:35:57.9125860Z 
+2026-09-23T19:35:57.9125920Z 
+2026-09-23T19:35:57.9352590Z The following build commands failed:
+2026-09-23T19:35:57.9353140Z 
+2026-09-23T19:35:57.9658150Z 	EmitSwiftModule normal arm64 (in target 'MercadoFacil' from project 'MercadoFacil')
+2026-09-23T19:35:57.9664830Z 
+2026-09-23T19:35:57.9667840Z 	SwiftEmitModule normal arm64 Emitting\ module\ for\ MercadoFacil (in target 'MercadoFacil' from project 'MercadoFacil')
+2026-09-23T19:35:57.9673340Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:263:9: expressions are not allowed at the top level
+2026-09-23T19:35:57.9693310Z 	Building project MercadoFacil with scheme MercadoFacil and configuration Debug
+2026-09-23T19:35:57.9693770Z 
+2026-09-23T19:35:57.9821600Z (3 failures)
+2026-09-23T19:35:57.9821900Z         Task {
+2026-09-23T19:35:57.9946010Z         ^
+2026-09-23T19:35:58.0047960Z 
+2026-09-23T19:35:58.0162470Z 
+2026-09-23T19:35:58.0263490Z 
+2026-09-23T19:35:58.0398550Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:277:9: expressions are not allowed at the top level
+2026-09-23T19:35:58.0500050Z 
+2026-09-23T19:35:58.0601360Z         await channel.subscribe()
+2026-09-23T19:35:58.0702790Z         ^
+2026-09-23T19:35:58.0803670Z 
+2026-09-23T19:35:58.0904450Z 
+2026-09-23T19:35:58.1005100Z 
+2026-09-23T19:35:58.1108910Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:278:9: statements are not allowed at the top level
+2026-09-23T19:35:58.1210790Z 
+2026-09-23T19:35:58.1311920Z         do {
+2026-09-23T19:35:58.1414820Z         ^
+2026-09-23T19:35:58.1517030Z 
+2026-09-23T19:35:58.1617990Z 
+2026-09-23T19:35:58.1719700Z 
+2026-09-23T19:35:58.1831070Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:283:5: extraneous '}' at top level
+2026-09-23T19:35:58.1925030Z 
+2026-09-23T19:35:58.1959810Z     }
+2026-09-23T19:35:58.1981900Z     ^
+2026-09-23T19:35:58.1986110Z 
+2026-09-23T19:35:58.1986250Z 
+2026-09-23T19:35:58.1986380Z 
+2026-09-23T19:35:58.1987110Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:380:1: extraneous '}' at top level
+2026-09-23T19:35:58.2088760Z 
+2026-09-23T19:35:58.2189520Z }
+2026-09-23T19:35:58.2290960Z ^
+2026-09-23T19:35:58.2312980Z 
+2026-09-23T19:35:58.2335580Z 
+2026-09-23T19:35:58.2358090Z 
+2026-09-23T19:35:58.2410220Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:211:10: consecutive statements on a line must be separated by ';'
+2026-09-23T19:35:58.2430030Z 
+2026-09-23T19:35:58.2443810Z         } catch {
+2026-09-23T19:35:58.2505720Z          ^
+2026-09-23T19:35:58.2576940Z 
+2026-09-23T19:35:58.2592410Z 
+2026-09-23T19:35:58.2626960Z 
+2026-09-23T19:35:58.2677230Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:211:11: expected expression
+2026-09-23T19:35:58.2711160Z 
+2026-09-23T19:35:58.2717600Z         } catch {
+2026-09-23T19:35:58.2744960Z           ^
+2026-09-23T19:35:58.2773420Z 
+2026-09-23T19:35:58.2777360Z 
+2026-09-23T19:35:58.2777500Z 
+2026-09-23T19:35:58.2778580Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:218:34: cannot find 'typingEvents' in scope
+2026-09-23T19:35:58.2779330Z 
+2026-09-23T19:35:58.2790680Z             for await payload in typingEvents {
+2026-09-23T19:35:58.2805640Z                                  ^~~~~~~~~~~~
+2026-09-23T19:35:58.2834590Z 
+2026-09-23T19:35:58.2843890Z 
+2026-09-23T19:35:58.2857770Z 
+2026-09-23T19:35:58.2861470Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:219:76: cannot find 'currentUser' in scope
+2026-09-23T19:35:58.2862370Z 
+2026-09-23T19:35:58.2864080Z                 if let userID = payload["user_id"]?.stringValue, userID != currentUser.id.uuidString {
+2026-09-23T19:35:58.2866700Z                                                                            ^~~~~~~~~~~
+2026-09-23T19:35:58.2868110Z 
+2026-09-23T19:35:58.2868410Z 
+2026-09-23T19:35:58.2868560Z 
+2026-09-23T19:35:58.2870500Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:220:21: cannot find 'isTyping' in scope
+2026-09-23T19:35:58.2871430Z 
+2026-09-23T19:35:58.2872210Z                     isTyping = true
+2026-09-23T19:35:58.2874990Z                     ^~~~~~~~
+2026-09-23T19:35:58.2875860Z 
+2026-09-23T19:35:58.2875970Z 
+2026-09-23T19:35:58.2876080Z 
+2026-09-23T19:35:58.2876700Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:221:21: cannot find 'typingTimer' in scope
+2026-09-23T19:35:58.2880360Z 
+2026-09-23T19:35:58.2895230Z                     typingTimer?.invalidate()
+2026-09-23T19:35:58.2896850Z                     ^~~~~~~~~~~
+2026-09-23T19:35:58.2897040Z 
+2026-09-23T19:35:58.2897550Z 
+2026-09-23T19:35:58.2897550Z 
+2026-09-23T19:35:58.2898190Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:222:21: cannot find 'typingTimer' in scope
+2026-09-23T19:35:58.2898760Z 
+2026-09-23T19:35:58.2899210Z                     typingTimer = Timer.scheduledTimer(withTimeInterval: 2.5, repeats: false) { _ in
+2026-09-23T19:35:58.2900680Z                     ^~~~~~~~~~~
+2026-09-23T19:35:58.2900940Z 
+2026-09-23T19:35:58.2900940Z 
+2026-09-23T19:35:58.2900950Z 
+2026-09-23T19:35:58.2901550Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:223:46: cannot find 'self' in scope; did you mean to use it in a type or extension context?
+2026-09-23T19:35:58.2909770Z 
+2026-09-23T19:35:58.2910030Z                         Task { @MainActor in self.isTyping = false }
+2026-09-23T19:35:58.2910380Z                                              ^~~~
+2026-09-23T19:35:58.2910600Z 
+2026-09-23T19:35:58.2910610Z 
+2026-09-23T19:35:58.2910610Z 
+2026-09-23T19:35:58.2912860Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:230:33: cannot find 'insertions' in scope
+2026-09-23T19:35:58.2914720Z 
+2026-09-23T19:35:58.2914850Z             for await insert in insertions {
+2026-09-23T19:35:58.2915800Z                                 ^~~~~~~~~~
+2026-09-23T19:35:58.2916130Z 
+2026-09-23T19:35:58.2916130Z 
+2026-09-23T19:35:58.2916140Z 
+2026-09-23T19:35:58.2916530Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:247:57: cannot find 'conversation' in scope
+2026-09-23T19:35:58.2918010Z 
+2026-09-23T19:35:58.2918450Z                         receiverId: record.sender_id == conversation.participantId ? currentUser.id : conversation.participantId,
+2026-09-23T19:35:58.2919370Z                                                         ^~~~~~~~~~~~
+2026-09-23T19:35:58.2919630Z 
+2026-09-23T19:35:58.2919840Z 
+2026-09-23T19:35:58.2919840Z 
+2026-09-23T19:35:58.2920300Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:247:86: cannot find 'currentUser' in scope
+2026-09-23T19:35:58.2920770Z 
+2026-09-23T19:35:58.2922060Z                         receiverId: record.sender_id == conversation.participantId ? currentUser.id : conversation.participantId,
+2026-09-23T19:35:58.2925010Z                                                                                      ^~~~~~~~~~~
+2026-09-23T19:35:58.2926060Z 
+2026-09-23T19:35:58.2926070Z 
+2026-09-23T19:35:58.2926070Z 
+2026-09-23T19:35:58.2926870Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:247:103: cannot find 'conversation' in scope
+2026-09-23T19:35:58.2927540Z 
+2026-09-23T19:35:58.2928410Z                         receiverId: record.sender_id == conversation.participantId ? currentUser.id : conversation.participantId,
+2026-09-23T19:35:58.2929590Z                                                                                                       ^~~~~~~~~~~~
+2026-09-23T19:35:58.2930020Z 
+2026-09-23T19:35:58.2930020Z 
+2026-09-23T19:35:58.2930020Z 
+2026-09-23T19:35:58.2931210Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:253:25: cannot find 'messages' in scope
+2026-09-23T19:35:58.2933050Z 
+2026-09-23T19:35:58.2934650Z                     if !messages.contains(where: { $0.id == message.id }) {
+2026-09-23T19:35:58.2936020Z                         ^~~~~~~~
+2026-09-23T19:35:58.2936680Z 
+2026-09-23T19:35:58.2936700Z 
+2026-09-23T19:35:58.2936710Z 
+2026-09-23T19:35:58.2939490Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:254:25: cannot find 'messages' in scope
+2026-09-23T19:35:58.2941150Z 
+2026-09-23T19:35:58.2941990Z                         messages.append(message)
+2026-09-23T19:35:58.2943210Z                         ^~~~~~~~
+2026-09-23T19:35:58.2944010Z 
+2026-09-23T19:35:58.2944020Z 
+2026-09-23T19:35:58.2944020Z 
+2026-09-23T19:35:58.2945020Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:255:48: cannot find 'currentUser' in scope
+2026-09-23T19:35:58.2945590Z 
+2026-09-23T19:35:58.2945840Z                         if message.senderId != currentUser.id { await markAsRead() }
+2026-09-23T19:35:58.2949120Z                                                ^~~~~~~~~~~
+2026-09-23T19:35:58.2949660Z 
+2026-09-23T19:35:58.2949670Z 
+2026-09-23T19:35:58.2949680Z 
+2026-09-23T19:35:58.2950620Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:264:33: cannot find 'updates' in scope
+2026-09-23T19:35:58.2951470Z 
+2026-09-23T19:35:58.2951810Z             for await update in updates {
+2026-09-23T19:35:58.2952520Z                                 ^~~~~~~
+2026-09-23T19:35:58.2952890Z 
+2026-09-23T19:35:58.2952900Z 
+2026-09-23T19:35:58.2952900Z 
+2026-09-23T19:35:58.2953730Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:268:36: cannot find 'messages' in scope
+2026-09-23T19:35:58.2954270Z 
+2026-09-23T19:35:58.3278340Z                     if let index = messages.firstIndex(where: { $0.id == record.id }) {
+2026-09-23T19:35:58.3279030Z                                    ^~~~~~~~
+2026-09-23T19:35:58.3279270Z 
+2026-09-23T19:35:58.3279270Z 
+2026-09-23T19:35:58.3279280Z 
+2026-09-23T19:35:58.3279990Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:269:25: cannot find 'messages' in scope
+2026-09-23T19:35:58.3280430Z 
+2026-09-23T19:35:58.3281130Z                         messages[index].isRead = record.is_read
+2026-09-23T19:35:58.3281550Z                         ^~~~~~~~
+2026-09-23T19:35:58.3281780Z 
+2026-09-23T19:35:58.3281780Z 
+2026-09-23T19:35:58.3281780Z 
+2026-09-23T19:35:58.3282210Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:277:15: cannot find 'channel' in scope
+2026-09-23T19:35:58.3283580Z 
+2026-09-23T19:35:58.3283760Z         await channel.subscribe()
+2026-09-23T19:35:58.3284050Z               ^~~~~~~
+2026-09-23T19:35:58.3284210Z 
+2026-09-23T19:35:58.3284220Z 
+2026-09-23T19:35:58.3284220Z 
+2026-09-23T19:35:58.3284650Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:279:23: cannot find 'channel' in scope
+2026-09-23T19:35:58.3284980Z 
+2026-09-23T19:35:58.3285130Z             try await channel.track(["user_id": currentUser.id.uuidString])
+2026-09-23T19:35:58.3285500Z                       ^~~~~~~
+2026-09-23T19:35:58.3285670Z 
+2026-09-23T19:35:58.3285670Z 
+2026-09-23T19:35:58.3285670Z 
+2026-09-23T19:35:58.3286050Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:279:49: cannot find 'currentUser' in scope
+2026-09-23T19:35:58.3286390Z 
+2026-09-23T19:35:58.3286530Z             try await channel.track(["user_id": currentUser.id.uuidString])
+2026-09-23T19:35:58.3286830Z                                                 ^~~~~~~~~~~
+2026-09-23T19:35:58.3287080Z 
+2026-09-23T19:35:58.3287080Z 
+2026-09-23T19:35:58.3287080Z 
+2026-09-23T19:35:58.3287500Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:196:80: missing argument for parameter 'decoder' in call
+2026-09-23T19:35:58.3288020Z 
+2026-09-23T19:35:58.3288180Z                     let record = try update.decodeRecord(as: ProfileUpdate.self)
+2026-09-23T19:35:58.3288580Z                                                                                ^
+2026-09-23T19:35:58.3288760Z 
+2026-09-23T19:35:58.3288770Z 
+2026-09-23T19:35:58.3288770Z 
+2026-09-23T19:35:58.3289160Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:288:23: cannot find 'currentUser' in scope
+2026-09-23T19:35:58.3289560Z 
+2026-09-23T19:35:58.3289700Z             senderId: currentUser.id,
+2026-09-23T19:35:58.3289960Z               ^
+2026-09-23T19:35:58.3290150Z 
+2026-09-23T19:35:58.3290160Z 
+2026-09-23T19:35:58.3290160Z 
+2026-09-23T19:35:58.3290520Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:289:25: cannot find 'conversation' in scope
+2026-09-23T19:35:58.3290860Z 
+2026-09-23T19:35:58.3291060Z             receiverId: conversation.participantId,
+2026-09-23T19:35:58.3291410Z                       ^~~~~~~~~~~
+2026-09-23T19:35:58.3291600Z 
+2026-09-23T19:35:58.3291600Z 
+2026-09-23T19:35:58.3291600Z 
+2026-09-23T19:35:58.3292100Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:295:9: cannot find 'self' in scope; did you mean to use it in a type or extension context?
+2026-09-23T19:35:58.3292600Z 
+2026-09-23T19:35:58.3293090Z         self.messages.append(newMsg) // Optimistic UI
+2026-09-23T19:35:58.3293440Z                         ^~~~~~~~~~~~
+2026-09-23T19:35:58.3297490Z 
+2026-09-23T19:35:58.3297510Z 
+2026-09-23T19:35:58.3297510Z 
+2026-09-23T19:35:58.3297960Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:307:30: cannot find 'conversationID' in scope
+2026-09-23T19:35:58.3298550Z 
+2026-09-23T19:35:58.3298720Z             conversation_id: conversationID,
+2026-09-23T19:35:58.3299060Z         ^~~~
+2026-09-23T19:35:58.3299150Z 
+2026-09-23T19:35:58.3299150Z 
+2026-09-23T19:35:58.3299150Z 
+2026-09-23T19:35:58.3299570Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:308:24: cannot find 'currentUser' in scope
+2026-09-23T19:35:58.3299970Z 
+2026-09-23T19:35:58.3300100Z             sender_id: currentUser.id,
+2026-09-23T19:35:58.3300360Z                              ^~~~~~~~~~~~~~
+2026-09-23T19:35:58.3300570Z 
+2026-09-23T19:35:58.3300570Z 
+2026-09-23T19:35:58.3300570Z 
+2026-09-23T19:35:58.3301000Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:318:54: cannot find 'conversation' in scope
+2026-09-23T19:35:58.3301500Z 
+2026-09-23T19:35:58.3302030Z                 .select("seller_id").eq("id", value: conversation.productId).single().execute().value
+2026-09-23T19:35:58.3302470Z                        ^~~~~~~~~~~
+2026-09-23T19:35:58.3302650Z 
+2026-09-23T19:35:58.3302660Z 
+2026-09-23T19:35:58.3302660Z 
+2026-09-23T19:35:58.3303050Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:319:46: cannot find 'currentUser' in scope
+2026-09-23T19:35:58.3303500Z 
+2026-09-23T19:35:58.3303730Z             let buyerId = owner.seller_id == currentUser.id ? conversation.participantId : currentUser.id
+2026-09-23T19:35:58.3304210Z                                                      ^~~~~~~~~~~~
+2026-09-23T19:35:58.3304440Z 
+2026-09-23T19:35:58.3304440Z 
+2026-09-23T19:35:58.3304440Z 
+2026-09-23T19:35:58.3305260Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:319:63: cannot find 'conversation' in scope
+2026-09-23T19:35:58.3305620Z 
+2026-09-23T19:35:58.3305900Z             let buyerId = owner.seller_id == currentUser.id ? conversation.participantId : currentUser.id
+2026-09-23T19:35:58.3306400Z                                              ^~~~~~~~~~~
+2026-09-23T19:35:58.3306610Z 
+2026-09-23T19:35:58.3306610Z 
+2026-09-23T19:35:58.3306620Z 
+2026-09-23T19:35:58.3306930Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:319:92: cannot find 'currentUser' in scope
+2026-09-23T19:35:58.3307420Z 
+2026-09-23T19:35:58.3307710Z             let buyerId = owner.seller_id == currentUser.id ? conversation.participantId : currentUser.id
+2026-09-23T19:35:58.3308120Z                                                               ^~~~~~~~~~~~
+2026-09-23T19:35:58.3308290Z 
+2026-09-23T19:35:58.3308300Z 
+2026-09-23T19:35:58.3308300Z 
+2026-09-23T19:35:58.3308610Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:321:48: cannot find 'conversationID' in scope
+2026-09-23T19:35:58.3309000Z 
+2026-09-23T19:35:58.3309450Z                 .upsert(ConversationInsert(id: conversationID, buyer_id: buyerId, seller_id: owner.seller_id, product_id: conversation.productId), onConflict: "id")
+2026-09-23T19:35:58.3310040Z                                                                                            ^~~~~~~~~~~
+2026-09-23T19:35:58.3310240Z 
+2026-09-23T19:35:58.3310240Z 
+2026-09-23T19:35:58.3310240Z 
+2026-09-23T19:35:58.3310620Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:321:123: cannot find 'conversation' in scope
+2026-09-23T19:35:58.3310960Z 
+2026-09-23T19:35:58.3311430Z                 .upsert(ConversationInsert(id: conversationID, buyer_id: buyerId, seller_id: owner.seller_id, product_id: conversation.productId), onConflict: "id")
+2026-09-23T19:35:58.3312120Z                                                ^~~~~~~~~~~~~~
+2026-09-23T19:35:58.3312440Z 
+2026-09-23T19:35:58.3312440Z 
+2026-09-23T19:35:58.3312440Z 
+2026-09-23T19:35:58.3312920Z ❌  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:329:13: cannot find 'self' in scope; did you mean to use it in a type or extension context?
+2026-09-23T19:35:58.3313670Z 
+2026-09-23T19:35:58.3313870Z             self.messages.removeAll(where: { $0.id == msgId })
+2026-09-23T19:35:58.3314630Z                                                                                                                           ^~~~~~~~~~~~
+2026-09-23T19:35:58.3314890Z 
+2026-09-23T19:35:58.3314890Z 
+2026-09-23T19:35:58.3314890Z 
+2026-09-23T19:35:58.3315340Z ⚠️  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:317:43: no 'async' operations occur within 'await' expression
+2026-09-23T19:35:58.3315720Z 
+2026-09-23T19:35:58.3315880Z             let owner: ProductOwner = try await supabase.database.from("products")
+2026-09-23T19:35:58.3316200Z             ^~~~
+2026-09-23T19:35:58.3316350Z 
+2026-09-23T19:35:58.3316350Z 
+2026-09-23T19:35:58.3316360Z 
+2026-09-23T19:35:58.3316820Z ⚠️  /Users/runner/work/sdjf/sdjf/ViewModels/ChatViewModel.swift:317:39: no calls to throwing functions occur within 'try' expression
+2026-09-23T19:35:58.3317220Z 
+2026-09-23T19:35:58.3317680Z             let owner: ProductOwner = try await supabase.database.from("products")
+2026-09-23T19:35:58.3318110Z                                           ^
+2026-09-23T19:35:58.3318310Z 
+2026-09-23T19:35:58.3318310Z 
+2026-09-23T19:35:58.3318320Z 
+2026-09-23T19:35:58.3319300Z ⚠️  /Users/runner/work/sdjf/sdjf/Services/LocationManager.swift:52:1: extension declares a conformance of imported type 'CLLocationCoordinate2D' to imported protocol 'Equatable'; this will not behave correctly if the owners of 'CoreLocation' introduce this conformance in the future
+2026-09-23T19:35:58.3320410Z 
+2026-09-23T19:35:58.3320500Z extension CLLocationCoordinate2D: Equatable {
+2026-09-23T19:35:58.3320730Z                                       ^
+2026-09-23T19:35:58.3320990Z 
+2026-09-23T19:35:58.3320990Z 
+2026-09-23T19:35:58.3349880Z ##[error]Process completed with exit code 65.
+2026-09-23T19:35:58.3637340Z Post job cleanup.
+2026-09-23T19:35:59.1644520Z [command]/opt/homebrew/bin/git version
+2026-09-23T19:35:59.2131640Z git version 2.55.0
+2026-09-23T19:35:59.2362070Z Copying '/Users/runner/.gitconfig' to '/Users/runner/work/_temp/f6a9bbce-d6ba-4ccd-b29a-0bf9a8adaf8f/.gitconfig'
+2026-09-23T19:35:59.2455070Z Temporarily overriding HOME='/Users/runner/work/_temp/f6a9bbce-d6ba-4ccd-b29a-0bf9a8adaf8f' before making global git config changes
+2026-09-23T19:35:59.2481950Z Adding repository directory to the temporary git global config as a safe directory
+2026-09-23T19:35:59.2528620Z [command]/opt/homebrew/bin/git config --global --add safe.directory /Users/runner/work/sdjf/sdjf
+2026-09-23T19:35:59.2568860Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-09-23T19:35:59.2573640Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-09-23T19:35:59.4364070Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-09-23T19:35:59.4446450Z http.https://github.com/.extraheader
+2026-09-23T19:35:59.4454700Z [command]/opt/homebrew/bin/git config --local --unset-all http.https://github.com/.extraheader
+2026-09-23T19:35:59.4538090Z [command]/opt/homebrew/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-09-23T19:35:59.6373170Z [command]/opt/homebrew/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-09-23T19:35:59.6484230Z [command]/opt/homebrew/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-09-23T19:35:59.7852210Z Cleaning up orphan processes
+2026-09-23T19:36:00.7252520Z Terminate orphan process: pid (11517) (ibtoold)
+2026-09-23T19:36:00.7897300Z Terminate orphan process: pid (10888) (ibtoold)
+2026-09-23T19:36:01.8209040Z ##[warning]Node.js 20 is deprecated. The following actions target Node.js 20 but are being forced to run on Node.js 24: actions/checkout@v4. For more information see: https://github.blog/changelog/2025-09-19-deprecation-of-node-20-on-github-actions-runners/

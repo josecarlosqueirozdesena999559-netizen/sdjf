@@ -4,6 +4,7 @@ import OneSignalFramework
 struct MainTabView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @StateObject private var favoritesViewModel = FavoritesViewModel()
+    @StateObject private var messagesViewModel = MessagesViewModel()
     @State private var selectedTab = 0
     @State private var showPublish = false
     @StateObject private var locationManager = LocationManager.shared
@@ -26,17 +27,16 @@ struct MainTabView: View {
                     }
                     .tag(1)
 
-                // Bug 2 fix: tab vazio
-                // que não compete visualmente com o botão flutuante
                 Color.clear
                     .tabItem { Text("") }
                     .tag(2)
 
-                MessagesListView(selectedTab: $selectedTab)
+                MessagesListView(viewModel: messagesViewModel, selectedTab: $selectedTab)
                     .tabItem {
                         Image(systemName: selectedTab == 3 ? "bubble.left.and.bubble.right.fill" : "bubble.left.and.bubble.right")
                         Text("Mensagens")
                     }
+                    .badge(messagesViewModel.conversations.reduce(0) { $0 + $1.unreadCount })
                     .tag(3)
 
                 UserProfileView()
@@ -54,22 +54,20 @@ struct MainTabView: View {
                 }
             }
 
-            // Não sobrepõe o compositor de mensagens.
             if !hideFloatingButton {
-            Button(action: { showPublish = true }) {
-                ZStack {
-                    Circle()
-                        .fill(Theme.primary)
-                        .frame(width: 56, height: 56)
-                        .shadow(color: Theme.primary.opacity(0.3), radius: 5, x: 0, y: 5)
-                    Image(systemName: "plus")
-                        .typographyScreenTitle()
-                        .foregroundColor(.white)
+                Button(action: { showPublish = true }) {
+                    ZStack {
+                        Circle()
+                            .fill(Theme.primary)
+                            .frame(width: 56, height: 56)
+                            .shadow(color: Theme.primary.opacity(0.3), radius: 5, x: 0, y: 5)
+                        Image(systemName: "plus")
+                            .typographyScreenTitle()
+                            .foregroundColor(.white)
+                    }
                 }
-            }
-            .offset(y: -10)
-            // Impede que tap no botÃƒÆ’Ã‚Â£o ative o tab fantasma
-            .simultaneousGesture(TapGesture().onEnded { })
+                .offset(y: -10)
+                .simultaneousGesture(TapGesture().onEnded { })
             }
         }
         .ignoresSafeArea(.keyboard, edges: .bottom)
@@ -89,6 +87,5 @@ struct MainTabView: View {
                 OneSignal.login(userId.uuidString)
             }
         }
-        
     }
 }

@@ -105,6 +105,7 @@ struct AppNotification: Identifiable, Codable {
     let body: String
     let created_at: Date
     var is_read: Bool
+    let reference_id: UUID?
 }
 
 struct Story: Identifiable, Codable {

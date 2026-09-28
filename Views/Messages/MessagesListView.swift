@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct MessagesListView: View {
-    @StateObject private var viewModel = MessagesViewModel()
+    @ObservedObject var viewModel: MessagesViewModel
     @EnvironmentObject var authViewModel: AuthViewModel
     @Binding var selectedTab: Int
     
