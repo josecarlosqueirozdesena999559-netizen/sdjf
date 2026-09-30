@@ -11,7 +11,6 @@ struct MapScreen: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    BrandHeader()
                     Picker("Cargo", selection: $office) {
                         Text("Presidente").tag(Office.presidente)
                         Text("Governador").tag(Office.governador)

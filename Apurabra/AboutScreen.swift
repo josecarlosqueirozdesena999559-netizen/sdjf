@@ -5,7 +5,6 @@ struct AboutScreen: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
-                    HStack { Spacer(); Image("ApurabraLogo").resizable().scaledToFit().frame(width: 104, height: 104).clipShape(RoundedRectangle(cornerRadius: 24)); Spacer() }
                     Text("Resultados eleitorais mais acessíveis").font(.largeTitle.bold())
                     Text("O Apurabra é um projeto independente e sem fins lucrativos, criado para ajudar as pessoas a acompanhar e compreender os resultados das Eleições 2026.").font(.title3).foregroundStyle(.secondary)
                     AboutCard(number: "01", title: "Nosso objetivo", text: "Apresentar candidaturas e resultados eleitorais de maneira clara, organizada e fácil de consultar.")
