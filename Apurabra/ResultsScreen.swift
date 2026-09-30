@@ -87,11 +87,37 @@ struct CandidateRow: View {
                 if let status = candidate.situacao { Text(status).font(.caption2).foregroundStyle(.secondary) }
             }
             Spacer(minLength: 6)
-            VStack(alignment: .trailing, spacing: 4) {
-                Gauge(value: candidate.percentual, in: 0...100) { EmptyView() }.gaugeStyle(.accessoryCircularCapacity).tint(AppTheme.purple).frame(width: 42, height: 42)
-                Text(candidate.percentual.percentBR).font(.caption.bold()).foregroundStyle(AppTheme.purple)
+            VStack(alignment: .trailing, spacing: 5) {
+                CandidateProgressRing(percent: candidate.percentual)
                 Text("\(candidate.votos.ptBR) votos").font(.caption2).foregroundStyle(.secondary)
             }
         }.padding().background(.background, in: RoundedRectangle(cornerRadius: 16)).padding(.horizontal)
+    }
+}
+private struct CandidateProgressRing: View {
+    let percent: Double
+
+    private var progress: Double {
+        min(max(percent / 100, 0), 1)
+    }
+
+    var body: some View {
+        ZStack {
+            Circle()
+                .stroke(AppTheme.palePurple, lineWidth: 5)
+            Circle()
+                .trim(from: 0, to: progress)
+                .stroke(AppTheme.purple, style: StrokeStyle(lineWidth: 5, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+            Text(percent.formatted(.number.locale(Locale(identifier: "pt_BR")).precision(.fractionLength(1))) + "%")
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .foregroundStyle(AppTheme.purple)
+                .minimumScaleFactor(0.7)
+                .lineLimit(1)
+        }
+        .frame(width: 54, height: 54)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("Percentual de votos")
+        .accessibilityValue(percent.percentBR)
     }
 }
