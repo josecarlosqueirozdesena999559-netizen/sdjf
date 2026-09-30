@@ -1,10 +1,12 @@
 import SwiftUI
 
 struct ResultsScreen: View {
+    private enum FilterSheet: String, Identifiable { case office, state, municipality; var id: String { rawValue } }
     @StateObject private var store = ResultStore()
     @State private var office: Office = .presidente
     @State private var state = ""
     @State private var municipality = ""
+    @State private var activeSheet: FilterSheet?
     private var queryKey: String { "\(office.rawValue)|\(state)|\(municipality)" }
 
     var body: some View {
@@ -26,28 +28,34 @@ struct ResultsScreen: View {
             .navigationBarTitleDisplayMode(.inline)
             .task(id: queryKey) { await reload() }
             .refreshable { await reload() }
+            .sheet(item: $activeSheet) { sheet in selectionSheet(sheet) }
         }
     }
 
     private var filters: some View {
-        VStack(spacing: 12) {
-            Picker("Cargo", selection: $office) { ForEach(Office.allCases) { Text($0.title).tag($0) } }
-                .pickerStyle(.menu).frame(maxWidth: .infinity, alignment: .leading)
-                .onChange(of: office) { _, next in if next == .presidente { state = ""; municipality = "" } }
-            Divider()
-            Picker("Abrangência", selection: $state) {
-                Text(office == .presidente ? "Brasil" : "Selecione um estado").tag("")
-                ForEach(brazilStates, id: \.self) { Text($0).tag($0) }
-            }.pickerStyle(.menu).frame(maxWidth: .infinity, alignment: .leading)
-                .onChange(of: state) { _, next in municipality = ""; Task { await store.loadMunicipalities(state: next) } }
+        VStack(spacing: 10) {
+            SelectionField(title: "Cargo", value: office.title) { activeSheet = .office }
+            SelectionField(title: "Estado", value: state.isEmpty ? "Brasil" : state) { activeSheet = .state }
             if !state.isEmpty {
-                Divider()
-                Picker("Município", selection: $municipality) {
-                    Text("Todo o estado de \(state)").tag("")
-                    ForEach(store.municipalities) { Text($0.nome).tag($0.nome) }
-                }.pickerStyle(.menu).frame(maxWidth: .infinity, alignment: .leading)
+                SelectionField(title: "Município", value: municipality.isEmpty ? "Todo o estado de \(state)" : municipality) { activeSheet = .municipality }
             }
         }.padding().background(.background, in: RoundedRectangle(cornerRadius: 16)).padding(.horizontal)
+    }
+
+    @ViewBuilder private func selectionSheet(_ sheet: FilterSheet) -> some View {
+        switch sheet {
+        case .office:
+            SelectionSheet(title: "Selecione o cargo", options: Office.allCases.map { .init(id: $0.rawValue, title: $0.title) }, selectedID: office.rawValue) { id in
+                if let selected = Office(rawValue: id) { office = selected }
+            }
+        case .state:
+            SelectionSheet(title: "Selecione a abrangência", options: [.init(id: "", title: "Brasil")] + brazilStates.map { .init(id: $0, title: $0) }, selectedID: state) { id in
+                state = id; municipality = ""
+                Task { await store.loadMunicipalities(state: id) }
+            }
+        case .municipality:
+            SelectionSheet(title: "Selecione o município", options: [.init(id: "", title: "Todo o estado de \(state)")] + store.municipalities.map { .init(id: $0.nome, title: $0.nome) }, selectedID: municipality) { municipality = $0 }
+        }
     }
 
     @ViewBuilder private func resultContent(_ result: ElectionResult) -> some View {
@@ -94,30 +102,18 @@ struct CandidateRow: View {
         }.padding().background(.background, in: RoundedRectangle(cornerRadius: 16)).padding(.horizontal)
     }
 }
+
 private struct CandidateProgressRing: View {
     let percent: Double
-
-    private var progress: Double {
-        min(max(percent / 100, 0), 1)
-    }
-
+    private var progress: Double { min(max(percent / 100, 0), 1) }
     var body: some View {
         ZStack {
-            Circle()
-                .stroke(AppTheme.palePurple, lineWidth: 5)
-            Circle()
-                .trim(from: 0, to: progress)
-                .stroke(AppTheme.purple, style: StrokeStyle(lineWidth: 5, lineCap: .round))
-                .rotationEffect(.degrees(-90))
+            Circle().stroke(AppTheme.palePurple, lineWidth: 5)
+            Circle().trim(from: 0, to: progress).stroke(AppTheme.purple, style: StrokeStyle(lineWidth: 5, lineCap: .round)).rotationEffect(.degrees(-90))
             Text(percent.formatted(.number.locale(Locale(identifier: "pt_BR")).precision(.fractionLength(1))) + "%")
-                .font(.system(size: 10, weight: .bold, design: .rounded))
-                .foregroundStyle(AppTheme.purple)
-                .minimumScaleFactor(0.7)
-                .lineLimit(1)
+                .font(.system(size: 10, weight: .bold, design: .rounded)).foregroundStyle(AppTheme.purple).minimumScaleFactor(0.7).lineLimit(1)
         }
         .frame(width: 54, height: 54)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Percentual de votos")
-        .accessibilityValue(percent.percentBR)
+        .accessibilityElement(children: .ignore).accessibilityLabel("Percentual de votos").accessibilityValue(percent.percentBR)
     }
 }

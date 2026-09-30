@@ -1,9 +1,11 @@
 import SwiftUI
 
 struct CandidatesScreen: View {
+    private enum FilterSheet: String, Identifiable { case office, state; var id: String { rawValue } }
     @StateObject private var store = ResultStore()
     @State private var office: Office = .governador
     @State private var state = ""
+    @State private var activeSheet: FilterSheet?
     private var availableOffices: [Office] { [.governador, .senador, .deputadoFederal, .deputadoEstadual] }
     private var queryKey: String { "\(office.rawValue)|\(state)" }
 
@@ -12,11 +14,8 @@ struct CandidatesScreen: View {
             List {
                 Section {
                     BrandHeader()
-                    Picker("Estado", selection: $state) {
-                        Text("Selecione uma UF").tag("")
-                        ForEach(brazilStates, id: \.self) { Text($0).tag($0) }
-                    }
-                    Picker("Cargo", selection: $office) { ForEach(availableOffices) { Text($0.title).tag($0) } }
+                    SelectionField(title: "Estado", value: state.isEmpty ? "Selecione uma UF" : state) { activeSheet = .state }
+                    SelectionField(title: "Cargo", value: office.title) { activeSheet = .office }
                 }
                 if state.isEmpty {
                     ContentUnavailableView("Selecione um estado", systemImage: "map", description: Text("As candidaturas estaduais serão exibidas aqui."))
@@ -43,6 +42,16 @@ struct CandidatesScreen: View {
             .navigationTitle("Candidatos")
             .task(id: queryKey) { await load() }
             .refreshable { await load() }
+            .sheet(item: $activeSheet) { sheet in
+                switch sheet {
+                case .state:
+                    SelectionSheet(title: "Selecione o estado", options: brazilStates.map { .init(id: $0, title: $0) }, selectedID: state) { state = $0 }
+                case .office:
+                    SelectionSheet(title: "Selecione o cargo", options: availableOffices.map { .init(id: $0.rawValue, title: $0.title) }, selectedID: office.rawValue) { id in
+                        if let selected = Office(rawValue: id) { office = selected }
+                    }
+                }
+            }
         }
     }
 
