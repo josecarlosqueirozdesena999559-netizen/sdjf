@@ -1,1 +1,0 @@
-﻿{"query": "insert into storage.buckets (id, name, public) values ('chat-media', 'chat-media', true) on conflict do nothing;"}

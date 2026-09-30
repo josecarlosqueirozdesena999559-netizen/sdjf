@@ -1,6 +1,6 @@
 workflows:
   ios-app-store:
-    name: iOS App Store Deployment
+    name: Apurabra - iOS App Store
     max_build_duration: 120
     instance_type: mac_mini_m2
 
@@ -17,7 +17,7 @@ workflows:
       xcode: latest
 
     scripts:
-      - name: Generate Xcode Project
+      - name: Generate Xcode project
         script: |
           brew install xcodegen
           xcodegen generate
@@ -32,10 +32,7 @@ workflows:
 
       - name: Check signing identities
         script: |
-          echo "=== CERTIFICADOS DISPONÍVEIS ==="
           security find-identity -v -p codesigning
-          echo "=== CERTIFICADOS IPHONE ==="
-          security find-certificate -a -c "Apple Distribution" "$HOME/Library/codemagic-cli-tools/keychains/" || true
 
       - name: Set up code signing
         script: |
