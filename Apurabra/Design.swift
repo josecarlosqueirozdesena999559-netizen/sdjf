@@ -65,12 +65,13 @@ struct SelectionSheet: View {
     let title: String
     let options: [SelectionOption]
     let selectedID: String
+    var showSearch: Bool = true
     let onSelect: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var search = ""
 
     private var filtered: [SelectionOption] {
-        search.isEmpty ? options : options.filter { $0.title.localizedCaseInsensitiveContains(search) }
+        (!showSearch || search.isEmpty) ? options : options.filter { $0.title.localizedCaseInsensitiveContains(search) }
     }
 
     var body: some View {
@@ -89,12 +90,25 @@ struct SelectionSheet: View {
                     }.contentShape(Rectangle()).padding(.vertical, 5)
                 }.buttonStyle(.plain)
             }
-            .searchable(text: $search, prompt: "Buscar")
+            .modify { view in
+                if showSearch {
+                    view.searchable(text: $search, prompt: "Buscar")
+                } else {
+                    view
+                }
+            }
             .navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .topBarTrailing) { Button("Fechar") { dismiss() } } }
         }
         .presentationDetents([.medium, .large])
         .presentationDragIndicator(.visible)
+        .presentationBackground(.white)
+    }
+}
+
+extension View {
+    func modify<T: View>(@ViewBuilder _ modifier: (Self) -> T) -> some View {
+        modifier(self)
     }
 }

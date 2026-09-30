@@ -47,7 +47,7 @@ struct CandidatesScreen: View {
                 case .state:
                     SelectionSheet(title: "Selecione o estado", options: brazilStates.map { .init(id: $0, title: $0) }, selectedID: state) { state = $0 }
                 case .office:
-                    SelectionSheet(title: "Selecione o cargo", options: availableOffices.map { .init(id: $0.rawValue, title: $0.title) }, selectedID: office.rawValue) { id in
+                    SelectionSheet(title: "Selecione o cargo", options: availableOffices.map { .init(id: $0.rawValue, title: $0.title) }, selectedID: office.rawValue, showSearch: false) { id in
                         if let selected = Office(rawValue: id) { office = selected }
                     }
                 }

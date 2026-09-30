@@ -45,7 +45,7 @@ struct ResultsScreen: View {
     @ViewBuilder private func selectionSheet(_ sheet: FilterSheet) -> some View {
         switch sheet {
         case .office:
-            SelectionSheet(title: "Selecione o cargo", options: Office.allCases.map { .init(id: $0.rawValue, title: $0.title) }, selectedID: office.rawValue) { id in
+            SelectionSheet(title: "Selecione o cargo", options: Office.allCases.map { .init(id: $0.rawValue, title: $0.title) }, selectedID: office.rawValue, showSearch: false) { id in
                 if let selected = Office(rawValue: id) { office = selected }
             }
         case .state:
