@@ -35,6 +35,11 @@ struct MapScreen: View {
     }
 
     private func select(_ state: String) async {
+        if state == selectedState {
+            selectedState = ""
+            store.result = nil
+            return
+        }
         selectedState = state
         await store.load(office: office, state: state)
         if let leader = store.result?.orderedCandidates.first, leader.votos > 0 { colors[state] = leader.cor }
