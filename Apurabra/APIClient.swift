@@ -45,7 +45,13 @@ actor APIClient {
 
     func load(office: Office, state: String = "", municipality: String = "") async {
         loading = true; errorMessage = nil
-        do { result = try await APIClient.shared.result(office: office, state: state, municipality: municipality) }
+        do {
+            result = try await APIClient.shared.result(office: office, state: state, municipality: municipality)
+            // Verifica se há novos votos e dispara notificação se necessário
+            if let totalVotes = result?.votosValidos {
+                NotificationManager.shared.checkAndNotifyNewVotes(currentVotes: totalVotes)
+            }
+        }
         catch { errorMessage = "Não foi possível carregar os dados. Verifique sua conexão e tente novamente." }
         loading = false
     }
