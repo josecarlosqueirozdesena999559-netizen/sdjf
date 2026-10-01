@@ -13,7 +13,6 @@ struct ResultsScreen: View {
         NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 14) {
-                    BrandHeader().padding(.horizontal)
                     filters
                     if office != .presidente && state.isEmpty {
                         ContentUnavailableView("Selecione um estado", systemImage: "map", description: Text("Este cargo possui resultados por unidade da Federação."))

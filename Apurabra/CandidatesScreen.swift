@@ -13,7 +13,6 @@ struct CandidatesScreen: View {
         NavigationStack {
             List {
                 Section {
-                    BrandHeader()
                     SelectionField(title: "Estado", value: state.isEmpty ? "Selecione uma UF" : state) { activeSheet = .state }
                     SelectionField(title: "Cargo", value: office.title) { activeSheet = .office }
                 }
