@@ -31,8 +31,8 @@ struct MapScreen: View {
                             Text("Última atualização: \(result.atualizadoEmFormatado)").font(.caption).foregroundStyle(.secondary)
                             if let leader = result.orderedCandidates.first, leader.votos > 0 {
                                 HStack(spacing: 7) {
-                                    Circle().fill(Color(hex: result.isFinalized ? leader.mapDarkColorHex : leader.mapLightColorHex)).frame(width: 10, height: 10)
-                                    Text(result.isFinalized ? "Vencedor no estado: \(leader.nomeUrna)" : "Liderando no estado: \(leader.nomeUrna)")
+                                    Circle().fill(Color(hex: result.leaderCannotBeOvertaken ? leader.mapDarkColorHex : leader.mapLightColorHex)).frame(width: 10, height: 10)
+                                    Text(result.leaderCannotBeOvertaken ? "Vitória assegurada no estado: \(leader.nomeUrna)" : "Liderando no estado: \(leader.nomeUrna)")
                                         .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
                                 }
                             }
@@ -68,7 +68,7 @@ struct MapScreen: View {
         let state = selectedState
         await store.load(office: office, state: state)
         if let result = store.result, let leader = result.orderedCandidates.first, leader.votos > 0 {
-            colorsByOffice[office, default: [:]][state] = result.isFinalized ? leader.mapDarkColorHex : leader.mapLightColorHex
+            colorsByOffice[office, default: [:]][state] = result.leaderCannotBeOvertaken ? leader.mapDarkColorHex : leader.mapLightColorHex
         }
     }
 }

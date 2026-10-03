@@ -48,6 +48,7 @@ struct ElectionResult: Codable {
     let brancos: Int
     let nulos: Int
     let abstencoes: Int
+    let eleitoradoAptoSecoesNaoTotalizadas: Int?
     let candidatos: [Candidate]
     let atualizadoEm: String
     let desatualizado: Bool?
@@ -56,6 +57,15 @@ struct ElectionResult: Codable {
     var progress: Double { secoesTotal == 0 ? 0 : Double(secoesTotalizadas) / Double(secoesTotal) }
     var isFinalized: Bool {
         (secoesTotal > 0 && secoesTotalizadas >= secoesTotal) || mensagem?.localizedCaseInsensitiveContains("totalização final") == true
+    }
+    var leaderCannotBeOvertaken: Bool {
+        if isFinalized { return true }
+        let ranking = orderedCandidates
+        guard ranking.count > 1,
+              ranking[0].votos > 0,
+              let remainingElectors = eleitoradoAptoSecoesNaoTotalizadas,
+              remainingElectors >= 0 else { return false }
+        return ranking[0].votos - ranking[1].votos > remainingElectors
     }
     var orderedCandidates: [Candidate] { candidatos.sorted { $0.votos == $1.votos ? $0.numero < $1.numero : $0.votos > $1.votos } }
     var atualizadoEmFormatado: String {
