@@ -112,3 +112,16 @@ extension View {
         modifier(self)
     }
 }
+
+extension Color {
+    init(hex: String) {
+        let value = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
+        var rgb: UInt64 = 0
+        Scanner(string: value).scanHexInt64(&rgb)
+        self.init(
+            red: Double((rgb >> 16) & 0xFF) / 255,
+            green: Double((rgb >> 8) & 0xFF) / 255,
+            blue: Double(rgb & 0xFF) / 255
+        )
+    }
+}

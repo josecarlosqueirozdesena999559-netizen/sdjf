@@ -5,7 +5,7 @@ struct MapScreen: View {
     @StateObject private var store = ResultStore()
     @State private var office: Office = .presidente
     @State private var selectedState = ""
-    @State private var colors: [String: String] = [:]
+    @State private var colorsByOffice: [Office: [String: String]] = [:]
 
     private var refreshKey: String { "\(office.rawValue)|\(selectedState)" }
 
@@ -17,7 +17,7 @@ struct MapScreen: View {
                         Text("Presidente").tag(Office.presidente)
                         Text("Governador").tag(Office.governador)
                     }.pickerStyle(.segmented)
-                    BrazilMapView(selectedState: $selectedState, colors: colors) { state in Task { await select(state) } }
+                    BrazilMapView(selectedState: $selectedState, colors: colorsByOffice[office] ?? [:]) { state in Task { await select(state) } }
                         .frame(height: 430).background(.background, in: RoundedRectangle(cornerRadius: 18))
                     if selectedState.isEmpty {
                         ContentUnavailableView("Selecione um estado", systemImage: "hand.tap", description: Text("Toque no mapa para consultar a apuração."))
@@ -29,6 +29,13 @@ struct MapScreen: View {
                             ProgressView(value: result.progress).tint(AppTheme.purple)
                             Text("Votos válidos: \(result.votosValidos.ptBR)").font(.caption).foregroundStyle(.secondary)
                             Text("Última atualização: \(result.atualizadoEmFormatado)").font(.caption).foregroundStyle(.secondary)
+                            if let leader = result.orderedCandidates.first, leader.votos > 0 {
+                                HStack(spacing: 7) {
+                                    Circle().fill(Color(hex: result.isFinalized ? leader.mapDarkColorHex : leader.mapLightColorHex)).frame(width: 10, height: 10)
+                                    Text(result.isFinalized ? "Vencedor no estado: \(leader.nomeUrna)" : "Liderando no estado: \(leader.nomeUrna)")
+                                        .font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                                }
+                            }
                         }.padding().background(.background, in: RoundedRectangle(cornerRadius: 16))
                         ForEach(result.orderedCandidates) { CandidateRow(candidate: $0) }
                     }
@@ -60,7 +67,9 @@ struct MapScreen: View {
         guard !selectedState.isEmpty else { return }
         let state = selectedState
         await store.load(office: office, state: state)
-        if let leader = store.result?.orderedCandidates.first, leader.votos > 0 { colors[state] = leader.cor }
+        if let result = store.result, let leader = result.orderedCandidates.first, leader.votos > 0 {
+            colorsByOffice[office, default: [:]][state] = result.isFinalized ? leader.mapDarkColorHex : leader.mapLightColorHex
+        }
     }
 }
 struct BrazilMapView: UIViewRepresentable {

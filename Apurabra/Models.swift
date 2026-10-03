@@ -32,6 +32,9 @@ struct Candidate: Codable, Identifiable {
     let votos: Int
     let percentual: Double
     let cor: String
+
+    var mapLightColorHex: String { CandidateMapPalette.colors(for: self).light }
+    var mapDarkColorHex: String { CandidateMapPalette.colors(for: self).dark }
 }
 
 struct ElectionResult: Codable {
@@ -51,6 +54,9 @@ struct ElectionResult: Codable {
     let mensagem: String?
 
     var progress: Double { secoesTotal == 0 ? 0 : Double(secoesTotalizadas) / Double(secoesTotal) }
+    var isFinalized: Bool {
+        (secoesTotal > 0 && secoesTotalizadas >= secoesTotal) || mensagem?.localizedCaseInsensitiveContains("totalização final") == true
+    }
     var orderedCandidates: [Candidate] { candidatos.sorted { $0.votos == $1.votos ? $0.numero < $1.numero : $0.votos > $1.votos } }
     var atualizadoEmFormatado: String {
         let parser = ISO8601DateFormatter()
@@ -70,3 +76,36 @@ struct Municipality: Codable, Identifiable, Hashable {
 }
 
 let brazilStates = ["AC","AL","AP","AM","BA","CE","DF","ES","GO","MA","MT","MS","MG","PA","PB","PR","PE","PI","RJ","RN","RS","RO","RR","SC","SP","SE","TO"]
+private enum CandidateMapPalette {
+    private static let byParty: [String: (light: String, dark: String)] = [
+        "PT": ("#FFCDD2", "#C62828"),
+        "PL": ("#BBDEFB", "#1565C0"),
+        "PSD": ("#D1C4E9", "#512DA8"),
+        "NOVO": ("#FFE0B2", "#EF6C00"),
+        "MISSÃO": ("#B2DFDB", "#00796B"),
+        "PSTU": ("#FFCDD2", "#8E0000"),
+        "PCB": ("#F8BBD0", "#AD1457"),
+        "DC": ("#D7CCC8", "#5D4037"),
+        "PCO": ("#F8BBD0", "#C2185B"),
+        "DEMOCRATA": ("#B2EBF2", "#00838F"),
+        "AVANTE": ("#DCEDC8", "#558B2F"),
+        "UP": ("#FFF9C4", "#F9A825")
+    ]
+
+    private static let fallback: [(light: String, dark: String)] = [
+        ("#D1C4E9", "#512DA8"), ("#B2DFDB", "#00796B"),
+        ("#FFE0B2", "#E65100"), ("#C5CAE9", "#303F9F"),
+        ("#F8BBD0", "#AD1457"), ("#DCEDC8", "#558B2F"),
+        ("#B3E5FC", "#0277BD"), ("#FFECB3", "#FF8F00")
+    ]
+
+    static func colors(for candidate: Candidate) -> (light: String, dark: String) {
+        let normalizedName = candidate.nomeUrna.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "pt_BR")).uppercased()
+        let party = candidate.partido.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "pt_BR")).uppercased()
+        if candidate.numero == 13 || normalizedName.contains("LULA") { return ("#FFCDD2", "#C62828") }
+        if normalizedName.contains("FLAVIO BOLSONARO") || (candidate.numero == 22 && party == "PL") { return ("#BBDEFB", "#1565C0") }
+        if let known = byParty[candidate.partido.uppercased()] { return known }
+        let hash = party.unicodeScalars.reduce(0) { (($0 &* 31) &+ Int($1.value)) & 0x7fffffff }
+        return fallback[hash % fallback.count]
+    }
+}
