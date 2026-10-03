@@ -25,7 +25,12 @@ struct ResultsScreen: View {
             .background(AppTheme.background)
             .navigationTitle("Resultados")
             .navigationBarTitleDisplayMode(.inline)
-            .task(id: queryKey) { await reload() }
+            .task(id: queryKey) {
+                while !Task.isCancelled {
+                    await reload()
+                    try? await Task.sleep(nanoseconds: 30_000_000_000)
+                }
+            }
             .refreshable { await reload() }
             .sheet(item: $activeSheet) { sheet in selectionSheet(sheet) }
         }
@@ -62,6 +67,8 @@ struct ResultsScreen: View {
             HStack { Text("Apuração geral"); Spacer(); Text((result.progress * 100).percentBR).font(.title3.bold()).foregroundStyle(AppTheme.purple) }
             ProgressView(value: result.progress).tint(AppTheme.purple)
             Text("\(result.secoesTotalizadas.ptBR) de \(result.secoesTotal.ptBR) seções totalizadas").font(.caption).foregroundStyle(.secondary)
+            Text("Última atualização: \(result.atualizadoEmFormatado)")
+                .font(.caption).foregroundStyle(.secondary)
             if let message = result.mensagem { Text(message).font(.footnote).foregroundStyle(.secondary) }
         }.padding().background(.background, in: RoundedRectangle(cornerRadius: 16)).padding(.horizontal)
 

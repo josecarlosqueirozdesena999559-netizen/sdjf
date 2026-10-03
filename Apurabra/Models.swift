@@ -52,6 +52,15 @@ struct ElectionResult: Codable {
 
     var progress: Double { secoesTotal == 0 ? 0 : Double(secoesTotalizadas) / Double(secoesTotal) }
     var orderedCandidates: [Candidate] { candidatos.sorted { $0.votos == $1.votos ? $0.numero < $1.numero : $0.votos > $1.votos } }
+    var atualizadoEmFormatado: String {
+        let parser = ISO8601DateFormatter()
+        guard let date = parser.date(from: atualizadoEm) else { return atualizadoEm }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.dateStyle = .short
+        formatter.timeStyle = .medium
+        return formatter.string(from: date)
+    }
 }
 
 struct Municipality: Codable, Identifiable, Hashable {

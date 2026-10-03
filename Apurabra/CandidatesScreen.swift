@@ -39,7 +39,12 @@ struct CandidatesScreen: View {
                 }
             }
             .navigationTitle("Candidatos")
-            .task(id: queryKey) { await load() }
+            .task(id: queryKey) {
+                while !Task.isCancelled {
+                    await load()
+                    try? await Task.sleep(nanoseconds: 30_000_000_000)
+                }
+            }
             .refreshable { await load() }
             .sheet(item: $activeSheet) { sheet in
                 switch sheet {
