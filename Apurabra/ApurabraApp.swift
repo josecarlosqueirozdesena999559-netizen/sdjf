@@ -1,6 +1,7 @@
 import SwiftUI
 
 @main struct ApurabraApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var isActive = false
     @Environment(\.scenePhase) private var scenePhase
 
@@ -14,10 +15,8 @@ import SwiftUI
                         case .active:
                             // Limpa badge quando o usuário abre o app
                             NotificationManager.shared.clearBadge()
-                            NotificationManager.shared.cancelBackgroundReminder()
                         case .background:
-                            // Agenda lembrete para quando o usuário sair do app
-                            NotificationManager.shared.scheduleBackgroundReminder()
+                            break
                         default:
                             break
                         }
