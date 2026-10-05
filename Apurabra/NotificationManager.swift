@@ -37,6 +37,11 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
 
     func clearBadge() {
         center.setBadgeCount(0)
+        center.removePendingNotificationRequests(withIdentifiers: [
+            "apurabra.background.check",
+            "apurabra.election.started",
+            "apurabra.election.newvotes"
+        ])
     }
 
     nonisolated func userNotificationCenter(
