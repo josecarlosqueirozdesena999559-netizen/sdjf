@@ -119,3 +119,5 @@ private enum CandidateMapPalette {
         return fallback[hash % fallback.count]
     }
 }
+
+struct MapSummary: Codable { let cores: [String: String] }

@@ -21,6 +21,13 @@ actor APIClient {
         return try await request(components.url!)
     }
 
+    func mapColors(office: Office) async throws -> [String: String] {
+        var components = URLComponents(url: baseURL.appending(path: "api/mapa"), resolvingAgainstBaseURL: false)!
+        components.queryItems = [URLQueryItem(name: "cargo", value: office.rawValue)]
+        let summary: MapSummary = try await request(components.url!)
+        return summary.cores
+    }
+
     static func imageURL(_ path: String?) -> URL? {
         guard let path, !path.isEmpty else { return nil }
         if let absolute = URL(string: path), absolute.scheme != nil { return absolute }

@@ -104,6 +104,14 @@ struct MapScreen: View {
                     try? await Task.sleep(nanoseconds: 30_000_000_000)
                 }
             }
+            .task(id: office) {
+                while !Task.isCancelled {
+                    if let summary = try? await APIClient.shared.mapColors(office: office) {
+                        colorsByOffice[office] = summary
+                    }
+                    try? await Task.sleep(nanoseconds: 20_000_000_000)
+                }
+            }
         }
     }
 
