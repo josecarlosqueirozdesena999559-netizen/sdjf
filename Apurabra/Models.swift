@@ -47,14 +47,17 @@ struct Candidate: Codable, Identifiable {
     var mapDarkColorHex: String { CandidateMapPalette.colors(for: self).dark }
     var photoStatus: String? {
         let status = (situacao ?? "").folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "pt_BR")).lowercased()
-        if segundoTurno == true || status.contains("2º turno") || status.contains("2o turno") || status.contains("segundo turno") { return "2º TURNO" }
         if status.contains("nao eleito") { return "NÃO ELEITO" }
         if eleito == true || (status.contains("eleito") && !status.contains("nao eleito")) { return "ELEITO" }
+        if segundoTurno == true || status.contains("2º turno") || status.contains("2o turno") || status.contains("segundo turno") { return "2º TURNO" }
         return nil
     }
+    func photoStatus(for round: ElectionRound) -> String? {
+        guard photoStatus == "2º TURNO", round == .second else { return photoStatus }
+        return "EM DISPUTA"
+    }
     func displayedSituation(for round: ElectionRound) -> String? {
-        guard photoStatus == "2º TURNO" else { return situacao }
-        return round == .second ? "Em disputa no 2º turno" : "Vai ao 2º turno"
+        photoStatus == nil ? situacao : nil
     }
 }
 

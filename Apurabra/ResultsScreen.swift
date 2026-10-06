@@ -101,11 +101,24 @@ struct CandidateRow: View {
     let round: ElectionRound
     var body: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: APIClient.imageURL(candidate.foto)) { phase in
-                if let image = phase.image { image.resizable().scaledToFill() }
-                else { Image(systemName: "person.crop.square").resizable().scaledToFit().padding(10).foregroundStyle(AppTheme.purple) }
+            VStack(spacing: 0) {
+                AsyncImage(url: APIClient.imageURL(candidate.foto)) { phase in
+                    if let image = phase.image { image.resizable().scaledToFit() }
+                    else { Image(systemName: "person.crop.square").resizable().scaledToFit().padding(10).foregroundStyle(AppTheme.purple) }
+                }
+                .frame(width: 58, height: 52)
+                .background(AppTheme.palePurple)
+
+                if let status = candidate.photoStatus(for: round) {
+                    Text(status)
+                        .font(.system(size: 7, weight: .heavy))
+                        .foregroundStyle(.white)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
+                        .frame(width: 58, height: 16)
+                        .background(AppTheme.purple)
+                }
             }
-            .frame(width: 58, height: 70)
             .background(AppTheme.palePurple)
             .clipShape(RoundedRectangle(cornerRadius: 8))
             VStack(alignment: .leading, spacing: 4) {
