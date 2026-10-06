@@ -6,9 +6,10 @@ actor APIClient {
     let baseURL = URL(string: "https://kdfsd.vercel.app")!
     private let decoder = JSONDecoder()
 
-    func result(office: Office, state: String = "", municipality: String = "") async throws -> ElectionResult {
+    func result(office: Office, state: String = "", municipality: String = "", round: ElectionRound = .first) async throws -> ElectionResult {
         var components = URLComponents(url: baseURL.appending(path: "api/resultados"), resolvingAgainstBaseURL: false)!
         var query = [URLQueryItem(name: "cargo", value: office.rawValue)]
+        if round == .second { query.append(URLQueryItem(name: "turno", value: "2")) }
         if !state.isEmpty { query.append(URLQueryItem(name: "uf", value: state)) }
         if !municipality.isEmpty { query.append(URLQueryItem(name: "municipio", value: municipality)) }
         components.queryItems = query
@@ -21,11 +22,13 @@ actor APIClient {
         return try await request(components.url!)
     }
 
-    func mapColors(office: Office) async throws -> [String: String] {
+    func mapSummary(office: Office, round: ElectionRound) async throws -> MapSummary {
         var components = URLComponents(url: baseURL.appending(path: "api/mapa"), resolvingAgainstBaseURL: false)!
-        components.queryItems = [URLQueryItem(name: "cargo", value: office.rawValue)]
-        let summary: MapSummary = try await request(components.url!)
-        return summary.cores
+        components.queryItems = [
+            URLQueryItem(name: "cargo", value: office.rawValue),
+            URLQueryItem(name: "turno", value: String(round.rawValue))
+        ]
+        return try await request(components.url!)
     }
 
     static func imageURL(_ path: String?) -> URL? {
@@ -52,10 +55,10 @@ actor APIClient {
     @Published var loading = false
     @Published var errorMessage: String?
 
-    func load(office: Office, state: String = "", municipality: String = "") async {
+    func load(office: Office, state: String = "", municipality: String = "", round: ElectionRound = .first) async {
         loading = true; errorMessage = nil
         do {
-            result = try await APIClient.shared.result(office: office, state: state, municipality: municipality)
+            result = try await APIClient.shared.result(office: office, state: state, municipality: municipality, round: round)
         }
         catch { errorMessage = "Não foi possível carregar os dados. Verifique sua conexão e tente novamente." }
         loading = false

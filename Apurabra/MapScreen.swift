@@ -3,23 +3,31 @@ import WebKit
 
 struct MapScreen: View {
     @StateObject private var store = ResultStore()
+    @State private var round: ElectionRound = .first
     @State private var office: Office = .presidente
     @State private var selectedState = ""
-    @State private var colorsByOffice: [Office: [String: String]] = [:]
+    @State private var colorsByMode: [String: [String: String]] = [:]
+    @State private var disputedStates: Set<String> = []
 
-    private var refreshKey: String { "\(office.rawValue)|\(selectedState)" }
+    private var modeKey: String { "\(round.rawValue)|\(office.rawValue)" }
+    private var refreshKey: String { "\(modeKey)|\(selectedState)" }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    Picker("Turno", selection: $round) {
+                        ForEach(ElectionRound.allCases) { item in Text(item.title).tag(item) }
+                    }
+                    .pickerStyle(.segmented)
+
                     Picker("Cargo", selection: $office) {
                         Text("Presidente").tag(Office.presidente)
                         Text("Governador").tag(Office.governador)
                     }
                     .pickerStyle(.segmented)
 
-                    BrazilMapView(selectedState: .constant(""), colors: colorsByOffice[office] ?? [:]) { state in
+                    BrazilMapView(selectedState: .constant(""), colors: colorsByMode[modeKey] ?? [:]) { state in
                         Task { await select(state) }
                     }
                     .frame(height: 430)
@@ -61,6 +69,11 @@ struct MapScreen: View {
                                         .font(.caption).foregroundStyle(.secondary)
                                     Text("Última atualização: \(result.atualizadoEmFormatado)")
                                         .font(.caption).foregroundStyle(.secondary)
+                                    if round == .second && office == .governador && !disputedStates.contains(selectedState) {
+                                        Text("Decidido no 1º turno")
+                                            .font(.caption.bold())
+                                            .foregroundStyle(AppTheme.purple)
+                                    }
                                     if let leader = result.orderedCandidates.first, leader.votos > 0 {
                                         HStack(spacing: 7) {
                                             Circle()
@@ -104,19 +117,27 @@ struct MapScreen: View {
                     try? await Task.sleep(nanoseconds: 30_000_000_000)
                 }
             }
-            .task(id: office) {
+            .task(id: modeKey) {
                 while !Task.isCancelled {
-                    if let summary = try? await APIClient.shared.mapColors(office: office) {
-                        colorsByOffice[office] = summary
-                    }
+                    await refreshMapSummary()
                     try? await Task.sleep(nanoseconds: 20_000_000_000)
                 }
             }
+            .onChange(of: round) { _, _ in closeDetails() }
+            .onChange(of: office) { _, _ in closeDetails() }
         }
     }
 
     private func select(_ state: String) async {
+        await refreshMapSummary()
         selectedState = state
+    }
+
+    private func refreshMapSummary() async {
+        if let summary = try? await APIClient.shared.mapSummary(office: office, round: round) {
+            colorsByMode[modeKey] = summary.cores
+            disputedStates = Set(summary.disputas ?? [])
+        }
     }
 
     private func closeDetails() {
@@ -127,9 +148,10 @@ struct MapScreen: View {
     private func refreshSelectedState() async {
         guard !selectedState.isEmpty else { return }
         let state = selectedState
-        await store.load(office: office, state: state)
+        let resultRound: ElectionRound = round == .second && office == .governador && !disputedStates.contains(state) ? .first : round
+        await store.load(office: office, state: state, round: resultRound)
         if let result = store.result, let leader = result.orderedCandidates.first, leader.votos > 0 {
-            colorsByOffice[office, default: [:]][state] = result.leaderCannotBeOvertaken
+            colorsByMode[modeKey, default: [:]][state] = result.leaderCannotBeOvertaken
                 ? leader.mapDarkColorHex
                 : leader.mapLightColorHex
         }

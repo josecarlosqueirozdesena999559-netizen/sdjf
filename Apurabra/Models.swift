@@ -16,6 +16,14 @@ enum Office: String, CaseIterable, Identifiable, Codable {
     }
 }
 
+enum ElectionRound: Int, CaseIterable, Identifiable {
+    case first = 1
+    case second = 2
+    var id: Int { rawValue }
+    var title: String { "\(rawValue)º turno" }
+    var availableOffices: [Office] { self == .second ? [.presidente, .governador] : Office.allCases }
+}
+
 struct ElectionScope: Codable { let tipo: String; let sigla: String?; let nome: String }
 
 struct Candidate: Codable, Identifiable {
@@ -29,16 +37,26 @@ struct Candidate: Codable, Identifiable {
     let foto: String?
     let vice: String?
     let situacao: String?
+    let eleito: Bool?
+    let segundoTurno: Bool?
     let votos: Int
     let percentual: Double
     let cor: String
 
     var mapLightColorHex: String { CandidateMapPalette.colors(for: self).light }
     var mapDarkColorHex: String { CandidateMapPalette.colors(for: self).dark }
+    var photoStatus: String? {
+        let status = (situacao ?? "").folding(options: [.diacriticInsensitive, .caseInsensitive], locale: Locale(identifier: "pt_BR")).lowercased()
+        if segundoTurno == true || status.contains("2º turno") || status.contains("2o turno") || status.contains("segundo turno") { return "2º TURNO" }
+        if status.contains("nao eleito") { return "NÃO ELEITO" }
+        if eleito == true || (status.contains("eleito") && !status.contains("nao eleito")) { return "ELEITO" }
+        return nil
+    }
 }
 
 struct ElectionResult: Codable {
     let eleicao: String
+    let turno: Int?
     let cargo: String
     let cargoNome: String
     let abrangencia: ElectionScope
@@ -120,4 +138,7 @@ private enum CandidateMapPalette {
     }
 }
 
-struct MapSummary: Codable { let cores: [String: String] }
+struct MapSummary: Codable {
+    let cores: [String: String]
+    let disputas: [String]?
+}

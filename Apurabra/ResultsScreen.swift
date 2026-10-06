@@ -3,11 +3,12 @@ import SwiftUI
 struct ResultsScreen: View {
     private enum FilterSheet: String, Identifiable { case office, state, municipality; var id: String { rawValue } }
     @StateObject private var store = ResultStore()
+    @State private var round: ElectionRound = .first
     @State private var office: Office = .presidente
     @State private var state = ""
     @State private var municipality = ""
     @State private var activeSheet: FilterSheet?
-    private var queryKey: String { "\(office.rawValue)|\(state)|\(municipality)" }
+    private var queryKey: String { "\(round.rawValue)|\(office.rawValue)|\(state)|\(municipality)" }
 
     var body: some View {
         NavigationStack {
@@ -33,11 +34,20 @@ struct ResultsScreen: View {
             }
             .refreshable { await reload() }
             .sheet(item: $activeSheet) { sheet in selectionSheet(sheet) }
+            .onChange(of: round) { _, nextRound in
+                if !nextRound.availableOffices.contains(office) { office = .presidente }
+                municipality = ""
+                store.result = nil
+            }
         }
     }
 
     private var filters: some View {
         VStack(spacing: 10) {
+            Picker("Turno", selection: $round) {
+                ForEach(ElectionRound.allCases) { item in Text(item.title).tag(item) }
+            }
+            .pickerStyle(.segmented)
             SelectionField(title: "Cargo", value: office.title) { activeSheet = .office }
             SelectionField(title: "Estado", value: state.isEmpty ? "Brasil" : state) { activeSheet = .state }
             if !state.isEmpty {
@@ -49,7 +59,7 @@ struct ResultsScreen: View {
     @ViewBuilder private func selectionSheet(_ sheet: FilterSheet) -> some View {
         switch sheet {
         case .office:
-            SelectionSheet(title: "Selecione o cargo", options: Office.allCases.map { .init(id: $0.rawValue, title: $0.title) }, selectedID: office.rawValue, showSearch: false) { id in
+            SelectionSheet(title: "Selecione o cargo", options: round.availableOffices.map { .init(id: $0.rawValue, title: $0.title) }, selectedID: office.rawValue, showSearch: false) { id in
                 if let selected = Office(rawValue: id) { office = selected }
             }
         case .state:
@@ -73,7 +83,7 @@ struct ResultsScreen: View {
         }.padding().background(.background, in: RoundedRectangle(cornerRadius: 16)).padding(.horizontal)
 
         HStack {
-            Text("\(result.cargoNome) · \(result.abrangencia.nome)").font(.headline)
+            Text("\(result.cargoNome) · \(result.abrangencia.nome) · \(round.title)").font(.headline)
             Spacer()
             Text("Válidos: \(result.votosValidos.ptBR)").font(.caption).foregroundStyle(.secondary)
         }.padding(.horizontal)
@@ -82,7 +92,7 @@ struct ResultsScreen: View {
 
     private func reload() async {
         guard office == .presidente || !state.isEmpty else { store.result = nil; return }
-        await store.load(office: office, state: state, municipality: municipality)
+        await store.load(office: office, state: state, municipality: municipality, round: round)
     }
 }
 
@@ -90,9 +100,19 @@ struct CandidateRow: View {
     let candidate: Candidate
     var body: some View {
         HStack(spacing: 12) {
-            AsyncImage(url: APIClient.imageURL(candidate.foto)) { phase in
-                if let image = phase.image { image.resizable().scaledToFill() }
-                else { Image(systemName: "person.crop.square").resizable().scaledToFit().padding(10).foregroundStyle(AppTheme.purple) }
+            ZStack(alignment: .bottom) {
+                AsyncImage(url: APIClient.imageURL(candidate.foto)) { phase in
+                    if let image = phase.image { image.resizable().scaledToFill() }
+                    else { Image(systemName: "person.crop.square").resizable().scaledToFit().padding(10).foregroundStyle(AppTheme.purple) }
+                }
+                if let status = candidate.photoStatus {
+                    Text(status)
+                        .font(.system(size: 7, weight: .heavy))
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 4)
+                        .background(AppTheme.purple.opacity(0.96))
+                }
             }.frame(width: 58, height: 70).background(AppTheme.palePurple).clipShape(RoundedRectangle(cornerRadius: 8))
             VStack(alignment: .leading, spacing: 4) {
                 Text(candidate.nomeUrna).font(.subheadline.bold())
