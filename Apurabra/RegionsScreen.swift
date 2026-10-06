@@ -44,11 +44,12 @@ private final class RegionsStore: ObservableObject {
     }
 
     // Agrega candidatos de vários estados somando votos
-    func aggregated(for region: BrazilRegion) -> [AggregatedCandidate] {
+    func aggregated(for region: BrazilRegion, state selectedState: String? = nil) -> [AggregatedCandidate] {
         var totals: [String: AggregatedCandidate] = [:]
         var totalVotes = 0
 
-        for uf in region.states {
+        let states = selectedState.map { [$0] } ?? region.states
+        for uf in states {
             guard let result = regionResults[uf] else { continue }
             totalVotes += result.votosValidos
             for c in result.candidatos {
@@ -101,6 +102,7 @@ struct AggregatedCandidate: Identifiable {
 struct RegionsScreen: View {
     @StateObject private var store = RegionsStore()
     @State private var round: ElectionRound = .first
+    @State private var selectedState: String?
 
     var body: some View {
         NavigationStack {
@@ -117,6 +119,12 @@ struct RegionsScreen: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal)
 
+                    Text("Toque numa UF para filtrar; toque novamente ou em Todos para ver a região completa.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+
                     if store.loading {
                         ProgressView("Carregando regiões…")
                             .frame(maxWidth: .infinity)
@@ -126,11 +134,19 @@ struct RegionsScreen: View {
                                               description: Text(error))
                     } else {
                         ForEach(BrazilRegion.all) { region in
-                            RegionCard(
-                                region: region,
-                                candidates: store.aggregated(for: region),
-                                loadedStates: store.loadedStates(for: region)
-                            )
+                            let filteredState = selectedState.flatMap { region.states.contains($0) ? $0 : nil }
+                            if selectedState == nil || filteredState != nil {
+                                RegionCard(
+                                    region: region,
+                                    candidates: store.aggregated(for: region, state: filteredState),
+                                    loadedStates: filteredState.map { store.regionResults[$0] == nil ? 0 : 1 }
+                                        ?? store.loadedStates(for: region),
+                                    selectedState: filteredState,
+                                    onSelectState: { state in
+                                        selectedState = selectedState == state ? nil : state
+                                    }
+                                )
+                            }
                         }
                     }
                 }
@@ -150,6 +166,8 @@ private struct RegionCard: View {
     let region: BrazilRegion
     let candidates: [AggregatedCandidate]
     let loadedStates: Int
+    let selectedState: String?
+    let onSelectState: (String?) -> Void
 
     private var topCandidates: [AggregatedCandidate] {
         Array(candidates.prefix(4))
@@ -162,27 +180,32 @@ private struct RegionCard: View {
                 VStack(alignment: .leading, spacing: 2) {
                     Text(region.name)
                         .font(.headline.bold())
-                    Text("\(loadedStates)/\(region.states.count) estados carregados")
+                    Text(selectedState.map { "UF \($0) selecionada" } ?? "\(loadedStates)/\(region.states.count) estados carregados")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
+            }
 
-                // Estados em pill
+            // Estados em pill
+            ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 4) {
-                    ForEach(region.states.prefix(4), id: \.self) { uf in
-                        Text(uf)
-                            .font(.system(size: 9, weight: .semibold))
-                            .padding(.horizontal, 5).padding(.vertical, 2)
+                    if selectedState != nil {
+                        Button("Todos") { onSelectState(nil) }
+                            .font(.system(size: 10, weight: .semibold))
+                            .padding(.horizontal, 8).padding(.vertical, 4)
                             .background(AppTheme.palePurple, in: Capsule())
                             .foregroundStyle(AppTheme.purple)
                     }
-                    if region.states.count > 4 {
-                        Text("+\(region.states.count - 4)")
-                            .font(.system(size: 9, weight: .semibold))
-                            .padding(.horizontal, 5).padding(.vertical, 2)
-                            .background(AppTheme.palePurple, in: Capsule())
-                            .foregroundStyle(AppTheme.purple)
+                    ForEach(region.states, id: \.self) { uf in
+                        Button { onSelectState(uf) } label: {
+                            Text(uf)
+                                .font(.system(size: 10, weight: .semibold))
+                                .padding(.horizontal, 7).padding(.vertical, 4)
+                                .background(selectedState == uf ? AppTheme.purple : AppTheme.palePurple, in: Capsule())
+                                .foregroundStyle(selectedState == uf ? Color.white : AppTheme.purple)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
             }
