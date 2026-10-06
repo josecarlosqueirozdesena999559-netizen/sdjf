@@ -3,25 +3,17 @@ import WebKit
 
 struct MapScreen: View {
     @StateObject private var store = ResultStore()
-    @State private var round: ElectionRound = .first
     @State private var office: Office = .presidente
     @State private var selectedState = ""
     @State private var colorsByMode: [String: [String: String]] = [:]
-    @State private var disputedStates: Set<String> = []
-    @State private var legacyDisputesLoaded: Set<String> = []
 
-    private var modeKey: String { "\(round.rawValue)|\(office.rawValue)" }
+    private var modeKey: String { office.rawValue }
     private var refreshKey: String { "\(modeKey)|\(selectedState)" }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    Picker("Turno", selection: $round) {
-                        ForEach(ElectionRound.allCases) { item in Text(item.title).tag(item) }
-                    }
-                    .pickerStyle(.segmented)
-
                     Picker("Cargo", selection: $office) {
                         Text("Presidente").tag(Office.presidente)
                         Text("Governador").tag(Office.governador)
@@ -52,13 +44,7 @@ struct MapScreen: View {
                 NavigationStack {
                     ScrollView {
                         VStack(spacing: 12) {
-                            if round == .second && office == .governador && !disputedStates.contains(selectedState) {
-                                ContentUnavailableView(
-                                    "Sem disputa no 2º turno",
-                                    systemImage: "checkmark.circle",
-                                    description: Text("Este estado não teve eleição para governador no segundo turno.")
-                                )
-                            } else if store.loading || store.errorMessage != nil {
+                            if store.loading || store.errorMessage != nil {
                                 LoadingOrError(loading: store.loading, message: store.errorMessage) {
                                     Task { await refreshSelectedState() }
                                 }
@@ -92,7 +78,7 @@ struct MapScreen: View {
                                 .padding()
                                 .background(.background, in: RoundedRectangle(cornerRadius: 16))
 
-                                ForEach(result.orderedCandidates) { CandidateRow(candidate: $0, round: round) }
+                                ForEach(result.orderedCandidates) { CandidateRow(candidate: $0, round: .first) }
                             }
                         }
                         .padding()
@@ -125,7 +111,6 @@ struct MapScreen: View {
                     try? await Task.sleep(nanoseconds: 20_000_000_000)
                 }
             }
-            .onChange(of: round) { _, _ in closeDetails() }
             .onChange(of: office) { _, _ in closeDetails() }
         }
     }
@@ -136,33 +121,8 @@ struct MapScreen: View {
     }
 
     private func refreshMapSummary() async {
-        if let summary = try? await APIClient.shared.mapSummary(office: office, round: round) {
-            if let disputes = summary.disputas {
-                colorsByMode[modeKey] = summary.cores
-                disputedStates = Set(disputes)
-            } else if round == .second && !legacyDisputesLoaded.contains(modeKey) {
-                legacyDisputesLoaded.insert(modeKey)
-                if office == .presidente {
-                    disputedStates = Set(brazilStates)
-                    colorsByMode[modeKey] = [:]
-                } else {
-                    let results = await APIClient.shared.governorSecondRoundResults()
-                    var colors = summary.cores
-                    var disputes = Set<String>()
-                    for (state, result) in results where !result.candidatos.isEmpty {
-                        disputes.insert(state)
-                        colors.removeValue(forKey: state)
-                        if let leader = result.orderedCandidates.first, leader.votos > 0 {
-                            colors[state] = result.leaderCannotBeOvertaken ? leader.mapDarkColorHex : leader.mapLightColorHex
-                        }
-                    }
-                    disputedStates = disputes
-                    colorsByMode[modeKey] = colors
-                }
-            } else if round == .first {
-                colorsByMode[modeKey] = summary.cores
-                disputedStates = []
-            }
+        if let summary = try? await APIClient.shared.mapSummary(office: office, round: .first) {
+            colorsByMode[modeKey] = summary.cores
         }
     }
 
@@ -174,7 +134,7 @@ struct MapScreen: View {
     private func refreshSelectedState() async {
         guard !selectedState.isEmpty else { return }
         let state = selectedState
-        await store.load(office: office, state: state, round: round)
+        await store.load(office: office, state: state, round: .first)
         if let result = store.result, let leader = result.orderedCandidates.first, leader.votos > 0 {
             colorsByMode[modeKey, default: [:]][state] = result.leaderCannotBeOvertaken
                 ? leader.mapDarkColorHex
