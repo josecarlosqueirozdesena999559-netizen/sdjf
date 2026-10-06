@@ -50,7 +50,7 @@ actor APIClient {
     static func imageURL(_ path: String?) -> URL? {
         guard let path, !path.isEmpty else { return nil }
         if let absolute = URL(string: path), absolute.scheme != nil { return absolute }
-        return URL(string: path, relativeTo: URL(string: "https://kdfsd-nine.vercel.app")!)?.absoluteURL
+        return URL(string: path, relativeTo: URL(string: "https://apurabra.online")!)?.absoluteURL
     }
 
     private func request<T: Decodable>(_ url: URL) async throws -> T {
