@@ -101,20 +101,13 @@ struct CandidateRow: View {
     let round: ElectionRound
     var body: some View {
         HStack(spacing: 12) {
-            ZStack(alignment: .bottom) {
-                AsyncImage(url: APIClient.imageURL(candidate.foto)) { phase in
-                    if let image = phase.image { image.resizable().scaledToFill() }
-                    else { Image(systemName: "person.crop.square").resizable().scaledToFit().padding(10).foregroundStyle(AppTheme.purple) }
-                }
-                if let status = candidate.photoStatus(for: round) {
-                    Text(status)
-                        .font(.system(size: 7, weight: .heavy))
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 4)
-                        .background(AppTheme.purple.opacity(0.96))
-                }
-            }.frame(width: 58, height: 70).background(AppTheme.palePurple).clipShape(RoundedRectangle(cornerRadius: 8))
+            AsyncImage(url: APIClient.imageURL(candidate.foto)) { phase in
+                if let image = phase.image { image.resizable().scaledToFill() }
+                else { Image(systemName: "person.crop.square").resizable().scaledToFit().padding(10).foregroundStyle(AppTheme.purple) }
+            }
+            .frame(width: 58, height: 70)
+            .background(AppTheme.palePurple)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
             VStack(alignment: .leading, spacing: 4) {
                 Text(candidate.nomeUrna).font(.subheadline.bold())
                 if let vice = candidate.vice { Text("Vice: \(vice)").font(.caption).foregroundStyle(.secondary) }

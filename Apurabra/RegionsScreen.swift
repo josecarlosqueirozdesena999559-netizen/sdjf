@@ -5,14 +5,13 @@ private struct BrazilRegion: Identifiable {
     let id: String
     let name: String
     let states: [String]
-    let icon: String
 
     static let all: [BrazilRegion] = [
-        .init(id: "norte",        name: "Norte",        states: ["AC","AP","AM","PA","RO","RR","TO"],                  icon: "tree.fill"),
-        .init(id: "nordeste",     name: "Nordeste",     states: ["AL","BA","CE","MA","PB","PE","PI","RN","SE"],         icon: "sun.max.fill"),
-        .init(id: "centro-oeste", name: "Centro-Oeste", states: ["DF","GO","MT","MS"],                                  icon: "map.fill"),
-        .init(id: "sudeste",      name: "Sudeste",      states: ["ES","MG","RJ","SP"],                                  icon: "building.2.fill"),
-        .init(id: "sul",          name: "Sul",          states: ["PR","RS","SC"],                                       icon: "wind.snow"),
+        .init(id: "norte",        name: "Norte",        states: ["AC","AP","AM","PA","RO","RR","TO"]),
+        .init(id: "nordeste",     name: "Nordeste",     states: ["AL","BA","CE","MA","PB","PE","PI","RN","SE"]),
+        .init(id: "centro-oeste", name: "Centro-Oeste", states: ["DF","GO","MT","MS"]),
+        .init(id: "sudeste",      name: "Sudeste",      states: ["ES","MG","RJ","SP"]),
+        .init(id: "sul",          name: "Sul",          states: ["PR","RS","SC"]),
     ]
 }
 
@@ -101,21 +100,11 @@ struct AggregatedCandidate: Identifiable {
 // MARK: - Tela Principal
 struct RegionsScreen: View {
     @StateObject private var store = RegionsStore()
-    @State private var office: Office = .presidente
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
-                    // Picker de cargo
-                    Picker("Cargo", selection: $office) {
-                        Text("Presidente").tag(Office.presidente)
-                        Text("Governador").tag(Office.governador)
-                        Text("Senador").tag(Office.senador)
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal)
-
                     if store.loading {
                         ProgressView("Carregando regiões…")
                             .frame(maxWidth: .infinity)
@@ -138,8 +127,8 @@ struct RegionsScreen: View {
             .background(AppTheme.background)
             .navigationTitle("Regiões")
             .navigationBarTitleDisplayMode(.inline)
-            .task(id: office.rawValue) { await store.load(office: office) }
-            .refreshable { await store.load(office: office) }
+            .task { await store.load(office: .presidente) }
+            .refreshable { await store.load(office: .presidente) }
         }
     }
 }
@@ -158,12 +147,6 @@ private struct RegionCard: View {
         VStack(alignment: .leading, spacing: 12) {
             // Cabeçalho
             HStack(spacing: 10) {
-                Image(systemName: region.icon)
-                    .font(.title3.bold())
-                    .foregroundStyle(AppTheme.purple)
-                    .frame(width: 36, height: 36)
-                    .background(AppTheme.palePurple, in: Circle())
-
                 VStack(alignment: .leading, spacing: 2) {
                     Text(region.name)
                         .font(.headline.bold())
