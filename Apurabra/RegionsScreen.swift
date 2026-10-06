@@ -22,7 +22,7 @@ private final class RegionsStore: ObservableObject {
     @Published var loading = false
     @Published var errorMessage: String?
 
-    func load(office: Office) async {
+    func load(office: Office, round: ElectionRound) async {
         loading = true
         errorMessage = nil
         regionResults = [:]
@@ -31,7 +31,7 @@ private final class RegionsStore: ObservableObject {
             for region in BrazilRegion.all {
                 for uf in region.states {
                     group.addTask {
-                        let result = try? await APIClient.shared.result(office: office, state: uf)
+                        let result = try? await APIClient.shared.result(office: office, state: uf, round: round)
                         return (uf, result)
                     }
                 }
@@ -100,11 +100,23 @@ struct AggregatedCandidate: Identifiable {
 // MARK: - Tela Principal
 struct RegionsScreen: View {
     @StateObject private var store = RegionsStore()
+    @State private var round: ElectionRound = .first
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
+                    Picker("Turno", selection: $round) {
+                        ForEach(ElectionRound.allCases) { item in Text(item.title).tag(item) }
+                    }
+                    .pickerStyle(.segmented)
+                    .padding(.horizontal)
+
+                    Text("Presidente · \(round.title)")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(.horizontal)
+
                     if store.loading {
                         ProgressView("Carregando regiões…")
                             .frame(maxWidth: .infinity)
@@ -127,8 +139,8 @@ struct RegionsScreen: View {
             .background(AppTheme.background)
             .navigationTitle("Regiões")
             .navigationBarTitleDisplayMode(.inline)
-            .task { await store.load(office: .presidente) }
-            .refreshable { await store.load(office: .presidente) }
+            .task(id: round.rawValue) { await store.load(office: .presidente, round: round) }
+            .refreshable { await store.load(office: .presidente, round: round) }
         }
     }
 }

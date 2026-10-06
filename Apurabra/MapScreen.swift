@@ -12,9 +12,6 @@ struct MapScreen: View {
 
     private var modeKey: String { "\(round.rawValue)|\(office.rawValue)" }
     private var refreshKey: String { "\(modeKey)|\(selectedState)" }
-    private var selectedResultRound: ElectionRound {
-        round == .second && office == .governador && !disputedStates.contains(selectedState) ? .first : round
-    }
 
     var body: some View {
         NavigationStack {
@@ -55,7 +52,13 @@ struct MapScreen: View {
                 NavigationStack {
                     ScrollView {
                         VStack(spacing: 12) {
-                            if store.loading || store.errorMessage != nil {
+                            if round == .second && office == .governador && !disputedStates.contains(selectedState) {
+                                ContentUnavailableView(
+                                    "Sem disputa no 2º turno",
+                                    systemImage: "checkmark.circle",
+                                    description: Text("Este estado não teve eleição para governador no segundo turno.")
+                                )
+                            } else if store.loading || store.errorMessage != nil {
                                 LoadingOrError(loading: store.loading, message: store.errorMessage) {
                                     Task { await refreshSelectedState() }
                                 }
@@ -73,11 +76,6 @@ struct MapScreen: View {
                                         .font(.caption).foregroundStyle(.secondary)
                                     Text("Última atualização: \(result.atualizadoEmFormatado)")
                                         .font(.caption).foregroundStyle(.secondary)
-                                    if round == .second && office == .governador && !disputedStates.contains(selectedState) {
-                                        Text("Decidido no 1º turno")
-                                            .font(.caption.bold())
-                                            .foregroundStyle(AppTheme.purple)
-                                    }
                                     if let leader = result.orderedCandidates.first, leader.votos > 0 {
                                         HStack(spacing: 7) {
                                             Circle()
@@ -94,7 +92,7 @@ struct MapScreen: View {
                                 .padding()
                                 .background(.background, in: RoundedRectangle(cornerRadius: 16))
 
-                                ForEach(result.orderedCandidates) { CandidateRow(candidate: $0, round: selectedResultRound) }
+                                ForEach(result.orderedCandidates) { CandidateRow(candidate: $0, round: round) }
                             }
                         }
                         .padding()
@@ -176,7 +174,7 @@ struct MapScreen: View {
     private func refreshSelectedState() async {
         guard !selectedState.isEmpty else { return }
         let state = selectedState
-        await store.load(office: office, state: state, round: selectedResultRound)
+        await store.load(office: office, state: state, round: round)
         if let result = store.result, let leader = result.orderedCandidates.first, leader.votos > 0 {
             colorsByMode[modeKey, default: [:]][state] = result.leaderCannotBeOvertaken
                 ? leader.mapDarkColorHex
