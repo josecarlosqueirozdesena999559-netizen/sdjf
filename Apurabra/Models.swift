@@ -52,6 +52,13 @@ struct Candidate: Codable, Identifiable {
         if eleito == true || (status.contains("eleito") && !status.contains("nao eleito")) { return "ELEITO" }
         return nil
     }
+    func photoStatus(for round: ElectionRound) -> String? {
+        let status = photoStatus
+        return round == .second && status == "2º TURNO" ? nil : status
+    }
+    func displayedSituation(for round: ElectionRound) -> String? {
+        round == .second && photoStatus == "2º TURNO" ? "Em disputa" : situacao
+    }
 }
 
 struct ElectionResult: Codable {

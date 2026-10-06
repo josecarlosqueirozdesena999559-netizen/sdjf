@@ -87,7 +87,7 @@ struct ResultsScreen: View {
             Spacer()
             Text("Válidos: \(result.votosValidos.ptBR)").font(.caption).foregroundStyle(.secondary)
         }.padding(.horizontal)
-        ForEach(result.orderedCandidates) { CandidateRow(candidate: $0) }
+        ForEach(result.orderedCandidates) { CandidateRow(candidate: $0, round: round) }
     }
 
     private func reload() async {
@@ -98,6 +98,7 @@ struct ResultsScreen: View {
 
 struct CandidateRow: View {
     let candidate: Candidate
+    let round: ElectionRound
     var body: some View {
         HStack(spacing: 12) {
             ZStack(alignment: .bottom) {
@@ -105,7 +106,7 @@ struct CandidateRow: View {
                     if let image = phase.image { image.resizable().scaledToFill() }
                     else { Image(systemName: "person.crop.square").resizable().scaledToFit().padding(10).foregroundStyle(AppTheme.purple) }
                 }
-                if let status = candidate.photoStatus {
+                if let status = candidate.photoStatus(for: round) {
                     Text(status)
                         .font(.system(size: 7, weight: .heavy))
                         .foregroundStyle(.white)
@@ -118,7 +119,7 @@ struct CandidateRow: View {
                 Text(candidate.nomeUrna).font(.subheadline.bold())
                 if let vice = candidate.vice { Text("Vice: \(vice)").font(.caption).foregroundStyle(.secondary) }
                 Text("\(candidate.numero) · \(candidate.partido)").font(.caption).foregroundStyle(AppTheme.purple)
-                if let status = candidate.situacao { Text(status).font(.caption2).foregroundStyle(.secondary) }
+                if let status = candidate.displayedSituation(for: round) { Text(status).font(.caption2).foregroundStyle(.secondary) }
             }
             Spacer(minLength: 6)
             VStack(alignment: .trailing, spacing: 5) {

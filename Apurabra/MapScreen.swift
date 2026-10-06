@@ -12,6 +12,9 @@ struct MapScreen: View {
 
     private var modeKey: String { "\(round.rawValue)|\(office.rawValue)" }
     private var refreshKey: String { "\(modeKey)|\(selectedState)" }
+    private var selectedResultRound: ElectionRound {
+        round == .second && office == .governador && !disputedStates.contains(selectedState) ? .first : round
+    }
 
     var body: some View {
         NavigationStack {
@@ -91,7 +94,7 @@ struct MapScreen: View {
                                 .padding()
                                 .background(.background, in: RoundedRectangle(cornerRadius: 16))
 
-                                ForEach(result.orderedCandidates) { CandidateRow(candidate: $0) }
+                                ForEach(result.orderedCandidates) { CandidateRow(candidate: $0, round: selectedResultRound) }
                             }
                         }
                         .padding()
@@ -173,8 +176,7 @@ struct MapScreen: View {
     private func refreshSelectedState() async {
         guard !selectedState.isEmpty else { return }
         let state = selectedState
-        let resultRound: ElectionRound = round == .second && office == .governador && !disputedStates.contains(state) ? .first : round
-        await store.load(office: office, state: state, round: resultRound)
+        await store.load(office: office, state: state, round: selectedResultRound)
         if let result = store.result, let leader = result.orderedCandidates.first, leader.votos > 0 {
             colorsByMode[modeKey, default: [:]][state] = result.leaderCannotBeOvertaken
                 ? leader.mapDarkColorHex
