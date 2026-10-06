@@ -5,7 +5,7 @@ import UserNotifications
 final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationManager()
     private let center = UNUserNotificationCenter.current()
-    private let registrationURL = URL(string: "https://kdfsd.vercel.app/api/notificacoes/dispositivo")!
+    private let registrationURL = URL(string: "https://apurabra.online/api/notificacoes/dispositivo")!
 
     private override init() {
         super.init()
