@@ -31,6 +31,22 @@ actor APIClient {
         return try await request(components.url!)
     }
 
+    func governorSecondRoundResults() async -> [String: ElectionResult] {
+        await withTaskGroup(of: (String, ElectionResult?).self) { group in
+            for state in brazilStates {
+                group.addTask {
+                    let result = try? await self.result(office: .governador, state: state, round: .second)
+                    return (state, result)
+                }
+            }
+            var results: [String: ElectionResult] = [:]
+            for await (state, result) in group {
+                if let result { results[state] = result }
+            }
+            return results
+        }
+    }
+
     static func imageURL(_ path: String?) -> URL? {
         guard let path, !path.isEmpty else { return nil }
         if let absolute = URL(string: path), absolute.scheme != nil { return absolute }

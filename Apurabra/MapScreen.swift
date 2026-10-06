@@ -8,6 +8,7 @@ struct MapScreen: View {
     @State private var selectedState = ""
     @State private var colorsByMode: [String: [String: String]] = [:]
     @State private var disputedStates: Set<String> = []
+    @State private var legacyDisputesLoaded: Set<String> = []
 
     private var modeKey: String { "\(round.rawValue)|\(office.rawValue)" }
     private var refreshKey: String { "\(modeKey)|\(selectedState)" }
@@ -135,8 +136,32 @@ struct MapScreen: View {
 
     private func refreshMapSummary() async {
         if let summary = try? await APIClient.shared.mapSummary(office: office, round: round) {
-            colorsByMode[modeKey] = summary.cores
-            disputedStates = Set(summary.disputas ?? [])
+            if let disputes = summary.disputas {
+                colorsByMode[modeKey] = summary.cores
+                disputedStates = Set(disputes)
+            } else if round == .second && !legacyDisputesLoaded.contains(modeKey) {
+                legacyDisputesLoaded.insert(modeKey)
+                if office == .presidente {
+                    disputedStates = Set(brazilStates)
+                    colorsByMode[modeKey] = [:]
+                } else {
+                    let results = await APIClient.shared.governorSecondRoundResults()
+                    var colors = summary.cores
+                    var disputes = Set<String>()
+                    for (state, result) in results where !result.candidatos.isEmpty {
+                        disputes.insert(state)
+                        colors.removeValue(forKey: state)
+                        if let leader = result.orderedCandidates.first, leader.votos > 0 {
+                            colors[state] = result.leaderCannotBeOvertaken ? leader.mapDarkColorHex : leader.mapLightColorHex
+                        }
+                    }
+                    disputedStates = disputes
+                    colorsByMode[modeKey] = colors
+                }
+            } else if round == .first {
+                colorsByMode[modeKey] = summary.cores
+                disputedStates = []
+            }
         }
     }
 
