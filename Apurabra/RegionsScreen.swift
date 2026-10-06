@@ -223,7 +223,7 @@ private struct CandidateBarRow: View {
     let candidate: AggregatedCandidate
 
     private var barColor: Color {
-        Color(hex: candidate.mapDarkColor) ?? AppTheme.purple
+        Color(hex: candidate.mapDarkColor)
     }
 
     var body: some View {
@@ -284,19 +284,5 @@ private struct CandidateBarRow: View {
             }
             .frame(height: 8)
         }
-    }
-}
-
-// MARK: - Color from hex
-private extension Color {
-    init?(hex: String) {
-        let clean = hex.trimmingCharacters(in: .init(charactersIn: "#"))
-        guard clean.count == 6,
-              let val = UInt64(clean, radix: 16) else { return nil }
-        self.init(
-            red:   Double((val >> 16) & 0xFF) / 255,
-            green: Double((val >> 8)  & 0xFF) / 255,
-            blue:  Double( val        & 0xFF) / 255
-        )
     }
 }
