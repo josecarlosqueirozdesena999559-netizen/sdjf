@@ -3,7 +3,7 @@ import Combine
 
 actor APIClient {
     static let shared = APIClient()
-    let baseURL = URL(string: "https://apurabra.online")!
+    let baseURL = URL(string: "https://kdfsd-nine.vercel.app")!
     private let decoder = JSONDecoder()
 
     func result(office: Office, state: String = "", municipality: String = "", round: ElectionRound = .first) async throws -> ElectionResult {
@@ -50,7 +50,7 @@ actor APIClient {
     static func imageURL(_ path: String?) -> URL? {
         guard let path, !path.isEmpty else { return nil }
         if let absolute = URL(string: path), absolute.scheme != nil { return absolute }
-        return URL(string: path, relativeTo: URL(string: "https://apurabra.online")!)?.absoluteURL
+        return URL(string: path, relativeTo: URL(string: "https://kdfsd-nine.vercel.app")!)?.absoluteURL
     }
 
     private func request<T: Decodable>(_ url: URL) async throws -> T {
