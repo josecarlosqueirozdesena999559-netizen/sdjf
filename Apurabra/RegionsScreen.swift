@@ -106,19 +106,14 @@ struct AggregatedCandidate: Identifiable {
 // MARK: - Tela Principal
 struct RegionsScreen: View {
     @StateObject private var store = RegionsStore()
-    @State private var round: ElectionRound = .first
+    @AppStorage("selectedElectionRound") private var selectedRoundRawValue = 1
     @State private var selectedState: String?
+    private var round: ElectionRound { ElectionRound(rawValue: selectedRoundRawValue) ?? .first }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 14) {
-                    Picker("Turno", selection: $round) {
-                        ForEach(ElectionRound.allCases) { item in Text(item.title).tag(item) }
-                    }
-                    .pickerStyle(.segmented)
-                    .padding(.horizontal)
-
                     Text("Presidente · \(round.title)")
                         .font(.headline)
                         .frame(maxWidth: .infinity, alignment: .leading)

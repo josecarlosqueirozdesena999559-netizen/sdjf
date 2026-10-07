@@ -3,11 +3,12 @@ import SwiftUI
 struct ResultsScreen: View {
     private enum FilterSheet: String, Identifiable { case office, state, municipality; var id: String { rawValue } }
     @StateObject private var store = ResultStore()
-    @State private var round: ElectionRound = .first
+    @AppStorage("selectedElectionRound") private var selectedRoundRawValue = 1
     @State private var office: Office = .presidente
     @State private var state = ""
     @State private var municipality = ""
     @State private var activeSheet: FilterSheet?
+    private var round: ElectionRound { ElectionRound(rawValue: selectedRoundRawValue) ?? .first }
     private var queryKey: String { "\(round.rawValue)|\(office.rawValue)|\(state)|\(municipality)" }
 
     var body: some View {
@@ -46,8 +47,8 @@ struct ResultsScreen: View {
 
     private var filters: some View {
         VStack(spacing: 10) {
-            Picker("Turno", selection: $round) {
-                ForEach(ElectionRound.allCases) { item in Text(item.title).tag(item) }
+            Picker("Turno", selection: $selectedRoundRawValue) {
+                ForEach(ElectionRound.allCases) { item in Text(item.title).tag(item.rawValue) }
             }
             .pickerStyle(.segmented)
             SelectionField(title: "Cargo", value: office.title) { activeSheet = .office }
