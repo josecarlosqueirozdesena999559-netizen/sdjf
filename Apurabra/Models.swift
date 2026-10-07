@@ -146,4 +146,5 @@ private enum CandidateMapPalette {
 struct MapSummary: Codable {
     let cores: [String: String]
     let disputas: [String]?
+    let resultados: [String: ElectionResult]?
 }

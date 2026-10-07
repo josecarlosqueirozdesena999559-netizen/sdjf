@@ -25,20 +25,12 @@ private final class RegionsStore: ObservableObject {
     func load(office: Office, round: ElectionRound) async {
         loading = true
         errorMessage = nil
-        regionResults = [:]
-
-        await withTaskGroup(of: (String, ElectionResult?).self) { group in
-            for region in BrazilRegion.all {
-                for uf in region.states {
-                    group.addTask {
-                        let result = try? await APIClient.shared.result(office: office, state: uf, round: round)
-                        return (uf, result)
-                    }
-                }
-            }
-            for await (uf, result) in group {
-                if let r = result { regionResults[uf] = r }
-            }
+        do {
+            let summary = try await APIClient.shared.mapSummary(office: office, round: round)
+            regionResults = summary.resultados ?? [:]
+            if regionResults.isEmpty { errorMessage = "Os resultados regionais ainda não estão disponíveis." }
+        } catch {
+            errorMessage = "Não foi possível carregar as regiões. Tente novamente."
         }
         loading = false
     }
