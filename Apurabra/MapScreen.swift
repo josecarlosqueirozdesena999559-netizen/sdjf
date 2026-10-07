@@ -2,10 +2,11 @@ import SwiftUI
 import WebKit
 
 struct MapScreen: View {
+    private static let colorStorageKey = "apurabra.map.colors.v1"
     @StateObject private var store = ResultStore()
     @State private var office: Office = .presidente
     @State private var selectedState = ""
-    @State private var colorsByMode: [String: [String: String]] = [:]
+    @State private var colorsByMode: [String: [String: String]] = Self.loadSavedColors()
 
     private var modeKey: String { office.rawValue }
     private var refreshKey: String { "\(modeKey)|\(selectedState)" }
@@ -123,13 +124,13 @@ struct MapScreen: View {
     private func refreshMapSummary() async {
         let currentOffice = office
         let currentModeKey = modeKey
-        if colorsByMode[currentModeKey] == nil,
+        if colorsByMode[currentModeKey]?.isEmpty != false,
            let cached = await APIClient.shared.cachedMapSummary(office: currentOffice, round: .first) {
-            colorsByMode[currentModeKey] = cached.cores
+            saveColors(cached.cores, for: currentModeKey)
         }
         if let summary = try? await APIClient.shared.mapSummary(office: office, round: .first) {
             guard office == currentOffice else { return }
-            colorsByMode[currentModeKey] = summary.cores
+            saveColors(summary.cores, for: currentModeKey)
         }
     }
 
@@ -143,10 +144,26 @@ struct MapScreen: View {
         let state = selectedState
         await store.load(office: office, state: state, round: .first)
         if let result = store.result, let leader = result.orderedCandidates.first, leader.votos > 0 {
-            colorsByMode[modeKey, default: [:]][state] = result.leaderCannotBeOvertaken
+            var colors = colorsByMode[modeKey] ?? [:]
+            colors[state] = result.leaderCannotBeOvertaken
                 ? leader.mapDarkColorHex
                 : leader.mapLightColorHex
+            saveColors(colors, for: modeKey)
         }
+    }
+
+    private static func loadSavedColors() -> [String: [String: String]] {
+        guard let data = UserDefaults.standard.data(forKey: colorStorageKey) else { return [:] }
+        return (try? JSONDecoder().decode([String: [String: String]].self, from: data)) ?? [:]
+    }
+
+    private func saveColors(_ colors: [String: String], for mode: String) {
+        guard colorsByMode[mode] != colors else { return }
+        var saved = colorsByMode
+        saved[mode] = colors
+        colorsByMode = saved
+        guard let data = try? JSONEncoder().encode(saved) else { return }
+        UserDefaults.standard.set(data, forKey: Self.colorStorageKey)
     }
 }
 
@@ -164,6 +181,7 @@ struct BrazilMapView: UIViewRepresentable {
         web.isOpaque = false
         web.backgroundColor = .clear
         web.scrollView.isScrollEnabled = false
+        web.navigationDelegate = context.coordinator
         if let url = Bundle.main.url(forResource: "mapa-brasil", withExtension: "svg"),
            let svg = try? String(contentsOf: url, encoding: .utf8) {
             web.loadHTMLString(html(svg), baseURL: nil)
@@ -172,9 +190,8 @@ struct BrazilMapView: UIViewRepresentable {
     }
 
     func updateUIView(_ web: WKWebView, context: Context) {
-        let data = (try? JSONSerialization.data(withJSONObject: colors)) ?? Data("{}".utf8)
-        let json = String(data: data, encoding: .utf8) ?? "{}"
-        web.evaluateJavaScript("paint(\(json), '')")
+        context.coordinator.parent = self
+        context.coordinator.paint(in: web)
     }
 
     private func html(_ svg: String) -> String { """
@@ -187,9 +204,20 @@ struct BrazilMapView: UIViewRepresentable {
     </script></body></html>
     """ }
 
-    final class Coordinator: NSObject, WKScriptMessageHandler {
+    final class Coordinator: NSObject, WKScriptMessageHandler, WKNavigationDelegate {
         var parent: BrazilMapView
         init(_ parent: BrazilMapView) { self.parent = parent }
+
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            paint(in: webView)
+        }
+
+        func paint(in webView: WKWebView) {
+            let data = (try? JSONSerialization.data(withJSONObject: parent.colors)) ?? Data("{}".utf8)
+            let json = String(data: data, encoding: .utf8) ?? "{}"
+            webView.evaluateJavaScript("paint(\(json))")
+        }
+
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
             if let state = message.body as? String { parent.onSelect(state) }
         }
