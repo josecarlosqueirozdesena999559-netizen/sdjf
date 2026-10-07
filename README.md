@@ -36,4 +36,4 @@ O aplicativo apresenta os dados disponíveis da fonte TSE via API do Apurabra �
 
 ## Assinatura preservada
 
-O projeto mantém o bundle `com.achou.com`, versão 1.0.12 e build 109. O nome exibido no aparelho é Apurabra.
+O projeto mantém o bundle `com.achou.com`, versão 1.0.12 e build 110. O nome exibido no aparelho é Apurabra.

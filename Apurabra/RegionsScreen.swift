@@ -52,7 +52,7 @@ private final class RegionsStore: ObservableObject {
 
     private func displayableResults(_ results: [String: ElectionResult], round: ElectionRound) -> [String: ElectionResult] {
         results.filter { _, result in
-            (result.turno == nil || result.turno == round.rawValue) && (result.hasReportedResults || !result.candidatos.isEmpty)
+            result.belongs(to: round) && (result.hasReportedResults || !result.candidatos.isEmpty)
         }
     }
 
@@ -86,7 +86,7 @@ private final class RegionsStore: ObservableObject {
         }
 
         return totals.values
-            .sorted { $0.votos > $1.votos }
+            .sorted { $0.votos == $1.votos ? $0.numero < $1.numero : $0.votos > $1.votos }
             .map { var a = $0; a.totalRegionVotes = totalVotes; return a }
     }
 
@@ -94,16 +94,19 @@ private final class RegionsStore: ObservableObject {
         region.states.filter { regionResults[$0] != nil }.count
     }
 
-    func sectionSummary(for region: BrazilRegion, state selectedState: String? = nil) -> String? {
+    func sectionSummary(for region: BrazilRegion, round: ElectionRound, state selectedState: String? = nil) -> String? {
         let states = selectedState.map { [$0] } ?? region.states
         let results = states.compactMap { regionResults[$0] }
         guard !results.isEmpty else { return nil }
 
         let totalized = results.reduce(0) { $0 + $1.secoesTotalizadas }
         let total = results.reduce(0) { $0 + $1.secoesTotal }
+        let countText = round == .second && !results.contains(where: \.hasReportedResults)
+            ? "\(totalized.ptBR) seções totalizadas"
+            : "\(totalized.ptBR) de \(total.ptBR) seções totalizadas"
         let updatedAt = results.max { $0.atualizadoEm < $1.atualizadoEm }?.atualizadoEmFormatado
         let updateText = updatedAt.map { " · Atualizado: \($0)" } ?? ""
-        return "TSE · \(totalized.ptBR) de \(total.ptBR) seções totalizadas\(updateText)"
+        return "TSE · \(countText)\(updateText)"
     }
 }
 
@@ -163,7 +166,7 @@ struct RegionsScreen: View {
                             RegionCard(
                                 region: region,
                                 candidates: store.aggregated(for: region, round: round, state: filteredState),
-                                sectionSummary: store.sectionSummary(for: region, state: filteredState),
+                                sectionSummary: store.sectionSummary(for: region, round: round, state: filteredState),
                                 loadedStates: filteredState.map { store.regionResults[$0] == nil ? 0 : 1 }
                                     ?? store.loadedStates(for: region),
                                 selectedState: filteredState,

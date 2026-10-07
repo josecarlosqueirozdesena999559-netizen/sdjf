@@ -23,7 +23,7 @@ struct ResultsScreen: View {
                     } else if let error = store.errorMessage {
                         LoadingOrError(loading: false, message: error) { Task { await reload() } }
                     }
-                    if let result = store.result { resultContent(result) }
+                    if let result = store.result, result.belongs(to: round) { resultContent(result) }
                 }.padding(.vertical)
             }
             .background(AppTheme.background)
@@ -112,8 +112,13 @@ struct TSEApurationSummary: View {
                     .foregroundStyle(AppTheme.purple)
             }
             ProgressView(value: result.progress).tint(AppTheme.purple)
-            Text("\(result.secoesTotalizadas.ptBR) de \(result.secoesTotal.ptBR) seções totalizadas")
-                .font(.caption).foregroundStyle(.secondary)
+            if result.turno == 2 && !result.hasReportedResults {
+                Text("\(result.secoesTotalizadas.ptBR) seções totalizadas")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                Text("\(result.secoesTotalizadas.ptBR) de \(result.secoesTotal.ptBR) seções totalizadas")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
             if result.hasReportedResults {
                 Text("Votos válidos: \(result.votosValidos.ptBR)")
                     .font(.caption).foregroundStyle(.secondary)

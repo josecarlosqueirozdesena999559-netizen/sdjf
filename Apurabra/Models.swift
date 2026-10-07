@@ -79,6 +79,9 @@ struct ElectionResult: Codable {
 
     var progress: Double { secoesTotal == 0 ? 0 : Double(secoesTotalizadas) / Double(secoesTotal) }
     var hasReportedResults: Bool { secoesTotalizadas > 0 && votosValidos > 0 }
+    func belongs(to round: ElectionRound) -> Bool {
+        round == .second ? turno == 2 : (turno == nil || turno == 1)
+    }
     var isFinalized: Bool {
         (secoesTotal > 0 && secoesTotalizadas >= secoesTotal) || mensagem?.localizedCaseInsensitiveContains("totalização final") == true
     }

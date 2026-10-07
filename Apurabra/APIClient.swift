@@ -152,13 +152,20 @@ actor APIClient {
             loading = true
             let cached = await APIClient.shared.cachedResult(office: office, state: state, municipality: municipality, round: round)
             guard activeQueryKey == queryKey else { return }
-            result = cached
+            result = cached.flatMap { $0.belongs(to: round) ? $0 : nil }
         }
         loading = result == nil
 
         do {
             let latest = try await APIClient.shared.result(office: office, state: state, municipality: municipality, round: round)
             guard activeQueryKey == queryKey else { return }
+            guard latest.belongs(to: round) else {
+                if result == nil {
+                    errorMessage = "A fonte não retornou dados separados para o \(round.title); dados de outro turno foram descartados."
+                }
+                loading = false
+                return
+            }
             result = latest
         } catch {
             guard activeQueryKey == queryKey else { return }

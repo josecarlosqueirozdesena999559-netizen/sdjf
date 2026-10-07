@@ -13,6 +13,10 @@ struct MapScreen: View {
     private var round: ElectionRound { ElectionRound(rawValue: selectedRoundRawValue) ?? .first }
     private var modeKey: String { "\(office.rawValue)|\(round.rawValue)" }
     private var refreshKey: String { "\(modeKey)|\(selectedState)" }
+    private var visibleColors: [String: String] {
+        guard hasResultsByMode[modeKey] == true else { return [:] }
+        return colorsByMode[modeKey] ?? [:]
+    }
 
     var body: some View {
         NavigationStack {
@@ -28,7 +32,7 @@ struct MapScreen: View {
                     }
                     .pickerStyle(.segmented)
 
-                    BrazilMapView(selectedState: .constant(""), colors: colorsByMode[modeKey] ?? [:]) { state in
+                    BrazilMapView(selectedState: .constant(""), colors: visibleColors) { state in
                         select(state)
                     }
                     .frame(height: 430)
@@ -65,7 +69,7 @@ struct MapScreen: View {
                                 LoadingOrError(loading: store.loading, message: store.errorMessage) {
                                     Task { await refreshSelectedState() }
                                 }
-                            } else if let result = store.result {
+                            } else if let result = store.result, result.belongs(to: round) {
                                 TSEApurationSummary(
                                     result: result,
                                     title: "Dados do TSE · \(office.title) · \(round.title)"
@@ -124,16 +128,21 @@ struct MapScreen: View {
         let currentOffice = office
         let currentRound = round
         let currentModeKey = modeKey
-        if colorsByMode[currentModeKey]?.isEmpty != false,
-           let cached = await APIClient.shared.cachedMapSummary(office: currentOffice, round: currentRound) {
-            hasResultsByMode[currentModeKey] = cached.resultados?.values.contains(where: \.hasReportedResults) ?? !cached.cores.isEmpty
-            saveColors(cached.cores, for: currentModeKey)
+        if let cached = await APIClient.shared.cachedMapSummary(office: currentOffice, round: currentRound) {
+            applyMapSummary(cached, modeKey: currentModeKey, round: currentRound)
         }
         if let summary = try? await APIClient.shared.mapSummary(office: currentOffice, round: currentRound) {
             guard office == currentOffice, round == currentRound else { return }
-            hasResultsByMode[currentModeKey] = summary.resultados?.values.contains(where: \.hasReportedResults) ?? !summary.cores.isEmpty
-            saveColors(summary.cores, for: currentModeKey)
+            applyMapSummary(summary, modeKey: currentModeKey, round: currentRound)
         }
+    }
+
+    private func applyMapSummary(_ summary: MapSummary, modeKey: String, round: ElectionRound) {
+        let results = summary.resultados.map { Array($0.values) } ?? []
+        let belongsToRound = !results.isEmpty && results.allSatisfy { $0.belongs(to: round) }
+        let hasReportedResults = belongsToRound && results.contains(where: \.hasReportedResults)
+        hasResultsByMode[modeKey] = hasReportedResults
+        saveColors(hasReportedResults ? summary.cores : [:], for: modeKey)
     }
 
     private func closeDetails() {
@@ -148,7 +157,8 @@ struct MapScreen: View {
         let currentRound = round
         await store.load(office: currentOffice, state: state, round: currentRound)
         guard selectedState == state, office == currentOffice, round == currentRound else { return }
-        if let result = store.result, let leader = result.orderedCandidates.first, leader.votos > 0 {
+        if let result = store.result, result.hasReportedResults,
+           let leader = result.orderedCandidates.first, leader.votos > 0 {
             var colors = colorsByMode[modeKey] ?? [:]
             colors[state] = result.leaderCannotBeOvertaken
                 ? leader.mapDarkColorHex
