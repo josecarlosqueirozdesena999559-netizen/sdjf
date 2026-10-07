@@ -76,29 +76,16 @@ struct ResultsScreen: View {
     }
 
     @ViewBuilder private func resultContent(_ result: ElectionResult) -> some View {
-        if result.hasReportedResults {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack { Text("Apuração geral"); Spacer(); Text((result.progress * 100).percentBR).font(.title3.bold()).foregroundStyle(AppTheme.purple) }
-                ProgressView(value: result.progress).tint(AppTheme.purple)
-                Text("\(result.secoesTotalizadas.ptBR) de \(result.secoesTotal.ptBR) seções totalizadas").font(.caption).foregroundStyle(.secondary)
-                Text("Última atualização: \(result.atualizadoEmFormatado)")
-                    .font(.caption).foregroundStyle(.secondary)
-                if let message = result.mensagem { Text(message).font(.footnote).foregroundStyle(.secondary) }
-            }.padding().background(.background, in: RoundedRectangle(cornerRadius: 16)).padding(.horizontal)
+        TSEApurationSummary(result: result, title: "Dados do TSE")
 
-            HStack {
-                Text("\(result.cargoNome) · \(result.abrangencia.nome) · \(round.title)").font(.headline)
-                Spacer()
+        HStack {
+            Text("\(result.cargoNome) · \(result.abrangencia.nome) · \(round.title)").font(.headline)
+            Spacer()
+            if result.hasReportedResults {
                 Text("Válidos: \(result.votosValidos.ptBR)").font(.caption).foregroundStyle(.secondary)
-            }.padding(.horizontal)
-        } else {
-            ContentUnavailableView(
-                "Candidatos do \(round.title)",
-                systemImage: "person.2",
-                description: Text("Os candidatos e as fotos já estão disponíveis. A apuração ainda não começou; votos e percentuais aparecerão quando houver dados.")
-            )
-            .padding(.horizontal)
+            }
         }
+        .padding(.horizontal)
 
         ForEach(result.orderedCandidates) {
             CandidateRow(candidate: $0, round: round, showsVoteStatistics: result.hasReportedResults)
@@ -108,6 +95,38 @@ struct ResultsScreen: View {
     private func reload() async {
         guard office == .presidente || !state.isEmpty else { store.result = nil; return }
         await store.load(office: office, state: state, municipality: municipality, round: round)
+    }
+}
+
+struct TSEApurationSummary: View {
+    let result: ElectionResult
+    let title: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text(title).font(.headline)
+                Spacer()
+                Text((result.progress * 100).percentBR)
+                    .font(.title3.bold())
+                    .foregroundStyle(AppTheme.purple)
+            }
+            ProgressView(value: result.progress).tint(AppTheme.purple)
+            Text("\(result.secoesTotalizadas.ptBR) de \(result.secoesTotal.ptBR) seções totalizadas")
+                .font(.caption).foregroundStyle(.secondary)
+            if result.hasReportedResults {
+                Text("Votos válidos: \(result.votosValidos.ptBR)")
+                    .font(.caption).foregroundStyle(.secondary)
+            }
+            Text("Última atualização: \(result.atualizadoEmFormatado)")
+                .font(.caption).foregroundStyle(.secondary)
+            if let message = result.mensagem {
+                Text(message).font(.footnote).foregroundStyle(.secondary)
+            }
+        }
+        .padding()
+        .background(.background, in: RoundedRectangle(cornerRadius: 16))
+        .padding(.horizontal)
     }
 }
 

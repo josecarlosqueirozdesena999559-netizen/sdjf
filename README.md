@@ -32,8 +32,8 @@ O identificador padrão é `br.com.apurabra.app`. O arquivo `project.yml` está 
 - mesma logo e App Icon do Apurabra
 - nenhuma autenticação e nenhum dado pessoal coletado
 
-A produção continua em modo “Aguardando apuração” até o manifesto oficial do TSE de 2026 ser disponibilizado e o coletor do servidor ser ativado.
+O aplicativo apresenta os dados disponíveis da fonte TSE via API do Apurabra — incluindo seções totalizadas, horário da atualização, candidatos e fotos. Os votos e percentuais só são exibidos quando há dados de apuração.
 
 ## Assinatura preservada
 
-O projeto mantém o bundle `com.achou.com`, versão 1.0.12 e build 108. O nome exibido no aparelho é Apurabra.
+O projeto mantém o bundle `com.achou.com`, versão 1.0.12 e build 109. O nome exibido no aparelho é Apurabra.

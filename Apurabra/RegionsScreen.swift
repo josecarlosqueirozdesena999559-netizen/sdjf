@@ -41,9 +41,7 @@ private final class RegionsStore: ObservableObject {
             guard activeQueryKey == queryKey else { return }
             regionResults = displayableResults(summary.resultados ?? [:], round: round)
             if regionResults.isEmpty {
-                errorMessage = "Ainda não há dados dos candidatos para o \(round.title)."
-            } else if !regionResults.values.contains(where: \.hasReportedResults) {
-                errorMessage = "Candidatos e fotos do \(round.title) disponíveis. A apuração ainda não começou; votos e percentuais serão exibidos quando houver dados."
+                errorMessage = "Não há dados do TSE disponíveis para as regiões neste momento."
             }
         } catch {
             guard activeQueryKey == queryKey else { return }
@@ -94,6 +92,18 @@ private final class RegionsStore: ObservableObject {
 
     func loadedStates(for region: BrazilRegion) -> Int {
         region.states.filter { regionResults[$0] != nil }.count
+    }
+
+    func sectionSummary(for region: BrazilRegion, state selectedState: String? = nil) -> String? {
+        let states = selectedState.map { [$0] } ?? region.states
+        let results = states.compactMap { regionResults[$0] }
+        guard !results.isEmpty else { return nil }
+
+        let totalized = results.reduce(0) { $0 + $1.secoesTotalizadas }
+        let total = results.reduce(0) { $0 + $1.secoesTotal }
+        let updatedAt = results.max { $0.atualizadoEm < $1.atualizadoEm }?.atualizadoEmFormatado
+        let updateText = updatedAt.map { " · Atualizado: \($0)" } ?? ""
+        return "TSE · \(totalized.ptBR) de \(total.ptBR) seções totalizadas\(updateText)"
     }
 }
 
@@ -153,6 +163,7 @@ struct RegionsScreen: View {
                             RegionCard(
                                 region: region,
                                 candidates: store.aggregated(for: region, round: round, state: filteredState),
+                                sectionSummary: store.sectionSummary(for: region, state: filteredState),
                                 loadedStates: filteredState.map { store.regionResults[$0] == nil ? 0 : 1 }
                                     ?? store.loadedStates(for: region),
                                 selectedState: filteredState,
@@ -179,6 +190,7 @@ struct RegionsScreen: View {
 private struct RegionCard: View {
     let region: BrazilRegion
     let candidates: [AggregatedCandidate]
+    let sectionSummary: String?
     let loadedStates: Int
     let selectedState: String?
     let loading: Bool
@@ -200,6 +212,12 @@ private struct RegionCard: View {
                         .foregroundStyle(.secondary)
                 }
                 Spacer()
+            }
+
+            if let sectionSummary {
+                Label(sectionSummary, systemImage: "checkmark.seal.fill")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
             }
 
             // Estados em pill
@@ -229,12 +247,12 @@ private struct RegionCard: View {
 
             if candidates.isEmpty {
                 if loadedStates == 0 {
-                    Text(loading ? "Carregando resultados desta região…" : "Ainda não há resultados apurados para esta região.")
+                    Text(loading ? "Carregando dados do TSE desta região…" : "Dados do TSE indisponíveis para esta região.")
                         .font(.caption).foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding()
                 } else {
-                    Text("Ainda não há votos apurados nesta região.")
+                    Text("Não há dados de candidatos nesta região.")
                         .font(.caption).foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding()

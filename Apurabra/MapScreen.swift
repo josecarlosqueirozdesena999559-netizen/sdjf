@@ -35,7 +35,7 @@ struct MapScreen: View {
                     .background(.background, in: RoundedRectangle(cornerRadius: 18))
 
                     if hasResultsByMode[modeKey] == false {
-                        Label("Candidatos do \(round.title) disponíveis; as cores do mapa aparecem quando houver votos apurados.", systemImage: "info.circle.fill")
+                        Label("Toque numa UF para consultar os dados do TSE, as seções totalizadas e os candidatos.", systemImage: "info.circle.fill")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -66,57 +66,18 @@ struct MapScreen: View {
                                     Task { await refreshSelectedState() }
                                 }
                             } else if let result = store.result {
-                                if result.hasReportedResults {
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        HStack {
-                                            Text("\(office.title) · \(selectedState)").font(.headline)
-                                            Spacer()
-                                            Text((result.progress * 100).percentBR)
-                                                .font(.headline)
-                                                .foregroundStyle(AppTheme.purple)
-                                        }
-                                        ProgressView(value: result.progress).tint(AppTheme.purple)
-                                        Text("Votos válidos: \(result.votosValidos.ptBR)")
-                                            .font(.caption).foregroundStyle(.secondary)
-                                        Text("Última atualização: \(result.atualizadoEmFormatado)")
-                                            .font(.caption).foregroundStyle(.secondary)
-                                        if let leader = result.orderedCandidates.first, leader.votos > 0 {
-                                            HStack(spacing: 7) {
-                                                Circle()
-                                                    .fill(Color(hex: result.leaderCannotBeOvertaken ? leader.mapDarkColorHex : leader.mapLightColorHex))
-                                                    .frame(width: 10, height: 10)
-                                                Text(result.leaderCannotBeOvertaken
-                                                     ? "Vitória assegurada no estado: \(leader.nomeUrna)"
-                                                     : "Liderando no estado: \(leader.nomeUrna)")
-                                                    .font(.caption.weight(.semibold))
-                                                    .foregroundStyle(.secondary)
-                                            }
-                                        }
-                                    }
-                                    .padding()
-                                    .background(.background, in: RoundedRectangle(cornerRadius: 16))
-                                } else if !result.orderedCandidates.isEmpty {
-                                    ContentUnavailableView(
-                                        "Candidatos do \(round.title)",
-                                        systemImage: "person.2",
-                                        description: Text("Candidatos e fotos disponíveis; a apuração ainda não começou.")
-                                    )
-                                } else {
-                                    ContentUnavailableView(
-                                        "Aguardando apuração",
-                                        systemImage: "clock",
-                                        description: Text("Ainda não há votos apurados para o \(round.title) em \(selectedState).")
-                                    )
-                                }
-
+                                TSEApurationSummary(
+                                    result: result,
+                                    title: "Dados do TSE · \(office.title) · \(round.title)"
+                                )
                                 ForEach(result.orderedCandidates) {
                                     CandidateRow(candidate: $0, round: round, showsVoteStatistics: result.hasReportedResults)
                                 }
                             } else {
                                 ContentUnavailableView(
-                                    "Aguardando apuração",
-                                    systemImage: "clock",
-                                    description: Text("Ainda não há votos apurados para o \(round.title) em \(selectedState).")
+                                    "Dados do TSE indisponíveis",
+                                    systemImage: "info.circle",
+                                    description: Text("Não foi possível obter os dados desta UF agora.")
                                 )
                             }
                         }
