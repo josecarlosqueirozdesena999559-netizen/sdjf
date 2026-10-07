@@ -3,7 +3,7 @@ import Combine
 
 actor APIClient {
     static let shared = APIClient()
-    let baseURL = URL(string: "https://kdfsd-nine.vercel.app")!
+    let baseURL = URL(string: "https://apurabra.online")!
     private let decoder = JSONDecoder()
 
     func result(office: Office, state: String = "", municipality: String = "", round: ElectionRound = .first) async throws -> ElectionResult {
