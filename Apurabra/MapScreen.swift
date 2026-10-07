@@ -18,10 +18,9 @@ struct MapScreen: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
-                    Picker("Turno", selection: $selectedRoundRawValue) {
-                        ForEach(ElectionRound.allCases) { item in Text(item.title).tag(item.rawValue) }
-                    }
-                    .pickerStyle(.segmented)
+                    Text("\(office.title) · \(round.title)")
+                        .font(.headline)
+                        .frame(maxWidth: .infinity, alignment: .leading)
 
                     Picker("Cargo", selection: $office) {
                         Text("Presidente").tag(Office.presidente)
@@ -36,7 +35,7 @@ struct MapScreen: View {
                     .background(.background, in: RoundedRectangle(cornerRadius: 18))
 
                     if hasResultsByMode[modeKey] == false {
-                        Label("Ainda não há resultados apurados para o \(round.title). O mapa não exibirá votos ou cores simulados.", systemImage: "info.circle.fill")
+                        Label("Candidatos do \(round.title) disponíveis; as cores do mapa aparecem quando houver votos apurados.", systemImage: "info.circle.fill")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -66,37 +65,53 @@ struct MapScreen: View {
                                 LoadingOrError(loading: store.loading, message: store.errorMessage) {
                                     Task { await refreshSelectedState() }
                                 }
-                            } else if let result = store.result, result.hasReportedResults {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack {
-                                        Text("\(office.title) · \(selectedState)").font(.headline)
-                                        Spacer()
-                                        Text((result.progress * 100).percentBR)
-                                            .font(.headline)
-                                            .foregroundStyle(AppTheme.purple)
-                                    }
-                                    ProgressView(value: result.progress).tint(AppTheme.purple)
-                                    Text("Votos válidos: \(result.votosValidos.ptBR)")
-                                        .font(.caption).foregroundStyle(.secondary)
-                                    Text("Última atualização: \(result.atualizadoEmFormatado)")
-                                        .font(.caption).foregroundStyle(.secondary)
-                                    if let leader = result.orderedCandidates.first, leader.votos > 0 {
-                                        HStack(spacing: 7) {
-                                            Circle()
-                                                .fill(Color(hex: result.leaderCannotBeOvertaken ? leader.mapDarkColorHex : leader.mapLightColorHex))
-                                                .frame(width: 10, height: 10)
-                                            Text(result.leaderCannotBeOvertaken
-                                                 ? "Vitória assegurada no estado: \(leader.nomeUrna)"
-                                                 : "Liderando no estado: \(leader.nomeUrna)")
-                                                .font(.caption.weight(.semibold))
-                                                .foregroundStyle(.secondary)
+                            } else if let result = store.result {
+                                if result.hasReportedResults {
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        HStack {
+                                            Text("\(office.title) · \(selectedState)").font(.headline)
+                                            Spacer()
+                                            Text((result.progress * 100).percentBR)
+                                                .font(.headline)
+                                                .foregroundStyle(AppTheme.purple)
+                                        }
+                                        ProgressView(value: result.progress).tint(AppTheme.purple)
+                                        Text("Votos válidos: \(result.votosValidos.ptBR)")
+                                            .font(.caption).foregroundStyle(.secondary)
+                                        Text("Última atualização: \(result.atualizadoEmFormatado)")
+                                            .font(.caption).foregroundStyle(.secondary)
+                                        if let leader = result.orderedCandidates.first, leader.votos > 0 {
+                                            HStack(spacing: 7) {
+                                                Circle()
+                                                    .fill(Color(hex: result.leaderCannotBeOvertaken ? leader.mapDarkColorHex : leader.mapLightColorHex))
+                                                    .frame(width: 10, height: 10)
+                                                Text(result.leaderCannotBeOvertaken
+                                                     ? "Vitória assegurada no estado: \(leader.nomeUrna)"
+                                                     : "Liderando no estado: \(leader.nomeUrna)")
+                                                    .font(.caption.weight(.semibold))
+                                                    .foregroundStyle(.secondary)
+                                            }
                                         }
                                     }
+                                    .padding()
+                                    .background(.background, in: RoundedRectangle(cornerRadius: 16))
+                                } else if !result.orderedCandidates.isEmpty {
+                                    ContentUnavailableView(
+                                        "Candidatos do \(round.title)",
+                                        systemImage: "person.2",
+                                        description: Text("Candidatos e fotos disponíveis; a apuração ainda não começou.")
+                                    )
+                                } else {
+                                    ContentUnavailableView(
+                                        "Aguardando apuração",
+                                        systemImage: "clock",
+                                        description: Text("Ainda não há votos apurados para o \(round.title) em \(selectedState).")
+                                    )
                                 }
-                                .padding()
-                                .background(.background, in: RoundedRectangle(cornerRadius: 16))
 
-                                ForEach(result.orderedCandidates) { CandidateRow(candidate: $0, round: round) }
+                                ForEach(result.orderedCandidates) {
+                                    CandidateRow(candidate: $0, round: round, showsVoteStatistics: result.hasReportedResults)
+                                }
                             } else {
                                 ContentUnavailableView(
                                     "Aguardando apuração",

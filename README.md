@@ -36,4 +36,4 @@ A produção continua em modo “Aguardando apuração” até o manifesto ofici
 
 ## Assinatura preservada
 
-O projeto mantém o bundle `com.achou.com`, versão 1.0.12 e build 107. O nome exibido no aparelho é Apurabra.
+O projeto mantém o bundle `com.achou.com`, versão 1.0.12 e build 108. O nome exibido no aparelho é Apurabra.

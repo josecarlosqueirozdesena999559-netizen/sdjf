@@ -23,18 +23,7 @@ struct ResultsScreen: View {
                     } else if let error = store.errorMessage {
                         LoadingOrError(loading: false, message: error) { Task { await reload() } }
                     }
-                    if let result = store.result {
-                        if result.hasReportedResults {
-                            resultContent(result)
-                        } else {
-                            ContentUnavailableView(
-                                "Aguardando apuração",
-                                systemImage: "clock",
-                                description: Text(result.mensagem ?? "Ainda não há votos apurados para o \(round.title).")
-                            )
-                            .padding(.horizontal)
-                        }
-                    }
+                    if let result = store.result { resultContent(result) }
                 }.padding(.vertical)
             }
             .background(AppTheme.background)
@@ -87,21 +76,33 @@ struct ResultsScreen: View {
     }
 
     @ViewBuilder private func resultContent(_ result: ElectionResult) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack { Text("Apuração geral"); Spacer(); Text((result.progress * 100).percentBR).font(.title3.bold()).foregroundStyle(AppTheme.purple) }
-            ProgressView(value: result.progress).tint(AppTheme.purple)
-            Text("\(result.secoesTotalizadas.ptBR) de \(result.secoesTotal.ptBR) seções totalizadas").font(.caption).foregroundStyle(.secondary)
-            Text("Última atualização: \(result.atualizadoEmFormatado)")
-                .font(.caption).foregroundStyle(.secondary)
-            if let message = result.mensagem { Text(message).font(.footnote).foregroundStyle(.secondary) }
-        }.padding().background(.background, in: RoundedRectangle(cornerRadius: 16)).padding(.horizontal)
+        if result.hasReportedResults {
+            VStack(alignment: .leading, spacing: 12) {
+                HStack { Text("Apuração geral"); Spacer(); Text((result.progress * 100).percentBR).font(.title3.bold()).foregroundStyle(AppTheme.purple) }
+                ProgressView(value: result.progress).tint(AppTheme.purple)
+                Text("\(result.secoesTotalizadas.ptBR) de \(result.secoesTotal.ptBR) seções totalizadas").font(.caption).foregroundStyle(.secondary)
+                Text("Última atualização: \(result.atualizadoEmFormatado)")
+                    .font(.caption).foregroundStyle(.secondary)
+                if let message = result.mensagem { Text(message).font(.footnote).foregroundStyle(.secondary) }
+            }.padding().background(.background, in: RoundedRectangle(cornerRadius: 16)).padding(.horizontal)
 
-        HStack {
-            Text("\(result.cargoNome) · \(result.abrangencia.nome) · \(round.title)").font(.headline)
-            Spacer()
-            Text("Válidos: \(result.votosValidos.ptBR)").font(.caption).foregroundStyle(.secondary)
-        }.padding(.horizontal)
-        ForEach(result.orderedCandidates) { CandidateRow(candidate: $0, round: round) }
+            HStack {
+                Text("\(result.cargoNome) · \(result.abrangencia.nome) · \(round.title)").font(.headline)
+                Spacer()
+                Text("Válidos: \(result.votosValidos.ptBR)").font(.caption).foregroundStyle(.secondary)
+            }.padding(.horizontal)
+        } else {
+            ContentUnavailableView(
+                "Candidatos do \(round.title)",
+                systemImage: "person.2",
+                description: Text("Os candidatos e as fotos já estão disponíveis. A apuração ainda não começou; votos e percentuais aparecerão quando houver dados.")
+            )
+            .padding(.horizontal)
+        }
+
+        ForEach(result.orderedCandidates) {
+            CandidateRow(candidate: $0, round: round, showsVoteStatistics: result.hasReportedResults)
+        }
     }
 
     private func reload() async {
@@ -113,6 +114,7 @@ struct ResultsScreen: View {
 struct CandidateRow: View {
     let candidate: Candidate
     let round: ElectionRound
+    let showsVoteStatistics: Bool
     var body: some View {
         HStack(spacing: 12) {
             VStack(spacing: 0) {
@@ -142,9 +144,11 @@ struct CandidateRow: View {
                 if let status = candidate.displayedSituation(for: round) { Text(status).font(.caption2).foregroundStyle(.secondary) }
             }
             Spacer(minLength: 6)
-            VStack(alignment: .trailing, spacing: 5) {
-                CandidateProgressRing(percent: candidate.percentual)
-                Text("\(candidate.votos.ptBR) votos").font(.caption2).foregroundStyle(.secondary)
+            if showsVoteStatistics {
+                VStack(alignment: .trailing, spacing: 5) {
+                    CandidateProgressRing(percent: candidate.percentual)
+                    Text("\(candidate.votos.ptBR) votos").font(.caption2).foregroundStyle(.secondary)
+                }
             }
         }.padding().background(.background, in: RoundedRectangle(cornerRadius: 16)).padding(.horizontal)
     }

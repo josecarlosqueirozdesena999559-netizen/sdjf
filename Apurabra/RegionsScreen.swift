@@ -31,7 +31,7 @@ private final class RegionsStore: ObservableObject {
             loading = true
             if let cached = await APIClient.shared.cachedMapSummary(office: office, round: round) {
                 guard activeQueryKey == queryKey else { return }
-                regionResults = reportedResults(cached.resultados ?? [:], round: round)
+                regionResults = displayableResults(cached.resultados ?? [:], round: round)
             }
         }
         loading = regionResults.isEmpty
@@ -39,9 +39,11 @@ private final class RegionsStore: ObservableObject {
         do {
             let summary = try await APIClient.shared.mapSummary(office: office, round: round)
             guard activeQueryKey == queryKey else { return }
-            regionResults = reportedResults(summary.resultados ?? [:], round: round)
+            regionResults = displayableResults(summary.resultados ?? [:], round: round)
             if regionResults.isEmpty {
-                errorMessage = "Ainda não há resultados apurados para o \(round.title). As regiões continuam disponíveis, sem exibir votos zerados como se fossem dados reais."
+                errorMessage = "Ainda não há dados dos candidatos para o \(round.title)."
+            } else if !regionResults.values.contains(where: \.hasReportedResults) {
+                errorMessage = "Candidatos e fotos do \(round.title) disponíveis. A apuração ainda não começou; votos e percentuais serão exibidos quando houver dados."
             }
         } catch {
             guard activeQueryKey == queryKey else { return }
@@ -50,14 +52,14 @@ private final class RegionsStore: ObservableObject {
         loading = false
     }
 
-    private func reportedResults(_ results: [String: ElectionResult], round: ElectionRound) -> [String: ElectionResult] {
+    private func displayableResults(_ results: [String: ElectionResult], round: ElectionRound) -> [String: ElectionResult] {
         results.filter { _, result in
-            (result.turno == nil || result.turno == round.rawValue) && result.hasReportedResults
+            (result.turno == nil || result.turno == round.rawValue) && (result.hasReportedResults || !result.candidatos.isEmpty)
         }
     }
 
     // Agrega candidatos de vários estados somando votos
-    func aggregated(for region: BrazilRegion, state selectedState: String? = nil) -> [AggregatedCandidate] {
+    func aggregated(for region: BrazilRegion, round: ElectionRound, state selectedState: String? = nil) -> [AggregatedCandidate] {
         var totals: [String: AggregatedCandidate] = [:]
         var totalVotes = 0
 
@@ -78,7 +80,8 @@ private final class RegionsStore: ObservableObject {
                         foto: c.foto,
                         cor: c.cor,
                         votos: c.votos,
-                        mapDarkColor: c.mapDarkColorHex
+                        mapDarkColor: c.mapDarkColorHex,
+                        photoStatus: c.photoStatus(for: round)
                     )
                 }
             }
@@ -103,6 +106,7 @@ struct AggregatedCandidate: Identifiable {
     let cor: String
     var votos: Int
     let mapDarkColor: String
+    let photoStatus: String?
     var totalRegionVotes: Int = 0
 
     var percentual: Double {
@@ -148,7 +152,7 @@ struct RegionsScreen: View {
                         if selectedState == nil || filteredState != nil {
                             RegionCard(
                                 region: region,
-                                candidates: store.aggregated(for: region, state: filteredState),
+                                candidates: store.aggregated(for: region, round: round, state: filteredState),
                                 loadedStates: filteredState.map { store.regionResults[$0] == nil ? 0 : 1 }
                                     ?? store.loadedStates(for: region),
                                 selectedState: filteredState,
@@ -261,20 +265,33 @@ private struct CandidateBarRow: View {
     var body: some View {
         VStack(spacing: 5) {
             HStack(spacing: 8) {
-                // Foto
-                AsyncImage(url: APIClient.imageURL(candidate.foto)) { phase in
-                    if let img = phase.image {
-                        img.resizable().scaledToFill()
-                    } else {
-                        Image(systemName: "person.fill")
-                            .resizable().scaledToFit()
-                            .padding(6)
-                            .foregroundStyle(AppTheme.purple)
+                // Foto e situação do candidato
+                VStack(spacing: 0) {
+                    AsyncImage(url: APIClient.imageURL(candidate.foto)) { phase in
+                        if let img = phase.image {
+                            img.resizable().scaledToFill()
+                        } else {
+                            Image(systemName: "person.fill")
+                                .resizable().scaledToFit()
+                                .padding(6)
+                                .foregroundStyle(AppTheme.purple)
+                        }
+                    }
+                    .frame(width: 48, height: 42)
+                    .background(AppTheme.palePurple)
+                    .clipShape(RoundedRectangle(cornerRadius: 7))
+
+                    if let status = candidate.photoStatus {
+                        Text(status)
+                            .font(.system(size: 6, weight: .heavy))
+                            .foregroundStyle(.white)
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.6)
+                            .frame(width: 48, height: 10)
+                            .background(AppTheme.purple)
                     }
                 }
-                .frame(width: 32, height: 32)
-                .background(AppTheme.palePurple)
-                .clipShape(Circle())
+                .clipShape(RoundedRectangle(cornerRadius: 7))
 
                 // Nome e partido
                 VStack(alignment: .leading, spacing: 1) {
@@ -288,33 +305,36 @@ private struct CandidateBarRow: View {
 
                 Spacer()
 
-                // Percentual
-                Text(String(format: "%.1f%%", candidate.percentual))
-                    .font(.subheadline.bold())
-                    .foregroundStyle(barColor)
-                    .monospacedDigit()
+                if candidate.totalRegionVotes > 0 {
+                    // Percentual e votos só aparecem depois do início da apuração.
+                    Text(String(format: "%.1f%%", candidate.percentual))
+                        .font(.subheadline.bold())
+                        .foregroundStyle(barColor)
+                        .monospacedDigit()
 
-                // Votos
-                Text(candidate.votos.ptBR)
-                    .font(.caption2)
-                    .foregroundStyle(.secondary)
-                    .monospacedDigit()
-            }
-
-            // Barra de progresso
-            GeometryReader { geo in
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(barColor.opacity(0.15))
-                        .frame(height: 8)
-
-                    RoundedRectangle(cornerRadius: 4)
-                        .fill(barColor)
-                        .frame(width: geo.size.width * CGFloat(candidate.percentual / 100), height: 8)
-                        .animation(.spring(duration: 0.6), value: candidate.percentual)
+                    Text(candidate.votos.ptBR)
+                        .font(.caption2)
+                        .foregroundStyle(.secondary)
+                        .monospacedDigit()
                 }
             }
-            .frame(height: 8)
+
+            if candidate.totalRegionVotes > 0 {
+                // Barra de progresso
+                GeometryReader { geo in
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(barColor.opacity(0.15))
+                            .frame(height: 8)
+
+                        RoundedRectangle(cornerRadius: 4)
+                            .fill(barColor)
+                            .frame(width: geo.size.width * CGFloat(candidate.percentual / 100), height: 8)
+                            .animation(.spring(duration: 0.6), value: candidate.percentual)
+                    }
+                }
+                .frame(height: 8)
+            }
         }
     }
 }
