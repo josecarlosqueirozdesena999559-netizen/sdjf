@@ -185,7 +185,7 @@ private struct CandidateProgressRing: View {
         ZStack {
             Circle().stroke(AppTheme.palePurple, lineWidth: 5)
             Circle().trim(from: 0, to: progress).stroke(AppTheme.purple, style: StrokeStyle(lineWidth: 5, lineCap: .round)).rotationEffect(.degrees(-90))
-            Text(percent.formatted(.number.locale(Locale(identifier: "pt_BR")).precision(.fractionLength(1))) + "%")
+            Text(percent.percentBR)
                 .font(.system(size: 10, weight: .bold, design: .rounded)).foregroundStyle(AppTheme.purple).minimumScaleFactor(0.7).lineLimit(1)
         }
         .frame(width: 54, height: 54)

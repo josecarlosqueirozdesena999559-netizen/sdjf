@@ -333,7 +333,7 @@ private struct CandidateBarRow: View {
 
                 Spacer()
 
-                Text(String(format: "%.1f%%", candidate.percentual))
+                Text(candidate.percentual.percentBR)
                     .font(.subheadline.bold())
                     .foregroundStyle(barColor)
                     .monospacedDigit()
