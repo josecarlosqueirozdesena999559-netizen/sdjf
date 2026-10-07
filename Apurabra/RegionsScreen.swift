@@ -64,10 +64,12 @@ private final class RegionsStore: ObservableObject {
         let states = selectedState.map { [$0] } ?? region.states
         for uf in states {
             guard let result = regionResults[uf] else { continue }
-            totalVotes += result.votosValidos
+            let hasReportedResults = result.hasReportedResults
+            if hasReportedResults { totalVotes += result.votosValidos }
             for c in result.candidatos {
+                let candidateVotes = hasReportedResults ? c.votos : 0
                 if var agg = totals[c.id] {
-                    agg.votos += c.votos
+                    agg.votos += candidateVotes
                     totals[c.id] = agg
                 } else {
                     totals[c.id] = AggregatedCandidate(
@@ -77,7 +79,7 @@ private final class RegionsStore: ObservableObject {
                         numero: c.numero,
                         foto: c.foto,
                         cor: c.cor,
-                        votos: c.votos,
+                        votos: candidateVotes,
                         mapDarkColor: c.mapDarkColorHex,
                         photoStatus: c.photoStatus(for: round)
                     )
@@ -183,7 +185,12 @@ struct RegionsScreen: View {
             .background(AppTheme.background)
             .navigationTitle("Regiões")
             .navigationBarTitleDisplayMode(.inline)
-            .task(id: round.rawValue) { await store.load(office: .presidente, round: round) }
+            .task(id: round.rawValue) {
+                while !Task.isCancelled {
+                    await store.load(office: .presidente, round: round)
+                    try? await Task.sleep(nanoseconds: 30_000_000_000)
+                }
+            }
             .refreshable { await store.load(office: .presidente, round: round) }
         }
     }
@@ -298,7 +305,7 @@ private struct CandidateBarRow: View {
                                 .foregroundStyle(AppTheme.purple)
                         }
                     }
-                    .frame(width: 48, height: 42)
+                    .frame(width: 58, height: 52)
                     .background(AppTheme.palePurple)
                     .clipShape(RoundedRectangle(cornerRadius: 7))
 
@@ -308,7 +315,7 @@ private struct CandidateBarRow: View {
                             .foregroundStyle(.white)
                             .lineLimit(1)
                             .minimumScaleFactor(0.6)
-                            .frame(width: 48, height: 10)
+                            .frame(width: 58, height: 12)
                             .background(AppTheme.purple)
                     }
                 }
@@ -326,36 +333,31 @@ private struct CandidateBarRow: View {
 
                 Spacer()
 
-                if candidate.totalRegionVotes > 0 {
-                    // Percentual e votos só aparecem depois do início da apuração.
-                    Text(String(format: "%.1f%%", candidate.percentual))
-                        .font(.subheadline.bold())
-                        .foregroundStyle(barColor)
-                        .monospacedDigit()
+                Text(String(format: "%.1f%%", candidate.percentual))
+                    .font(.subheadline.bold())
+                    .foregroundStyle(barColor)
+                    .monospacedDigit()
 
-                    Text(candidate.votos.ptBR)
-                        .font(.caption2)
-                        .foregroundStyle(.secondary)
-                        .monospacedDigit()
-                }
+                Text("\(candidate.votos.ptBR) votos")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .monospacedDigit()
             }
 
-            if candidate.totalRegionVotes > 0 {
-                // Barra de progresso
-                GeometryReader { geo in
-                    ZStack(alignment: .leading) {
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(barColor.opacity(0.15))
-                            .frame(height: 8)
+            // A barra começa vazia (0%) e se atualiza quando a fonte publicar votos.
+            GeometryReader { geo in
+                ZStack(alignment: .leading) {
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(barColor.opacity(0.15))
+                        .frame(height: 8)
 
-                        RoundedRectangle(cornerRadius: 4)
-                            .fill(barColor)
-                            .frame(width: geo.size.width * CGFloat(candidate.percentual / 100), height: 8)
-                            .animation(.spring(duration: 0.6), value: candidate.percentual)
-                    }
+                    RoundedRectangle(cornerRadius: 4)
+                        .fill(barColor)
+                        .frame(width: geo.size.width * CGFloat(candidate.percentual / 100), height: 8)
+                        .animation(.spring(duration: 0.6), value: candidate.percentual)
                 }
-                .frame(height: 8)
             }
+            .frame(height: 8)
         }
     }
 }
