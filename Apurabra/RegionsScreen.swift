@@ -290,7 +290,7 @@ private struct CandidateBarRow: View {
                 VStack(spacing: 0) {
                     AsyncImage(url: APIClient.imageURL(candidate.foto)) { phase in
                         if let img = phase.image {
-                            img.resizable().scaledToFill()
+                            img.resizable().scaledToFit()
                         } else {
                             Image(systemName: "person.fill")
                                 .resizable().scaledToFit()
