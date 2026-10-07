@@ -19,6 +19,7 @@ private struct BrazilRegion: Identifiable {
 @MainActor
 private final class RegionsStore: ObservableObject {
     @Published var regionResults: [String: ElectionResult] = [:]
+    @Published var candidateProfiles: [Candidate] = []
     @Published var loading = false
     @Published var errorMessage: String?
     private var activeQueryKey: String?
@@ -28,7 +29,15 @@ private final class RegionsStore: ObservableObject {
         if activeQueryKey != queryKey {
             activeQueryKey = queryKey
             regionResults = [:]
+            candidateProfiles = []
             loading = true
+            if round == .second,
+               let cachedProfiles = await APIClient.shared.cachedResult(office: office, round: round) {
+                guard activeQueryKey == queryKey else { return }
+                if cachedProfiles.belongs(to: round) {
+                    candidateProfiles = cachedProfiles.candidatos
+                }
+            }
             if let cached = await APIClient.shared.cachedMapSummary(office: office, round: round) {
                 guard activeQueryKey == queryKey else { return }
                 regionResults = displayableResults(cached.resultados ?? [:], round: round)
@@ -36,16 +45,25 @@ private final class RegionsStore: ObservableObject {
         }
         loading = regionResults.isEmpty
         errorMessage = nil
+        if round == .second,
+           let profileResult = try? await APIClient.shared.result(office: office, round: round) {
+            guard activeQueryKey == queryKey else { return }
+            if profileResult.belongs(to: round), !profileResult.candidatos.isEmpty {
+                candidateProfiles = profileResult.candidatos
+            }
+        }
         do {
             let summary = try await APIClient.shared.mapSummary(office: office, round: round)
             guard activeQueryKey == queryKey else { return }
             regionResults = displayableResults(summary.resultados ?? [:], round: round)
-            if regionResults.isEmpty {
+            if regionResults.isEmpty && candidateProfiles.isEmpty {
                 errorMessage = "Não há dados do TSE disponíveis para as regiões neste momento."
             }
         } catch {
             guard activeQueryKey == queryKey else { return }
-            if regionResults.isEmpty { errorMessage = "Não foi possível carregar as regiões. Tente novamente." }
+            if regionResults.isEmpty && candidateProfiles.isEmpty {
+                errorMessage = "Não foi possível carregar as regiões. Tente novamente."
+            }
         }
         loading = false
     }
@@ -58,8 +76,14 @@ private final class RegionsStore: ObservableObject {
 
     // Agrega candidatos de vários estados somando votos
     func aggregated(for region: BrazilRegion, round: ElectionRound, state selectedState: String? = nil) -> [AggregatedCandidate] {
-        var totals: [String: AggregatedCandidate] = [:]
+        var totals: [Int: AggregatedCandidate] = [:]
         var totalVotes = 0
+
+        if round == .second {
+            for candidate in candidateProfiles {
+                totals[candidate.numero] = makeAggregatedCandidate(candidate, round: round, votes: 0)
+            }
+        }
 
         let states = selectedState.map { [$0] } ?? region.states
         for uf in states {
@@ -68,21 +92,13 @@ private final class RegionsStore: ObservableObject {
             if hasReportedResults { totalVotes += result.votosValidos }
             for c in result.candidatos {
                 let candidateVotes = hasReportedResults ? c.votos : 0
-                if var agg = totals[c.id] {
+                if var agg = totals[c.numero] {
                     agg.votos += candidateVotes
-                    totals[c.id] = agg
+                    if agg.foto == nil { agg.foto = c.foto }
+                    if agg.photoStatus == nil { agg.photoStatus = c.photoStatus(for: round) }
+                    totals[c.numero] = agg
                 } else {
-                    totals[c.id] = AggregatedCandidate(
-                        id: c.id,
-                        nomeUrna: c.nomeUrna,
-                        partido: c.partido,
-                        numero: c.numero,
-                        foto: c.foto,
-                        cor: c.cor,
-                        votos: candidateVotes,
-                        mapDarkColor: c.mapDarkColorHex,
-                        photoStatus: c.photoStatus(for: round)
-                    )
+                    totals[c.numero] = makeAggregatedCandidate(c, round: round, votes: candidateVotes)
                 }
             }
         }
@@ -90,6 +106,20 @@ private final class RegionsStore: ObservableObject {
         return totals.values
             .sorted { $0.votos == $1.votos ? $0.numero < $1.numero : $0.votos > $1.votos }
             .map { var a = $0; a.totalRegionVotes = totalVotes; return a }
+    }
+
+    private func makeAggregatedCandidate(_ candidate: Candidate, round: ElectionRound, votes: Int) -> AggregatedCandidate {
+        AggregatedCandidate(
+            id: candidate.id,
+            nomeUrna: candidate.nomeUrna,
+            partido: candidate.partido,
+            numero: candidate.numero,
+            foto: candidate.foto,
+            cor: candidate.cor,
+            votos: votes,
+            mapDarkColor: candidate.mapDarkColorHex,
+            photoStatus: candidate.photoStatus(for: round)
+        )
     }
 
     func loadedStates(for region: BrazilRegion) -> Int {
@@ -117,11 +147,11 @@ struct AggregatedCandidate: Identifiable {
     let nomeUrna: String
     let partido: String
     let numero: Int
-    let foto: String?
+    var foto: String?
     let cor: String
     var votos: Int
     let mapDarkColor: String
-    let photoStatus: String?
+    var photoStatus: String?
     var totalRegionVotes: Int = 0
 
     var percentual: Double {
