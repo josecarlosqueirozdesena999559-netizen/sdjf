@@ -56,9 +56,7 @@ actor APIClient {
     private func request<T: Decodable>(_ url: URL) async throws -> T {
         var request = URLRequest(url: url)
         request.timeoutInterval = 20
-        request.cachePolicy = .reloadIgnoringLocalAndRemoteCacheData
-        request.setValue("no-cache, no-store, must-revalidate", forHTTPHeaderField: "Cache-Control")
-        request.setValue("no-cache", forHTTPHeaderField: "Pragma")
+        request.cachePolicy = .useProtocolCachePolicy
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else { throw URLError(.badServerResponse) }
         return try decoder.decode(T.self, from: data)
