@@ -31,7 +31,7 @@ private final class RegionsStore: ObservableObject {
             loading = true
             if let cached = await APIClient.shared.cachedMapSummary(office: office, round: round) {
                 guard activeQueryKey == queryKey else { return }
-                regionResults = cached.resultados ?? [:]
+                regionResults = reportedResults(cached.resultados ?? [:], round: round)
             }
         }
         loading = regionResults.isEmpty
@@ -39,13 +39,21 @@ private final class RegionsStore: ObservableObject {
         do {
             let summary = try await APIClient.shared.mapSummary(office: office, round: round)
             guard activeQueryKey == queryKey else { return }
-            regionResults = summary.resultados ?? [:]
-            if regionResults.isEmpty { errorMessage = "Os resultados regionais ainda não estão disponíveis." }
+            regionResults = reportedResults(summary.resultados ?? [:], round: round)
+            if regionResults.isEmpty {
+                errorMessage = "Ainda não há resultados apurados para o \(round.title). As regiões continuam disponíveis, sem exibir votos zerados como se fossem dados reais."
+            }
         } catch {
             guard activeQueryKey == queryKey else { return }
             if regionResults.isEmpty { errorMessage = "Não foi possível carregar as regiões. Tente novamente." }
         }
         loading = false
+    }
+
+    private func reportedResults(_ results: [String: ElectionResult], round: ElectionRound) -> [String: ElectionResult] {
+        results.filter { _, result in
+            (result.turno == nil || result.turno == round.rawValue) && result.hasReportedResults
+        }
     }
 
     // Agrega candidatos de vários estados somando votos
@@ -125,26 +133,30 @@ struct RegionsScreen: View {
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(.horizontal)
 
-                    if store.loading {
-                        RegionListSkeleton()
-                    } else if let error = store.errorMessage {
-                        ContentUnavailableView("Erro ao carregar", systemImage: "wifi.exclamationmark",
-                                              description: Text(error))
-                    } else {
-                        ForEach(BrazilRegion.all) { region in
-                            let filteredState = selectedState.flatMap { region.states.contains($0) ? $0 : nil }
-                            if selectedState == nil || filteredState != nil {
-                                RegionCard(
-                                    region: region,
-                                    candidates: store.aggregated(for: region, state: filteredState),
-                                    loadedStates: filteredState.map { store.regionResults[$0] == nil ? 0 : 1 }
-                                        ?? store.loadedStates(for: region),
-                                    selectedState: filteredState,
-                                    onSelectState: { state in
-                                        selectedState = selectedState == state ? nil : state
-                                    }
-                                )
-                            }
+                    if let error = store.errorMessage {
+                        Label(error, systemImage: "info.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
+                            .background(AppTheme.palePurple, in: RoundedRectangle(cornerRadius: 12))
+                            .padding(.horizontal)
+                    }
+
+                    ForEach(BrazilRegion.all) { region in
+                        let filteredState = selectedState.flatMap { region.states.contains($0) ? $0 : nil }
+                        if selectedState == nil || filteredState != nil {
+                            RegionCard(
+                                region: region,
+                                candidates: store.aggregated(for: region, state: filteredState),
+                                loadedStates: filteredState.map { store.regionResults[$0] == nil ? 0 : 1 }
+                                    ?? store.loadedStates(for: region),
+                                selectedState: filteredState,
+                                loading: store.loading,
+                                onSelectState: { state in
+                                    selectedState = selectedState == state ? nil : state
+                                }
+                            )
                         }
                     }
                 }
@@ -165,6 +177,7 @@ private struct RegionCard: View {
     let candidates: [AggregatedCandidate]
     let loadedStates: Int
     let selectedState: String?
+    let loading: Bool
     let onSelectState: (String?) -> Void
 
     private var topCandidates: [AggregatedCandidate] {
@@ -212,12 +225,12 @@ private struct RegionCard: View {
 
             if candidates.isEmpty {
                 if loadedStates == 0 {
-                    Text("Não foi possível carregar os dados desta região.")
+                    Text(loading ? "Carregando resultados desta região…" : "Ainda não há resultados apurados para esta região.")
                         .font(.caption).foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding()
                 } else {
-                    Text("Nenhum dado disponível.")
+                    Text("Ainda não há votos apurados nesta região.")
                         .font(.caption).foregroundStyle(.secondary)
                         .frame(maxWidth: .infinity, alignment: .center)
                         .padding()
@@ -234,61 +247,6 @@ private struct RegionCard: View {
         .padding()
         .background(.background, in: RoundedRectangle(cornerRadius: 18))
         .padding(.horizontal)
-    }
-}
-
-private struct RegionListSkeleton: View {
-    var body: some View {
-        VStack(spacing: 14) {
-            ForEach(0..<4, id: \.self) { _ in
-                VStack(alignment: .leading, spacing: 12) {
-                    HStack {
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.primary.opacity(0.08))
-                            .frame(width: 126, height: 16)
-                        Spacer()
-                        RoundedRectangle(cornerRadius: 6)
-                            .fill(Color.primary.opacity(0.08))
-                            .frame(width: 68, height: 11)
-                    }
-
-                    HStack(spacing: 6) {
-                        ForEach(0..<5, id: \.self) { _ in
-                            Capsule()
-                                .fill(Color.primary.opacity(0.08))
-                                .frame(width: 28, height: 18)
-                        }
-                    }
-
-                    Divider()
-
-                    ForEach(0..<2, id: \.self) { _ in
-                        HStack(spacing: 9) {
-                            Circle()
-                                .fill(Color.primary.opacity(0.08))
-                                .frame(width: 32, height: 32)
-                            VStack(alignment: .leading, spacing: 6) {
-                                RoundedRectangle(cornerRadius: 5)
-                                    .fill(Color.primary.opacity(0.08))
-                                    .frame(width: 118, height: 11)
-                                RoundedRectangle(cornerRadius: 5)
-                                    .fill(Color.primary.opacity(0.08))
-                                    .frame(width: 76, height: 9)
-                            }
-                            Spacer()
-                            RoundedRectangle(cornerRadius: 5)
-                                .fill(Color.primary.opacity(0.08))
-                                .frame(width: 40, height: 13)
-                        }
-                    }
-                }
-                .padding()
-                .background(.background, in: RoundedRectangle(cornerRadius: 18))
-            }
-        }
-        .padding(.horizontal)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("A carregar resultados por região")
     }
 }
 

@@ -5,16 +5,24 @@ struct MapScreen: View {
     private static let colorStorageKey = "apurabra.map.colors.v1"
     @StateObject private var store = ResultStore()
     @State private var office: Office = .presidente
+    @AppStorage("selectedElectionRound") private var selectedRoundRawValue = 1
     @State private var selectedState = ""
     @State private var colorsByMode: [String: [String: String]] = Self.loadSavedColors()
+    @State private var hasResultsByMode: [String: Bool] = [:]
 
-    private var modeKey: String { office.rawValue }
+    private var round: ElectionRound { ElectionRound(rawValue: selectedRoundRawValue) ?? .first }
+    private var modeKey: String { "\(office.rawValue)|\(round.rawValue)" }
     private var refreshKey: String { "\(modeKey)|\(selectedState)" }
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 16) {
+                    Picker("Turno", selection: $selectedRoundRawValue) {
+                        ForEach(ElectionRound.allCases) { item in Text(item.title).tag(item.rawValue) }
+                    }
+                    .pickerStyle(.segmented)
+
                     Picker("Cargo", selection: $office) {
                         Text("Presidente").tag(Office.presidente)
                         Text("Governador").tag(Office.governador)
@@ -22,16 +30,25 @@ struct MapScreen: View {
                     .pickerStyle(.segmented)
 
                     BrazilMapView(selectedState: .constant(""), colors: colorsByMode[modeKey] ?? [:]) { state in
-                        Task { await select(state) }
+                        select(state)
                     }
                     .frame(height: 430)
                     .background(.background, in: RoundedRectangle(cornerRadius: 18))
 
-                    ContentUnavailableView(
-                        "Selecione um estado",
-                        systemImage: "hand.tap",
-                        description: Text("Toque no mapa para consultar a apuração.")
-                    )
+                    if hasResultsByMode[modeKey] == false {
+                        Label("Ainda não há resultados apurados para o \(round.title). O mapa não exibirá votos ou cores simulados.", systemImage: "info.circle.fill")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding()
+                            .background(AppTheme.palePurple, in: RoundedRectangle(cornerRadius: 12))
+                    } else {
+                        ContentUnavailableView(
+                            "Selecione um estado",
+                            systemImage: "hand.tap",
+                            description: Text("Toque no mapa para consultar a apuração.")
+                        )
+                    }
                 }
                 .padding()
             }
@@ -49,7 +66,7 @@ struct MapScreen: View {
                                 LoadingOrError(loading: store.loading, message: store.errorMessage) {
                                     Task { await refreshSelectedState() }
                                 }
-                            } else if let result = store.result {
+                            } else if let result = store.result, result.hasReportedResults {
                                 VStack(alignment: .leading, spacing: 8) {
                                     HStack {
                                         Text("\(office.title) · \(selectedState)").font(.headline)
@@ -79,7 +96,13 @@ struct MapScreen: View {
                                 .padding()
                                 .background(.background, in: RoundedRectangle(cornerRadius: 16))
 
-                                ForEach(result.orderedCandidates) { CandidateRow(candidate: $0, round: .first) }
+                                ForEach(result.orderedCandidates) { CandidateRow(candidate: $0, round: round) }
+                            } else {
+                                ContentUnavailableView(
+                                    "Aguardando apuração",
+                                    systemImage: "clock",
+                                    description: Text("Ainda não há votos apurados para o \(round.title) em \(selectedState).")
+                                )
                             }
                         }
                         .padding()
@@ -113,23 +136,26 @@ struct MapScreen: View {
                 }
             }
             .onChange(of: office) { _, _ in closeDetails() }
+            .onChange(of: round) { _, _ in closeDetails() }
         }
     }
 
-    private func select(_ state: String) async {
-        await refreshMapSummary()
+    private func select(_ state: String) {
         selectedState = state
     }
 
     private func refreshMapSummary() async {
         let currentOffice = office
+        let currentRound = round
         let currentModeKey = modeKey
         if colorsByMode[currentModeKey]?.isEmpty != false,
-           let cached = await APIClient.shared.cachedMapSummary(office: currentOffice, round: .first) {
+           let cached = await APIClient.shared.cachedMapSummary(office: currentOffice, round: currentRound) {
+            hasResultsByMode[currentModeKey] = cached.resultados?.values.contains(where: \.hasReportedResults) ?? !cached.cores.isEmpty
             saveColors(cached.cores, for: currentModeKey)
         }
-        if let summary = try? await APIClient.shared.mapSummary(office: office, round: .first) {
-            guard office == currentOffice else { return }
+        if let summary = try? await APIClient.shared.mapSummary(office: currentOffice, round: currentRound) {
+            guard office == currentOffice, round == currentRound else { return }
+            hasResultsByMode[currentModeKey] = summary.resultados?.values.contains(where: \.hasReportedResults) ?? !summary.cores.isEmpty
             saveColors(summary.cores, for: currentModeKey)
         }
     }
@@ -142,7 +168,10 @@ struct MapScreen: View {
     private func refreshSelectedState() async {
         guard !selectedState.isEmpty else { return }
         let state = selectedState
-        await store.load(office: office, state: state, round: .first)
+        let currentOffice = office
+        let currentRound = round
+        await store.load(office: currentOffice, state: state, round: currentRound)
+        guard selectedState == state, office == currentOffice, round == currentRound else { return }
         if let result = store.result, let leader = result.orderedCandidates.first, leader.votos > 0 {
             var colors = colorsByMode[modeKey] ?? [:]
             colors[state] = result.leaderCannotBeOvertaken

@@ -23,7 +23,18 @@ struct ResultsScreen: View {
                     } else if let error = store.errorMessage {
                         LoadingOrError(loading: false, message: error) { Task { await reload() } }
                     }
-                    if let result = store.result { resultContent(result) }
+                    if let result = store.result {
+                        if result.hasReportedResults {
+                            resultContent(result)
+                        } else {
+                            ContentUnavailableView(
+                                "Aguardando apuração",
+                                systemImage: "clock",
+                                description: Text(result.mensagem ?? "Ainda não há votos apurados para o \(round.title).")
+                            )
+                            .padding(.horizontal)
+                        }
+                    }
                 }.padding(.vertical)
             }
             .background(AppTheme.background)
