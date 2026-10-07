@@ -121,8 +121,15 @@ struct MapScreen: View {
     }
 
     private func refreshMapSummary() async {
+        let currentOffice = office
+        let currentModeKey = modeKey
+        if colorsByMode[currentModeKey] == nil,
+           let cached = await APIClient.shared.cachedMapSummary(office: currentOffice, round: .first) {
+            colorsByMode[currentModeKey] = cached.cores
+        }
         if let summary = try? await APIClient.shared.mapSummary(office: office, round: .first) {
-            colorsByMode[modeKey] = summary.cores
+            guard office == currentOffice else { return }
+            colorsByMode[currentModeKey] = summary.cores
         }
     }
 

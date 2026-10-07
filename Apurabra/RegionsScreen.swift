@@ -21,16 +21,29 @@ private final class RegionsStore: ObservableObject {
     @Published var regionResults: [String: ElectionResult] = [:]
     @Published var loading = false
     @Published var errorMessage: String?
+    private var activeQueryKey: String?
 
     func load(office: Office, round: ElectionRound) async {
-        loading = true
+        let queryKey = "\(office.rawValue)|\(round.rawValue)"
+        if activeQueryKey != queryKey {
+            activeQueryKey = queryKey
+            regionResults = [:]
+            loading = true
+            if let cached = await APIClient.shared.cachedMapSummary(office: office, round: round) {
+                guard activeQueryKey == queryKey else { return }
+                regionResults = cached.resultados ?? [:]
+            }
+        }
+        loading = regionResults.isEmpty
         errorMessage = nil
         do {
             let summary = try await APIClient.shared.mapSummary(office: office, round: round)
+            guard activeQueryKey == queryKey else { return }
             regionResults = summary.resultados ?? [:]
             if regionResults.isEmpty { errorMessage = "Os resultados regionais ainda não estão disponíveis." }
         } catch {
-            errorMessage = "Não foi possível carregar as regiões. Tente novamente."
+            guard activeQueryKey == queryKey else { return }
+            if regionResults.isEmpty { errorMessage = "Não foi possível carregar as regiões. Tente novamente." }
         }
         loading = false
     }
