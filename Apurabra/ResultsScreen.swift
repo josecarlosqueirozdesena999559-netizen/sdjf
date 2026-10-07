@@ -17,8 +17,10 @@ struct ResultsScreen: View {
                     filters
                     if office != .presidente && state.isEmpty {
                         ContentUnavailableView("Selecione um estado", systemImage: "map", description: Text("Este cargo possui resultados por unidade da Federação."))
-                    } else if store.loading || store.errorMessage != nil {
-                        LoadingOrError(loading: store.loading, message: store.errorMessage) { Task { await reload() } }
+                    } else if store.loading {
+                        CandidateListSkeleton(rows: 4, showsSummary: true)
+                    } else if let error = store.errorMessage {
+                        LoadingOrError(loading: false, message: error) { Task { await reload() } }
                     }
                     if let result = store.result { resultContent(result) }
                 }.padding(.vertical)

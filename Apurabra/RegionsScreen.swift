@@ -118,9 +118,7 @@ struct RegionsScreen: View {
                         .padding(.horizontal)
 
                     if store.loading {
-                        ProgressView("Carregando regiões…")
-                            .frame(maxWidth: .infinity)
-                            .padding(40)
+                        RegionListSkeleton()
                     } else if let error = store.errorMessage {
                         ContentUnavailableView("Erro ao carregar", systemImage: "wifi.exclamationmark",
                                               description: Text(error))
@@ -206,7 +204,10 @@ private struct RegionCard: View {
 
             if candidates.isEmpty {
                 if loadedStates == 0 {
-                    HStack { Spacer(); ProgressView(); Spacer() }.padding()
+                    Text("Não foi possível carregar os dados desta região.")
+                        .font(.caption).foregroundStyle(.secondary)
+                        .frame(maxWidth: .infinity, alignment: .center)
+                        .padding()
                 } else {
                     Text("Nenhum dado disponível.")
                         .font(.caption).foregroundStyle(.secondary)
@@ -225,6 +226,61 @@ private struct RegionCard: View {
         .padding()
         .background(.background, in: RoundedRectangle(cornerRadius: 18))
         .padding(.horizontal)
+    }
+}
+
+private struct RegionListSkeleton: View {
+    var body: some View {
+        VStack(spacing: 14) {
+            ForEach(0..<4, id: \.self) { _ in
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack {
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.primary.opacity(0.08))
+                            .frame(width: 126, height: 16)
+                        Spacer()
+                        RoundedRectangle(cornerRadius: 6)
+                            .fill(Color.primary.opacity(0.08))
+                            .frame(width: 68, height: 11)
+                    }
+
+                    HStack(spacing: 6) {
+                        ForEach(0..<5, id: \.self) { _ in
+                            Capsule()
+                                .fill(Color.primary.opacity(0.08))
+                                .frame(width: 28, height: 18)
+                        }
+                    }
+
+                    Divider()
+
+                    ForEach(0..<2, id: \.self) { _ in
+                        HStack(spacing: 9) {
+                            Circle()
+                                .fill(Color.primary.opacity(0.08))
+                                .frame(width: 32, height: 32)
+                            VStack(alignment: .leading, spacing: 6) {
+                                RoundedRectangle(cornerRadius: 5)
+                                    .fill(Color.primary.opacity(0.08))
+                                    .frame(width: 118, height: 11)
+                                RoundedRectangle(cornerRadius: 5)
+                                    .fill(Color.primary.opacity(0.08))
+                                    .frame(width: 76, height: 9)
+                            }
+                            Spacer()
+                            RoundedRectangle(cornerRadius: 5)
+                                .fill(Color.primary.opacity(0.08))
+                                .frame(width: 40, height: 13)
+                        }
+                    }
+                }
+                .padding()
+                .background(.background, in: RoundedRectangle(cornerRadius: 18))
+            }
+        }
+        .padding(.horizontal)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("A carregar resultados por região")
     }
 }
 

@@ -24,11 +24,69 @@ struct LoadingOrError: View {
     let message: String?
     var retry: () -> Void
     var body: some View {
-        if loading { ProgressView("Carregando…").frame(maxWidth: .infinity).padding(40) }
+        if loading { CandidateListSkeleton() }
         else if let message {
             ContentUnavailableView("Dados indisponíveis", systemImage: "wifi.exclamationmark", description: Text(message))
             Button("Tentar novamente", action: retry).buttonStyle(.borderedProminent)
         }
+    }
+}
+
+struct CandidateListSkeleton: View {
+    var rows: Int = 4
+    var showsSummary = false
+
+    var body: some View {
+        VStack(spacing: 14) {
+            if showsSummary {
+                VStack(alignment: .leading, spacing: 10) {
+                    HStack {
+                        SkeletonBlock(width: 112, height: 16)
+                        Spacer()
+                        SkeletonBlock(width: 54, height: 18)
+                    }
+                    SkeletonBlock(height: 8)
+                    SkeletonBlock(width: 205, height: 11)
+                }
+                .padding()
+                .background(.background, in: RoundedRectangle(cornerRadius: 16))
+            }
+
+            ForEach(0..<max(rows, 0), id: \.self) { index in
+                HStack(spacing: 12) {
+                    RoundedRectangle(cornerRadius: 8)
+                        .fill(Color.primary.opacity(0.08))
+                        .frame(width: 58, height: 68)
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        SkeletonBlock(width: index.isMultiple(of: 2) ? 138 : 112, height: 13)
+                        SkeletonBlock(width: 82, height: 10)
+                        SkeletonBlock(width: 104, height: 9)
+                    }
+
+                    Spacer(minLength: 6)
+                    Circle()
+                        .fill(Color.primary.opacity(0.08))
+                        .frame(width: 48, height: 48)
+                }
+                .padding()
+                .background(.background, in: RoundedRectangle(cornerRadius: 16))
+            }
+        }
+        .padding(.horizontal)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel("A carregar resultados")
+    }
+}
+
+private struct SkeletonBlock: View {
+    var width: CGFloat? = nil
+    var height: CGFloat
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: 6)
+            .fill(Color.primary.opacity(0.08))
+            .frame(width: width, height: height)
     }
 }
 
