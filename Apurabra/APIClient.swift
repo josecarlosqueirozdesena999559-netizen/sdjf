@@ -30,12 +30,12 @@ actor APIClient {
         cachedResponse([Municipality].self, for: municipalityURL(state: state))
     }
 
-    func mapSummary(office: Office, round: ElectionRound) async throws -> MapSummary {
-        try await request(mapSummaryURL(office: office, round: round))
+    func mapSummary(office: Office, round: ElectionRound, includeResults: Bool = false) async throws -> MapSummary {
+        try await request(mapSummaryURL(office: office, round: round, includeResults: includeResults))
     }
 
-    func cachedMapSummary(office: Office, round: ElectionRound) -> MapSummary? {
-        cachedResponse(MapSummary.self, for: mapSummaryURL(office: office, round: round))
+    func cachedMapSummary(office: Office, round: ElectionRound, includeResults: Bool = false) -> MapSummary? {
+        cachedResponse(MapSummary.self, for: mapSummaryURL(office: office, round: round, includeResults: includeResults))
     }
 
     func governorSecondRoundResults() async -> [String: ElectionResult] {
@@ -76,11 +76,12 @@ actor APIClient {
         return components.url!
     }
 
-    private func mapSummaryURL(office: Office, round: ElectionRound) -> URL {
+    private func mapSummaryURL(office: Office, round: ElectionRound, includeResults: Bool = false) -> URL {
         var components = URLComponents(url: baseURL.appending(path: "api/mapa"), resolvingAgainstBaseURL: false)!
         components.queryItems = [
             URLQueryItem(name: "cargo", value: office.rawValue),
-            URLQueryItem(name: "turno", value: String(round.rawValue))
+            URLQueryItem(name: "turno", value: String(round.rawValue)),
+            URLQueryItem(name: "incluirResultados", value: includeResults ? "1" : "0")
         ]
         return components.url!
     }

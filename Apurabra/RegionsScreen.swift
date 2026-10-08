@@ -38,7 +38,7 @@ private final class RegionsStore: ObservableObject {
                     candidateProfiles = cachedProfiles.candidatos
                 }
             }
-            if let cached = await APIClient.shared.cachedMapSummary(office: office, round: round) {
+            if let cached = await APIClient.shared.cachedMapSummary(office: office, round: round, includeResults: true) {
                 guard activeQueryKey == queryKey else { return }
                 regionResults = displayableResults(cached.resultados ?? [:], round: round)
             }
@@ -53,7 +53,7 @@ private final class RegionsStore: ObservableObject {
             }
         }
         do {
-            let summary = try await APIClient.shared.mapSummary(office: office, round: round)
+            let summary = try await APIClient.shared.mapSummary(office: office, round: round, includeResults: true)
             guard activeQueryKey == queryKey else { return }
             regionResults = displayableResults(summary.resultados ?? [:], round: round)
             if regionResults.isEmpty && candidateProfiles.isEmpty {
