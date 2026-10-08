@@ -192,21 +192,25 @@ struct RegionsScreen: View {
                             .padding(.horizontal)
                     }
 
-                    ForEach(BrazilRegion.all) { region in
-                        let filteredState = selectedState.flatMap { region.states.contains($0) ? $0 : nil }
-                        if selectedState == nil || filteredState != nil {
-                            RegionCard(
-                                region: region,
-                                candidates: store.aggregated(for: region, round: round, state: filteredState),
-                                sectionSummary: store.sectionSummary(for: region, round: round, state: filteredState),
-                                loadedStates: filteredState.map { store.regionResults[$0] == nil ? 0 : 1 }
-                                    ?? store.loadedStates(for: region),
-                                selectedState: filteredState,
-                                loading: store.loading,
-                                onSelectState: { state in
-                                    selectedState = selectedState == state ? nil : state
-                                }
-                            )
+                    if store.loading && store.regionResults.isEmpty {
+                        CandidateListSkeleton(rows: 4, showsSummary: true)
+                    } else {
+                        ForEach(BrazilRegion.all) { region in
+                            let filteredState = selectedState.flatMap { region.states.contains($0) ? $0 : nil }
+                            if selectedState == nil || filteredState != nil {
+                                RegionCard(
+                                    region: region,
+                                    candidates: store.aggregated(for: region, round: round, state: filteredState),
+                                    sectionSummary: store.sectionSummary(for: region, round: round, state: filteredState),
+                                    loadedStates: filteredState.map { store.regionResults[$0] == nil ? 0 : 1 }
+                                        ?? store.loadedStates(for: region),
+                                    selectedState: filteredState,
+                                    loading: store.loading,
+                                    onSelectState: { state in
+                                        selectedState = selectedState == state ? nil : state
+                                    }
+                                )
+                            }
                         }
                     }
                 }
