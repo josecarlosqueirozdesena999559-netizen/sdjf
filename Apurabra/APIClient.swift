@@ -31,7 +31,12 @@ actor APIClient {
     }
 
     func mapSummary(office: Office, round: ElectionRound, includeResults: Bool = false) async throws -> MapSummary {
-        try await request(mapSummaryURL(office: office, round: round, includeResults: includeResults))
+        // O mapa precisa refletir a apuração atual. Não reutilize uma resposta
+        // vazia antiga mantida pelo URLCache do dispositivo.
+        try await request(
+            mapSummaryURL(office: office, round: round, includeResults: includeResults),
+            cachePolicy: .reloadIgnoringLocalCacheData
+        )
     }
 
     func cachedMapSummary(office: Office, round: ElectionRound, includeResults: Bool = false) -> MapSummary? {
@@ -119,10 +124,13 @@ actor APIClient {
         }
     }
 
-    private func request<T: Decodable>(_ url: URL) async throws -> T {
+    private func request<T: Decodable>(
+        _ url: URL,
+        cachePolicy: NSURLRequest.CachePolicy = .useProtocolCachePolicy
+    ) async throws -> T {
         var request = URLRequest(url: url)
         request.timeoutInterval = 20
-        request.cachePolicy = .useProtocolCachePolicy
+        request.cachePolicy = cachePolicy
         let (data, response) = try await URLSession.shared.data(for: request)
         guard let http = response as? HTTPURLResponse, 200..<300 ~= http.statusCode else {
             throw URLError(.badServerResponse)

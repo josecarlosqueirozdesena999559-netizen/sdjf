@@ -128,7 +128,8 @@ struct MapScreen: View {
         let currentOffice = office
         let currentRound = round
         let currentModeKey = modeKey
-        if let cached = await APIClient.shared.cachedMapSummary(office: currentOffice, round: currentRound) {
+        if let cached = await APIClient.shared.cachedMapSummary(office: currentOffice, round: currentRound),
+           !cached.cores.isEmpty {
             applyMapSummary(cached, modeKey: currentModeKey)
         }
         if let summary = try? await APIClient.shared.mapSummary(office: currentOffice, round: currentRound) {
@@ -141,8 +142,13 @@ struct MapScreen: View {
         // O endpoint leve do mapa entrega somente as cores. O servidor só inclui
         // uma UF quando existem votos reais e a cor pertence ao líder daquele turno.
         let hasReportedResults = !summary.cores.isEmpty
-        hasResultsByMode[modeKey] = hasReportedResults
-        saveColors(hasReportedResults ? summary.cores : [:], for: modeKey)
+        if hasReportedResults {
+            hasResultsByMode[modeKey] = true
+            saveColors(summary.cores, for: modeKey)
+        } else if colorsByMode[modeKey]?.isEmpty != false {
+            hasResultsByMode[modeKey] = false
+            saveColors([:], for: modeKey)
+        }
     }
 
     private func closeDetails() {
@@ -230,7 +236,12 @@ struct BrazilMapView: UIViewRepresentable {
         func paint(in webView: WKWebView) {
             let data = (try? JSONSerialization.data(withJSONObject: parent.colors)) ?? Data("{}".utf8)
             let json = String(data: data, encoding: .utf8) ?? "{}"
-            webView.evaluateJavaScript("paint(\(json))")
+            webView.evaluateJavaScript("typeof paint === 'function' ? paint(\(json)) : false") { _, error in
+                guard error != nil else { return }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak webView] in
+                    webView?.evaluateJavaScript("typeof paint === 'function' && paint(\(json))")
+                }
+            }
         }
 
         func userContentController(_ userContentController: WKUserContentController, didReceive message: WKScriptMessage) {
