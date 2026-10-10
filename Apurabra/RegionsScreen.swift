@@ -133,9 +133,7 @@ private final class RegionsStore: ObservableObject {
 
         let totalized = results.reduce(0) { $0 + $1.secoesTotalizadas }
         let total = results.reduce(0) { $0 + $1.secoesTotal }
-        let countText = round == .second && !results.contains(where: \.hasReportedResults)
-            ? "\(totalized.ptBR) seções totalizadas"
-            : "\(totalized.ptBR) de \(total.ptBR) seções totalizadas"
+        let countText = "\(totalized.ptBR) de \(total.ptBR) seções apuradas"
         let updatedAt = results.max { $0.atualizadoEm < $1.atualizadoEm }?.atualizadoEmFormatado
         let updateText = updatedAt.map { " · Atualizado: \($0)" } ?? ""
         return "TSE · \(countText)\(updateText)"

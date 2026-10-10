@@ -81,9 +81,7 @@ struct ResultsScreen: View {
         HStack {
             Text("\(result.cargoNome) · \(result.abrangencia.nome) · \(round.title)").font(.headline)
             Spacer()
-            if result.hasReportedResults {
-                Text("Válidos: \(result.votosValidos.ptBR)").font(.caption).foregroundStyle(.secondary)
-            }
+            Text("Válidos: \(result.votosValidos.ptBR)").font(.caption).foregroundStyle(.secondary)
         }
         .padding(.horizontal)
 
@@ -112,17 +110,10 @@ struct TSEApurationSummary: View {
                     .foregroundStyle(AppTheme.purple)
             }
             ProgressView(value: result.progress).tint(AppTheme.purple)
-            if result.turno == 2 && !result.hasReportedResults {
-                Text("\(result.secoesTotalizadas.ptBR) seções totalizadas")
-                    .font(.caption).foregroundStyle(.secondary)
-            } else {
-                Text("\(result.secoesTotalizadas.ptBR) de \(result.secoesTotal.ptBR) seções totalizadas")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
-            if result.hasReportedResults {
-                Text("Votos válidos: \(result.votosValidos.ptBR)")
-                    .font(.caption).foregroundStyle(.secondary)
-            }
+            Text("\(result.secoesTotalizadas.ptBR) de \(result.secoesTotal.ptBR) seções apuradas")
+                .font(.caption).foregroundStyle(.secondary)
+            Text("Votos válidos: \(result.votosValidos.ptBR)")
+                .font(.caption).foregroundStyle(.secondary)
             Text("Última atualização: \(result.atualizadoEmFormatado)")
                 .font(.caption).foregroundStyle(.secondary)
             if let message = result.mensagem {
