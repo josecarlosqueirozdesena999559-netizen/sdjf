@@ -129,18 +129,18 @@ struct MapScreen: View {
         let currentRound = round
         let currentModeKey = modeKey
         if let cached = await APIClient.shared.cachedMapSummary(office: currentOffice, round: currentRound) {
-            applyMapSummary(cached, modeKey: currentModeKey, round: currentRound)
+            applyMapSummary(cached, modeKey: currentModeKey)
         }
         if let summary = try? await APIClient.shared.mapSummary(office: currentOffice, round: currentRound) {
             guard office == currentOffice, round == currentRound else { return }
-            applyMapSummary(summary, modeKey: currentModeKey, round: currentRound)
+            applyMapSummary(summary, modeKey: currentModeKey)
         }
     }
 
-    private func applyMapSummary(_ summary: MapSummary, modeKey: String, round: ElectionRound) {
-        let results = summary.resultados.map { Array($0.values) } ?? []
-        let belongsToRound = !results.isEmpty && results.allSatisfy { $0.belongs(to: round) }
-        let hasReportedResults = belongsToRound && results.contains(where: \.hasReportedResults)
+    private func applyMapSummary(_ summary: MapSummary, modeKey: String) {
+        // O endpoint leve do mapa entrega somente as cores. O servidor só inclui
+        // uma UF quando existem votos reais e a cor pertence ao líder daquele turno.
+        let hasReportedResults = !summary.cores.isEmpty
         hasResultsByMode[modeKey] = hasReportedResults
         saveColors(hasReportedResults ? summary.cores : [:], for: modeKey)
     }
