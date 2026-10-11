@@ -49,7 +49,9 @@ final class NotificationManager: NSObject, UNUserNotificationCenterDelegate {
         willPresent notification: UNNotification,
         withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void
     ) {
-        completionHandler([.banner, .sound, .badge])
+        // Com o aplicativo aberto, a própria tela já mostra os dados atualizados.
+        // O banner é reservado para quando o usuário estiver fora do Apurabra.
+        completionHandler([])
     }
 }
 
