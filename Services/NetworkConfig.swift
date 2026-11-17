@@ -1,11 +1,29 @@
 import Foundation
 
 enum NetworkConfig {
-    /// Reads API_BASE_URL from Info.plist when configured, otherwise falls back to defaultURL.
-    /// For TestFlight on any network (4G/5G/external Wi-Fi), set this to your HTTPS tunnel or VPS URL.
+    /// Default live server URL (updated for TestFlight builds).
     static let defaultURL = "https://scope-consideration-paragraphs-finally.trycloudflare.com"
+    private static let overrideKey = "api_base_url_override"
+
+    static var customURL: String? {
+        get {
+            let val = UserDefaults.standard.string(forKey: overrideKey)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            return (val?.isEmpty == false) ? val : nil
+        }
+        set {
+            let trimmed = newValue?.trimmingCharacters(in: .whitespacesAndNewlines)
+            if let trimmed, !trimmed.isEmpty {
+                UserDefaults.standard.set(trimmed, forKey: overrideKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: overrideKey)
+            }
+        }
+    }
 
     static var baseURL: URL {
+        if let custom = customURL, let url = URL(string: custom) {
+            return url
+        }
         if let plistValue = Bundle.main.object(forInfoDictionaryKey: "API_BASE_URL") as? String,
            !plistValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
            let url = URL(string: plistValue) {
