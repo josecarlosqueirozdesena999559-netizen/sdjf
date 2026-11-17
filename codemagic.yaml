@@ -40,6 +40,11 @@ workflows:
         script: |
           xcode-project use-profiles
 
+      - name: Set build version
+        script: |
+          agvtool new-marketing-version 1.0.17
+          agvtool new-version -all 121
+
       - name: Build IPA
         script: |
           xcode-project build-ipa \
