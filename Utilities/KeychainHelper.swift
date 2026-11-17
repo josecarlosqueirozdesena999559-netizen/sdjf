@@ -2,7 +2,7 @@ import Foundation
 import Security
 
 enum KeychainHelper {
-    private static let service = "com.template.ProjetoRelacionamento"
+    private static let service = "com.achou.com"
 
     static func save(_ value: String, forKey key: String) {
         guard let data = value.data(using: .utf8) else { return }
