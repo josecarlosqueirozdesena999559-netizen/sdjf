@@ -3,7 +3,7 @@ import Foundation
 enum NetworkConfig {
     /// Reads API_BASE_URL from Info.plist when configured, otherwise falls back to defaultURL.
     /// For TestFlight on any network (4G/5G/external Wi-Fi), set this to your HTTPS tunnel or VPS URL.
-    static let defaultURL = "https://ant-lead-ctrl-both.trycloudflare.com"
+    static let defaultURL = "https://scope-consideration-paragraphs-finally.trycloudflare.com"
 
     static var baseURL: URL {
         if let plistValue = Bundle.main.object(forInfoDictionaryKey: "API_BASE_URL") as? String,
