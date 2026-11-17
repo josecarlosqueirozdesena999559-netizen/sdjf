@@ -43,7 +43,7 @@ workflows:
       - name: Set build version
         script: |
           agvtool new-marketing-version 1.0.17
-          agvtool new-version -all 121
+          agvtool new-version -all $((121 + ${PROJECT_BUILD_NUMBER:-1}))
 
       - name: Build IPA
         script: |
