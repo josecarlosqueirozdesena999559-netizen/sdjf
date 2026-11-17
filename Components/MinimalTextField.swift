@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 struct MinimalTextField: View {
     let label: String
@@ -7,6 +8,7 @@ struct MinimalTextField: View {
     var keyboardType: UIKeyboardType = .default
     var textContentType: UITextContentType? = nil
     var autocapitalization: TextInputAutocapitalization = .sentences
+    var disableAutocorrection: Bool = false
     var isSecure: Bool = false
     @State private var revealPassword: Bool = false
 
@@ -29,7 +31,7 @@ struct MinimalTextField: View {
                 .keyboardType(keyboardType)
                 .textContentType(textContentType)
                 .textInputAutocapitalization(autocapitalization)
-                .autocorrectionDisabled(isSecure || keyboardType == .emailAddress || autocapitalization == .never)
+                .autocorrectionDisabled(isSecure || keyboardType == .emailAddress || disableAutocorrection)
 
                 if isSecure {
                     Button {

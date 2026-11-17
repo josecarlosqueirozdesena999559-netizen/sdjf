@@ -49,7 +49,8 @@ struct CreateAccountView: View {
                             placeholder: "ex: seu.nome",
                             text: $viewModel.username,
                             textContentType: .username,
-                            autocapitalization: .never
+                            autocapitalization: .never,
+                            disableAutocorrection: true
                         )
 
                         usernameFeedbackView
