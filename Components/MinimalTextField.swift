@@ -87,19 +87,9 @@ struct OnboardingProgressHeader: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Voltar")
-                } else {
-                    Color.clear.frame(width: 38, height: 38)
                 }
 
                 Spacer()
-
-                Text("Etapa \(currentStep) de \(totalSteps)")
-                    .font(AppTheme.Typography.caption())
-                    .foregroundStyle(AppTheme.Colors.textGray)
-
-                Spacer()
-
-                Color.clear.frame(width: 38, height: 38)
             }
 
             GeometryReader { geo in

@@ -8,16 +8,10 @@ struct AboutYouView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Conte um pouco sobre você.")
-                    .font(AppTheme.Typography.largeTitle())
-                    .foregroundStyle(AppTheme.Colors.darkGray)
-
-                Text("Uma pequena descrição pode fazer toda a diferença.")
-                    .font(AppTheme.Typography.body())
-                    .foregroundStyle(AppTheme.Colors.textGray)
-            }
-            .padding(.top, 12)
+            Text("Sobre você")
+                .font(AppTheme.Typography.largeTitle())
+                .foregroundStyle(AppTheme.Colors.darkGray)
+                .padding(.top, 12)
 
             ZStack(alignment: .topLeading) {
                 TextEditor(text: $viewModel.bio)

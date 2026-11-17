@@ -11,16 +11,10 @@ struct AgeConfirmationView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Antes de continuar...")
-                    .font(AppTheme.Typography.largeTitle())
-                    .foregroundStyle(AppTheme.Colors.darkGray)
-
-                Text("Precisamos confirmar que você tem 18 anos ou mais.")
-                    .font(AppTheme.Typography.body())
-                    .foregroundStyle(AppTheme.Colors.textGray)
-            }
-            .padding(.top, 12)
+            Text("Data de nascimento")
+                .font(AppTheme.Typography.largeTitle())
+                .foregroundStyle(AppTheme.Colors.darkGray)
+                .padding(.top, 12)
 
             VStack(spacing: 14) {
                 HStack {

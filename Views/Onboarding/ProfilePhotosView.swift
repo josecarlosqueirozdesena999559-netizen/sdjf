@@ -13,16 +13,10 @@ struct ProfilePhotosView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Vamos escolher suas fotos?")
-                    .font(AppTheme.Typography.largeTitle())
-                    .foregroundStyle(AppTheme.Colors.darkGray)
-
-                Text("Adicione fotos para que outras pessoas possam conhecer você.")
-                    .font(AppTheme.Typography.body())
-                    .foregroundStyle(AppTheme.Colors.textGray)
-            }
-            .padding(.top, 12)
+            Text("Suas fotos")
+                .font(AppTheme.Typography.largeTitle())
+                .foregroundStyle(AppTheme.Colors.darkGray)
+                .padding(.top, 12)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 14) {

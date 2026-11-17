@@ -177,6 +177,19 @@ final class RemoteAuthService: AuthServiceProtocol {
         return res.available
     }
 
+    func lookupUserPreview(_ identifier: String) async throws -> UserLookupPreview {
+        let cleaned = identifier.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        guard cleaned.count >= 3 else {
+            return UserLookupPreview(found: false, fullName: nil, username: nil, avatarUrl: nil)
+        }
+        let encoded = cleaned.addingPercentEncoding(withAllowedCharacters: .urlPathAllowed) ?? cleaned
+        return try await APIClient.shared.request(
+            path: "/auth/lookup/\(encoded)",
+            method: "GET",
+            requiresAuth: false
+        )
+    }
+
     func login(identifier: String, password: String) async throws -> UserProfile {
         let res: RegisterResponse = try await APIClient.shared.request(
             path: "/auth/login",

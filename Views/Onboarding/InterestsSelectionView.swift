@@ -50,16 +50,10 @@ struct InterestsSelectionView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("O que você gosta de fazer?")
-                    .font(AppTheme.Typography.largeTitle())
-                    .foregroundStyle(AppTheme.Colors.darkGray)
-
-                Text("Escolha seus interesses para encontrar pessoas com afinidades.")
-                    .font(AppTheme.Typography.body())
-                    .foregroundStyle(AppTheme.Colors.textGray)
-            }
-            .padding(.top, 12)
+            Text("Interesses")
+                .font(AppTheme.Typography.largeTitle())
+                .foregroundStyle(AppTheme.Colors.darkGray)
+                .padding(.top, 12)
 
             HStack {
                 Text("Selecionados: \(viewModel.selectedInterests.count)/10")

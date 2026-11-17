@@ -11,6 +11,14 @@ final class MockAuthService: AuthServiceProtocol {
         return !takenUsernames.contains(normalized)
     }
 
+    func lookupUserPreview(_ identifier: String) async throws -> UserLookupPreview {
+        let normalized = identifier.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if normalized == "alice.sp" || normalized == "alice@teste.com" {
+            return UserLookupPreview(found: true, fullName: "Alice Oliveira", username: "alice.sp", avatarUrl: nil)
+        }
+        return UserLookupPreview(found: false, fullName: nil, username: nil, avatarUrl: nil)
+    }
+
     func login(identifier: String, password: String) async throws -> UserProfile {
         try await Task.sleep(for: .milliseconds(300))
         return UserProfile(

@@ -6,16 +6,10 @@ struct TermsOfUseView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Quase lá!")
-                    .font(AppTheme.Typography.largeTitle())
-                    .foregroundStyle(AppTheme.Colors.darkGray)
-
-                Text("Revise nossos termos e diretrizes antes de continuar.")
-                    .font(AppTheme.Typography.body())
-                    .foregroundStyle(AppTheme.Colors.textGray)
-            }
-            .padding(.top, 12)
+            Text("Termos de uso")
+                .font(AppTheme.Typography.largeTitle())
+                .foregroundStyle(AppTheme.Colors.darkGray)
+                .padding(.top, 12)
 
             ScrollView {
                 VStack(spacing: 10) {

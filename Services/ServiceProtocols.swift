@@ -6,8 +6,16 @@ enum SwipeDecision: String, Codable {
     case highlight
 }
 
+struct UserLookupPreview: Decodable, Equatable {
+    let found: Bool
+    let fullName: String?
+    let username: String?
+    let avatarUrl: String?
+}
+
 protocol AuthServiceProtocol {
     func checkUsernameAvailability(_ username: String) async throws -> Bool
+    func lookupUserPreview(_ identifier: String) async throws -> UserLookupPreview
     func login(identifier: String, password: String) async throws -> UserProfile
     func registerAccount(
         fullName: String,

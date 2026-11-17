@@ -5,20 +5,14 @@ struct AccountStepFullNameView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Vamos começar!")
-                    .font(AppTheme.Typography.largeTitle())
-                    .foregroundStyle(AppTheme.Colors.darkGray)
-
-                Text("Qual é o seu nome completo?")
-                    .font(AppTheme.Typography.body())
-                    .foregroundStyle(AppTheme.Colors.textGray)
-            }
-            .padding(.top, 12)
+            Text("Nome completo")
+                .font(AppTheme.Typography.largeTitle())
+                .foregroundStyle(AppTheme.Colors.darkGray)
+                .padding(.top, 12)
 
             MinimalTextField(
                 label: "Nome completo",
-                placeholder: "Seu nome completo",
+                placeholder: "Digite seu nome",
                 text: $viewModel.fullName,
                 textContentType: .name,
                 autocapitalization: .words
@@ -42,21 +36,15 @@ struct AccountStepEmailView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Qual é o seu e-mail?")
-                    .font(AppTheme.Typography.largeTitle())
-                    .foregroundStyle(AppTheme.Colors.darkGray)
-
-                Text("Usaremos para proteger e acessar sua conta.")
-                    .font(AppTheme.Typography.body())
-                    .foregroundStyle(AppTheme.Colors.textGray)
-            }
-            .padding(.top, 12)
+            Text("E-mail")
+                .font(AppTheme.Typography.largeTitle())
+                .foregroundStyle(AppTheme.Colors.darkGray)
+                .padding(.top, 12)
 
             VStack(alignment: .leading, spacing: 6) {
                 MinimalTextField(
                     label: "E-mail",
-                    placeholder: "voce@exemplo.com",
+                    placeholder: "Digite seu e-mail",
                     text: $viewModel.email,
                     keyboardType: .emailAddress,
                     textContentType: .emailAddress,
@@ -89,21 +77,15 @@ struct AccountStepUsernameView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Nome de usuário")
-                    .font(AppTheme.Typography.largeTitle())
-                    .foregroundStyle(AppTheme.Colors.darkGray)
-
-                Text("Escolha um identificador único para o seu perfil.")
-                    .font(AppTheme.Typography.body())
-                    .foregroundStyle(AppTheme.Colors.textGray)
-            }
-            .padding(.top, 12)
+            Text("Nome de usuário")
+                .font(AppTheme.Typography.largeTitle())
+                .foregroundStyle(AppTheme.Colors.darkGray)
+                .padding(.top, 12)
 
             VStack(alignment: .leading, spacing: 6) {
                 MinimalTextField(
                     label: "Nome de usuário",
-                    placeholder: "ex: seu.nome",
+                    placeholder: "Digite um nome de usuário",
                     text: $viewModel.username,
                     textContentType: .username,
                     autocapitalization: .never,
@@ -171,16 +153,10 @@ struct AccountStepPasswordView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Crie uma senha")
-                    .font(AppTheme.Typography.largeTitle())
-                    .foregroundStyle(AppTheme.Colors.darkGray)
-
-                Text("Use pelo menos 8 caracteres para sua segurança.")
-                    .font(AppTheme.Typography.body())
-                    .foregroundStyle(AppTheme.Colors.textGray)
-            }
-            .padding(.top, 12)
+            Text("Senha")
+                .font(AppTheme.Typography.largeTitle())
+                .foregroundStyle(AppTheme.Colors.darkGray)
+                .padding(.top, 12)
 
             VStack(alignment: .leading, spacing: 8) {
                 MinimalTextField(

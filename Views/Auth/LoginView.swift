@@ -8,6 +8,8 @@ struct LoginView: View {
     @State private var password: String = ""
     @State private var isLoading: Bool = false
     @State private var errorMessage: String?
+    @State private var userPreview: UserLookupPreview?
+    @State private var lookupTask: Task<Void, Never>?
 
     init(authService: AuthServiceProtocol) {
         self.authService = authService
@@ -22,7 +24,7 @@ struct LoginView: View {
             AppTheme.Colors.background
                 .ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 18) {
                 HStack {
                     Button {
                         withAnimation(.easeInOut(duration: 0.25)) {
@@ -46,37 +48,62 @@ struct LoginView: View {
                 }
                 .padding(.top, 8)
 
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Entrar")
-                        .font(AppTheme.Typography.largeTitle())
-                        .foregroundStyle(AppTheme.Colors.darkGray)
+                Text("Entrar")
+                    .font(AppTheme.Typography.largeTitle())
+                    .foregroundStyle(AppTheme.Colors.darkGray)
 
-                    Text("Acesse sua conta para continuar.")
-                        .font(AppTheme.Typography.body())
-                        .foregroundStyle(AppTheme.Colors.textGray)
+                MinimalTextField(
+                    label: "Nome de usuário ou e-mail",
+                    placeholder: "Digite seu usuário ou e-mail",
+                    text: $identifier,
+                    keyboardType: .emailAddress,
+                    textContentType: .username,
+                    autocapitalization: .never,
+                    disableAutocorrection: true
+                )
+                .onChange(of: identifier) { _, newValue in
+                    scheduleLookup(for: newValue)
                 }
 
-                VStack(spacing: 14) {
-                    MinimalTextField(
-                        label: "E-mail ou nome de usuário",
-                        placeholder: "voce@exemplo.com",
-                        text: $identifier,
-                        keyboardType: .emailAddress,
-                        textContentType: .username,
-                        autocapitalization: .never,
-                        disableAutocorrection: true
-                    )
+                if let preview = userPreview, preview.found, let fullName = preview.fullName {
+                    HStack(spacing: 12) {
+                        avatarView(avatarUrl: preview.avatarUrl, fullName: fullName)
 
-                    MinimalTextField(
-                        label: "Senha",
-                        placeholder: "Sua senha",
-                        text: $password,
-                        textContentType: .password,
-                        autocapitalization: .never,
-                        disableAutocorrection: true,
-                        isSecure: true
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(fullName)
+                                .font(AppTheme.Typography.headline())
+                                .foregroundStyle(AppTheme.Colors.darkGray)
+                            if let uname = preview.username {
+                                Text("@\(uname)")
+                                    .font(AppTheme.Typography.caption())
+                                    .foregroundStyle(AppTheme.Colors.textGray)
+                            }
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "checkmark.circle.fill")
+                            .font(.system(size: 18))
+                            .foregroundStyle(AppTheme.Colors.successGreen)
+                    }
+                    .padding(12)
+                    .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous)
+                            .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
                     )
+                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
                 }
+
+                MinimalTextField(
+                    label: "Senha",
+                    placeholder: "Digite sua senha",
+                    text: $password,
+                    textContentType: .password,
+                    autocapitalization: .never,
+                    disableAutocorrection: true,
+                    isSecure: true
+                )
 
                 if let errorMessage {
                     Text(errorMessage)
@@ -94,6 +121,60 @@ struct LoginView: View {
                 Spacer()
             }
             .padding(.horizontal, AppTheme.Spacing.lg)
+        }
+    }
+
+    @ViewBuilder
+    private func avatarView(avatarUrl: String?, fullName: String) -> some View {
+        if let urlStr = avatarUrl, let url = URL(string: urlStr) {
+            AsyncImage(url: url) { phase in
+                switch phase {
+                case .success(let image):
+                    image
+                        .resizable()
+                        .scaledToFill()
+                default:
+                    initialsCircle(fullName: fullName)
+                }
+            }
+            .frame(width: 48, height: 48)
+            .clipShape(Circle())
+        } else {
+            initialsCircle(fullName: fullName)
+        }
+    }
+
+    private func initialsCircle(fullName: String) -> some View {
+        let initial = fullName.trimmingCharacters(in: .whitespaces).prefix(1).uppercased()
+        return ZStack {
+            Circle()
+                .fill(AppTheme.Colors.primaryRed.opacity(0.14))
+            Text(initial.isEmpty ? "?" : initial)
+                .font(AppTheme.Typography.headline())
+                .foregroundStyle(AppTheme.Colors.primaryRed)
+        }
+        .frame(width: 48, height: 48)
+    }
+
+    private func scheduleLookup(for value: String) {
+        lookupTask?.cancel()
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard trimmed.count >= 3 else {
+            withAnimation(.easeInOut(duration: 0.15)) {
+                userPreview = nil
+            }
+            return
+        }
+
+        lookupTask = Task {
+            try? await Task.sleep(for: .milliseconds(280))
+            guard !Task.isCancelled else { return }
+            if let result = try? await authService.lookupUserPreview(trimmed) {
+                guard !Task.isCancelled else { return }
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    userPreview = result.found ? result : nil
+                }
+            }
         }
     }
 
