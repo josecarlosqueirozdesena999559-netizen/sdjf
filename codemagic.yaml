@@ -1,75 +1,59 @@
 workflows:
-  ios-simulator-build:
-    name: iOS Simulator Build (Sem assinatura)
-    max_build_duration: 60
+  ios-app-store:
+    name: TestFlight iOS (com.achou.com)
+    max_build_duration: 120
     instance_type: mac_mini_m2
-    environment:
-      xcode: latest
-      vars:
-        XCODE_PROJECT: "ProjetoRelacionamento.xcodeproj"
-        XCODE_SCHEME: "ProjetoRelacionamento"
-    scripts:
-      - name: Instalar XcodeGen e gerar projeto Xcode
-        script: |
-          if ! command -v xcodegen &> /dev/null; then
-            brew install xcodegen
-          fi
-          xcodegen generate
-      - name: Compilar para Simulador iOS (iOS 17+)
-        script: |
-          xcodebuild build \
-            -project "$XCODE_PROJECT" \
-            -scheme "$XCODE_SCHEME" \
-            -sdk iphonesimulator \
-            -destination "generic/platform=iOS Simulator" \
-            -derivedDataPath build/DerivedData \
-            CODE_SIGNING_ALLOWED=NO
-    artifacts:
-      - build/DerivedData/Build/Products/Debug-iphonesimulator/*.app
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.log
 
-  ios-release-ipa:
-    name: iOS Release & TestFlight (.ipa)
-    max_build_duration: 60
-    instance_type: mac_mini_m2
     integrations:
-      app_store_connect: codemagic
+      app_store_connect: "Codemagic"
+
     environment:
       ios_signing:
         distribution_type: app_store
-        bundle_identifier: com.template.ProjetoRelacionamento
-      xcode: latest
+        bundle_identifier: com.achou.com
       vars:
         XCODE_PROJECT: "ProjetoRelacionamento.xcodeproj"
         XCODE_SCHEME: "ProjetoRelacionamento"
+      xcode: latest
+
     scripts:
-      - name: Instalar XcodeGen e gerar projeto Xcode
+      - name: Generate Xcode project
         script: |
           if ! command -v xcodegen &> /dev/null; then
             brew install xcodegen
           fi
           xcodegen generate
-      - name: Configurar perfis de assinatura
+
+      - name: Set up keychain
+        script: |
+          keychain initialize
+
+      - name: Add certificates to keychain
+        script: |
+          keychain add-certificates
+
+      - name: Check signing identities
+        script: |
+          security find-identity -v -p codesigning
+
+      - name: Set up code signing
         script: |
           xcode-project use-profiles
-      - name: Incrementar número de build
-        script: |
-          if [ -n "$APP_STORE_APPLE_ID" ]; then
-            LATEST_BUILD_NUMBER=$(app-store-connect get-latest-testflight-build-number "$APP_STORE_APPLE_ID" || echo 0)
-            agvtool new-version -all $((LATEST_BUILD_NUMBER + 1))
-          else
-            agvtool new-version -all ${PROJECT_BUILD_NUMBER:-1}
-          fi
-      - name: Gerar IPA assinado
+
+      - name: Build IPA
         script: |
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME"
+            --scheme "$XCODE_SCHEME" \
+            --config Release
+
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
     publishing:
       app_store_connect:
         auth: integration
         submit_to_testflight: true
+        submit_to_app_store: false
