@@ -1,0 +1,131 @@
+import Foundation
+
+/// Native Engine.IO v4 + Socket.IO v4 WebSocket client using URLSessionWebSocketTask.
+/// Requires zero external Swift Package dependencies.
+@MainActor
+final class RealtimeSocketClient: ObservableObject {
+    @Published private(set) var isConnected = false
+
+    var onNewMessage: ((_ conversationId: String, _ messageId: String, _ senderId: String, _ content: String, _ createdAt: Date) -> Void)?
+    var onNewMatch: ((_ matchId: String, _ conversationId: String?, _ partnerId: String) -> Void)?
+
+    private var webSocketTask: URLSessionWebSocketTask?
+    private var shouldReconnect = false
+
+    func connect() {
+        guard let token = KeychainHelper.read(forKey: "access_token") else { return }
+        shouldReconnect = true
+
+        let task = URLSession.shared.webSocketTask(with: NetworkConfig.socketWebSocketURL)
+        self.webSocketTask = task
+        task.resume()
+
+        // Send Socket.IO v4 connect packet with JWT auth payload after Engine.IO open
+        listen(task: task, token: token)
+    }
+
+    func disconnect() {
+        shouldReconnect = false
+        webSocketTask?.cancel(with: .goingAway, reason: nil)
+        webSocketTask = nil
+        isConnected = false
+    }
+
+    func sendMessage(conversationId: String, content: String, clientMessageId: String = UUID().uuidString) {
+        let payload: [String: Any] = [
+            "conversationId": conversationId,
+            "clientMessageId": clientMessageId,
+            "type": "TEXT",
+            "content": content
+        ]
+        emit(event: "message:send", data: payload)
+    }
+
+    func markRead(conversationId: String) {
+        emit(event: "message:read", data: ["conversationId": conversationId])
+    }
+
+    private func emit(event: String, data: [String: Any]) {
+        guard let jsonData = try? JSONSerialization.data(withJSONObject: [event, data]),
+              let jsonString = String(data: jsonData, encoding: .utf8) else {
+            return
+        }
+        let packet = "42" + jsonString
+        webSocketTask?.send(.string(packet)) { _ in }
+    }
+
+    private func listen(task: URLSessionWebSocketTask, token: String) {
+        task.receive { [weak self] result in
+            Task { @MainActor [weak self] in
+                guard let self else { return }
+                switch result {
+                case .success(let message):
+                    if case .string(let text) = message {
+                        self.handlePacket(text, task: task, token: token)
+                    }
+                    self.listen(task: task, token: token)
+                case .failure:
+                    self.isConnected = false
+                    if self.shouldReconnect {
+                        try? await Task.sleep(for: .seconds(3))
+                        if self.shouldReconnect {
+                            self.connect()
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func handlePacket(_ text: String, task: URLSessionWebSocketTask, token: String) {
+        // Engine.IO Open ("0{...}") -> respond with Socket.IO v4 CONNECT ("40{\"token\":\"...\"}")
+        if text.hasPrefix("0") {
+            let authPacket = "40{\"token\":\"\(token)\"}"
+            task.send(.string(authPacket)) { _ in }
+            return
+        }
+
+        // Engine.IO Ping ("2") -> Pong ("3")
+        if text == "2" {
+            task.send(.string("3")) { _ in }
+            return
+        }
+
+        // Socket.IO Connect Ack ("40{...}")
+        if text.hasPrefix("40") {
+            isConnected = true
+            return
+        }
+
+        // Socket.IO Event ("42[...]")
+        if text.hasPrefix("42") {
+            let jsonPart = String(text.dropFirst(2))
+            guard let data = jsonPart.data(using: .utf8),
+                  let array = try? JSONSerialization.jsonObject(with: data) as? [Any],
+                  let eventName = array.first as? String,
+                  let payload = array.dropFirst().first as? [String: Any] else {
+                return
+            }
+
+            switch eventName {
+            case "message:new":
+                if let conversationId = payload["conversationId"] as? String,
+                   let id = payload["id"] as? String,
+                   let senderId = payload["senderId"] as? String,
+                   let content = payload["content"] as? String {
+                    let dateStr = payload["createdAt"] as? String
+                    let date = dateStr.flatMap { ISO8601DateFormatter().date(from: $0) } ?? Date()
+                    onNewMessage?(conversationId, id, senderId, content, date)
+                }
+            case "match:new":
+                if let matchId = payload["matchId"] as? String,
+                   let partnerId = payload["partnerId"] as? String {
+                    let conversationId = payload["conversationId"] as? String
+                    onNewMatch?(matchId, conversationId, partnerId)
+                }
+            default:
+                break
+            }
+        }
+    }
+}

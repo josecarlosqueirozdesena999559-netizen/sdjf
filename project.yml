@@ -1,0 +1,25 @@
+name: ProjetoRelacionamento
+options:
+  bundleIdPrefix: com.template
+  deploymentTarget:
+    iOS: "17.0"
+targets:
+  ProjetoRelacionamento:
+    type: application
+    platform: iOS
+    sources:
+      - path: App
+      - path: Models
+      - path: Views
+      - path: ViewModels
+      - path: Components
+      - path: Services
+      - path: Resources
+      - path: Utilities
+    info:
+      path: Resources/Info.plist
+    settings:
+      base:
+        SWIFT_VERSION: "5.9"
+        TARGETED_DEVICE_FAMILY: "1"
+        IPHONEOS_DEPLOYMENT_TARGET: "17.0"
