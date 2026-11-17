@@ -3,16 +3,19 @@ import SwiftUI
 import PhotosUI
 
 enum OnboardingStep: Int, CaseIterable {
-    case createAccount = 1
-    case ageConfirmation = 2
-    case termsOfUse = 3
-    case profilePhotos = 4
-    case interests = 5
-    case aboutYou = 6
-    case permissions = 7
-    case completion = 8
+    case fullName = 1
+    case email = 2
+    case username = 3
+    case password = 4
+    case ageConfirmation = 5
+    case termsOfUse = 6
+    case profilePhotos = 7
+    case interests = 8
+    case aboutYou = 9
+    case permissions = 10
+    case completion = 11
 
-    static let visibleStepsCount = 7
+    static let visibleStepsCount = 10
 }
 
 enum UsernameAvailabilityState: Equatable {
@@ -25,7 +28,7 @@ enum UsernameAvailabilityState: Equatable {
 
 @MainActor
 final class OnboardingViewModel: ObservableObject {
-    @Published var currentStep: OnboardingStep = .createAccount
+    @Published var currentStep: OnboardingStep = .fullName
 
     // MARK: - Step 1: Create Account
     @Published var fullName: String = ""

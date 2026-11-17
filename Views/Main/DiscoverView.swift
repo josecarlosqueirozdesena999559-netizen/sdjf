@@ -47,10 +47,23 @@ struct DiscoverView: View {
             Button {
                 viewModel.actOnTopCard(.reject, appState: appState)
             } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 22, weight: .bold))
-                    .foregroundStyle(AppTheme.Colors.darkGray)
-                    .glassCircle(size: 58)
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.95), Color(hex: "E9ECF2").opacity(0.92)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    Circle()
+                        .strokeBorder(Color.white.opacity(0.85), lineWidth: 1.5)
+                    Image(systemName: "xmark")
+                        .font(.system(size: 23, weight: .bold))
+                        .foregroundStyle(Color(hex: "43464E"))
+                }
+                .frame(width: 60, height: 60)
+                .shadow(color: Color.black.opacity(0.1), radius: 12, x: 0, y: 6)
             }
             .buttonStyle(.plain)
             .disabled(viewModel.candidates.isEmpty)
@@ -65,13 +78,24 @@ struct DiscoverView: View {
                 }
                 viewModel.actOnTopCard(.like, appState: appState)
             } label: {
-                Image(systemName: "heart.fill")
-                    .font(.system(size: 28, weight: .bold))
-                    .foregroundStyle(AppTheme.Colors.white)
-                    .frame(width: 70, height: 70)
-                    .background(AppTheme.Colors.primaryRed, in: Circle())
-                    .shadow(color: AppTheme.Colors.primaryRed.opacity(0.35), radius: 14, x: 0, y: 7)
-                    .scaleEffect(likeBounce ? 1.12 : 1.0)
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [AppTheme.Colors.secondaryRed, AppTheme.Colors.primaryRed],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    Circle()
+                        .strokeBorder(Color.white.opacity(0.35), lineWidth: 1.5)
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 29, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.white)
+                }
+                .frame(width: 72, height: 72)
+                .shadow(color: AppTheme.Colors.primaryRed.opacity(0.36), radius: 14, x: 0, y: 7)
+                .scaleEffect(likeBounce ? 1.12 : 1.0)
             }
             .buttonStyle(.plain)
             .disabled(viewModel.candidates.isEmpty)
@@ -80,10 +104,23 @@ struct DiscoverView: View {
             Button {
                 viewModel.actOnTopCard(.highlight, appState: appState)
             } label: {
-                Image(systemName: "star.fill")
-                    .font(.system(size: 21, weight: .semibold))
-                    .foregroundStyle(AppTheme.Colors.primaryRed)
-                    .glassCircle(size: 58)
+                ZStack {
+                    Circle()
+                        .fill(
+                            LinearGradient(
+                                colors: [Color.white.opacity(0.95), Color(hex: "E9ECF2").opacity(0.92)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                    Circle()
+                        .strokeBorder(Color.white.opacity(0.85), lineWidth: 1.5)
+                    Image(systemName: "star.fill")
+                        .font(.system(size: 22, weight: .semibold))
+                        .foregroundStyle(Color(hex: "43464E"))
+                }
+                .frame(width: 60, height: 60)
+                .shadow(color: Color.black.opacity(0.1), radius: 12, x: 0, y: 6)
             }
             .buttonStyle(.plain)
             .disabled(viewModel.candidates.isEmpty)

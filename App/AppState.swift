@@ -31,14 +31,16 @@ struct ServiceContainer {
     )
 }
 
+enum RootRoute {
+    case welcome
+    case login
+    case onboarding
+    case main
+}
+
 @MainActor
 final class AppState: ObservableObject {
-    enum RootRoute {
-        case onboarding
-        case main
-    }
-
-    @Published var route: RootRoute = .onboarding
+    @Published var route: RootRoute = .welcome
     @Published var currentUser: UserProfile?
     @Published var matches: [MatchItem] = []
     @Published var conversations: [Conversation] = []
@@ -91,7 +93,7 @@ final class AppState: ObservableObject {
             socketClient.connect()
             route = .main
         } else {
-            route = .onboarding
+            route = .welcome
         }
     }
 
@@ -144,7 +146,7 @@ final class AppState: ObservableObject {
             matches = []
             conversations = []
             withAnimation(.easeInOut(duration: 0.3)) {
-                route = .onboarding
+                route = .welcome
             }
         }
     }

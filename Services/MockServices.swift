@@ -11,6 +11,19 @@ final class MockAuthService: AuthServiceProtocol {
         return !takenUsernames.contains(normalized)
     }
 
+    func login(identifier: String, password: String) async throws -> UserProfile {
+        try await Task.sleep(for: .milliseconds(300))
+        return UserProfile(
+            fullName: "Usuário Demonstração",
+            email: identifier,
+            username: identifier.lowercased(),
+            age: 26,
+            photos: [],
+            interests: Array(Interest.all.prefix(3)),
+            bio: ""
+        )
+    }
+
     func registerAccount(
         fullName: String,
         email: String,

@@ -17,6 +17,15 @@ enum MainTab: String, CaseIterable, Identifiable {
         }
     }
 
+    var topBarSymbol: String {
+        switch self {
+        case .discover: return "flame.fill"
+        case .matches: return "heart"
+        case .conversations: return "bubble.left"
+        case .profile: return "person"
+        }
+    }
+
     static var topTabs: [MainTab] {
         [.discover, .matches, .conversations]
     }
@@ -34,25 +43,29 @@ struct TopSegmentedNav: View {
                         selectedTab = tab
                     }
                 } label: {
-                    Text(tab.rawValue)
-                        .font(AppTheme.Typography.subheadline())
-                        .foregroundStyle(isSelected ? AppTheme.Colors.white : AppTheme.Colors.textGray)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 38)
-                        .background {
-                            if isSelected {
-                                Capsule()
-                                    .fill(AppTheme.Colors.primaryRed)
-                                    .shadow(color: AppTheme.Colors.primaryRed.opacity(0.25), radius: 8, x: 0, y: 4)
-                            } else {
-                                Capsule()
-                                    .fill(.ultraThinMaterial)
-                                    .overlay(
-                                        Capsule()
-                                            .strokeBorder(AppTheme.Colors.glassBorder, lineWidth: 1)
-                                    )
-                            }
+                    HStack(spacing: 5) {
+                        Image(systemName: tab.topBarSymbol)
+                            .font(.system(size: 13, weight: .semibold))
+                        Text(tab.rawValue)
+                            .font(AppTheme.Typography.subheadline())
+                    }
+                    .foregroundStyle(isSelected ? AppTheme.Colors.white : AppTheme.Colors.textGray)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 38)
+                    .background {
+                        if isSelected {
+                            Capsule()
+                                .fill(AppTheme.Colors.primaryRed)
+                                .shadow(color: AppTheme.Colors.primaryRed.opacity(0.25), radius: 8, x: 0, y: 4)
+                        } else {
+                            Capsule()
+                                .fill(.ultraThinMaterial)
+                                .overlay(
+                                    Capsule()
+                                        .strokeBorder(AppTheme.Colors.glassBorder, lineWidth: 1)
+                                )
                         }
+                    }
                 }
                 .buttonStyle(.plain)
             }
@@ -61,7 +74,12 @@ struct TopSegmentedNav: View {
 }
 
 struct FloatingTabBar: View {
+    @EnvironmentObject private var appState: AppState
     @Binding var selectedTab: MainTab
+
+    private var totalUnreadMessages: Int {
+        appState.conversations.reduce(0) { $0 + $1.unreadCount }
+    }
 
     var body: some View {
         HStack(spacing: 4) {
@@ -73,14 +91,30 @@ struct FloatingTabBar: View {
                     }
                 } label: {
                     VStack(spacing: 4) {
-                        Image(systemName: tab.sfSymbol)
-                            .font(.system(size: 19, weight: isSelected ? .semibold : .regular))
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: tab.sfSymbol)
+                                .font(.system(size: 19, weight: isSelected ? .semibold : .regular))
+
+                            if tab == .conversations && totalUnreadMessages > 0 {
+                                Text("\(min(totalUnreadMessages, 99))")
+                                    .font(.system(size: 10, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1)
+                                    .background(AppTheme.Colors.primaryRed, in: Capsule())
+                                    .offset(x: 10, y: -6)
+                            }
+                        }
                         Text(tab.rawValue)
                             .font(AppTheme.Typography.micro())
+
+                        Capsule()
+                            .fill(isSelected ? AppTheme.Colors.primaryRed : Color.clear)
+                            .frame(width: 24, height: 2.5)
                     }
                     .foregroundStyle(isSelected ? AppTheme.Colors.primaryRed : AppTheme.Colors.textGray)
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 9)
+                    .padding(.vertical, 7)
                 }
                 .buttonStyle(.plain)
             }

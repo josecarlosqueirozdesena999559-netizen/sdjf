@@ -1,88 +1,128 @@
 import SwiftUI
 
-struct CreateAccountView: View {
+struct AccountStepFullNameView: View {
     @ObservedObject var viewModel: OnboardingViewModel
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Vamos começar!")
-                        .font(AppTheme.Typography.largeTitle())
-                        .foregroundStyle(AppTheme.Colors.darkGray)
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Vamos começar!")
+                    .font(AppTheme.Typography.largeTitle())
+                    .foregroundStyle(AppTheme.Colors.darkGray)
 
-                    Text("Crie sua conta para conhecer novas pessoas.")
-                        .font(AppTheme.Typography.body())
-                        .foregroundStyle(AppTheme.Colors.textGray)
-                }
-                .padding(.top, 12)
-
-                VStack(spacing: 16) {
-                    MinimalTextField(
-                        label: "Nome completo",
-                        placeholder: "Seu nome completo",
-                        text: $viewModel.fullName,
-                        textContentType: .name,
-                        autocapitalization: .words
-                    )
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        MinimalTextField(
-                            label: "E-mail",
-                            placeholder: "voce@exemplo.com",
-                            text: $viewModel.email,
-                            keyboardType: .emailAddress,
-                            textContentType: .emailAddress,
-                            autocapitalization: .never
-                        )
-
-                        if !viewModel.email.isEmpty && !viewModel.isEmailValid {
-                            Text("Digite um e-mail válido.")
-                                .font(AppTheme.Typography.caption())
-                                .foregroundStyle(AppTheme.Colors.primaryRed)
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        MinimalTextField(
-                            label: "Nome de usuário",
-                            placeholder: "ex: seu.nome",
-                            text: $viewModel.username,
-                            textContentType: .username,
-                            autocapitalization: .never,
-                            disableAutocorrection: true
-                        )
-
-                        usernameFeedbackView
-                    }
-
-                    VStack(alignment: .leading, spacing: 8) {
-                        MinimalTextField(
-                            label: "Senha",
-                            placeholder: "Mínimo de 8 caracteres",
-                            text: $viewModel.password,
-                            textContentType: .newPassword,
-                            autocapitalization: .never,
-                            isSecure: true
-                        )
-
-                        passwordRequirementsView
-                    }
-                }
-
-                Spacer(minLength: 16)
-
-                PrimaryButton(
-                    title: "Continuar",
-                    isEnabled: viewModel.canAdvanceFromAccount
-                ) {
-                    viewModel.goToNextStep()
-                }
-                .padding(.bottom, 24)
+                Text("Qual é o seu nome completo?")
+                    .font(AppTheme.Typography.body())
+                    .foregroundStyle(AppTheme.Colors.textGray)
             }
-            .padding(.horizontal, AppTheme.Spacing.lg)
+            .padding(.top, 12)
+
+            MinimalTextField(
+                label: "Nome completo",
+                placeholder: "Seu nome completo",
+                text: $viewModel.fullName,
+                textContentType: .name,
+                autocapitalization: .words
+            )
+
+            PrimaryButton(
+                title: "Continuar",
+                isEnabled: viewModel.isFullNameValid
+            ) {
+                viewModel.goToNextStep()
+            }
+
+            Spacer()
         }
-        .scrollDismissesKeyboard(.interactively)
+        .padding(.horizontal, AppTheme.Spacing.lg)
+    }
+}
+
+struct AccountStepEmailView: View {
+    @ObservedObject var viewModel: OnboardingViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Qual é o seu e-mail?")
+                    .font(AppTheme.Typography.largeTitle())
+                    .foregroundStyle(AppTheme.Colors.darkGray)
+
+                Text("Usaremos para proteger e acessar sua conta.")
+                    .font(AppTheme.Typography.body())
+                    .foregroundStyle(AppTheme.Colors.textGray)
+            }
+            .padding(.top, 12)
+
+            VStack(alignment: .leading, spacing: 6) {
+                MinimalTextField(
+                    label: "E-mail",
+                    placeholder: "voce@exemplo.com",
+                    text: $viewModel.email,
+                    keyboardType: .emailAddress,
+                    textContentType: .emailAddress,
+                    autocapitalization: .never,
+                    disableAutocorrection: true
+                )
+
+                if !viewModel.email.isEmpty && !viewModel.isEmailValid {
+                    Text("Digite um e-mail válido.")
+                        .font(AppTheme.Typography.caption())
+                        .foregroundStyle(AppTheme.Colors.primaryRed)
+                }
+            }
+
+            PrimaryButton(
+                title: "Continuar",
+                isEnabled: viewModel.isEmailValid
+            ) {
+                viewModel.goToNextStep()
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, AppTheme.Spacing.lg)
+    }
+}
+
+struct AccountStepUsernameView: View {
+    @ObservedObject var viewModel: OnboardingViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Nome de usuário")
+                    .font(AppTheme.Typography.largeTitle())
+                    .foregroundStyle(AppTheme.Colors.darkGray)
+
+                Text("Escolha um identificador único para o seu perfil.")
+                    .font(AppTheme.Typography.body())
+                    .foregroundStyle(AppTheme.Colors.textGray)
+            }
+            .padding(.top, 12)
+
+            VStack(alignment: .leading, spacing: 6) {
+                MinimalTextField(
+                    label: "Nome de usuário",
+                    placeholder: "ex: seu.nome",
+                    text: $viewModel.username,
+                    textContentType: .username,
+                    autocapitalization: .never,
+                    disableAutocorrection: true
+                )
+
+                usernameFeedbackView
+            }
+
+            PrimaryButton(
+                title: "Continuar",
+                isEnabled: viewModel.usernameState == .available
+            ) {
+                viewModel.goToNextStep()
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, AppTheme.Spacing.lg)
     }
 
     @ViewBuilder
@@ -123,6 +163,49 @@ struct CreateAccountView: View {
             }
             .foregroundStyle(AppTheme.Colors.primaryRed)
         }
+    }
+}
+
+struct AccountStepPasswordView: View {
+    @ObservedObject var viewModel: OnboardingViewModel
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text("Crie uma senha")
+                    .font(AppTheme.Typography.largeTitle())
+                    .foregroundStyle(AppTheme.Colors.darkGray)
+
+                Text("Use pelo menos 8 caracteres para sua segurança.")
+                    .font(AppTheme.Typography.body())
+                    .foregroundStyle(AppTheme.Colors.textGray)
+            }
+            .padding(.top, 12)
+
+            VStack(alignment: .leading, spacing: 8) {
+                MinimalTextField(
+                    label: "Senha",
+                    placeholder: "Mínimo de 8 caracteres",
+                    text: $viewModel.password,
+                    textContentType: .newPassword,
+                    autocapitalization: .never,
+                    disableAutocorrection: true,
+                    isSecure: true
+                )
+
+                passwordRequirementsView
+            }
+
+            PrimaryButton(
+                title: "Continuar",
+                isEnabled: viewModel.isPasswordValid
+            ) {
+                viewModel.goToNextStep()
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, AppTheme.Spacing.lg)
     }
 
     private var passwordRequirementsView: some View {

@@ -8,6 +8,10 @@ struct DatingApp: App {
         WindowGroup {
             Group {
                 switch appState.route {
+                case .welcome:
+                    WelcomeView()
+                case .login:
+                    LoginView(authService: appState.services.authService)
                 case .onboarding:
                     OnboardingContainerView(
                         services: appState.services,

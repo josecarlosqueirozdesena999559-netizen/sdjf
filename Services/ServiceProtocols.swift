@@ -8,6 +8,7 @@ enum SwipeDecision: String, Codable {
 
 protocol AuthServiceProtocol {
     func checkUsernameAvailability(_ username: String) async throws -> Bool
+    func login(identifier: String, password: String) async throws -> UserProfile
     func registerAccount(
         fullName: String,
         email: String,

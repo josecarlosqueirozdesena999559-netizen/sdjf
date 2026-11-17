@@ -19,6 +19,25 @@ private struct RegisterRequest: Encodable {
     let termsAcceptedAt: Date
 }
 
+private struct LoginRequest: Encodable {
+    let identifier: String
+    let password: String
+}
+
+private struct UserMeDTO: Decodable {
+    let id: UUID
+    let fullName: String
+    let email: String
+    let username: String
+    let age: Int
+    let bio: String
+    let city: String
+    let isVerified: Bool
+    let isOnline: Bool
+    let photos: [UploadPhotoResponse.PhotoDTO]
+    let interests: [RemoteInterestDTO]
+}
+
 private struct RegisterResponse: Decodable {
     struct UserSummary: Decodable {
         let id: UUID
@@ -156,6 +175,33 @@ final class RemoteAuthService: AuthServiceProtocol {
             requiresAuth: false
         )
         return res.available
+    }
+
+    func login(identifier: String, password: String) async throws -> UserProfile {
+        let res: RegisterResponse = try await APIClient.shared.request(
+            path: "/auth/login",
+            method: "POST",
+            body: LoginRequest(identifier: identifier, password: password),
+            requiresAuth: false
+        )
+        KeychainHelper.save(res.accessToken, forKey: "access_token")
+        KeychainHelper.save(res.refreshToken, forKey: "refresh_token")
+
+        let me: UserMeDTO = try await APIClient.shared.request(path: "/users/me", method: "GET")
+        return UserProfile(
+            id: me.id,
+            fullName: me.fullName,
+            email: me.email,
+            username: me.username,
+            age: me.age,
+            photos: me.photos.map { ProfilePhoto(id: $0.id, remoteURL: $0.url) },
+            interests: me.interests.map { Interest(id: $0.slug, title: $0.name, sfSymbol: $0.icon) },
+            bio: me.bio,
+            isVerified: me.isVerified,
+            isOnline: me.isOnline,
+            distanceKm: 0,
+            city: me.city
+        )
     }
 
     func registerAccount(

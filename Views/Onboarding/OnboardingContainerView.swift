@@ -21,15 +21,29 @@ struct OnboardingContainerView: View {
                     OnboardingProgressHeader(
                         currentStep: viewModel.currentStep.rawValue,
                         totalSteps: OnboardingStep.visibleStepsCount,
-                        canGoBack: viewModel.currentStep != .createAccount,
-                        onBack: { viewModel.goToPreviousStep() }
+                        canGoBack: true,
+                        onBack: {
+                            if viewModel.currentStep == .fullName {
+                                withAnimation(.easeInOut(duration: 0.25)) {
+                                    appState.route = .welcome
+                                }
+                            } else {
+                                viewModel.goToPreviousStep()
+                            }
+                        }
                     )
                 }
 
                 Group {
                     switch viewModel.currentStep {
-                    case .createAccount:
-                        CreateAccountView(viewModel: viewModel)
+                    case .fullName:
+                        AccountStepFullNameView(viewModel: viewModel)
+                    case .email:
+                        AccountStepEmailView(viewModel: viewModel)
+                    case .username:
+                        AccountStepUsernameView(viewModel: viewModel)
+                    case .password:
+                        AccountStepPasswordView(viewModel: viewModel)
                     case .ageConfirmation:
                         AgeConfirmationView(viewModel: viewModel)
                     case .termsOfUse:

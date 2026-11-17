@@ -34,7 +34,7 @@ struct SwipeableProfileCard: View {
             )
             .allowsHitTesting(false)
 
-            // Swipe feedback stamps
+            // Top-right Online indicator + swipe feedback stamps
             VStack {
                 HStack {
                     if likeOpacity > 0.08 {
@@ -55,30 +55,28 @@ struct SwipeableProfileCard: View {
                             .padding(.vertical, 7)
                             .background(AppTheme.Colors.darkGray.opacity(0.85), in: Capsule())
                             .opacity(rejectOpacity)
+                    } else if profile.isOnline {
+                        HStack(spacing: 6) {
+                            Circle()
+                                .fill(Color.green)
+                                .frame(width: 8, height: 8)
+                            Text("Online")
+                                .font(AppTheme.Typography.micro())
+                                .foregroundStyle(.white)
+                        }
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 5)
+                        .glassPill()
                     }
                 }
-                .padding(.top, 28)
-                .padding(.horizontal, 18)
+                .padding(.top, 26)
+                .padding(.horizontal, 16)
                 Spacer()
             }
             .allowsHitTesting(false)
 
             // Overlaid profile metadata
             VStack(alignment: .leading, spacing: 10) {
-                if profile.isOnline {
-                    HStack(spacing: 6) {
-                        Circle()
-                            .fill(Color.green)
-                            .frame(width: 8, height: 8)
-                        Text("Online agora")
-                            .font(AppTheme.Typography.micro())
-                            .foregroundStyle(.white)
-                    }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .glassPill()
-                }
-
                 HStack(alignment: .center, spacing: 8) {
                     Text("\(profile.firstName), \(profile.age)")
                         .font(.system(size: 28, weight: .bold, design: .default))
@@ -87,7 +85,7 @@ struct SwipeableProfileCard: View {
                     if profile.isVerified {
                         Image(systemName: "checkmark.seal.fill")
                             .font(.system(size: 20))
-                            .foregroundStyle(AppTheme.Colors.white)
+                            .foregroundStyle(Color(hex: "3B82F6"))
                             .accessibilityLabel("Perfil verificado")
                     }
 
@@ -111,7 +109,7 @@ struct SwipeableProfileCard: View {
                 HStack(spacing: 5) {
                     Image(systemName: "location.fill")
                         .font(.system(size: 12, weight: .semibold))
-                    Text("A cerca de \(profile.distanceKm) km • \(profile.city)")
+                    Text("\(profile.distanceKm) km de você")
                         .font(AppTheme.Typography.subheadline())
                 }
                 .foregroundStyle(Color.white.opacity(0.92))
@@ -119,7 +117,7 @@ struct SwipeableProfileCard: View {
                 if !profile.interests.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack(spacing: 6) {
-                            ForEach(profile.interests.prefix(4)) { interest in
+                            ForEach(profile.interests.prefix(3)) { interest in
                                 GlassInterestChip(interest: interest)
                             }
                         }
