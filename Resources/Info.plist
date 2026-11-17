@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>API_BASE_URL</key>
-	<string>https://environmental-ski-flex-creations.trycloudflare.com</string>
+	<string>https://vampire-three-casey-newly.trycloudflare.com</string>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>pt-BR</string>
 	<key>CFBundleExecutable</key>
@@ -35,6 +35,8 @@
 	</dict>
 	<key>UILaunchScreen</key>
 	<dict/>
+	<key>UIRequiresFullScreen</key>
+	<true/>
 	<key>UISupportedInterfaceOrientations</key>
 	<array>
 		<string>UIInterfaceOrientationPortrait</string>
