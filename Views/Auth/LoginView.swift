@@ -4,9 +4,11 @@ struct LoginView: View {
     @EnvironmentObject private var appState: AppState
     private let authService: AuthServiceProtocol
 
-    @State private var identifier: String = ""
+    @State private var username: String = ""
     @State private var password: String = ""
     @State private var isLoading: Bool = false
+    @State private var isSearchingUser: Bool = false
+    @State private var userNotFound: Bool = false
     @State private var errorMessage: String?
     @State private var userPreview: UserLookupPreview?
     @State private var lookupTask: Task<Void, Never>?
@@ -16,7 +18,7 @@ struct LoginView: View {
     }
 
     private var canSubmit: Bool {
-        !identifier.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !password.isEmpty && !isLoading
+        userPreview?.found == true && !password.isEmpty && !isLoading
     }
 
     var body: some View {
@@ -53,70 +55,84 @@ struct LoginView: View {
                     .foregroundStyle(AppTheme.Colors.darkGray)
 
                 MinimalTextField(
-                    label: "Nome de usuário ou e-mail",
-                    placeholder: "Digite seu usuário ou e-mail",
-                    text: $identifier,
-                    keyboardType: .emailAddress,
+                    label: "Nome de usuário",
+                    placeholder: "Digite seu nome de usuário",
+                    text: $username,
                     textContentType: .username,
                     autocapitalization: .never,
                     disableAutocorrection: true
                 )
-                .onChange(of: identifier) { _, newValue in
+                .onChange(of: username) { _, newValue in
                     scheduleLookup(for: newValue)
                 }
 
-                if let preview = userPreview, preview.found, let fullName = preview.fullName {
-                    HStack(spacing: 12) {
-                        avatarView(avatarUrl: preview.avatarUrl, fullName: fullName)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(fullName)
-                                .font(AppTheme.Typography.headline())
-                                .foregroundStyle(AppTheme.Colors.darkGray)
-                            if let uname = preview.username {
-                                Text("@\(uname)")
-                                    .font(AppTheme.Typography.caption())
-                                    .foregroundStyle(AppTheme.Colors.textGray)
-                            }
-                        }
-
-                        Spacer()
-
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.system(size: 18))
-                            .foregroundStyle(AppTheme.Colors.successGreen)
+                if isSearchingUser {
+                    HStack(spacing: 8) {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                        Text("Procurando usuário...")
+                            .font(AppTheme.Typography.caption())
+                            .foregroundStyle(AppTheme.Colors.textGray)
                     }
-                    .padding(12)
-                    .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous)
-                            .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
-                    )
-                    .transition(.opacity.combined(with: .scale(scale: 0.98)))
-                }
-
-                MinimalTextField(
-                    label: "Senha",
-                    placeholder: "Digite sua senha",
-                    text: $password,
-                    textContentType: .password,
-                    autocapitalization: .never,
-                    disableAutocorrection: true,
-                    isSecure: true
-                )
-
-                if let errorMessage {
-                    Text(errorMessage)
+                } else if userNotFound {
+                    Text("Usuário não encontrado.")
                         .font(AppTheme.Typography.caption())
                         .foregroundStyle(AppTheme.Colors.primaryRed)
                 }
 
-                PrimaryButton(title: "Entrar", isEnabled: canSubmit, isLoading: isLoading) {
-                    Task {
-                        await submitLogin()
+                if let preview = userPreview, preview.found, let fullName = preview.fullName {
+                    VStack(alignment: .leading, spacing: 16) {
+                        HStack(spacing: 12) {
+                            avatarView(avatarUrl: preview.avatarUrl, fullName: fullName)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(fullName)
+                                    .font(AppTheme.Typography.headline())
+                                    .foregroundStyle(AppTheme.Colors.darkGray)
+                                if let uname = preview.username {
+                                    Text("@\(uname)")
+                                        .font(AppTheme.Typography.caption())
+                                        .foregroundStyle(AppTheme.Colors.textGray)
+                                }
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "checkmark.circle.fill")
+                                .font(.system(size: 18))
+                                .foregroundStyle(AppTheme.Colors.successGreen)
+                        }
+                        .padding(12)
+                        .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous)
+                                .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
+                        )
+
+                        MinimalTextField(
+                            label: "Senha",
+                            placeholder: "Digite sua senha",
+                            text: $password,
+                            textContentType: .password,
+                            autocapitalization: .never,
+                            disableAutocorrection: true,
+                            isSecure: true
+                        )
+
+                        if let errorMessage {
+                            Text(errorMessage)
+                                .font(AppTheme.Typography.caption())
+                                .foregroundStyle(AppTheme.Colors.primaryRed)
+                        }
+
+                        PrimaryButton(title: "Entrar", isEnabled: canSubmit, isLoading: isLoading) {
+                            Task {
+                                await submitLogin()
+                            }
+                        }
                     }
+                    .transition(.opacity.combined(with: .move(edge: .top)))
                 }
-                .padding(.top, 4)
 
                 Spacer()
             }
@@ -137,7 +153,7 @@ struct LoginView: View {
                     initialsCircle(fullName: fullName)
                 }
             }
-            .frame(width: 48, height: 48)
+            .frame(width: 52, height: 52)
             .clipShape(Circle())
         } else {
             initialsCircle(fullName: fullName)
@@ -153,27 +169,49 @@ struct LoginView: View {
                 .font(AppTheme.Typography.headline())
                 .foregroundStyle(AppTheme.Colors.primaryRed)
         }
-        .frame(width: 48, height: 48)
+        .frame(width: 52, height: 52)
     }
 
     private func scheduleLookup(for value: String) {
         lookupTask?.cancel()
-        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard trimmed.count >= 3 else {
+        errorMessage = nil
+        let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+
+        if trimmed.count < 3 {
             withAnimation(.easeInOut(duration: 0.15)) {
                 userPreview = nil
+                isSearchingUser = false
+                userNotFound = false
+                password = ""
             }
             return
         }
 
+        isSearchingUser = true
+        userNotFound = false
+
         lookupTask = Task {
-            try? await Task.sleep(for: .milliseconds(280))
+            try? await Task.sleep(for: .milliseconds(300))
             guard !Task.isCancelled else { return }
-            if let result = try? await authService.lookupUserPreview(trimmed) {
+            do {
+                let result = try await authService.lookupUserPreview(trimmed)
                 guard !Task.isCancelled else { return }
                 withAnimation(.easeInOut(duration: 0.2)) {
-                    userPreview = result.found ? result : nil
+                    isSearchingUser = false
+                    if result.found {
+                        userPreview = result
+                        userNotFound = false
+                    } else {
+                        userPreview = nil
+                        userNotFound = true
+                        password = ""
+                    }
                 }
+            } catch {
+                guard !Task.isCancelled else { return }
+                isSearchingUser = false
+                userPreview = nil
+                errorMessage = error.localizedDescription
             }
         }
     }
@@ -182,8 +220,9 @@ struct LoginView: View {
         isLoading = true
         errorMessage = nil
         do {
+            let identifier = userPreview?.username ?? username.trimmingCharacters(in: .whitespacesAndNewlines)
             let profile = try await authService.login(
-                identifier: identifier.trimmingCharacters(in: .whitespacesAndNewlines),
+                identifier: identifier,
                 password: password
             )
             try? await LocalUserRepository().saveProfile(profile)
