@@ -4,6 +4,7 @@ import CoreText
 @main
 struct DatingApp: App {
     @StateObject private var appState = AppState()
+    @Environment(\.scenePhase) private var scenePhase
 
     init() {
         Self.registerCustomFonts()
@@ -44,6 +45,21 @@ struct DatingApp: App {
                 }
             }
             .environmentObject(appState)
+            .onChange(of: scenePhase) { _, newPhase in
+                switch newPhase {
+                case .background, .inactive:
+                    appState.socketClient.disconnect()
+                case .active:
+                    if appState.route == .main {
+                        appState.socketClient.connect()
+                        Task {
+                            await appState.loadSocialData()
+                        }
+                    }
+                @unknown default:
+                    break
+                }
+            }
         }
     }
 }

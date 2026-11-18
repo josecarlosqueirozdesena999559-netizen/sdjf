@@ -201,12 +201,8 @@ struct ChatDetailView: View {
                             .foregroundStyle(AppTheme.Colors.darkGray)
                         if !partnerStatusText.isEmpty {
                             Text(partnerStatusText)
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(
-                                    partnerStatusText == "Online" || partnerStatusText == "Digitando..."
-                                        ? AppTheme.Colors.primaryRed
-                                        : AppTheme.Colors.textGray
-                                )
+                                .font(.system(size: 11.5, weight: .regular))
+                                .foregroundStyle(Color(hex: "9CA3AF"))
                         }
                     }
                 }

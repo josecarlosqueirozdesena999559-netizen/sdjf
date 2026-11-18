@@ -4,6 +4,7 @@ struct QuickDirectMessageSheet: View {
     let profile: UserProfile
     let onSent: () -> Void
 
+    @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
     @State private var messageText: String = ""
     @State private var isSending: Bool = false
@@ -97,6 +98,7 @@ struct QuickDirectMessageSheet: View {
                     content: trimmed
                 )
             )
+            await appState.loadSocialData()
             onSent()
             dismiss()
         } catch {
