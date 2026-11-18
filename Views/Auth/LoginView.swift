@@ -23,15 +23,7 @@ struct LoginView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    AppTheme.Colors.background,
-                    Color(red: 1.0, green: 0.94, blue: 0.95)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            AnimatedAuthBackground()
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
@@ -44,10 +36,13 @@ struct LoginView: View {
                         } label: {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(AppTheme.Colors.darkGray)
+                                .foregroundStyle(.white)
                                 .frame(width: 40, height: 40)
-                                .background(AppTheme.Colors.white, in: Circle())
-                                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
+                                .background(.ultraThinMaterial, in: Circle())
+                                .overlay(
+                                    Circle()
+                                        .strokeBorder(.white.opacity(0.25), lineWidth: 1)
+                                )
                         }
                         .buttonStyle(.plain)
                         .accessibilityLabel("Voltar")
@@ -64,17 +59,21 @@ struct LoginView: View {
                                 .scaledToFill()
                                 .frame(width: 72, height: 72)
                                 .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                                .shadow(color: AppTheme.Colors.primaryRed.opacity(0.24), radius: 14, x: 0, y: 8)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                                        .strokeBorder(.white.opacity(0.28), lineWidth: 1.5)
+                                )
+                                .shadow(color: .black.opacity(0.32), radius: 16, x: 0, y: 8)
                         }
 
                         VStack(spacing: 6) {
                             Text("Bem-vindo de volta")
                                 .font(.system(size: 28, weight: .bold, design: .rounded))
-                                .foregroundStyle(AppTheme.Colors.darkGray)
+                                .foregroundStyle(.white)
 
                             Text("Entre com seu usuário para continuar suas conexões.")
                                 .font(AppTheme.Typography.subheadline())
-                                .foregroundStyle(AppTheme.Colors.textGray)
+                                .foregroundStyle(.white.opacity(0.86))
                                 .multilineTextAlignment(.center)
                         }
                     }
@@ -192,15 +191,16 @@ struct LoginView: View {
                     // Footer link to Sign Up
                     HStack(spacing: 4) {
                         Text("Ainda não tem conta?")
-                            .foregroundStyle(AppTheme.Colors.textGray)
+                            .foregroundStyle(.white.opacity(0.85))
                         Button {
                             withAnimation(.easeInOut(duration: 0.25)) {
                                 appState.route = .onboarding
                             }
                         } label: {
                             Text("Criar agora")
-                                .fontWeight(.semibold)
-                                .foregroundStyle(AppTheme.Colors.primaryRed)
+                                .fontWeight(.bold)
+                                .foregroundStyle(.white)
+                                .underline()
                         }
                     }
                     .font(AppTheme.Typography.subheadline())

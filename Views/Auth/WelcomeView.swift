@@ -6,15 +6,7 @@ struct WelcomeView: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(
-                colors: [
-                    AppTheme.Colors.background,
-                    Color(red: 1.0, green: 0.94, blue: 0.95)
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            AnimatedAuthBackground()
 
             VStack(spacing: 24) {
                 HStack {
@@ -24,12 +16,12 @@ struct WelcomeView: View {
                     } label: {
                         Image(systemName: "network")
                             .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(AppTheme.Colors.textGray)
+                            .foregroundStyle(.white)
                             .frame(width: 38, height: 38)
-                            .background(AppTheme.Colors.white, in: Circle())
+                            .background(.ultraThinMaterial, in: Circle())
                             .overlay(
                                 Circle()
-                                    .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
+                                    .strokeBorder(.white.opacity(0.25), lineWidth: 1)
                             )
                     }
                     .buttonStyle(.plain)
@@ -40,24 +32,28 @@ struct WelcomeView: View {
 
                 Spacer()
 
-                VStack(spacing: 20) {
+                VStack(spacing: 18) {
                     if let logoName = BrandIdentitySlot.logoImageName {
                         Image(logoName)
                             .resizable()
                             .scaledToFill()
-                            .frame(width: 112, height: 112)
+                            .frame(width: 108, height: 108)
                             .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
-                            .shadow(color: AppTheme.Colors.primaryRed.opacity(0.28), radius: 20, x: 0, y: 10)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                    .strokeBorder(.white.opacity(0.28), lineWidth: 1.5)
+                            )
+                            .shadow(color: .black.opacity(0.35), radius: 22, x: 0, y: 12)
                     }
 
                     VStack(spacing: 8) {
                         Text(BrandIdentitySlot.appName ?? "Mytch")
-                            .font(.system(size: 36, weight: .heavy, design: .rounded))
-                            .foregroundStyle(AppTheme.Colors.darkGray)
+                            .font(.system(size: 38, weight: .heavy, design: .rounded))
+                            .foregroundStyle(.white)
 
                         Text("Conexões reais, simples e do seu jeito.")
                             .font(AppTheme.Typography.body())
-                            .foregroundStyle(AppTheme.Colors.textGray)
+                            .foregroundStyle(.white.opacity(0.88))
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 32)
                     }
@@ -72,11 +68,23 @@ struct WelcomeView: View {
                         }
                     }
 
-                    SecondaryOutlineButton(title: "Entrar") {
+                    Button {
                         withAnimation(.easeInOut(duration: 0.25)) {
                             appState.route = .login
                         }
+                    } label: {
+                        Text("Entrar")
+                            .font(AppTheme.Typography.headline())
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 54)
+                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous)
+                                    .strokeBorder(.white.opacity(0.35), lineWidth: 1)
+                            )
                     }
+                    .buttonStyle(.plain)
                 }
                 .padding(.horizontal, AppTheme.Spacing.lg)
                 .padding(.bottom, 32)
