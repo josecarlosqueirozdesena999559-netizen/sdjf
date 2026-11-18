@@ -2,7 +2,7 @@ import Foundation
 
 enum NetworkConfig {
     /// Default live server URL (updated for TestFlight builds).
-    static let defaultURL = "https://leu-theater-jill-core.trycloudflare.com"
+    static let defaultURL = "https://programme-rose-ten-similarly.trycloudflare.com"
     private static let overrideKey = "api_base_url_override"
 
     static var customURL: String? {
