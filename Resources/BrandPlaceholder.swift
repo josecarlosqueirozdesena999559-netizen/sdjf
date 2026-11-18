@@ -4,7 +4,7 @@ import SwiftUI
 /// Intentionally left without a name or logo so the final brand identity can be plugged in later.
 enum BrandIdentitySlot {
     static let appName: String? = "Mytch"
-    static let logoImageName: String? = nil
+    static let logoImageName: String? = "MytchLogo"
 }
 
 /// Reserved slot in the top header for the future logo.
@@ -14,7 +14,8 @@ struct ReservedLogoSlot: View {
             if let logoName = BrandIdentitySlot.logoImageName {
                 Image(logoName)
                     .resizable()
-                    .scaledToFit()
+                    .scaledToFill()
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             } else {
                 // Intentionally neutral reserved space for future brand mark
                 RoundedRectangle(cornerRadius: 10, style: .continuous)

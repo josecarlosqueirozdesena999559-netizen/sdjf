@@ -6,8 +6,15 @@ struct WelcomeView: View {
 
     var body: some View {
         ZStack {
-            AppTheme.Colors.background
-                .ignoresSafeArea()
+            LinearGradient(
+                colors: [
+                    AppTheme.Colors.background,
+                    Color(red: 1.0, green: 0.94, blue: 0.95)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
             VStack(spacing: 24) {
                 HStack {
@@ -33,36 +40,27 @@ struct WelcomeView: View {
 
                 Spacer()
 
-                VStack(spacing: 16) {
+                VStack(spacing: 20) {
                     if let logoName = BrandIdentitySlot.logoImageName {
                         Image(logoName)
                             .resizable()
-                            .scaledToFit()
-                            .frame(width: 88, height: 88)
-                    } else {
-                        RoundedRectangle(cornerRadius: 24, style: .continuous)
-                            .fill(.ultraThinMaterial)
-                            .frame(width: 88, height: 88)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 24, style: .continuous)
-                                    .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
-                            )
+                            .scaledToFill()
+                            .frame(width: 112, height: 112)
+                            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                            .shadow(color: AppTheme.Colors.primaryRed.opacity(0.28), radius: 20, x: 0, y: 10)
                     }
 
-                    if let name = BrandIdentitySlot.appName {
-                        Text(name)
-                            .font(.system(size: 30, weight: .bold, design: .default))
+                    VStack(spacing: 8) {
+                        Text(BrandIdentitySlot.appName ?? "Mytch")
+                            .font(.system(size: 36, weight: .heavy, design: .rounded))
                             .foregroundStyle(AppTheme.Colors.darkGray)
-                    } else {
-                        Color.clear
-                            .frame(height: 36)
-                    }
 
-                    Text("Conexões reais, simples e do seu jeito.")
-                        .font(AppTheme.Typography.body())
-                        .foregroundStyle(AppTheme.Colors.textGray)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 24)
+                        Text("Conexões reais, simples e do seu jeito.")
+                            .font(AppTheme.Typography.body())
+                            .foregroundStyle(AppTheme.Colors.textGray)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
+                    }
                 }
 
                 Spacer()
