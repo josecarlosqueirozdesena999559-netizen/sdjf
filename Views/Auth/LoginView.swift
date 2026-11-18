@@ -23,120 +23,194 @@ struct LoginView: View {
 
     var body: some View {
         ZStack {
-            AppTheme.Colors.background
-                .ignoresSafeArea()
+            LinearGradient(
+                colors: [
+                    AppTheme.Colors.background,
+                    Color(red: 1.0, green: 0.94, blue: 0.95)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
 
-            VStack(alignment: .leading, spacing: 18) {
-                HStack {
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.25)) {
-                            appState.route = .welcome
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 24) {
+                    // Top bar
+                    HStack {
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                appState.route = .welcome
+                            }
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundStyle(AppTheme.Colors.darkGray)
+                                .frame(width: 40, height: 40)
+                                .background(AppTheme.Colors.white, in: Circle())
+                                .shadow(color: .black.opacity(0.05), radius: 8, x: 0, y: 4)
                         }
-                    } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(AppTheme.Colors.darkGray)
-                            .frame(width: 38, height: 38)
-                            .background(AppTheme.Colors.white, in: Circle())
-                            .overlay(
-                                Circle()
-                                    .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
-                            )
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Voltar")
+
+                        Spacer()
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Voltar")
+                    .padding(.top, 8)
 
-                    Spacer()
-                }
-                .padding(.top, 8)
+                    // Brand Hero Header
+                    VStack(spacing: 14) {
+                        if let logoName = BrandIdentitySlot.logoImageName {
+                            Image(logoName)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(width: 72, height: 72)
+                                .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                                .shadow(color: AppTheme.Colors.primaryRed.opacity(0.24), radius: 14, x: 0, y: 8)
+                        }
 
-                Text("Entrar")
-                    .font(AppTheme.Typography.largeTitle())
-                    .foregroundStyle(AppTheme.Colors.darkGray)
+                        VStack(spacing: 6) {
+                            Text("Bem-vindo de volta")
+                                .font(.system(size: 28, weight: .bold, design: .rounded))
+                                .foregroundStyle(AppTheme.Colors.darkGray)
 
-                MinimalTextField(
-                    label: "Nome de usuário",
-                    placeholder: "Digite seu nome de usuário",
-                    text: $username,
-                    textContentType: .username,
-                    autocapitalization: .never,
-                    disableAutocorrection: true
-                )
-                .onChange(of: username) { _, newValue in
-                    scheduleLookup(for: newValue)
-                }
-
-                if isSearchingUser {
-                    HStack(spacing: 8) {
-                        ProgressView()
-                            .scaleEffect(0.8)
-                        Text("Procurando usuário...")
-                            .font(AppTheme.Typography.caption())
-                            .foregroundStyle(AppTheme.Colors.textGray)
+                            Text("Entre com seu usuário para continuar suas conexões.")
+                                .font(AppTheme.Typography.subheadline())
+                                .foregroundStyle(AppTheme.Colors.textGray)
+                                .multilineTextAlignment(.center)
+                        }
                     }
-                } else if userNotFound {
-                    Text("Usuário não encontrado.")
-                        .font(AppTheme.Typography.caption())
-                        .foregroundStyle(AppTheme.Colors.primaryRed)
-                }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 4)
 
-                if let preview = userPreview, preview.found, let fullName = preview.fullName {
-                    VStack(alignment: .leading, spacing: 16) {
-                        HStack(spacing: 12) {
-                            avatarView(avatarUrl: preview.avatarUrl, fullName: fullName)
+                    // Main Auth Card
+                    VStack(alignment: .leading, spacing: 18) {
+                        MinimalTextField(
+                            label: "Nome de usuário",
+                            placeholder: "Digite seu @usuário",
+                            text: $username,
+                            textContentType: .username,
+                            autocapitalization: .never,
+                            disableAutocorrection: true
+                        )
+                        .onChange(of: username) { _, newValue in
+                            scheduleLookup(for: newValue)
+                        }
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(fullName)
-                                    .font(AppTheme.Typography.headline())
-                                    .foregroundStyle(AppTheme.Colors.darkGray)
-                                if let uname = preview.username {
-                                    Text("@\(uname)")
-                                        .font(AppTheme.Typography.caption())
-                                        .foregroundStyle(AppTheme.Colors.textGray)
+                        if isSearchingUser {
+                            HStack(spacing: 10) {
+                                ProgressView()
+                                    .tint(AppTheme.Colors.primaryRed)
+                                    .scaleEffect(0.85)
+                                Text("Procurando seu perfil...")
+                                    .font(AppTheme.Typography.caption())
+                                    .foregroundStyle(AppTheme.Colors.textGray)
+                            }
+                            .padding(.horizontal, 4)
+                        } else if userNotFound {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .font(.system(size: 13))
+                                Text("Usuário não encontrado.")
+                                    .font(AppTheme.Typography.caption())
+                            }
+                            .foregroundStyle(AppTheme.Colors.primaryRed)
+                            .padding(.horizontal, 4)
+                        }
+
+                        if let preview = userPreview, preview.found, let fullName = preview.fullName {
+                            VStack(alignment: .leading, spacing: 18) {
+                                HStack(spacing: 14) {
+                                    avatarView(avatarUrl: preview.avatarUrl, fullName: fullName)
+                                        .overlay(
+                                            Circle()
+                                                .strokeBorder(AppTheme.Colors.primaryRed.opacity(0.35), lineWidth: 2)
+                                        )
+
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(fullName)
+                                            .font(AppTheme.Typography.headline())
+                                            .foregroundStyle(AppTheme.Colors.darkGray)
+                                        if let uname = preview.username {
+                                            Text("@\(uname)")
+                                                .font(AppTheme.Typography.caption())
+                                                .foregroundStyle(AppTheme.Colors.textGray)
+                                        }
+                                    }
+
+                                    Spacer()
+
+                                    Image(systemName: "checkmark.seal.fill")
+                                        .font(.system(size: 20))
+                                        .foregroundStyle(AppTheme.Colors.primaryRed)
+                                }
+                                .padding(14)
+                                .background(
+                                    Color(red: 1.0, green: 0.96, blue: 0.97),
+                                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                )
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                        .strokeBorder(AppTheme.Colors.primaryRed.opacity(0.18), lineWidth: 1)
+                                )
+
+                                MinimalTextField(
+                                    label: "Senha",
+                                    placeholder: "Digite sua senha",
+                                    text: $password,
+                                    textContentType: .password,
+                                    autocapitalization: .never,
+                                    disableAutocorrection: true,
+                                    isSecure: true
+                                )
+
+                                if let errorMessage {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "xmark.octagon.fill")
+                                            .font(.system(size: 13))
+                                        Text(errorMessage)
+                                            .font(AppTheme.Typography.caption())
+                                    }
+                                    .foregroundStyle(AppTheme.Colors.primaryRed)
+                                }
+
+                                PrimaryButton(title: "Entrar no Mytch", isEnabled: canSubmit, isLoading: isLoading) {
+                                    Task {
+                                        await submitLogin()
+                                    }
                                 }
                             }
-
-                            Spacer()
-
-                            Image(systemName: "checkmark.circle.fill")
-                                .font(.system(size: 18))
-                                .foregroundStyle(AppTheme.Colors.successGreen)
-                        }
-                        .padding(12)
-                        .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous)
-                                .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
-                        )
-
-                        MinimalTextField(
-                            label: "Senha",
-                            placeholder: "Digite sua senha",
-                            text: $password,
-                            textContentType: .password,
-                            autocapitalization: .never,
-                            disableAutocorrection: true,
-                            isSecure: true
-                        )
-
-                        if let errorMessage {
-                            Text(errorMessage)
-                                .font(AppTheme.Typography.caption())
-                                .foregroundStyle(AppTheme.Colors.primaryRed)
-                        }
-
-                        PrimaryButton(title: "Entrar", isEnabled: canSubmit, isLoading: isLoading) {
-                            Task {
-                                await submitLogin()
-                            }
+                            .transition(.opacity.combined(with: .move(edge: .top)))
                         }
                     }
-                    .transition(.opacity.combined(with: .move(edge: .top)))
-                }
+                    .padding(22)
+                    .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 24, style: .continuous)
+                            .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
+                    )
+                    .shadow(color: .black.opacity(0.05), radius: 18, x: 0, y: 10)
 
-                Spacer()
+                    // Footer link to Sign Up
+                    HStack(spacing: 4) {
+                        Text("Ainda não tem conta?")
+                            .foregroundStyle(AppTheme.Colors.textGray)
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.25)) {
+                                appState.route = .onboarding
+                            }
+                        } label: {
+                            Text("Criar agora")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(AppTheme.Colors.primaryRed)
+                        }
+                    }
+                    .font(AppTheme.Typography.subheadline())
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 4)
+                    .padding(.bottom, 24)
+                }
+                .padding(.horizontal, AppTheme.Spacing.lg)
             }
-            .padding(.horizontal, AppTheme.Spacing.lg)
+            .scrollDismissesKeyboard(.interactively)
         }
     }
 
