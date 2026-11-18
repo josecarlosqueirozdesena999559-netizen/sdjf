@@ -3,7 +3,7 @@ import SwiftUI
 /// Reserved brand configuration.
 /// Intentionally left without a name or logo so the final brand identity can be plugged in later.
 enum BrandIdentitySlot {
-    static let appName: String? = nil
+    static let appName: String? = "Mytch"
     static let logoImageName: String? = nil
 }
 
