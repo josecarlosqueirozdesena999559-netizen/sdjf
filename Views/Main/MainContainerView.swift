@@ -52,8 +52,10 @@ struct MainContainerView: View {
             .environmentObject(appState)
         }
         .sheet(isPresented: $showNotificationsSheet) {
-            NotificationsSheet()
-                .environmentObject(appState)
+            NotificationsSheet {
+                selectedTab = .conversations
+            }
+            .environmentObject(appState)
         }
         .overlay {
             if let matchedProfile = discoverViewModel.matchedProfile {
@@ -135,6 +137,27 @@ struct MainContainerView: View {
     }
 }
 
+private struct NotificationActorPhotoDTO: Decodable {
+    let id: String
+    let url: String
+    let thumbnailUrl: String?
+}
+
+private struct NotificationActorProfileDTO: Identifiable, Decodable {
+    let id: String
+    let fullName: String
+    let username: String
+    let age: Int
+    let bio: String
+    let approximateLocation: String
+    let isVerified: Bool
+    let isOnline: Bool
+    let photos: [NotificationActorPhotoDTO]
+    let alreadyMatched: Bool
+    let matchId: String?
+    let conversationId: String?
+}
+
 private struct NotificationDTO: Identifiable, Decodable {
     let id: String
     let type: String
@@ -142,6 +165,7 @@ private struct NotificationDTO: Identifiable, Decodable {
     let body: String
     let isRead: Bool
     let createdAt: Date
+    let actorProfile: NotificationActorProfileDTO?
 }
 
 private struct NotificationsListResponse: Decodable {
@@ -151,8 +175,10 @@ private struct NotificationsListResponse: Decodable {
 private struct NotificationsSheet: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
+    let onOpenConversations: () -> Void
     @State private var items: [NotificationDTO] = []
     @State private var isLoading = true
+    @State private var selectedActor: NotificationActorProfileDTO?
 
     var body: some View {
         NavigationStack {
@@ -161,29 +187,65 @@ private struct NotificationsSheet: View {
                     ProgressView()
                         .tint(AppTheme.Colors.primaryRed)
                 } else if items.isEmpty {
-                    Text("Nenhuma notificação no momento.")
-                        .font(AppTheme.Typography.subheadline())
-                        .foregroundStyle(AppTheme.Colors.textGray)
+                    VStack(spacing: 10) {
+                        Image(systemName: "bell.slash")
+                            .font(.system(size: 32))
+                            .foregroundStyle(AppTheme.Colors.primaryRed)
+                        Text("Nenhuma notificação no momento.")
+                            .font(AppTheme.Typography.subheadline())
+                            .foregroundStyle(AppTheme.Colors.textGray)
+                    }
                 } else {
                     List(items) { item in
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(item.title)
-                                .font(AppTheme.Typography.headline())
-                                .foregroundStyle(AppTheme.Colors.darkGray)
-                            Text(item.body)
-                                .font(AppTheme.Typography.subheadline())
-                                .foregroundStyle(AppTheme.Colors.textGray)
+                        Button {
+                            if let actor = item.actorProfile {
+                                selectedActor = actor
+                            }
+                        } label: {
+                            HStack(spacing: 12) {
+                                avatarView(for: item)
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(item.title)
+                                        .font(AppTheme.Typography.headline())
+                                        .foregroundStyle(AppTheme.Colors.darkGray)
+                                    Text(item.body)
+                                        .font(AppTheme.Typography.subheadline())
+                                        .foregroundStyle(AppTheme.Colors.textGray)
+                                        .lineLimit(2)
+                                }
+
+                                Spacer(minLength: 0)
+
+                                if item.actorProfile != nil {
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12, weight: .semibold))
+                                        .foregroundStyle(AppTheme.Colors.textGray.opacity(0.6))
+                                }
+                            }
+                            .padding(.vertical, 4)
                         }
-                        .padding(.vertical, 4)
+                        .buttonStyle(.plain)
+                        .listRowBackground(AppTheme.Colors.white)
                     }
+                    .listStyle(.insetGrouped)
+                    .scrollContentBackground(.hidden)
                 }
             }
+            .background(AppTheme.Colors.background)
             .navigationTitle("Notificações")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Fechar") { dismiss() }
                         .foregroundStyle(AppTheme.Colors.primaryRed)
+                }
+            }
+            .sheet(item: $selectedActor) { actor in
+                NotificationActorProfileSheet(actor: actor) {
+                    selectedActor = nil
+                    dismiss()
+                    onOpenConversations()
                 }
             }
             .task {
@@ -196,6 +258,134 @@ private struct NotificationsSheet: View {
                 isLoading = false
                 try? await APIClient.shared.requestVoid(path: "/notifications/read-all", method: "PUT")
                 appState.unreadNotificationCount = 0
+            }
+        }
+    }
+
+    @ViewBuilder
+    private func avatarView(for item: NotificationDTO) -> some View {
+        if let urlStr = item.actorProfile?.photos.first?.thumbnailUrl ?? item.actorProfile?.photos.first?.url,
+           let url = URL(string: urlStr) {
+            AsyncImage(url: url) { phase in
+                if case .success(let image) = phase {
+                    image.resizable().scaledToFill()
+                } else {
+                    Circle().fill(AppTheme.Colors.chipUnselected)
+                }
+            }
+            .frame(width: 48, height: 48)
+            .clipShape(Circle())
+        } else {
+            Circle()
+                .fill(AppTheme.Colors.primaryRed.opacity(0.14))
+                .frame(width: 48, height: 48)
+                .overlay(
+                    Image(systemName: item.type == "NEW_MATCH" ? "heart.fill" : "bell.fill")
+                        .font(.system(size: 18, weight: .semibold))
+                        .foregroundStyle(AppTheme.Colors.primaryRed)
+                )
+        }
+    }
+}
+
+private struct NotificationActorProfileSheet: View {
+    let actor: NotificationActorProfileDTO
+    let onGoToMessages: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var isMatched: Bool = false
+    @State private var isSendingLike = false
+
+    private struct LikeBody: Encodable {
+        let targetUserId: String
+        let type: String
+    }
+
+    private struct LikeResponse: Decodable {
+        let matched: Bool?
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    if let urlStr = actor.photos.first?.url, let url = URL(string: urlStr) {
+                        AsyncImage(url: url) { phase in
+                            if case .success(let img) = phase {
+                                img.resizable().scaledToFill()
+                            } else {
+                                Rectangle().fill(AppTheme.Colors.chipUnselected)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .aspectRatio(3.0 / 4.0, contentMode: .fit)
+                        .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.card, style: .continuous))
+                    }
+
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 6) {
+                            Text("\(actor.fullName), \(actor.age)")
+                                .font(AppTheme.Typography.title())
+                                .foregroundStyle(AppTheme.Colors.darkGray)
+                            if actor.isVerified {
+                                Image(systemName: "checkmark.seal.fill")
+                                    .foregroundStyle(Color.blue)
+                            }
+                        }
+
+                        if !actor.approximateLocation.isEmpty {
+                            Label(actor.approximateLocation, systemImage: "mappin.and.ellipse")
+                                .font(AppTheme.Typography.caption())
+                                .foregroundStyle(AppTheme.Colors.textGray)
+                        }
+
+                        if !actor.bio.isEmpty {
+                            Text(actor.bio)
+                                .font(AppTheme.Typography.body())
+                                .foregroundStyle(AppTheme.Colors.darkGray)
+                                .padding(.top, 4)
+                        }
+                    }
+
+                    if isMatched || actor.alreadyMatched {
+                        PrimaryButton(title: "Enviar mensagem") {
+                            onGoToMessages()
+                        }
+                    } else {
+                        PrimaryButton(title: "Dar Match de volta", isLoading: isSendingLike) {
+                            Task { await likeBack() }
+                        }
+                    }
+                }
+                .padding(20)
+            }
+            .background(AppTheme.Colors.background)
+            .navigationTitle(actor.fullName.split(separator: " ").first.map(String.init) ?? actor.fullName)
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("Fechar") { dismiss() }
+                        .foregroundStyle(AppTheme.Colors.primaryRed)
+                }
+            }
+            .onAppear {
+                isMatched = actor.alreadyMatched
+            }
+        }
+    }
+
+    private func likeBack() async {
+        isSendingLike = true
+        defer { isSendingLike = false }
+        if let res: LikeResponse = try? await APIClient.shared.request(
+            path: "/likes",
+            method: "POST",
+            body: LikeBody(targetUserId: actor.id, type: "LIKE")
+        ) {
+            if res.matched == true {
+                isMatched = true
+                onGoToMessages()
+            } else {
+                isMatched = true
             }
         }
     }
