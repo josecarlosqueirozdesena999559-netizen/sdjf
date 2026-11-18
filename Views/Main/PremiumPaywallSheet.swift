@@ -6,19 +6,21 @@ struct PremiumPaywallSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     private let benefits: [(icon: String, title: String, subtitle: String)] = [
-        ("checkmark.seal.fill", "Selo Verificado no Perfil e Início", "Destaque-se na descoberta e no seu perfil."),
-        ("1.circle.fill", "Mensagens e Áudios Únicos Ilimitados", "Envie textos e áudios com visualização única."),
-        ("pencil", "Editar e Excluir para Todos", "Edite ou apague qualquer mensagem enviada."),
-        ("trash.fill", "Limpar Conversa para Todos", "Remova o histórico completo dos dois lados."),
-        ("timer", "Auto-exclusão ao Sair", "Mensagens lidas somem ao fechar a conversa."),
-        ("eye.slash.fill", "Proteção Escura Anti-Print", "Tela escura contra capturas e gravações.")
+        ("checkmark.seal.fill", "Selo de Perfil Verificado", "Destaque sua conta com o selo verificado na tela inicial, na descoberta e no seu perfil."),
+        ("eye.trianglebadge.exclamationmark.fill", "Mensagens de Visualização Única", "Envie mensagens ilimitadas que desaparecem após serem abertas uma única vez."),
+        ("waveform", "Áudios de Visualização Única", "Grave e envie mensagens de voz que só podem ser ouvidas uma vez pelo destinatário."),
+        ("pencil.line", "Editar Mensagens Enviadas", "Corrija ou atualize o conteúdo de qualquer mensagem mesmo após o envio."),
+        ("arrow.uturn.backward.circle.fill", "Excluir Mensagens para Todos", "Apague mensagens específicas da conversa tanto para você quanto para o destinatário."),
+        ("xmark.bin.fill", "Limpar Conversa para Todos", "Remova todo o histórico da conversa nos dois dispositivos com um toque."),
+        ("hourglass.circle.fill", "Auto-exclusão ao Ler e Sair", "Mensagens de segurança que se autodestroem após serem lidas ao fechar o chat."),
+        ("shield.lefthalf.filled", "Proteção Escura Anti-Print", "Bloqueio com tela escura contra capturas e gravações de tela nas conversas.")
     ]
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: 20) {
-                    VStack(spacing: 8) {
+                    VStack(spacing: 10) {
                         ZStack {
                             Circle()
                                 .fill(
@@ -28,15 +30,15 @@ struct PremiumPaywallSheet: View {
                                         endPoint: .bottomTrailing
                                     )
                                 )
-                                .frame(width: 68, height: 68)
+                                .frame(width: 72, height: 72)
                                 .shadow(color: AppTheme.Colors.primaryRed.opacity(0.3), radius: 14, x: 0, y: 6)
 
                             Image(systemName: "checkmark.seal.fill")
-                                .font(.system(size: 30, weight: .bold))
+                                .font(.system(size: 32, weight: .bold))
                                 .foregroundStyle(.white)
                         }
 
-                        Text("Plano Premium")
+                        Text("Mytch Premium")
                             .font(AppTheme.Typography.largeTitle())
                             .foregroundStyle(AppTheme.Colors.darkGray)
 
@@ -44,30 +46,46 @@ struct PremiumPaywallSheet: View {
                             .font(.system(size: 20, weight: .bold))
                             .foregroundStyle(AppTheme.Colors.primaryRed)
                     }
-                    .padding(.top, 12)
+                    .padding(.top, 10)
 
-                    VStack(spacing: 12) {
+                    VStack(spacing: 10) {
                         ForEach(benefits, id: \.title) { item in
                             HStack(spacing: 14) {
-                                Image(systemName: item.icon)
-                                    .font(.system(size: 17, weight: .semibold))
-                                    .foregroundStyle(AppTheme.Colors.primaryRed)
-                                    .frame(width: 40, height: 40)
-                                    .background(AppTheme.Colors.primaryRed.opacity(0.1), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                ZStack {
+                                    Circle()
+                                        .fill(
+                                            LinearGradient(
+                                                colors: [AppTheme.Colors.secondaryRed, AppTheme.Colors.primaryRed],
+                                                startPoint: .topLeading,
+                                                endPoint: .bottomTrailing
+                                            )
+                                        )
+                                        .frame(width: 42, height: 42)
+                                        .shadow(color: AppTheme.Colors.primaryRed.opacity(0.18), radius: 6, x: 0, y: 3)
 
-                                VStack(alignment: .leading, spacing: 2) {
+                                    Image(systemName: item.icon)
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundStyle(.white)
+                                }
+
+                                VStack(alignment: .leading, spacing: 3) {
                                     Text(item.title)
                                         .font(AppTheme.Typography.subheadline())
                                         .foregroundStyle(AppTheme.Colors.darkGray)
                                     Text(item.subtitle)
                                         .font(AppTheme.Typography.caption())
                                         .foregroundStyle(AppTheme.Colors.textGray)
+                                        .fixedSize(horizontal: false, vertical: true)
                                 }
 
-                                Spacer()
+                                Spacer(minLength: 0)
                             }
-                            .padding(12)
-                            .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous))
+                            .padding(14)
+                            .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
+                                    .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
+                            )
                         }
                     }
 

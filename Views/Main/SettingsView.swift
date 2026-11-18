@@ -17,67 +17,121 @@ struct SettingsView: View {
 
     var body: some View {
         NavigationStack {
-            List {
-                Section("Descoberta") {
-                    NavigationLink {
-                        DistanceSelectionView(selectedDistance: $draftFilter.maxDistanceKm) { newVal in
-                            draftFilter.maxDistanceKm = newVal
-                            onApplyFilter(draftFilter)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    // Descoberta
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Descoberta")
+                            .font(AppTheme.Typography.caption())
+                            .foregroundStyle(AppTheme.Colors.textGray)
+                            .padding(.horizontal, 4)
+
+                        VStack(spacing: 0) {
+                            NavigationLink {
+                                DistanceSelectionView(selectedDistance: $draftFilter.maxDistanceKm) { newVal in
+                                    draftFilter.maxDistanceKm = newVal
+                                    onApplyFilter(draftFilter)
+                                }
+                            } label: {
+                                settingsRow(
+                                    icon: "location.north.fill",
+                                    title: "Distância máxima",
+                                    value: "\(Int(draftFilter.maxDistanceKm)) km"
+                                )
+                            }
+
+                            Divider().padding(.leading, 62)
+
+                            NavigationLink {
+                                AgeRangeSelectionView(minAge: $draftFilter.minAge, maxAge: $draftFilter.maxAge) {
+                                    onApplyFilter(draftFilter)
+                                }
+                            } label: {
+                                settingsRow(
+                                    icon: "person.2.fill",
+                                    title: "Faixa etária",
+                                    value: "\(draftFilter.minAge) – \(draftFilter.maxAge) anos"
+                                )
+                            }
                         }
-                    } label: {
-                        HStack {
-                            Label("Distância máxima", systemImage: "location.circle.fill")
-                                .foregroundStyle(AppTheme.Colors.darkGray)
-                            Spacer()
-                            Text("\(Int(draftFilter.maxDistanceKm)) km")
-                                .foregroundStyle(AppTheme.Colors.textGray)
-                        }
+                        .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
+                                .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
+                        )
                     }
 
-                    NavigationLink {
-                        AgeRangeSelectionView(minAge: $draftFilter.minAge, maxAge: $draftFilter.maxAge) {
-                            onApplyFilter(draftFilter)
+                    // Segurança
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Segurança e Privacidade")
+                            .font(AppTheme.Typography.caption())
+                            .foregroundStyle(AppTheme.Colors.textGray)
+                            .padding(.horizontal, 4)
+
+                        NavigationLink {
+                            SecuritySettingsView()
+                                .environmentObject(appState)
+                        } label: {
+                            settingsRow(
+                                icon: "lock.shield.fill",
+                                title: "Segurança",
+                                value: "Usuário, e-mail, senha"
+                            )
                         }
-                    } label: {
-                        HStack {
-                            Label("Faixa etária", systemImage: "person.2.circle.fill")
-                                .foregroundStyle(AppTheme.Colors.darkGray)
-                            Spacer()
-                            Text("\(draftFilter.minAge) – \(draftFilter.maxAge) anos")
-                                .foregroundStyle(AppTheme.Colors.textGray)
+                        .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
+                                .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
+                        )
+                    }
+
+                    // Conta
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Conta")
+                            .font(AppTheme.Typography.caption())
+                            .foregroundStyle(AppTheme.Colors.textGray)
+                            .padding(.horizontal, 4)
+
+                        VStack(spacing: 0) {
+                            Button {
+                                dismiss()
+                                appState.signOut()
+                            } label: {
+                                settingsRow(
+                                    icon: "rectangle.portrait.and.arrow.right",
+                                    title: "Sair da conta",
+                                    value: nil,
+                                    showChevron: false
+                                )
+                            }
+                            .buttonStyle(.plain)
+
+                            Divider().padding(.leading, 62)
+
+                            Button {
+                                showDeleteAlert = true
+                            } label: {
+                                settingsRow(
+                                    icon: "trash.fill",
+                                    title: "Excluir conta",
+                                    value: nil,
+                                    isDestructive: true,
+                                    showChevron: false
+                                )
+                            }
+                            .buttonStyle(.plain)
+                            .disabled(isDeleting)
                         }
+                        .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
+                                .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
+                        )
                     }
                 }
-
-                Section("Privacidade e Segurança") {
-                    NavigationLink {
-                        SecuritySettingsView()
-                            .environmentObject(appState)
-                    } label: {
-                        Label("Segurança", systemImage: "lock.shield.fill")
-                            .foregroundStyle(AppTheme.Colors.darkGray)
-                    }
-                }
-
-                Section("Conta") {
-                    Button {
-                        dismiss()
-                        appState.signOut()
-                    } label: {
-                        Label("Sair da conta", systemImage: "rectangle.portrait.and.arrow.right")
-                            .foregroundStyle(AppTheme.Colors.darkGray)
-                    }
-
-                    Button(role: .destructive) {
-                        showDeleteAlert = true
-                    } label: {
-                        Label("Excluir conta", systemImage: "trash.fill")
-                            .foregroundStyle(AppTheme.Colors.primaryRed)
-                    }
-                    .disabled(isDeleting)
-                }
+                .padding(AppTheme.Spacing.lg)
             }
-            .tint(AppTheme.Colors.primaryRed)
+            .background(AppTheme.Colors.background)
             .navigationTitle("Configurações")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -104,6 +158,55 @@ struct SettingsView: View {
         }
     }
 
+    private func settingsRow(
+        icon: String,
+        title: String,
+        value: String?,
+        isDestructive: Bool = false,
+        showChevron: Bool = true
+    ) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: isDestructive
+                            ? [AppTheme.Colors.primaryRed, AppTheme.Colors.primaryRed]
+                            : [AppTheme.Colors.secondaryRed, AppTheme.Colors.primaryRed],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 36, height: 36)
+
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+
+            Text(title)
+                .font(AppTheme.Typography.subheadline())
+                .foregroundStyle(isDestructive ? AppTheme.Colors.primaryRed : AppTheme.Colors.darkGray)
+
+            Spacer()
+
+            if let value {
+                Text(value)
+                    .font(AppTheme.Typography.caption())
+                    .foregroundStyle(AppTheme.Colors.textGray)
+            }
+
+            if showChevron {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundStyle(AppTheme.Colors.textGray.opacity(0.7))
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
+    }
+
     private func deleteAccount() async {
         isDeleting = true
         try? await APIClient.shared.requestVoid(path: "/lgpd/delete-account", method: "POST")
@@ -121,26 +224,44 @@ private struct DistanceSelectionView: View {
     private let options: [Double] = [5, 10, 25, 50, 100, 200]
 
     var body: some View {
-        List {
-            ForEach(options, id: \.self) { km in
-                Button {
-                    selectedDistance = km
-                    onSelect(km)
-                    dismiss()
-                } label: {
-                    HStack {
-                        Text("Até \(Int(km)) km")
-                            .foregroundStyle(AppTheme.Colors.darkGray)
-                        Spacer()
-                        if Int(selectedDistance) == Int(km) {
-                            Image(systemName: "checkmark")
-                                .fontWeight(.bold)
-                                .foregroundStyle(AppTheme.Colors.primaryRed)
+        ScrollView {
+            VStack(spacing: 0) {
+                ForEach(Array(options.enumerated()), id: \.element) { index, km in
+                    Button {
+                        selectedDistance = km
+                        onSelect(km)
+                        dismiss()
+                    } label: {
+                        HStack {
+                            Text("Até \(Int(km)) km")
+                                .font(AppTheme.Typography.subheadline())
+                                .foregroundStyle(AppTheme.Colors.darkGray)
+                            Spacer()
+                            if Int(selectedDistance) == Int(km) {
+                                Image(systemName: "checkmark.circle.fill")
+                                    .font(.system(size: 18))
+                                    .foregroundStyle(AppTheme.Colors.primaryRed)
+                            }
                         }
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 14)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    if index < options.count - 1 {
+                        Divider().padding(.leading, 16)
                     }
                 }
             }
+            .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
+                    .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
+            )
+            .padding(AppTheme.Spacing.lg)
         }
+        .background(AppTheme.Colors.background)
         .navigationTitle("Distância máxima")
         .navigationBarTitleDisplayMode(.inline)
     }
@@ -170,56 +291,91 @@ private struct SecuritySettingsView: View {
     @EnvironmentObject private var appState: AppState
 
     var body: some View {
-        List {
-            Section("Credenciais") {
+        ScrollView {
+            VStack(spacing: 0) {
                 NavigationLink {
                     ChangeUsernameView()
                         .environmentObject(appState)
                 } label: {
-                    HStack {
-                        Label("Trocar nome de usuário", systemImage: "at")
-                            .foregroundStyle(AppTheme.Colors.darkGray)
-                        Spacer()
-                        Text("@\(appState.currentUser?.username ?? "")")
-                            .font(AppTheme.Typography.caption())
-                            .foregroundStyle(AppTheme.Colors.textGray)
-                    }
+                    securityRow(icon: "at", title: "Trocar nome de usuário", subtitle: "@\(appState.currentUser?.username ?? "")")
                 }
+
+                Divider().padding(.leading, 62)
 
                 NavigationLink {
                     ChangeEmailView()
                         .environmentObject(appState)
                 } label: {
-                    HStack {
-                        Label("Alterar e-mail", systemImage: "envelope.fill")
-                            .foregroundStyle(AppTheme.Colors.darkGray)
-                        Spacer()
-                        Text(appState.currentUser?.email ?? "")
-                            .font(AppTheme.Typography.caption())
-                            .foregroundStyle(AppTheme.Colors.textGray)
-                            .lineLimit(1)
-                    }
+                    securityRow(icon: "envelope.fill", title: "Alterar e-mail", subtitle: appState.currentUser?.email ?? "")
                 }
+
+                Divider().padding(.leading, 62)
 
                 NavigationLink {
                     ChangePasswordView()
                 } label: {
-                    Label("Alterar senha", systemImage: "key.fill")
-                        .foregroundStyle(AppTheme.Colors.darkGray)
+                    securityRow(icon: "key.fill", title: "Alterar senha", subtitle: "Atualizar sua senha de acesso")
                 }
-            }
 
-            Section("Proteção de Dados (LGPD)") {
+                Divider().padding(.leading, 62)
+
                 NavigationLink {
                     CombinedLegalDocumentSheet()
                 } label: {
-                    Label("Termos e Política de Privacidade", systemImage: "doc.text.fill")
-                        .foregroundStyle(AppTheme.Colors.darkGray)
+                    securityRow(icon: "doc.text.fill", title: "Termos e Privacidade (LGPD)", subtitle: "Política de dados e segurança")
                 }
             }
+            .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
+                    .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
+            )
+            .padding(AppTheme.Spacing.lg)
         }
+        .background(AppTheme.Colors.background)
         .navigationTitle("Segurança")
         .navigationBarTitleDisplayMode(.inline)
+    }
+
+    private func securityRow(icon: String, title: String, subtitle: String) -> some View {
+        HStack(spacing: 14) {
+            ZStack {
+                Circle()
+                    .fill(
+                        LinearGradient(
+                            colors: [AppTheme.Colors.secondaryRed, AppTheme.Colors.primaryRed],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        )
+                    )
+                    .frame(width: 36, height: 36)
+
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(AppTheme.Typography.subheadline())
+                    .foregroundStyle(AppTheme.Colors.darkGray)
+                if !subtitle.isEmpty {
+                    Text(subtitle)
+                        .font(AppTheme.Typography.caption())
+                        .foregroundStyle(AppTheme.Colors.textGray)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer()
+
+            Image(systemName: "chevron.right")
+                .font(.system(size: 12, weight: .semibold))
+                .foregroundStyle(AppTheme.Colors.textGray.opacity(0.7))
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 12)
+        .contentShape(Rectangle())
     }
 }
 
