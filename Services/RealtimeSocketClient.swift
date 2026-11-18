@@ -8,6 +8,7 @@ final class RealtimeSocketClient: ObservableObject {
 
     var onNewMessage: ((_ conversationId: String, _ messageId: String, _ senderId: String, _ content: String, _ createdAt: Date) -> Void)?
     var onNewMatch: ((_ matchId: String, _ conversationId: String?, _ partnerId: String) -> Void)?
+    var onNewNotification: (() -> Void)?
 
     private var webSocketTask: URLSessionWebSocketTask?
     private var shouldReconnect = false
@@ -123,6 +124,8 @@ final class RealtimeSocketClient: ObservableObject {
                     let conversationId = payload["conversationId"] as? String
                     onNewMatch?(matchId, conversationId, partnerId)
                 }
+            case "notification:new":
+                onNewNotification?()
             default:
                 break
             }

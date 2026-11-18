@@ -68,11 +68,58 @@ struct InterestsSelectionView: View {
             }
 
             ScrollView {
-                FlowLayout(spacing: 10) {
-                    ForEach(Interest.all) { interest in
-                        let isSelected = viewModel.selectedInterests.contains(interest)
-                        InterestChip(interest: interest, isSelected: isSelected) {
-                            viewModel.toggleInterest(interest)
+                VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Quem você gostaria de conhecer?")
+                            .font(AppTheme.Typography.headline())
+                            .foregroundStyle(AppTheme.Colors.darkGray)
+
+                        FlowLayout(spacing: 10) {
+                            ForEach(GenderInterestOption.all) { option in
+                                let isSelected = viewModel.selectedGenderPreferences.contains(option.id)
+                                Button {
+                                    viewModel.toggleGenderPreference(option.id)
+                                } label: {
+                                    HStack(spacing: 7) {
+                                        Image(systemName: option.sfSymbol)
+                                            .font(.system(size: 13, weight: .semibold))
+                                        Text(option.title)
+                                            .font(AppTheme.Typography.subheadline())
+                                            .lineLimit(1)
+                                    }
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 10)
+                                    .foregroundStyle(isSelected ? AppTheme.Colors.white : AppTheme.Colors.darkGray)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: AppTheme.Radius.pill, style: .continuous)
+                                            .fill(isSelected ? AppTheme.Colors.primaryRed : AppTheme.Colors.chipUnselected)
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: AppTheme.Radius.pill, style: .continuous)
+                                            .strokeBorder(
+                                                isSelected ? AppTheme.Colors.primaryRed : AppTheme.Colors.borderSubtle,
+                                                lineWidth: 1
+                                            )
+                                    )
+                                    .animation(.easeInOut(duration: 0.18), value: isSelected)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                    }
+
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Hobbies e afinidades")
+                            .font(AppTheme.Typography.headline())
+                            .foregroundStyle(AppTheme.Colors.darkGray)
+
+                        FlowLayout(spacing: 10) {
+                            ForEach(Interest.all) { interest in
+                                let isSelected = viewModel.selectedInterests.contains(interest)
+                                InterestChip(interest: interest, isSelected: isSelected) {
+                                    viewModel.toggleInterest(interest)
+                                }
+                            }
                         }
                     }
                 }

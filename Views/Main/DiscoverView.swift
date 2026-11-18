@@ -4,6 +4,9 @@ struct DiscoverView: View {
     @EnvironmentObject private var appState: AppState
     @ObservedObject var viewModel: DiscoverViewModel
     @State private var likeBounce: Bool = false
+    @State private var showHeartBurst: Bool = false
+    @State private var heartBurstOffset: CGFloat = 0
+    @State private var heartBurstOpacity: Double = 0
 
     var body: some View {
         VStack(spacing: 14) {
@@ -31,6 +34,16 @@ struct DiscoverView: View {
                         .offset(y: index == 0 ? 0 : 10)
                         .allowsHitTesting(index == 0)
                     }
+                }
+
+                if showHeartBurst {
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 76, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.primaryRed)
+                        .shadow(color: AppTheme.Colors.primaryRed.opacity(0.4), radius: 16, x: 0, y: 6)
+                        .offset(y: heartBurstOffset)
+                        .opacity(heartBurstOpacity)
+                        .allowsHitTesting(false)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -75,8 +88,18 @@ struct DiscoverView: View {
                 withAnimation(.spring(response: 0.22, dampingFraction: 0.55)) {
                     likeBounce = true
                 }
+                showHeartBurst = true
+                heartBurstOffset = 20
+                heartBurstOpacity = 1.0
+                withAnimation(.easeOut(duration: 0.5)) {
+                    heartBurstOffset = -90
+                    heartBurstOpacity = 0.0
+                }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
                     likeBounce = false
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.52) {
+                    showHeartBurst = false
                 }
                 viewModel.actOnTopCard(.like, appState: appState)
             } label: {

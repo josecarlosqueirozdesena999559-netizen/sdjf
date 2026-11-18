@@ -24,3 +24,17 @@ struct Interest: Identifiable, Hashable, Codable {
         Interest(id: "arte", title: "Arte", sfSymbol: "paintpalette.fill")
     ]
 }
+
+struct GenderInterestOption: Identifiable, Hashable, Codable {
+    let id: String
+    let title: String
+    let sfSymbol: String
+
+    static let all: [GenderInterestOption] = [
+        GenderInterestOption(id: "mulheres", title: "Mulheres", sfSymbol: "person.fill"),
+        GenderInterestOption(id: "homens", title: "Homens", sfSymbol: "person.fill"),
+        GenderInterestOption(id: "nao_binario", title: "Pessoas não binárias", sfSymbol: "sparkles"),
+        GenderInterestOption(id: "trans", title: "Pessoas trans", sfSymbol: "heart.fill"),
+        GenderInterestOption(id: "todos", title: "Todos os gêneros", sfSymbol: "person.3.fill")
+    ]
+}

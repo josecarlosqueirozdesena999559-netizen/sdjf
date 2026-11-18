@@ -34,6 +34,7 @@ final class AppState: ObservableObject {
     @Published var currentUser: UserProfile?
     @Published var matches: [MatchItem] = []
     @Published var conversations: [Conversation] = []
+    @Published var unreadNotificationCount: Int = 0
 
     let services: ServiceContainer
     let permissionService = PermissionService()
@@ -73,6 +74,11 @@ final class AppState: ObservableObject {
             guard let self else { return }
             Task { await self.loadSocialData() }
         }
+
+        socketClient.onNewNotification = { [weak self] in
+            guard let self else { return }
+            self.unreadNotificationCount += 1
+        }
     }
 
     func bootstrap() async {
@@ -103,6 +109,19 @@ final class AppState: ObservableObject {
         }
         if let loadedConversations = try? await services.chatService.fetchConversations() {
             conversations = loadedConversations
+        }
+        await refreshUnreadNotifications()
+    }
+
+    func refreshUnreadNotifications() async {
+        struct NotificationsSummary: Decodable {
+            let unreadCount: Int
+        }
+        if let summary: NotificationsSummary = try? await APIClient.shared.request(
+            path: "/notifications?page=1&limit=1",
+            method: "GET"
+        ) {
+            unreadNotificationCount = summary.unreadCount
         }
     }
 

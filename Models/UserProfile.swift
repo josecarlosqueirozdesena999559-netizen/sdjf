@@ -48,6 +48,7 @@ struct UserProfile: Identifiable, Hashable, Codable {
     var age: Int
     var photos: [ProfilePhoto]
     var interests: [Interest]
+    var lookingFor: [String]
     var bio: String
     var isVerified: Bool
     var isOnline: Bool
@@ -65,6 +66,7 @@ struct UserProfile: Identifiable, Hashable, Codable {
         age: Int,
         photos: [ProfilePhoto],
         interests: [Interest],
+        lookingFor: [String] = ["todos"],
         bio: String,
         isVerified: Bool = false,
         isOnline: Bool = false,
@@ -81,6 +83,7 @@ struct UserProfile: Identifiable, Hashable, Codable {
         self.age = age
         self.photos = photos
         self.interests = interests
+        self.lookingFor = lookingFor
         self.bio = bio
         self.isVerified = isVerified
         self.isOnline = isOnline
@@ -99,6 +102,7 @@ struct DiscoveryFilter: Hashable, Codable {
     var maxDistanceKm: Double = 30
     var minAge: Int = 18
     var maxAge: Int = 45
+    var lookingFor: [String] = ["todos"]
     var onlyVerified: Bool = false
     var onlyOnline: Bool = false
 }

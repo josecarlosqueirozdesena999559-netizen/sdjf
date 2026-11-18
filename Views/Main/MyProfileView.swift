@@ -60,28 +60,6 @@ struct MyProfileView: View {
                         .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
                     }
 
-                    VStack(alignment: .leading, spacing: 10) {
-                        Text("Permissões")
-                            .font(AppTheme.Typography.headline())
-                            .foregroundStyle(AppTheme.Colors.darkGray)
-
-                        permissionRow(
-                            title: "Localização",
-                            enabled: appState.permissionService.isLocationAuthorized
-                        ) {
-                            Task { _ = await appState.permissionService.requestLocationWhenInUse() }
-                        }
-
-                        permissionRow(
-                            title: "Notificações",
-                            enabled: appState.permissionService.isNotificationAuthorized
-                        ) {
-                            Task { _ = await appState.permissionService.requestNotifications() }
-                        }
-                    }
-                    .padding(16)
-                    .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
-
                     SecondaryOutlineButton(title: "Sair da conta", icon: "rectangle.portrait.and.arrow.right") {
                         appState.signOut()
                     }
@@ -89,24 +67,6 @@ struct MyProfileView: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
                 .padding(.bottom, 28)
-            }
-        }
-    }
-
-    private func permissionRow(title: String, enabled: Bool, action: @escaping () -> Void) -> some View {
-        HStack {
-            Text(title)
-                .font(AppTheme.Typography.subheadline())
-                .foregroundStyle(AppTheme.Colors.darkGray)
-            Spacer()
-            if enabled {
-                Text("Ativada")
-                    .font(AppTheme.Typography.caption())
-                    .foregroundStyle(AppTheme.Colors.successGreen)
-            } else {
-                Button("Ativar", action: action)
-                    .font(AppTheme.Typography.caption())
-                    .foregroundStyle(AppTheme.Colors.primaryRed)
             }
         }
     }

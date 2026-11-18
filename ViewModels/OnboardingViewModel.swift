@@ -55,8 +55,9 @@ final class OnboardingViewModel: ObservableObject {
     @Published var photos: [ProfilePhoto] = []
     @Published var selectedPickerItems: [PhotosPickerItem] = []
 
-    // MARK: - Step 5: Interests
+    // MARK: - Step 5: Interests & Preferences
     @Published var selectedInterests: [Interest] = []
+    @Published var selectedGenderPreferences: [String] = ["todos"]
 
     // MARK: - Step 6: About You
     @Published var bio: String = "" {
@@ -221,7 +222,23 @@ final class OnboardingViewModel: ObservableObject {
 
     // MARK: - Step 5: Interests
     var canAdvanceFromInterests: Bool {
-        selectedInterests.count >= 3 && selectedInterests.count <= 10
+        selectedInterests.count >= 3 && selectedInterests.count <= 10 && !selectedGenderPreferences.isEmpty
+    }
+
+    func toggleGenderPreference(_ optionId: String) {
+        if optionId == "todos" {
+            selectedGenderPreferences = ["todos"]
+            return
+        }
+        selectedGenderPreferences.removeAll { $0 == "todos" }
+        if let idx = selectedGenderPreferences.firstIndex(of: optionId) {
+            selectedGenderPreferences.remove(at: idx)
+        } else {
+            selectedGenderPreferences.append(optionId)
+        }
+        if selectedGenderPreferences.isEmpty {
+            selectedGenderPreferences = ["todos"]
+        }
     }
 
     func toggleInterest(_ interest: Interest) {
@@ -274,6 +291,7 @@ final class OnboardingViewModel: ObservableObject {
                 age: age,
                 photos: uploadedPhotos,
                 interests: selectedInterests,
+                lookingFor: selectedGenderPreferences,
                 bio: bio.trimmingCharacters(in: .whitespacesAndNewlines),
                 isVerified: false,
                 isOnline: true,

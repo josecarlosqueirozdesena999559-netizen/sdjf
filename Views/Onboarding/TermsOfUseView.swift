@@ -2,54 +2,49 @@ import SwiftUI
 
 struct TermsOfUseView: View {
     @ObservedObject var viewModel: OnboardingViewModel
-    @State private var activeDocument: LegalDocument?
+    @State private var showFullTermsPopup: Bool = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 20) {
             Text("Termos de uso")
                 .font(AppTheme.Typography.largeTitle())
                 .foregroundStyle(AppTheme.Colors.darkGray)
                 .padding(.top, 12)
 
-            ScrollView {
-                VStack(spacing: 10) {
-                    ForEach(LegalContent.documents) { document in
-                        Button {
-                            activeDocument = document
-                        } label: {
-                            HStack(spacing: 14) {
-                                Image(systemName: document.iconName)
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundStyle(AppTheme.Colors.primaryRed)
-                                    .frame(width: 40, height: 40)
-                                    .background(AppTheme.Colors.primaryRed.opacity(0.08), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            VStack(alignment: .leading, spacing: 14) {
+                HStack(spacing: 12) {
+                    Image(systemName: "doc.text.fill")
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(AppTheme.Colors.primaryRed)
+                        .frame(width: 44, height: 44)
+                        .background(AppTheme.Colors.primaryRed.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
 
-                                VStack(alignment: .leading, spacing: 3) {
-                                    Text(document.title)
-                                        .font(AppTheme.Typography.headline())
-                                        .foregroundStyle(AppTheme.Colors.darkGray)
-                                    Text(document.subtitle)
-                                        .font(AppTheme.Typography.caption())
-                                        .foregroundStyle(AppTheme.Colors.textGray)
-                                }
-
-                                Spacer()
-
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 13, weight: .semibold))
-                                    .foregroundStyle(AppTheme.Colors.textGray)
-                            }
-                            .padding(14)
-                            .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous)
-                                    .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
-                            )
-                        }
-                        .buttonStyle(.plain)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Termos, Privacidade e Segurança")
+                            .font(AppTheme.Typography.headline())
+                            .foregroundStyle(AppTheme.Colors.darkGray)
+                        Text("Versão \(LegalContent.currentVersion) • Documento completo")
+                            .font(AppTheme.Typography.caption())
+                            .foregroundStyle(AppTheme.Colors.textGray)
                     }
                 }
+
+                Text("Antes de concluir seu cadastro, leia os Termos de Uso, a Política de Privacidade (LGPD/ANPD), as Regras de Convivência e as Diretrizes de Segurança.")
+                    .font(AppTheme.Typography.subheadline())
+                    .foregroundStyle(AppTheme.Colors.textGray)
+
+                SecondaryOutlineButton(title: "Ler documento completo", icon: "doc.plaintext") {
+                    showFullTermsPopup = true
+                }
             }
+            .padding(16)
+            .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
+                    .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
+            )
+
+            Spacer()
 
             Button {
                 viewModel.acceptedTerms.toggle()
@@ -79,30 +74,50 @@ struct TermsOfUseView: View {
             .padding(.bottom, 24)
         }
         .padding(.horizontal, AppTheme.Spacing.lg)
-        .sheet(item: $activeDocument) { doc in
-            LegalDocumentSheet(document: doc)
-                .presentationDetents([.medium, .large])
+        .sheet(isPresented: $showFullTermsPopup) {
+            CombinedLegalDocumentSheet()
+                .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
                 .presentationCornerRadius(24)
         }
     }
 }
 
-struct LegalDocumentSheet: View {
-    let document: LegalDocument
+struct CombinedLegalDocumentSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         NavigationStack {
             ScrollView {
-                Text(document.content)
-                    .font(AppTheme.Typography.body())
-                    .foregroundStyle(AppTheme.Colors.darkGray)
-                    .padding(AppTheme.Spacing.lg)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                VStack(alignment: .leading, spacing: 24) {
+                    ForEach(LegalContent.documents) { doc in
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 8) {
+                                Image(systemName: doc.iconName)
+                                    .foregroundStyle(AppTheme.Colors.primaryRed)
+                                Text(doc.title)
+                                    .font(AppTheme.Typography.title())
+                                    .foregroundStyle(AppTheme.Colors.darkGray)
+                            }
+
+                            Text(doc.content)
+                                .font(AppTheme.Typography.body())
+                                .foregroundStyle(AppTheme.Colors.darkGray)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .padding(16)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
+                                .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
+                        )
+                    }
+                }
+                .padding(AppTheme.Spacing.lg)
             }
             .background(AppTheme.Colors.background)
-            .navigationTitle(document.title)
+            .navigationTitle("Termos e Privacidade")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
