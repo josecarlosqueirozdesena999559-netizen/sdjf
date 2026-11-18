@@ -51,15 +51,9 @@ struct LoginView: View {
                     }
                     .padding(.top, 8)
 
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Entrar")
-                            .font(AppTheme.Typography.largeTitle())
-                            .foregroundStyle(AppTheme.Colors.darkGray)
-
-                        Text("Digite seu nome de usuário para continuar.")
-                            .font(AppTheme.Typography.subheadline())
-                            .foregroundStyle(AppTheme.Colors.textGray)
-                    }
+                    Text("Entrar")
+                        .font(AppTheme.Typography.largeTitle())
+                        .foregroundStyle(AppTheme.Colors.darkGray)
 
                     MinimalTextField(
                         label: "Nome de usuário",

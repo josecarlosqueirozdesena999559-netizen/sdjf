@@ -1,8 +1,28 @@
 import SwiftUI
+import CoreText
 
 @main
 struct DatingApp: App {
     @StateObject private var appState = AppState()
+
+    init() {
+        Self.registerCustomFonts()
+    }
+
+    private static func registerCustomFonts() {
+        let fontNames = [
+            "PlusJakartaSans-Regular",
+            "PlusJakartaSans-SemiBold",
+            "PlusJakartaSans-Bold",
+            "PlusJakartaSans-ExtraBold"
+        ]
+        for name in fontNames {
+            if let url = Bundle.main.url(forResource: name, withExtension: "ttf", subdirectory: "Fonts")
+                ?? Bundle.main.url(forResource: name, withExtension: "ttf") {
+                CTFontManagerRegisterFontsForURL(url as CFURL, .process, nil)
+            }
+        }
+    }
 
     var body: some Scene {
         WindowGroup {

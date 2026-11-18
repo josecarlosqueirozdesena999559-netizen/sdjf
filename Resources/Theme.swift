@@ -2,8 +2,8 @@ import SwiftUI
 
 enum AppTheme {
     enum Colors {
-        static let primaryRed = Color(hex: "EA1D2C")
-        static let secondaryRed = Color(hex: "FF3344")
+        static let primaryRed = Color(hex: "FF1764")
+        static let secondaryRed = Color(hex: "D90E52")
         static let white = Color(hex: "FFFFFF")
         static let background = Color(hex: "F6F6F8")
         static let textGray = Color(hex: "85858D")
@@ -18,13 +18,26 @@ enum AppTheme {
     }
 
     enum Typography {
-        static func largeTitle() -> Font { .system(size: 28, weight: .bold, design: .default) }
-        static func title() -> Font { .system(size: 22, weight: .bold, design: .default) }
-        static func headline() -> Font { .system(size: 17, weight: .semibold, design: .default) }
-        static func body() -> Font { .system(size: 15, weight: .regular, design: .default) }
-        static func subheadline() -> Font { .system(size: 14, weight: .medium, design: .default) }
-        static func caption() -> Font { .system(size: 12, weight: .medium, design: .default) }
-        static func micro() -> Font { .system(size: 11, weight: .semibold, design: .default) }
+        static func jakartaExtraBold(_ size: CGFloat) -> Font {
+            .custom("PlusJakartaSans-ExtraBold", size: size)
+        }
+        static func jakartaBold(_ size: CGFloat) -> Font {
+            .custom("PlusJakartaSans-Bold", size: size)
+        }
+        static func jakartaSemiBold(_ size: CGFloat) -> Font {
+            .custom("PlusJakartaSans-SemiBold", size: size)
+        }
+        static func jakartaRegular(_ size: CGFloat) -> Font {
+            .custom("PlusJakartaSans-Regular", size: size)
+        }
+
+        static func largeTitle() -> Font { jakartaExtraBold(28) }
+        static func title() -> Font { jakartaBold(22) }
+        static func headline() -> Font { jakartaSemiBold(17) }
+        static func body() -> Font { jakartaRegular(15) }
+        static func subheadline() -> Font { jakartaSemiBold(14) }
+        static func caption() -> Font { jakartaRegular(12) }
+        static func micro() -> Font { jakartaSemiBold(11) }
     }
 
     enum Radius {

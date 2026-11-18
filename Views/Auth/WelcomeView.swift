@@ -72,23 +72,26 @@ struct WelcomeView: View {
                             .shadow(color: AppTheme.Colors.primaryRed.opacity(0.55), radius: 24, x: 0, y: 10)
                     }
 
-                    VStack(spacing: 8) {
+                    VStack(spacing: 6) {
                         Text("Conecte-se.")
-                            .font(.system(size: 32, weight: .heavy, design: .rounded))
+                            .font(AppTheme.Typography.jakartaExtraBold(34))
+                            .tracking(0.3)
                             .foregroundStyle(.white)
 
                         (
                             Text("Faça ")
                                 .foregroundStyle(.white)
                             + Text("Match.")
-                                .foregroundStyle(Color(red: 1.0, green: 0.22, blue: 0.44))
+                                .foregroundStyle(AppTheme.Colors.primaryRed)
                         )
-                        .font(.system(size: 32, weight: .heavy, design: .rounded))
+                        .font(AppTheme.Typography.jakartaExtraBold(34))
+                        .tracking(0.3)
 
                         Text("Descubra alguém especial.")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundStyle(.white.opacity(0.86))
-                            .padding(.top, 2)
+                            .font(AppTheme.Typography.jakartaRegular(16))
+                            .tracking(0.2)
+                            .foregroundStyle(.white.opacity(0.88))
+                            .padding(.top, 4)
                     }
                     .multilineTextAlignment(.center)
                 }
@@ -104,7 +107,7 @@ struct WelcomeView: View {
                             Image(systemName: "person.badge.plus")
                                 .font(.system(size: 17, weight: .semibold))
                             Text("Criar Conta")
-                                .font(.system(size: 17, weight: .bold))
+                                .font(AppTheme.Typography.jakartaBold(17))
                         }
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
@@ -112,15 +115,15 @@ struct WelcomeView: View {
                         .background(
                             LinearGradient(
                                 colors: [
-                                    Color(red: 1.0, green: 0.14, blue: 0.42),
-                                    Color(red: 0.90, green: 0.08, blue: 0.32)
+                                    AppTheme.Colors.primaryRed,
+                                    AppTheme.Colors.secondaryRed
                                 ],
                                 startPoint: .leading,
                                 endPoint: .trailing
                             ),
                             in: Capsule()
                         )
-                        .shadow(color: Color(red: 1.0, green: 0.14, blue: 0.42).opacity(0.42), radius: 14, x: 0, y: 8)
+                        .shadow(color: AppTheme.Colors.primaryRed.opacity(0.42), radius: 14, x: 0, y: 8)
                     }
                     .buttonStyle(.plain)
 
@@ -133,7 +136,7 @@ struct WelcomeView: View {
                             Image(systemName: "rectangle.portrait.and.arrow.right")
                                 .font(.system(size: 16, weight: .semibold))
                             Text("Entrar")
-                                .font(.system(size: 17, weight: .semibold))
+                                .font(AppTheme.Typography.jakartaSemiBold(17))
                         }
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
@@ -155,11 +158,11 @@ struct WelcomeView: View {
                         Text("Ao continuar, você concorda com nossos ")
                             .foregroundStyle(.white.opacity(0.65))
                         + Text("Termos de Uso")
-                            .foregroundStyle(Color(red: 1.0, green: 0.35, blue: 0.54))
+                            .foregroundStyle(AppTheme.Colors.primaryRed)
                         + Text(" e ")
                             .foregroundStyle(.white.opacity(0.65))
                         + Text("Política de Privacidade")
-                            .foregroundStyle(Color(red: 1.0, green: 0.35, blue: 0.54))
+                            .foregroundStyle(AppTheme.Colors.primaryRed)
                     )
                     .font(.system(size: 11.5))
                     .multilineTextAlignment(.center)
@@ -210,14 +213,14 @@ private struct FloatingHeartsOverlay: View {
                         .foregroundStyle(
                             LinearGradient(
                                 colors: [
-                                    Color(red: 1.0, green: 0.36, blue: 0.56),
-                                    Color(red: 0.92, green: 0.10, blue: 0.36)
+                                    AppTheme.Colors.primaryRed,
+                                    AppTheme.Colors.secondaryRed
                                 ],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
-                        .shadow(color: Color(red: 1.0, green: 0.16, blue: 0.44).opacity(0.65), radius: 8)
+                        .shadow(color: AppTheme.Colors.primaryRed.opacity(0.65), radius: 8)
                         .opacity(animate ? p.opacity : p.opacity * 0.35)
                         .scaleEffect(animate ? 1.15 : 0.85)
                         .position(

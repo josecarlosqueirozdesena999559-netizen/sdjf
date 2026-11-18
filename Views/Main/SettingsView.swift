@@ -61,15 +61,9 @@ struct SettingsView: View {
                         SecuritySettingsView()
                             .environmentObject(appState)
                     } label: {
-                        HStack {
-                            Label("Segurança", systemImage: "lock.shield.fill")
-                                .font(.subheadline.weight(.medium))
-                                .foregroundStyle(AppTheme.Colors.darkGray)
-                            Spacer()
-                            Text("Usuário, e-mail, senha")
-                                .font(.caption)
-                                .foregroundStyle(AppTheme.Colors.textGray)
-                        }
+                        Label("Segurança", systemImage: "lock.shield.fill")
+                            .font(.subheadline.weight(.medium))
+                            .foregroundStyle(AppTheme.Colors.darkGray)
                     }
                 }
                 .listRowBackground(AppTheme.Colors.white)
