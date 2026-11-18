@@ -25,6 +25,15 @@ struct MainContainerView: View {
                     switch selectedTab {
                     case .discover:
                         DiscoverView(viewModel: discoverViewModel)
+                    case .seeAgain:
+                        SeeAgainView(
+                            onMatch: { profile in
+                                discoverViewModel.matchedProfile = profile
+                            },
+                            onMessageSent: {
+                                selectedTab = .conversations
+                            }
+                        )
                     case .matches:
                         MatchesView(selectedTab: $selectedTab)
                     case .conversations:

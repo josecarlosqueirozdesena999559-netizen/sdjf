@@ -2,6 +2,7 @@ import SwiftUI
 
 enum MainTab: String, CaseIterable, Identifiable {
     case discover = "Descobrir"
+    case seeAgain = "Veja Novamente"
     case matches = "Matches"
     case conversations = "Conversas"
     case profile = "Perfil"
@@ -11,6 +12,7 @@ enum MainTab: String, CaseIterable, Identifiable {
     var sfSymbol: String {
         switch self {
         case .discover: return "flame.fill"
+        case .seeAgain: return "arrow.counterclockwise.circle.fill"
         case .matches: return "heart.fill"
         case .conversations: return "bubble.left.and.bubble.right.fill"
         case .profile: return "person.fill"
@@ -20,6 +22,7 @@ enum MainTab: String, CaseIterable, Identifiable {
     var topBarSymbol: String {
         switch self {
         case .discover: return "flame.fill"
+        case .seeAgain: return "arrow.counterclockwise"
         case .matches: return "heart"
         case .conversations: return "bubble.left"
         case .profile: return "person"
@@ -107,6 +110,8 @@ struct FloatingTabBar: View {
                         }
                         Text(tab.rawValue)
                             .font(AppTheme.Typography.micro())
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
 
                         Capsule()
                             .fill(isSelected ? AppTheme.Colors.primaryRed : Color.clear)

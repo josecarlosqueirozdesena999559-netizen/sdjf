@@ -7,6 +7,7 @@ struct DiscoverView: View {
     @State private var showHeartBurst: Bool = false
     @State private var heartBurstOffset: CGFloat = 0
     @State private var heartBurstOpacity: Double = 0
+    @State private var directMessageTarget: UserProfile?
 
     var body: some View {
         VStack(spacing: 14) {
@@ -55,7 +56,12 @@ struct DiscoverView: View {
         .sheet(item: $viewModel.selectedProfileForDetail) { profile in
             ProfileDetailSheet(profile: profile) { targetProfile in
                 viewModel.selectedProfileForDetail = nil
-                viewModel.handleDecision(.highlight, for: targetProfile, appState: appState)
+                directMessageTarget = targetProfile
+            }
+        }
+        .sheet(item: $directMessageTarget) { target in
+            QuickDirectMessageSheet(profile: target) {
+                viewModel.candidates.removeAll { $0.id == target.id }
             }
         }
     }
@@ -130,7 +136,9 @@ struct DiscoverView: View {
             .accessibilityLabel("Curtir")
 
             Button {
-                viewModel.actOnTopCard(.highlight, appState: appState)
+                if let top = viewModel.candidates.first {
+                    directMessageTarget = top
+                }
             } label: {
                 ZStack {
                     Circle()
@@ -143,16 +151,16 @@ struct DiscoverView: View {
                         )
                     Circle()
                         .strokeBorder(Color.white.opacity(0.9), lineWidth: 1.5)
-                    Image(systemName: "star.fill")
+                    Image(systemName: "paperplane.fill")
                         .font(.system(size: 20, weight: .semibold))
-                        .foregroundStyle(Color(hex: "3D4048"))
+                        .foregroundStyle(AppTheme.Colors.primaryRed)
                 }
                 .frame(width: 58, height: 58)
                 .shadow(color: Color.black.opacity(0.09), radius: 10, x: 0, y: 5)
             }
             .buttonStyle(.plain)
             .disabled(viewModel.candidates.isEmpty)
-            .accessibilityLabel("Destacar")
+            .accessibilityLabel("Enviar mensagem")
         }
         .padding(.top, 2)
         .opacity(viewModel.candidates.isEmpty ? 0.45 : 1.0)
