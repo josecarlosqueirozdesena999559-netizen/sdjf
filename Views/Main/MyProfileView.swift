@@ -4,6 +4,7 @@ import PhotosUI
 struct MyProfileView: View {
     @EnvironmentObject private var appState: AppState
     @State private var showEditProfile = false
+    @State private var showPremiumPaywall = false
 
     var body: some View {
         ScrollView {
@@ -82,6 +83,43 @@ struct MyProfileView: View {
                         .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
                     }
 
+                    Button {
+                        showPremiumPaywall = true
+                    } label: {
+                        HStack(spacing: 14) {
+                            Image(systemName: "checkmark.seal.fill")
+                                .font(.system(size: 22))
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                                .background(
+                                    LinearGradient(
+                                        colors: [AppTheme.Colors.secondaryRed, AppTheme.Colors.primaryRed],
+                                        startPoint: .topLeading,
+                                        endPoint: .bottomTrailing
+                                    ),
+                                    in: Circle()
+                                )
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(appState.isPremium ? "Assinatura Premium Ativa" : "Seja Premium • R$ 19,90/mês")
+                                    .font(AppTheme.Typography.headline())
+                                    .foregroundStyle(AppTheme.Colors.darkGray)
+                                Text(appState.isPremium ? "Selo verificado e recursos de privacidade ativos" : "Selo verificado, visualização única, anti-print e mais")
+                                    .font(AppTheme.Typography.caption())
+                                    .foregroundStyle(AppTheme.Colors.textGray)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 13, weight: .semibold))
+                                .foregroundStyle(AppTheme.Colors.textGray)
+                        }
+                        .padding(16)
+                        .glassCard(cornerRadius: AppTheme.Radius.large, material: .regularMaterial)
+                    }
+                    .buttonStyle(.plain)
+
                     SecondaryOutlineButton(title: "Sair da conta", icon: "rectangle.portrait.and.arrow.right") {
                         appState.signOut()
                     }
@@ -96,6 +134,10 @@ struct MyProfileView: View {
                 EditProfileSheet(user: user)
                     .environmentObject(appState)
             }
+        }
+        .sheet(isPresented: $showPremiumPaywall) {
+            PremiumPaywallSheet()
+                .environmentObject(appState)
         }
     }
 }

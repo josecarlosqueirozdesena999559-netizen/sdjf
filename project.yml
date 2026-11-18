@@ -36,6 +36,7 @@ targets:
         INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad: "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight"
         INFOPLIST_KEY_NSLocationWhenInUseUsageDescription: "Usamos sua localização durante o uso do aplicativo para encontrar pessoas próximas, calcular a distância aproximada e melhorar suas recomendações."
         INFOPLIST_KEY_NSPhotoLibraryUsageDescription: "Precisamos acessar suas fotos para que você possa escolher imagens para o seu perfil."
+        INFOPLIST_KEY_NSMicrophoneUsageDescription: "Precisamos do microfone para gravar mensagens de áudio de visualização única no chat."
         TARGETED_DEVICE_FAMILY: "1,2"
         IPHONEOS_DEPLOYMENT_TARGET: "17.0"
     scheme:

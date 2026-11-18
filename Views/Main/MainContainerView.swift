@@ -77,7 +77,15 @@ struct MainContainerView: View {
 
     private var headerBar: some View {
         HStack {
-            ReservedLogoSlot()
+            HStack(spacing: 6) {
+                ReservedLogoSlot()
+                if appState.isPremium || appState.currentUser?.isVerified == true {
+                    Image(systemName: "checkmark.seal.fill")
+                        .font(.system(size: 16))
+                        .foregroundStyle(Color(hex: "3B82F6"))
+                        .accessibilityLabel("Perfil verificado")
+                }
+            }
 
             Spacer()
 

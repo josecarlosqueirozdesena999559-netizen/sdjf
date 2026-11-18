@@ -6,7 +6,12 @@ import Foundation
 final class RealtimeSocketClient: ObservableObject {
     @Published private(set) var isConnected = false
 
-    var onNewMessage: ((_ conversationId: String, _ messageId: String, _ senderId: String, _ content: String, _ createdAt: Date) -> Void)?
+    var onNewMessage: ((_ conversationId: String, _ messageId: String, _ senderId: String, _ content: String, _ type: String, _ isViewOnce: Bool, _ isEphemeralOnExit: Bool, _ createdAt: Date) -> Void)?
+    var onMessageEdited: ((_ conversationId: String, _ messageId: String, _ content: String, _ editedAt: Date) -> Void)?
+    var onMessageDeleted: ((_ conversationId: String, _ messageId: String) -> Void)?
+    var onMessageConsumed: ((_ conversationId: String, _ messageId: String) -> Void)?
+    var onChatCleared: ((_ conversationId: String) -> Void)?
+    var onEphemeralPurged: ((_ conversationId: String, _ messageIds: [String]) -> Void)?
     var onNewMatch: ((_ matchId: String, _ conversationId: String?, _ partnerId: String) -> Void)?
     var onNewNotification: (() -> Void)?
     var onPresenceChanged: ((_ userId: String, _ isOnline: Bool, _ lastActiveAt: Date) -> Void)?
@@ -34,14 +39,39 @@ final class RealtimeSocketClient: ObservableObject {
         isConnected = false
     }
 
-    func sendMessage(conversationId: String, content: String, clientMessageId: String = UUID().uuidString) {
+    func sendMessage(
+        conversationId: String,
+        content: String,
+        type: String = "TEXT",
+        isViewOnce: Bool = false,
+        isEphemeralOnExit: Bool = false,
+        clientMessageId: String = UUID().uuidString
+    ) {
         let payload: [String: Any] = [
             "conversationId": conversationId,
             "clientMessageId": clientMessageId,
-            "type": "TEXT",
-            "content": content
+            "type": type,
+            "content": content,
+            "isViewOnce": isViewOnce,
+            "isEphemeralOnExit": isEphemeralOnExit
         ]
         emit(event: "message:send", data: payload)
+    }
+
+    func editMessage(messageId: String, content: String) {
+        emit(event: "message:edit", data: ["messageId": messageId, "content": content])
+    }
+
+    func deleteMessage(messageId: String) {
+        emit(event: "message:delete", data: ["messageId": messageId])
+    }
+
+    func clearChat(conversationId: String) {
+        emit(event: "chat:clear", data: ["conversationId": conversationId])
+    }
+
+    func leaveChat(conversationId: String) {
+        emit(event: "chat:leave", data: ["conversationId": conversationId])
     }
 
     func markRead(conversationId: String) {
@@ -120,9 +150,37 @@ final class RealtimeSocketClient: ObservableObject {
                    let id = payload["id"] as? String,
                    let senderId = payload["senderId"] as? String,
                    let content = payload["content"] as? String {
+                    let type = (payload["type"] as? String) ?? "TEXT"
+                    let isViewOnce = (payload["isViewOnce"] as? Bool) ?? false
+                    let isEphemeral = (payload["isEphemeralOnExit"] as? Bool) ?? false
                     let dateStr = payload["createdAt"] as? String
                     let date = dateStr.flatMap { ISO8601DateFormatter().date(from: $0) } ?? Date()
-                    onNewMessage?(conversationId, id, senderId, content, date)
+                    onNewMessage?(conversationId, id, senderId, content, type, isViewOnce, isEphemeral, date)
+                }
+            case "message:edited":
+                if let conversationId = payload["conversationId"] as? String,
+                   let id = payload["id"] as? String,
+                   let content = payload["content"] as? String {
+                    onMessageEdited?(conversationId, id, content, Date())
+                }
+            case "message:deleted":
+                if let conversationId = payload["conversationId"] as? String,
+                   let id = payload["id"] as? String {
+                    onMessageDeleted?(conversationId, id)
+                }
+            case "message:consumed":
+                if let conversationId = payload["conversationId"] as? String,
+                   let id = payload["messageId"] as? String {
+                    onMessageConsumed?(conversationId, id)
+                }
+            case "chat:cleared":
+                if let conversationId = payload["conversationId"] as? String {
+                    onChatCleared?(conversationId)
+                }
+            case "chat:ephemeral_purged":
+                if let conversationId = payload["conversationId"] as? String,
+                   let ids = payload["messageIds"] as? [String] {
+                    onEphemeralPurged?(conversationId, ids)
                 }
             case "match:new":
                 if let matchId = payload["matchId"] as? String,

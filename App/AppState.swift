@@ -35,6 +35,7 @@ final class AppState: ObservableObject {
     @Published var matches: [MatchItem] = []
     @Published var conversations: [Conversation] = []
     @Published var unreadNotificationCount: Int = 0
+    @Published var isPremium: Bool = false
     @Published var onlineUsers: [String: Bool] = [:]
     @Published var lastActiveByUser: [String: Date] = [:]
     @Published var typingConversations: Set<String> = []
@@ -52,14 +53,17 @@ final class AppState: ObservableObject {
     }
 
     private func setupSocketListeners() {
-        socketClient.onNewMessage = { [weak self] conversationId, messageId, senderId, content, createdAt in
+        socketClient.onNewMessage = { [weak self] conversationId, messageId, senderId, content, type, isViewOnce, isEphemeralOnExit, createdAt in
             guard let self, let convUUID = UUID(uuidString: conversationId), let msgUUID = UUID(uuidString: messageId) else { return }
             let isCurrentUser = senderId.lowercased() == self.currentUser?.id.uuidString.lowercased()
             let newMessage = ChatMessage(
                 id: msgUUID,
                 senderIsCurrentUser: isCurrentUser,
                 text: content,
-                sentAt: createdAt
+                sentAt: createdAt,
+                type: ChatMessageType(rawValue: type) ?? .text,
+                isViewOnce: isViewOnce,
+                isEphemeralOnExit: isEphemeralOnExit
             )
             if let idx = self.conversations.firstIndex(where: { $0.id == convUUID }) {
                 if !self.conversations[idx].messages.contains(where: { $0.id == msgUUID }) {
@@ -71,6 +75,52 @@ final class AppState: ObservableObject {
             } else {
                 Task { await self.loadSocialData() }
             }
+        }
+
+        socketClient.onMessageEdited = { [weak self] conversationId, messageId, content, editedAt in
+            guard let self,
+                  let convUUID = UUID(uuidString: conversationId),
+                  let msgUUID = UUID(uuidString: messageId),
+                  let cIdx = self.conversations.firstIndex(where: { $0.id == convUUID }),
+                  let mIdx = self.conversations[cIdx].messages.firstIndex(where: { $0.id == msgUUID }) else { return }
+            self.conversations[cIdx].messages[mIdx].text = content
+            self.conversations[cIdx].messages[mIdx].editedAt = editedAt
+        }
+
+        socketClient.onMessageDeleted = { [weak self] conversationId, messageId in
+            guard let self,
+                  let convUUID = UUID(uuidString: conversationId),
+                  let msgUUID = UUID(uuidString: messageId),
+                  let cIdx = self.conversations.firstIndex(where: { $0.id == convUUID }),
+                  let mIdx = self.conversations[cIdx].messages.firstIndex(where: { $0.id == msgUUID }) else { return }
+            self.conversations[cIdx].messages[mIdx].text = "Mensagem apagada para todos"
+            self.conversations[cIdx].messages[mIdx].deletedForEveryoneAt = Date()
+        }
+
+        socketClient.onMessageConsumed = { [weak self] conversationId, messageId in
+            guard let self,
+                  let convUUID = UUID(uuidString: conversationId),
+                  let msgUUID = UUID(uuidString: messageId),
+                  let cIdx = self.conversations.firstIndex(where: { $0.id == convUUID }),
+                  let mIdx = self.conversations[cIdx].messages.firstIndex(where: { $0.id == msgUUID }) else { return }
+            self.conversations[cIdx].messages[mIdx].viewedAt = Date()
+            self.conversations[cIdx].messages[mIdx].text = "Visualização única aberta"
+        }
+
+        socketClient.onChatCleared = { [weak self] conversationId in
+            guard let self,
+                  let convUUID = UUID(uuidString: conversationId),
+                  let cIdx = self.conversations.firstIndex(where: { $0.id == convUUID }) else { return }
+            self.conversations[cIdx].messages.removeAll()
+            self.conversations[cIdx].unreadCount = 0
+        }
+
+        socketClient.onEphemeralPurged = { [weak self] conversationId, messageIds in
+            guard let self,
+                  let convUUID = UUID(uuidString: conversationId),
+                  let cIdx = self.conversations.firstIndex(where: { $0.id == convUUID }) else { return }
+            let purgedSet = Set(messageIds.map { $0.lowercased() })
+            self.conversations[cIdx].messages.removeAll { purgedSet.contains($0.id.uuidString.lowercased()) }
         }
 
         socketClient.onNewMatch = { [weak self] _, _, _ in
@@ -131,6 +181,24 @@ final class AppState: ObservableObject {
             conversations = loadedConversations
         }
         await refreshUnreadNotifications()
+        await refreshSubscriptionStatus()
+    }
+
+    func refreshSubscriptionStatus() async {
+        struct SubStatusDTO: Decodable {
+            let isPremium: Bool
+            let isVerified: Bool
+        }
+        if let status: SubStatusDTO = try? await APIClient.shared.request(
+            path: "/subscriptions/status",
+            method: "GET"
+        ) {
+            isPremium = status.isPremium
+            if var user = currentUser {
+                user.isVerified = status.isVerified
+                currentUser = user
+            }
+        }
     }
 
     func refreshUnreadNotifications() async {
