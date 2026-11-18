@@ -81,6 +81,9 @@ struct TermsOfUseView: View {
         .padding(.horizontal, AppTheme.Spacing.lg)
         .sheet(item: $activeDocument) { doc in
             LegalDocumentSheet(document: doc)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationCornerRadius(24)
         }
     }
 }

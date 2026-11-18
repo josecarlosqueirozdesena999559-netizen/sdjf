@@ -5,45 +5,32 @@ struct PermissionsView: View {
     @ObservedObject var viewModel: OnboardingViewModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 20) {
             Text("Permissões")
                 .font(AppTheme.Typography.largeTitle())
                 .foregroundStyle(AppTheme.Colors.darkGray)
                 .padding(.top, 12)
 
-            ScrollView {
-                VStack(spacing: 14) {
-                    permissionCard(
-                        icon: "location.fill",
-                        title: "Localização",
-                        bullets: [
-                            "Encontrar pessoas próximas",
-                            "Calcular distância aproximada",
-                            "Melhorar as recomendações"
-                        ],
-                        isAuthorized: viewModel.permissions.locationAuthorized,
-                        buttonTitle: viewModel.permissions.locationAuthorized ? "Localização ativada" : "Permitir durante o uso"
-                    ) {
-                        Task {
-                            await viewModel.requestLocationPermission()
-                        }
+            VStack(spacing: 14) {
+                permissionRow(
+                    icon: "location.fill",
+                    title: "Permitir localização",
+                    description: "Para mostrar pessoas próximas e a distância em km.",
+                    isAuthorized: viewModel.permissions.locationAuthorized
+                ) {
+                    Task {
+                        await viewModel.requestLocationPermission()
                     }
+                }
 
-                    permissionCard(
-                        icon: "bell.badge.fill",
-                        title: "Notificações",
-                        bullets: [
-                            "Novos matches",
-                            "Novas mensagens",
-                            "Curtidas recebidas",
-                            "Atividades relevantes"
-                        ],
-                        isAuthorized: viewModel.permissions.notificationsAuthorized,
-                        buttonTitle: viewModel.permissions.notificationsAuthorized ? "Notificações ativadas" : "Ativar notificações"
-                    ) {
-                        Task {
-                            await viewModel.requestNotificationsPermission()
-                        }
+                permissionRow(
+                    icon: "bell.badge.fill",
+                    title: "Permitir notificações",
+                    description: "Para avisar sobre novos matches e mensagens.",
+                    isAuthorized: viewModel.permissions.notificationsAuthorized
+                ) {
+                    Task {
+                        await viewModel.requestNotificationsPermission()
                     }
                 }
             }
@@ -54,8 +41,10 @@ struct PermissionsView: View {
                     .foregroundStyle(AppTheme.Colors.primaryRed)
             }
 
+            Spacer()
+
             PrimaryButton(
-                title: "Concluir cadastro",
+                title: "Concluir",
                 isEnabled: true,
                 isLoading: viewModel.isSubmitting
             ) {
@@ -66,70 +55,65 @@ struct PermissionsView: View {
             .padding(.bottom, 24)
         }
         .padding(.horizontal, AppTheme.Spacing.lg)
+        .task {
+            // Sync current OS statuses if already granted earlier
+            viewModel.permissions.locationAuthorized = appState.permissionService.isLocationAuthorized
+            viewModel.permissions.notificationsAuthorized = appState.permissionService.isNotificationAuthorized
+        }
     }
 
-    private func permissionCard(
+    private func permissionRow(
         icon: String,
         title: String,
-        bullets: [String],
+        description: String,
         isAuthorized: Bool,
-        buttonTitle: String,
         action: @escaping () -> Void
     ) -> some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack(spacing: 12) {
+        Button(action: action) {
+            HStack(spacing: 14) {
                 Image(systemName: icon)
                     .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(AppTheme.Colors.primaryRed)
-                    .frame(width: 44, height: 44)
-                    .background(AppTheme.Colors.primaryRed.opacity(0.1), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    .foregroundStyle(isAuthorized ? AppTheme.Colors.successGreen : AppTheme.Colors.primaryRed)
+                    .frame(width: 46, height: 46)
+                    .background(
+                        (isAuthorized ? AppTheme.Colors.successGreen : AppTheme.Colors.primaryRed).opacity(0.1),
+                        in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                    )
 
-                Text(title)
-                    .font(AppTheme.Typography.headline())
-                    .foregroundStyle(AppTheme.Colors.darkGray)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(title)
+                        .font(AppTheme.Typography.headline())
+                        .foregroundStyle(AppTheme.Colors.darkGray)
+                    Text(description)
+                        .font(AppTheme.Typography.caption())
+                        .foregroundStyle(AppTheme.Colors.textGray)
+                        .multilineTextAlignment(.leading)
+                }
 
                 Spacer()
 
                 if isAuthorized {
                     Image(systemName: "checkmark.circle.fill")
-                        .font(.system(size: 20))
+                        .font(.system(size: 22))
                         .foregroundStyle(AppTheme.Colors.successGreen)
+                } else {
+                    Text("Permitir")
+                        .font(AppTheme.Typography.caption())
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .background(AppTheme.Colors.primaryRed, in: Capsule())
                 }
             }
-
-            VStack(alignment: .leading, spacing: 6) {
-                ForEach(bullets, id: \.self) { bullet in
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(AppTheme.Colors.primaryRed.opacity(0.7))
-                            .frame(width: 5, height: 5)
-                        Text(bullet)
-                            .font(AppTheme.Typography.subheadline())
-                            .foregroundStyle(AppTheme.Colors.textGray)
-                    }
-                }
-            }
-
-            Button(action: action) {
-                Text(buttonTitle)
-                    .font(AppTheme.Typography.subheadline())
-                    .foregroundStyle(isAuthorized ? AppTheme.Colors.successGreen : AppTheme.Colors.primaryRed)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 44)
-                    .background(
-                        RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous)
-                            .fill(isAuthorized ? AppTheme.Colors.successGreen.opacity(0.1) : AppTheme.Colors.primaryRed.opacity(0.08))
-                    )
-            }
-            .buttonStyle(.plain)
-            .disabled(isAuthorized)
+            .padding(16)
+            .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
+                    .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
+            )
         }
-        .padding(16)
-        .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
-        .overlay(
-            RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
-                .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
-        )
+        .buttonStyle(.plain)
+        .disabled(isAuthorized)
     }
 }
 
@@ -161,11 +145,6 @@ struct OnboardingCompletionView: View {
             Text("Tudo pronto!")
                 .font(AppTheme.Typography.largeTitle())
                 .foregroundStyle(AppTheme.Colors.darkGray)
-                .opacity(opacity)
-
-            Text("Seu perfil foi configurado. Vamos começar.")
-                .font(AppTheme.Typography.body())
-                .foregroundStyle(AppTheme.Colors.textGray)
                 .opacity(opacity)
 
             Spacer()

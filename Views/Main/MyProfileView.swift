@@ -82,7 +82,7 @@ struct MyProfileView: View {
                     .padding(16)
                     .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
 
-                    SecondaryOutlineButton(title: "Reiniciar cadastro (demonstração)", icon: "arrow.counterclockwise") {
+                    SecondaryOutlineButton(title: "Sair da conta", icon: "rectangle.portrait.and.arrow.right") {
                         appState.signOut()
                     }
                 }

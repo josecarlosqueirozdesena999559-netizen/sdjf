@@ -19,16 +19,6 @@ struct ServiceContainer {
         matchService: RemoteMatchService(),
         chatService: RemoteChatService()
     )
-
-    static let mock = ServiceContainer(
-        authService: MockAuthService(),
-        storageService: MockStorageService(),
-        userRepository: LocalUserRepository(),
-        verificationService: MockVerificationService(),
-        discoveryService: MockDiscoveryService(),
-        matchService: MockMatchService(),
-        chatService: MockChatService()
-    )
 }
 
 enum RootRoute {

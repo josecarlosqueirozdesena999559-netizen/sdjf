@@ -18,7 +18,9 @@ struct DiscoverView: View {
                         SwipeableProfileCard(
                             profile: profile,
                             isTopCard: index == 0,
+                            programmaticSwipe: viewModel.programmaticSwipe,
                             onDecision: { decision in
+                                viewModel.programmaticSwipe = nil
                                 viewModel.handleDecision(decision, for: profile, appState: appState)
                             },
                             onInfoTap: {
@@ -308,18 +310,29 @@ struct MatchOverlayView: View {
     let profile: UserProfile
     let onSendMessage: () -> Void
     let onKeepDiscovering: () -> Void
+    @State private var appeared = false
+    @State private var heartPulse = false
 
     var body: some View {
         ZStack {
-            Color.black.opacity(0.45)
+            Color.black.opacity(appeared ? 0.48 : 0.0)
                 .ignoresSafeArea()
+                .animation(.easeOut(duration: 0.25), value: appeared)
 
             VStack(spacing: 18) {
-                Image(systemName: "heart.fill")
-                    .font(.system(size: 38))
-                    .foregroundStyle(AppTheme.Colors.primaryRed)
-                    .padding(18)
-                    .background(AppTheme.Colors.primaryRed.opacity(0.12), in: Circle())
+                ZStack {
+                    Circle()
+                        .fill(AppTheme.Colors.primaryRed.opacity(0.14))
+                        .frame(width: 96, height: 96)
+                        .scaleEffect(heartPulse ? 1.15 : 0.95)
+                        .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: heartPulse)
+
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: 40))
+                        .foregroundStyle(AppTheme.Colors.primaryRed)
+                        .scaleEffect(heartPulse ? 1.08 : 0.96)
+                        .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: heartPulse)
+                }
 
                 Text("Vocês combinaram!")
                     .font(AppTheme.Typography.title())
@@ -338,6 +351,13 @@ struct MatchOverlayView: View {
             .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.card, style: .continuous))
             .shadow(color: Color.black.opacity(0.18), radius: 24, x: 0, y: 12)
             .padding(.horizontal, 28)
+            .scaleEffect(appeared ? 1.0 : 0.78)
+            .opacity(appeared ? 1.0 : 0.0)
+            .animation(.spring(response: 0.38, dampingFraction: 0.74), value: appeared)
+        }
+        .onAppear {
+            appeared = true
+            heartPulse = true
         }
     }
 }

@@ -8,6 +8,7 @@ final class DiscoverViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     @Published var matchedProfile: UserProfile?
     @Published var selectedProfileForDetail: UserProfile?
+    @Published var programmaticSwipe: (profileId: UUID, decision: SwipeDecision)?
 
     private let discoveryService: DiscoveryServiceProtocol
 
@@ -43,7 +44,7 @@ final class DiscoverViewModel: ObservableObject {
 
     func actOnTopCard(_ decision: SwipeDecision, appState: AppState) {
         guard let top = candidates.first else { return }
-        handleDecision(decision, for: top, appState: appState)
+        programmaticSwipe = (top.id, decision)
     }
 
     func applyFilter(_ newFilter: DiscoveryFilter) {

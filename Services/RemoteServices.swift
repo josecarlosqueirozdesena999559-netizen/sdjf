@@ -274,6 +274,26 @@ final class RemoteStorageService: StorageServiceProtocol {
     }
 }
 
+final class LocalUserRepository: UserRepositoryProtocol {
+    private let storageKey = "local_user_profile_v1"
+
+    func saveProfile(_ profile: UserProfile) async throws {
+        let data = try JSONEncoder().encode(profile)
+        UserDefaults.standard.set(data, forKey: storageKey)
+    }
+
+    func loadCurrentProfile() async throws -> UserProfile? {
+        guard let data = UserDefaults.standard.data(forKey: storageKey) else {
+            return nil
+        }
+        return try JSONDecoder().decode(UserProfile.self, from: data)
+    }
+
+    func clearLocalSession() async throws {
+        UserDefaults.standard.removeObject(forKey: storageKey)
+    }
+}
+
 final class RemoteUserRepository: UserRepositoryProtocol {
     private let localFallback = LocalUserRepository()
 

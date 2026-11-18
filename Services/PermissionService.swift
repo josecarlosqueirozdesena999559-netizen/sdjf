@@ -6,6 +6,7 @@ import UserNotifications
 final class PermissionService: NSObject, ObservableObject, CLLocationManagerDelegate {
     @Published private(set) var locationStatus: CLAuthorizationStatus
     @Published private(set) var notificationStatus: UNAuthorizationStatus = .notDetermined
+    @Published private(set) var lastCoordinate: CLLocationCoordinate2D?
 
     private let locationManager = CLLocationManager()
     private var locationContinuation: CheckedContinuation<Bool, Never>?
@@ -14,6 +15,10 @@ final class PermissionService: NSObject, ObservableObject, CLLocationManagerDele
         self.locationStatus = locationManager.authorizationStatus
         super.init()
         locationManager.delegate = self
+        locationManager.desiredAccuracy = kCLLocationAccuracyHundredMeters
+        if locationStatus == .authorizedWhenInUse || locationStatus == .authorizedAlways {
+            locationManager.requestLocation()
+        }
         Task {
             await refreshNotificationStatus()
         }
@@ -67,10 +72,24 @@ final class PermissionService: NSObject, ObservableObject, CLLocationManagerDele
         let status = manager.authorizationStatus
         Task { @MainActor in
             self.locationStatus = status
+            if status == .authorizedWhenInUse || status == .authorizedAlways {
+                manager.requestLocation()
+            }
             if status != .notDetermined, let continuation = self.locationContinuation {
                 self.locationContinuation = nil
                 continuation.resume(returning: status == .authorizedWhenInUse || status == .authorizedAlways)
             }
         }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+        guard let coord = locations.last?.coordinate else { return }
+        Task { @MainActor in
+            self.lastCoordinate = coord
+        }
+    }
+
+    nonisolated func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+        // Location fetch is optional; ignore transient failures
     }
 }

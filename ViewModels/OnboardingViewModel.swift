@@ -284,6 +284,17 @@ final class OnboardingViewModel: ObservableObject {
             )
 
             try await services.userRepository.saveProfile(profile)
+            if let coord = permissionService.lastCoordinate {
+                struct LocationPayload: Encodable {
+                    let latitude: Double
+                    let longitude: Double
+                }
+                try? await APIClient.shared.requestVoid(
+                    path: "/location",
+                    method: "PUT",
+                    body: LocationPayload(latitude: coord.latitude, longitude: coord.longitude)
+                )
+            }
             isSubmitting = false
             withAnimation(.easeInOut(duration: 0.25)) {
                 currentStep = .completion

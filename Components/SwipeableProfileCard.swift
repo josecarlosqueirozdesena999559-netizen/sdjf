@@ -3,6 +3,7 @@ import SwiftUI
 struct SwipeableProfileCard: View {
     let profile: UserProfile
     var isTopCard: Bool = true
+    var programmaticSwipe: (profileId: UUID, decision: SwipeDecision)? = nil
     var onDecision: (SwipeDecision) -> Void
     var onInfoTap: () -> Void
 
@@ -153,6 +154,13 @@ struct SwipeableProfileCard: View {
                 }
             : nil
         )
+        .onChange(of: programmaticSwipe?.profileId) { _, targetId in
+            guard isTopCard,
+                  let swipe = programmaticSwipe,
+                  targetId == profile.id else { return }
+            let direction: CGFloat = swipe.decision == .reject ? -1 : 1
+            completeSwipe(direction: direction, decision: swipe.decision)
+        }
     }
 
     private func completeSwipe(direction: CGFloat, decision: SwipeDecision) {
