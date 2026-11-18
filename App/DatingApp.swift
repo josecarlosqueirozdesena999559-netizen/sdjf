@@ -44,7 +44,6 @@ struct DatingApp: App {
                 }
             }
             .environmentObject(appState)
-            .preferredColorScheme(.light)
         }
     }
 }

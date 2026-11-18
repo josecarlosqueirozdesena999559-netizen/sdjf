@@ -1,18 +1,29 @@
 import SwiftUI
+import UIKit
 
 enum AppTheme {
+    private static func dynamic(lightHex: String, darkHex: String) -> Color {
+        Color(UIColor { traits in
+            traits.userInterfaceStyle == .dark ? UIColor(Color(hex: darkHex)) : UIColor(Color(hex: lightHex))
+        })
+    }
+
     enum Colors {
         static let primaryRed = Color(hex: "FF1764")
         static let secondaryRed = Color(hex: "D90E52")
-        static let white = Color(hex: "FFFFFF")
-        static let background = Color(hex: "F6F6F8")
-        static let textGray = Color(hex: "85858D")
-        static let darkGray = Color(hex: "292932")
+        static let white = dynamic(lightHex: "FFFFFF", darkHex: "1C1C22")
+        static let background = dynamic(lightHex: "F6F6F8", darkHex: "0F0F13")
+        static let textGray = dynamic(lightHex: "85858D", darkHex: "9E9EA8")
+        static let darkGray = dynamic(lightHex: "292932", darkHex: "F4F4F7")
 
-        static let inputBackground = Color(hex: "FFFFFF")
-        static let borderSubtle = Color(hex: "292932").opacity(0.08)
+        static let inputBackground = dynamic(lightHex: "FFFFFF", darkHex: "1C1C22")
+        static let borderSubtle = Color(UIColor { traits in
+            traits.userInterfaceStyle == .dark
+                ? UIColor.white.withAlphaComponent(0.12)
+                : UIColor(Color(hex: "292932")).withAlphaComponent(0.08)
+        })
         static let glassBorder = Color.white.opacity(0.55)
-        static let chipUnselected = Color(hex: "EBEBF0")
+        static let chipUnselected = dynamic(lightHex: "EBEBF0", darkHex: "2A2A33")
         static let successGreen = Color(hex: "1F9D55")
         static let warningAmber = Color(hex: "D97706")
     }
