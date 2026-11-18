@@ -179,6 +179,12 @@ private struct SecuritySettingsView: View {
                 } label: {
                     securityRow(icon: "key.fill", title: "Alterar senha", subtitle: "Atualizar sua senha de acesso")
                 }
+
+                NavigationLink {
+                    BlockedUsersView()
+                } label: {
+                    securityRow(icon: "hand.raised.fill", title: "Contatos bloqueados", subtitle: "")
+                }
             }
             .listRowBackground(AppTheme.Colors.white)
 
@@ -219,6 +225,136 @@ private struct SecuritySettingsView: View {
             }
         }
         .padding(.vertical, 2)
+    }
+}
+
+private struct BlockedUserItem: Identifiable, Decodable {
+    let id: String
+    let fullName: String
+    let username: String
+    let photoUrl: String?
+    let blockedAt: String
+}
+
+private struct BlockedUsersResponse: Decodable {
+    let items: [BlockedUserItem]
+}
+
+private struct BlockedUsersView: View {
+    @State private var items: [BlockedUserItem] = []
+    @State private var isLoading = true
+    @State private var errorMessage: String?
+
+    var body: some View {
+        List {
+            if isLoading {
+                HStack {
+                    Spacer()
+                    ProgressView().tint(AppTheme.Colors.primaryRed)
+                    Spacer()
+                }
+                .listRowBackground(Color.clear)
+            } else if items.isEmpty {
+                VStack(spacing: 10) {
+                    Image(systemName: "checkmark.shield")
+                        .font(.system(size: 32))
+                        .foregroundStyle(AppTheme.Colors.primaryRed)
+                    Text("Nenhum contato bloqueado")
+                        .font(AppTheme.Typography.headline())
+                        .foregroundStyle(AppTheme.Colors.darkGray)
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 32)
+                .listRowBackground(Color.clear)
+            } else {
+                ForEach(items) { user in
+                    HStack(spacing: 12) {
+                        if let photoUrl = user.photoUrl, let url = URL(string: photoUrl) {
+                            AsyncImage(url: url) { phase in
+                                if case .success(let img) = phase {
+                                    img.resizable().scaledToFill()
+                                } else {
+                                    Circle().fill(AppTheme.Colors.chipUnselected)
+                                }
+                            }
+                            .frame(width: 44, height: 44)
+                            .clipShape(Circle())
+                        } else {
+                            Circle()
+                                .fill(AppTheme.Colors.primaryRed.opacity(0.14))
+                                .frame(width: 44, height: 44)
+                                .overlay(
+                                    Text(String(user.fullName.prefix(1)).uppercased())
+                                        .font(AppTheme.Typography.headline())
+                                        .foregroundStyle(AppTheme.Colors.primaryRed)
+                                )
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(user.fullName)
+                                .font(AppTheme.Typography.subheadline())
+                                .foregroundStyle(AppTheme.Colors.darkGray)
+                            Text("@\(user.username)")
+                                .font(AppTheme.Typography.caption())
+                                .foregroundStyle(AppTheme.Colors.textGray)
+                        }
+
+                        Spacer()
+
+                        Button("Desbloquear") {
+                            Task { await unblock(userId: user.id) }
+                        }
+                        .font(AppTheme.Typography.caption())
+                        .fontWeight(.semibold)
+                        .foregroundStyle(AppTheme.Colors.primaryRed)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 6)
+                        .background(AppTheme.Colors.primaryRed.opacity(0.12), in: Capsule())
+                        .buttonStyle(.plain)
+                    }
+                    .padding(.vertical, 4)
+                    .listRowBackground(AppTheme.Colors.white)
+                }
+            }
+
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(AppTheme.Typography.caption())
+                    .foregroundStyle(AppTheme.Colors.primaryRed)
+                    .listRowBackground(Color.clear)
+            }
+        }
+        .listStyle(.insetGrouped)
+        .scrollContentBackground(.hidden)
+        .background(AppTheme.Colors.background)
+        .navigationTitle("Contatos bloqueados")
+        .navigationBarTitleDisplayMode(.inline)
+        .task {
+            await loadBlocked()
+        }
+    }
+
+    private func loadBlocked() async {
+        isLoading = true
+        errorMessage = nil
+        do {
+            let res: BlockedUsersResponse = try await APIClient.shared.request(path: "/users/blocked")
+            items = res.items
+        } catch {
+            errorMessage = error.localizedDescription
+        }
+        isLoading = false
+    }
+
+    private func unblock(userId: String) async {
+        do {
+            try await APIClient.shared.requestVoid(path: "/users/\(userId)/block", method: "DELETE")
+            withAnimation {
+                items.removeAll { $0.id == userId }
+            }
+        } catch {
+            errorMessage = error.localizedDescription
+        }
     }
 }
 

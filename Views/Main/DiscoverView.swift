@@ -198,6 +198,8 @@ struct ProfileDetailSheet: View {
     let profile: UserProfile
     var onSendMessage: ((UserProfile) -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
+    @State private var showReportSheet = false
+    @State private var showBlockAlert = false
 
     var body: some View {
         NavigationStack {
@@ -272,12 +274,53 @@ struct ProfileDetailSheet: View {
             .navigationTitle(profile.firstName)
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .topBarLeading) {
+                    Menu {
+                        Button {
+                            showReportSheet = true
+                        } label: {
+                            Label("Denunciar usuário", systemImage: "exclamationmark.triangle")
+                        }
+
+                        Button(role: .destructive) {
+                            showBlockAlert = true
+                        } label: {
+                            Label("Bloquear usuário", systemImage: "hand.raised")
+                        }
+                    } label: {
+                        Image(systemName: "ellipsis.circle")
+                            .foregroundStyle(AppTheme.Colors.primaryRed)
+                    }
+                }
+
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Fechar") {
                         dismiss()
                     }
                     .foregroundStyle(AppTheme.Colors.primaryRed)
                 }
+            }
+            .sheet(isPresented: $showReportSheet) {
+                ReportUserSheet(
+                    targetUserId: profile.id.uuidString.lowercased(),
+                    targetName: profile.firstName
+                ) {
+                    dismiss()
+                }
+            }
+            .alert("Bloquear \(profile.firstName)?", isPresented: $showBlockAlert) {
+                Button("Cancelar", role: .cancel) {}
+                Button("Bloquear", role: .destructive) {
+                    Task {
+                        try? await APIClient.shared.requestVoid(
+                            path: "/users/\(profile.id.uuidString.lowercased())/block",
+                            method: "POST"
+                        )
+                        dismiss()
+                    }
+                }
+            } message: {
+                Text("Você não verá mais este perfil. Você pode desbloquear em Segurança.")
             }
         }
     }

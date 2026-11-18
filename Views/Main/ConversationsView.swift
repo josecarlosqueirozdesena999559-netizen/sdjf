@@ -101,6 +101,9 @@ struct ChatDetailView: View {
 
     @State private var screenShieldEnabled: Bool = true
     @State private var showPaywall: Bool = false
+    @State private var showReportSheet: Bool = false
+    @State private var showBlockAlert: Bool = false
+    @State private var showDeleteConvAlert: Bool = false
     @State private var revealedViewOnceText: String?
     @State private var audioPlayer: AVPlayer?
 
@@ -239,6 +242,26 @@ struct ChatDetailView: View {
                         } label: {
                             Label("Limpar conversa para todos", systemImage: "trash")
                         }
+
+                        Divider()
+
+                        Button(role: .destructive) {
+                            showDeleteConvAlert = true
+                        } label: {
+                            Label("Excluir conversa", systemImage: "bubble.left.and.exclamationmark.bubble.right")
+                        }
+
+                        Button {
+                            showReportSheet = true
+                        } label: {
+                            Label("Denunciar usuário", systemImage: "exclamationmark.triangle")
+                        }
+
+                        Button(role: .destructive) {
+                            showBlockAlert = true
+                        } label: {
+                            Label("Bloquear usuário", systemImage: "hand.raised")
+                        }
                     } label: {
                         Image(systemName: "ellipsis.circle")
                             .font(.system(size: 17))
@@ -268,6 +291,32 @@ struct ChatDetailView: View {
             .sheet(isPresented: $showPaywall) {
                 PremiumPaywallSheet()
                     .environmentObject(appState)
+            }
+            .sheet(isPresented: $showReportSheet) {
+                if let partner = conversation?.profile {
+                    ReportUserSheet(
+                        targetUserId: partner.id.uuidString.lowercased(),
+                        targetName: partner.firstName
+                    ) {
+                        removeCurrentConversationAndDismiss()
+                    }
+                }
+            }
+            .alert("Excluir conversa?", isPresented: $showDeleteConvAlert) {
+                Button("Cancelar", role: .cancel) {}
+                Button("Excluir", role: .destructive) {
+                    Task { await deleteConversation() }
+                }
+            } message: {
+                Text("Esta conversa será removida da sua lista.")
+            }
+            .alert("Bloquear \(conversation?.profile.firstName ?? "usuário")?", isPresented: $showBlockAlert) {
+                Button("Cancelar", role: .cancel) {}
+                Button("Bloquear", role: .destructive) {
+                    Task { await blockPartner() }
+                }
+            } message: {
+                Text("Você não verá mais este perfil e ele não poderá enviar mensagens. Você pode desbloquear em Segurança.")
             }
             .alert("Visualização única", isPresented: Binding(
                 get: { revealedViewOnceText != nil },
@@ -489,6 +538,24 @@ struct ChatDetailView: View {
             isViewOnce: true,
             isEphemeralOnExit: viewModel.isEphemeralOnExit
         )
+    }
+
+    private func deleteConversation() async {
+        let idStr = conversationId.uuidString.lowercased()
+        try? await APIClient.shared.requestVoid(path: "/matches/\(idStr)", method: "DELETE")
+        removeCurrentConversationAndDismiss()
+    }
+
+    private func blockPartner() async {
+        guard let partnerId = conversation?.profile.id.uuidString.lowercased() else { return }
+        try? await APIClient.shared.requestVoid(path: "/users/\(partnerId)/block", method: "POST")
+        removeCurrentConversationAndDismiss()
+    }
+
+    private func removeCurrentConversationAndDismiss() {
+        appState.conversations.removeAll { $0.id == conversationId }
+        appState.matches.removeAll { $0.id == conversationId }
+        dismiss()
     }
 }
 
