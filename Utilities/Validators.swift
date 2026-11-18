@@ -74,8 +74,8 @@ enum PasswordStrength: Equatable {
         switch self {
         case .empty: return ""
         case .tooShort: return "Mínimo de 8 caracteres"
-        case .weak: return "Senha aceita (pode ficar mais forte)"
-        case .medium: return "Senha boa"
+        case .weak: return "Adicione números ou letras maiúsculas"
+        case .medium: return "Segurança média"
         case .strong: return "Senha forte"
         }
     }

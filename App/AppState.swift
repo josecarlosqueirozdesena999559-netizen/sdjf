@@ -35,6 +35,9 @@ final class AppState: ObservableObject {
     @Published var matches: [MatchItem] = []
     @Published var conversations: [Conversation] = []
     @Published var unreadNotificationCount: Int = 0
+    @Published var onlineUsers: [String: Bool] = [:]
+    @Published var lastActiveByUser: [String: Date] = [:]
+    @Published var typingConversations: Set<String> = []
 
     let services: ServiceContainer
     let permissionService = PermissionService()
@@ -78,6 +81,23 @@ final class AppState: ObservableObject {
         socketClient.onNewNotification = { [weak self] in
             guard let self else { return }
             self.unreadNotificationCount += 1
+        }
+
+        socketClient.onPresenceChanged = { [weak self] userId, isOnline, lastActiveAt in
+            guard let self else { return }
+            let key = userId.lowercased()
+            self.onlineUsers[key] = isOnline
+            self.lastActiveByUser[key] = lastActiveAt
+        }
+
+        socketClient.onTypingChanged = { [weak self] conversationId, _, isTyping in
+            guard let self else { return }
+            let key = conversationId.lowercased()
+            if isTyping {
+                self.typingConversations.insert(key)
+            } else {
+                self.typingConversations.remove(key)
+            }
         }
     }
 

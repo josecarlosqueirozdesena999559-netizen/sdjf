@@ -38,17 +38,6 @@ struct AboutYouView: View {
             )
 
             HStack {
-                HStack(spacing: 6) {
-                    Image(systemName: "sparkles")
-                        .font(.system(size: 12))
-                        .foregroundStyle(AppTheme.Colors.primaryRed)
-                    Text(viewModel.bio.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                         ? "Opcional, mas perfis com descrição recebem mais atenção."
-                         : "Ótima descrição!")
-                        .font(AppTheme.Typography.caption())
-                        .foregroundStyle(AppTheme.Colors.textGray)
-                }
-
                 Spacer()
 
                 Text("\(viewModel.bio.count)/300")

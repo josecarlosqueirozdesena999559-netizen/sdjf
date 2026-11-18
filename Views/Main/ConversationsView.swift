@@ -97,6 +97,26 @@ struct ChatDetailView: View {
         appState.conversations.first { $0.id == conversationId }
     }
 
+    private var partnerStatusText: String {
+        let convKey = conversationId.uuidString.lowercased()
+        if appState.typingConversations.contains(convKey) {
+            return "Digitando..."
+        }
+        if let partner = conversation?.profile {
+            let userKey = partner.id.uuidString.lowercased()
+            let isOnline = appState.onlineUsers[userKey] ?? partner.isOnline
+            if isOnline {
+                return "Online"
+            }
+            if let lastSeen = appState.lastActiveByUser[userKey] {
+                let formatter = DateFormatter()
+                formatter.dateFormat = "HH:mm"
+                return "Visto por último às \(formatter.string(from: lastSeen))"
+            }
+        }
+        return ""
+    }
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -144,6 +164,12 @@ struct ChatDetailView: View {
                             Capsule()
                                 .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
                         )
+                        .onChange(of: viewModel.draftText) { _, newValue in
+                            appState.socketClient.sendTyping(
+                                conversationId: conversationId.uuidString.lowercased(),
+                                isTyping: !newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                            )
+                        }
 
                     Button {
                         Task {
@@ -167,12 +193,34 @@ struct ChatDetailView: View {
             .navigationTitle(conversation?.profile.firstName ?? "Conversa")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
+                ToolbarItem(placement: .principal) {
+                    VStack(spacing: 1) {
+                        Text(conversation?.profile.firstName ?? "Conversa")
+                            .font(AppTheme.Typography.headline())
+                            .foregroundStyle(AppTheme.Colors.darkGray)
+                        if !partnerStatusText.isEmpty {
+                            Text(partnerStatusText)
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundStyle(
+                                    partnerStatusText == "Online" || partnerStatusText == "Digitando..."
+                                        ? AppTheme.Colors.primaryRed
+                                        : AppTheme.Colors.textGray
+                                )
+                        }
+                    }
+                }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Fechar") {
                         dismiss()
                     }
                     .foregroundStyle(AppTheme.Colors.primaryRed)
                 }
+            }
+            .onAppear {
+                appState.socketClient.markRead(conversationId: conversationId.uuidString.lowercased())
+            }
+            .onDisappear {
+                appState.socketClient.sendTyping(conversationId: conversationId.uuidString.lowercased(), isTyping: false)
             }
         }
     }

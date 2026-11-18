@@ -9,6 +9,8 @@ final class RealtimeSocketClient: ObservableObject {
     var onNewMessage: ((_ conversationId: String, _ messageId: String, _ senderId: String, _ content: String, _ createdAt: Date) -> Void)?
     var onNewMatch: ((_ matchId: String, _ conversationId: String?, _ partnerId: String) -> Void)?
     var onNewNotification: (() -> Void)?
+    var onPresenceChanged: ((_ userId: String, _ isOnline: Bool, _ lastActiveAt: Date) -> Void)?
+    var onTypingChanged: ((_ conversationId: String, _ userId: String, _ isTyping: Bool) -> Void)?
 
     private var webSocketTask: URLSessionWebSocketTask?
     private var shouldReconnect = false
@@ -44,6 +46,10 @@ final class RealtimeSocketClient: ObservableObject {
 
     func markRead(conversationId: String) {
         emit(event: "message:read", data: ["conversationId": conversationId])
+    }
+
+    func sendTyping(conversationId: String, isTyping: Bool) {
+        emit(event: isTyping ? "typing:start" : "typing:stop", data: ["conversationId": conversationId])
     }
 
     private func emit(event: String, data: [String: Any]) {
@@ -126,6 +132,18 @@ final class RealtimeSocketClient: ObservableObject {
                 }
             case "notification:new":
                 onNewNotification?()
+            case "user:online", "user:offline":
+                if let userId = payload["userId"] as? String {
+                    let isOnline = (eventName == "user:online")
+                    let dateStr = payload["lastActiveAt"] as? String
+                    let date = dateStr.flatMap { ISO8601DateFormatter().date(from: $0) } ?? Date()
+                    onPresenceChanged?(userId, isOnline, date)
+                }
+            case "typing:start", "typing:stop":
+                if let conversationId = payload["conversationId"] as? String,
+                   let userId = payload["userId"] as? String {
+                    onTypingChanged?(conversationId, userId, eventName == "typing:start")
+                }
             default:
                 break
             }

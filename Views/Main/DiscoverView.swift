@@ -53,7 +53,10 @@ struct DiscoverView: View {
                 .padding(.bottom, 6)
         }
         .sheet(item: $viewModel.selectedProfileForDetail) { profile in
-            ProfileDetailSheet(profile: profile)
+            ProfileDetailSheet(profile: profile) { targetProfile in
+                viewModel.selectedProfileForDetail = nil
+                viewModel.handleDecision(.highlight, for: targetProfile, appState: appState)
+            }
         }
     }
 
@@ -192,6 +195,7 @@ struct DiscoverView: View {
 
 struct ProfileDetailSheet: View {
     let profile: UserProfile
+    var onSendMessage: ((UserProfile) -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -249,6 +253,13 @@ struct ProfileDetailSheet: View {
                                 }
                             }
                             .padding(.top, 4)
+                        }
+
+                        if let onSendMessage {
+                            PrimaryButton(title: "Enviar mensagem") {
+                                onSendMessage(profile)
+                            }
+                            .padding(.top, 8)
                         }
                     }
                     .padding(.horizontal, 20)

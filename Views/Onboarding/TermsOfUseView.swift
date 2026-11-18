@@ -3,6 +3,7 @@ import SwiftUI
 struct TermsOfUseView: View {
     @ObservedObject var viewModel: OnboardingViewModel
     @State private var showFullTermsPopup: Bool = false
+    @State private var didAutoOpen: Bool = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
@@ -74,6 +75,12 @@ struct TermsOfUseView: View {
             .padding(.bottom, 24)
         }
         .padding(.horizontal, AppTheme.Spacing.lg)
+        .onAppear {
+            if !didAutoOpen {
+                didAutoOpen = true
+                showFullTermsPopup = true
+            }
+        }
         .sheet(isPresented: $showFullTermsPopup) {
             CombinedLegalDocumentSheet()
                 .presentationDetents([.large])
@@ -121,10 +128,16 @@ struct CombinedLegalDocumentSheet: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Fechar") {
+                    Button {
                         dismiss()
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundStyle(AppTheme.Colors.darkGray)
+                            .frame(width: 30, height: 30)
+                            .background(AppTheme.Colors.chipUnselected, in: Circle())
                     }
-                    .foregroundStyle(AppTheme.Colors.primaryRed)
+                    .accessibilityLabel("Fechar")
                 }
             }
         }
