@@ -58,7 +58,7 @@ struct SettingsView: View {
                                 HStack(spacing: 12) {
                                     Image(systemName: "person.2")
                                         .font(.system(size: 16, weight: .medium))
-                                        .foregroundStyle(AppTheme.Colors.darkGray)
+                                        .foregroundStyle(AppTheme.Colors.primaryRed)
                                         .frame(width: 24)
 
                                     Text("Faixa etária")
@@ -99,7 +99,7 @@ struct SettingsView: View {
                             HStack(spacing: 12) {
                                 Image(systemName: "lock.shield")
                                     .font(.system(size: 17, weight: .medium))
-                                    .foregroundStyle(AppTheme.Colors.darkGray)
+                                    .foregroundStyle(AppTheme.Colors.primaryRed)
                                     .frame(width: 24)
 
                                 Text("Segurança")
@@ -134,6 +134,7 @@ struct SettingsView: View {
                             HStack(spacing: 8) {
                                 Image(systemName: "rectangle.portrait.and.arrow.right")
                                     .font(.system(size: 15, weight: .semibold))
+                                    .foregroundStyle(AppTheme.Colors.primaryRed)
                                 Text("Sair da conta")
                                     .font(AppTheme.Typography.headline())
                             }
@@ -274,7 +275,7 @@ private struct SecuritySettingsView: View {
         HStack(spacing: 14) {
             Image(systemName: icon)
                 .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(AppTheme.Colors.darkGray)
+                .foregroundStyle(AppTheme.Colors.primaryRed)
                 .frame(width: 24)
 
             VStack(alignment: .leading, spacing: 2) {
