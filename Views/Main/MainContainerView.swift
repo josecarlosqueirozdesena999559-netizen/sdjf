@@ -114,7 +114,7 @@ struct MainContainerView: View {
                 Button {
                     showFiltersSheet = true
                 } label: {
-                    Image(systemName: "slider.horizontal.3")
+                    Image(systemName: selectedTab == .profile ? "gearshape.fill" : "slider.horizontal.3")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(AppTheme.Colors.darkGray)
                         .frame(width: 38, height: 38)
@@ -125,7 +125,7 @@ struct MainContainerView: View {
                         )
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Filtros de descoberta")
+                .accessibilityLabel(selectedTab == .profile ? "Configurações" : "Filtros de descoberta")
             }
         }
     }

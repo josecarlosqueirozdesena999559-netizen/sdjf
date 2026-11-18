@@ -61,7 +61,7 @@ struct DiscoverView: View {
     }
 
     private var interactionButtons: some View {
-        HStack(spacing: 24) {
+        HStack(spacing: 28) {
             Button {
                 viewModel.actOnTopCard(.reject, appState: appState)
             } label: {
@@ -69,19 +69,19 @@ struct DiscoverView: View {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [Color.white.opacity(0.95), Color(hex: "E9ECF2").opacity(0.92)],
+                                colors: [Color.white, Color(hex: "EEF0F5")],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
                     Circle()
-                        .strokeBorder(Color.white.opacity(0.85), lineWidth: 1.5)
+                        .strokeBorder(Color.white.opacity(0.9), lineWidth: 1.5)
                     Image(systemName: "xmark")
-                        .font(.system(size: 23, weight: .bold))
-                        .foregroundStyle(Color(hex: "43464E"))
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundStyle(Color(hex: "3D4048"))
                 }
-                .frame(width: 60, height: 60)
-                .shadow(color: Color.black.opacity(0.1), radius: 12, x: 0, y: 6)
+                .frame(width: 58, height: 58)
+                .shadow(color: Color.black.opacity(0.09), radius: 10, x: 0, y: 5)
             }
             .buttonStyle(.plain)
             .disabled(viewModel.candidates.isEmpty)
@@ -118,11 +118,11 @@ struct DiscoverView: View {
                     Circle()
                         .strokeBorder(Color.white.opacity(0.35), lineWidth: 1.5)
                     Image(systemName: "heart.fill")
-                        .font(.system(size: 29, weight: .bold))
+                        .font(.system(size: 27, weight: .bold))
                         .foregroundStyle(AppTheme.Colors.white)
                 }
-                .frame(width: 72, height: 72)
-                .shadow(color: AppTheme.Colors.primaryRed.opacity(0.36), radius: 14, x: 0, y: 7)
+                .frame(width: 70, height: 70)
+                .shadow(color: AppTheme.Colors.primaryRed.opacity(0.32), radius: 14, x: 0, y: 6)
                 .scaleEffect(likeBounce ? 1.12 : 1.0)
             }
             .buttonStyle(.plain)
@@ -136,24 +136,25 @@ struct DiscoverView: View {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [Color.white.opacity(0.95), Color(hex: "E9ECF2").opacity(0.92)],
+                                colors: [Color.white, Color(hex: "EEF0F5")],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
                     Circle()
-                        .strokeBorder(Color.white.opacity(0.85), lineWidth: 1.5)
+                        .strokeBorder(Color.white.opacity(0.9), lineWidth: 1.5)
                     Image(systemName: "star.fill")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(Color(hex: "43464E"))
+                        .font(.system(size: 20, weight: .semibold))
+                        .foregroundStyle(Color(hex: "3D4048"))
                 }
-                .frame(width: 60, height: 60)
-                .shadow(color: Color.black.opacity(0.1), radius: 12, x: 0, y: 6)
+                .frame(width: 58, height: 58)
+                .shadow(color: Color.black.opacity(0.09), radius: 10, x: 0, y: 5)
             }
             .buttonStyle(.plain)
             .disabled(viewModel.candidates.isEmpty)
             .accessibilityLabel("Destacar")
         }
+        .padding(.top, 2)
         .opacity(viewModel.candidates.isEmpty ? 0.45 : 1.0)
     }
 
