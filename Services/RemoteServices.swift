@@ -300,6 +300,7 @@ final class RemoteUserRepository: UserRepositoryProtocol {
     func saveProfile(_ profile: UserProfile) async throws {
         struct UpdateProfileBody: Encodable {
             let bio: String
+            let lookingFor: [String]
             let city: String
             let approximateLocation: String
         }
@@ -308,6 +309,7 @@ final class RemoteUserRepository: UserRepositoryProtocol {
             method: "PUT",
             body: UpdateProfileBody(
                 bio: profile.bio,
+                lookingFor: profile.lookingFor.isEmpty ? ["todos"] : profile.lookingFor,
                 city: profile.city,
                 approximateLocation: profile.city
             )
@@ -367,7 +369,8 @@ final class RemoteVerificationService: VerificationServiceProtocol {
 
 final class RemoteDiscoveryService: DiscoveryServiceProtocol {
     func fetchCandidates(filter: DiscoveryFilter) async throws -> [UserProfile] {
-        let query = "/discovery?maxDistanceKm=\(Int(filter.maxDistanceKm))&minAge=\(filter.minAge)&maxAge=\(filter.maxAge)&onlyVerified=\(filter.onlyVerified)&onlyOnline=\(filter.onlyOnline)&page=1&limit=20"
+        let lookingForParam = filter.lookingFor.joined(separator: ",")
+        let query = "/discovery?maxDistanceKm=\(Int(filter.maxDistanceKm))&minAge=\(filter.minAge)&maxAge=\(filter.maxAge)&lookingFor=\(lookingForParam)&onlyVerified=\(filter.onlyVerified)&onlyOnline=\(filter.onlyOnline)&page=1&limit=20"
         let res: DiscoveryResponse = try await APIClient.shared.request(path: query, method: "GET")
 
         return res.items.map { item in
