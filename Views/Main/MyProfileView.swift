@@ -10,8 +10,9 @@ struct MyProfileView: View {
         ScrollView {
             if let user = appState.currentUser {
                 VStack(alignment: .leading, spacing: 18) {
-                    PhotoGalleryView(photos: user.photos, enableSwipeGesture: true)
-                        .frame(height: 360)
+                    PhotoGalleryView(photos: user.photos, enableSwipeGesture: true, autoAdvance: true)
+                        .aspectRatio(3.0 / 4.0, contentMode: .fit)
+                        .frame(maxWidth: .infinity)
                         .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.card, style: .continuous))
                         .shadow(color: Color.black.opacity(0.1), radius: 14, x: 0, y: 8)
 

@@ -204,7 +204,8 @@ struct ProfileDetailSheet: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     PhotoGalleryView(photos: profile.photos, enableSwipeGesture: true)
-                        .frame(height: 420)
+                        .aspectRatio(3.0 / 4.0, contentMode: .fit)
+                        .frame(maxWidth: .infinity)
                         .clipShape(RoundedRectangle(cornerRadius: AppTheme.Radius.card, style: .continuous))
                         .padding(.horizontal, 16)
 

@@ -4,7 +4,9 @@ import UIKit
 struct PhotoGalleryView: View {
     let photos: [ProfilePhoto]
     var enableSwipeGesture: Bool = true
+    var autoAdvance: Bool = false
     @State private var currentIndex: Int = 0
+    private let autoTimer = Timer.publish(every: 3.5, on: .main, in: .common).autoconnect()
 
     var body: some View {
         GeometryReader { geo in
@@ -61,6 +63,10 @@ struct PhotoGalleryView: View {
                 if currentIndex >= newCount {
                     currentIndex = max(0, newCount - 1)
                 }
+            }
+            .onReceive(autoTimer) { _ in
+                guard autoAdvance, photos.count > 1 else { return }
+                goToNext()
             }
         }
     }

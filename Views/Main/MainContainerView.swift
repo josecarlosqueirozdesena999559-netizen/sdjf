@@ -16,15 +16,10 @@ struct MainContainerView: View {
             AppTheme.Colors.background
                 .ignoresSafeArea()
 
-            VStack(spacing: 12) {
+            VStack(spacing: 10) {
                 headerBar
                     .padding(.horizontal, 20)
                     .padding(.top, 6)
-
-                if selectedTab != .profile {
-                    TopSegmentedNav(selectedTab: $selectedTab)
-                        .padding(.horizontal, 20)
-                }
 
                 Group {
                     switch selectedTab {
@@ -51,9 +46,10 @@ struct MainContainerView: View {
             }
         }
         .sheet(isPresented: $showFiltersSheet) {
-            FiltersSheet(currentFilter: discoverViewModel.filter) { updated in
+            SettingsView(currentFilter: discoverViewModel.filter) { updated in
                 discoverViewModel.applyFilter(updated)
             }
+            .environmentObject(appState)
         }
         .sheet(isPresented: $showNotificationsSheet) {
             NotificationsSheet()
@@ -122,7 +118,7 @@ struct MainContainerView: View {
                 Button {
                     showFiltersSheet = true
                 } label: {
-                    Image(systemName: selectedTab == .profile ? "gearshape.fill" : "slider.horizontal.3")
+                    Image(systemName: "gearshape.fill")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(AppTheme.Colors.darkGray)
                         .frame(width: 38, height: 38)
@@ -133,7 +129,7 @@ struct MainContainerView: View {
                         )
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(selectedTab == .profile ? "Configurações" : "Filtros de descoberta")
+                .accessibilityLabel("Configurações")
             }
         }
     }
