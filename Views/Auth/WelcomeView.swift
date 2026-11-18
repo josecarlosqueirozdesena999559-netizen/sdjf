@@ -3,21 +3,47 @@ import SwiftUI
 struct WelcomeView: View {
     @EnvironmentObject private var appState: AppState
     @State private var showServerConfig = false
+    @State private var showLegalSheet = false
 
     var body: some View {
         ZStack {
-            AnimatedAuthBackground()
+            GeometryReader { geo in
+                Image("WelcomeHeroBg")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(width: geo.size.width, height: geo.size.height)
+                    .clipped()
+            }
+            .ignoresSafeArea()
 
-            VStack(spacing: 24) {
+            // Floating animated hearts layer
+            FloatingHeartsOverlay()
+                .ignoresSafeArea()
+                .allowsHitTesting(false)
+
+            // Bottom contrast scrim
+            LinearGradient(
+                colors: [
+                    Color.black.opacity(0.08),
+                    Color.black.opacity(0.28),
+                    Color(red: 0.08, green: 0.01, blue: 0.04).opacity(0.86),
+                    Color(red: 0.05, green: 0.00, blue: 0.02).opacity(0.95)
+                ],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 0) {
                 HStack {
                     Spacer()
                     Button {
                         showServerConfig = true
                     } label: {
                         Image(systemName: "network")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundStyle(.white)
-                            .frame(width: 38, height: 38)
+                            .font(.system(size: 15, weight: .semibold))
+                            .foregroundStyle(.white.opacity(0.9))
+                            .frame(width: 36, height: 36)
                             .background(.ultraThinMaterial, in: Circle())
                             .overlay(
                                 Circle()
@@ -37,61 +63,178 @@ struct WelcomeView: View {
                         Image(logoName)
                             .resizable()
                             .scaledToFill()
-                            .frame(width: 108, height: 108)
-                            .clipShape(RoundedRectangle(cornerRadius: 28, style: .continuous))
+                            .frame(width: 98, height: 98)
+                            .clipShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
                             .overlay(
-                                RoundedRectangle(cornerRadius: 28, style: .continuous)
+                                RoundedRectangle(cornerRadius: 26, style: .continuous)
                                     .strokeBorder(.white.opacity(0.28), lineWidth: 1.5)
                             )
-                            .shadow(color: .black.opacity(0.35), radius: 22, x: 0, y: 12)
+                            .shadow(color: AppTheme.Colors.primaryRed.opacity(0.55), radius: 24, x: 0, y: 10)
                     }
 
                     VStack(spacing: 8) {
-                        Text(BrandIdentitySlot.appName ?? "Mytch")
-                            .font(.system(size: 38, weight: .heavy, design: .rounded))
+                        Text("Conecte-se.")
+                            .font(.system(size: 32, weight: .heavy, design: .rounded))
                             .foregroundStyle(.white)
 
-                        Text("Conexões reais, simples e do seu jeito.")
-                            .font(AppTheme.Typography.body())
-                            .foregroundStyle(.white.opacity(0.88))
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
+                        (
+                            Text("Faça ")
+                                .foregroundStyle(.white)
+                            + Text("Match.")
+                                .foregroundStyle(Color(red: 1.0, green: 0.22, blue: 0.44))
+                        )
+                        .font(.system(size: 32, weight: .heavy, design: .rounded))
+
+                        Text("Descubra alguém especial.")
+                            .font(.system(size: 16, weight: .medium))
+                            .foregroundStyle(.white.opacity(0.86))
+                            .padding(.top, 2)
                     }
+                    .multilineTextAlignment(.center)
                 }
+                .padding(.bottom, 28)
 
-                Spacer()
-
-                VStack(spacing: 12) {
-                    PrimaryButton(title: "Criar conta") {
+                VStack(spacing: 14) {
+                    Button {
                         withAnimation(.easeInOut(duration: 0.25)) {
                             appState.route = .onboarding
                         }
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: "person.badge.plus")
+                                .font(.system(size: 17, weight: .semibold))
+                            Text("Criar Conta")
+                                .font(.system(size: 17, weight: .bold))
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 1.0, green: 0.14, blue: 0.42),
+                                    Color(red: 0.90, green: 0.08, blue: 0.32)
+                                ],
+                                startPoint: .leading,
+                                endPoint: .trailing
+                            ),
+                            in: Capsule()
+                        )
+                        .shadow(color: Color(red: 1.0, green: 0.14, blue: 0.42).opacity(0.42), radius: 14, x: 0, y: 8)
                     }
+                    .buttonStyle(.plain)
 
                     Button {
                         withAnimation(.easeInOut(duration: 0.25)) {
                             appState.route = .login
                         }
                     } label: {
-                        Text("Entrar")
-                            .font(AppTheme.Typography.headline())
-                            .foregroundStyle(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 54)
-                            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: AppTheme.Radius.medium, style: .continuous)
-                                    .strokeBorder(.white.opacity(0.35), lineWidth: 1)
-                            )
+                        HStack(spacing: 10) {
+                            Image(systemName: "rectangle.portrait.and.arrow.right")
+                                .font(.system(size: 16, weight: .semibold))
+                            Text("Entrar")
+                                .font(.system(size: 17, weight: .semibold))
+                        }
+                        .foregroundStyle(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(.black.opacity(0.32), in: Capsule())
+                        .overlay(
+                            Capsule()
+                                .strokeBorder(.white.opacity(0.35), lineWidth: 1.2)
+                        )
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(.horizontal, AppTheme.Spacing.lg)
-                .padding(.bottom, 32)
+                .padding(.horizontal, 28)
+
+                Button {
+                    showLegalSheet = true
+                } label: {
+                    (
+                        Text("Ao continuar, você concorda com nossos ")
+                            .foregroundStyle(.white.opacity(0.65))
+                        + Text("Termos de Uso")
+                            .foregroundStyle(Color(red: 1.0, green: 0.35, blue: 0.54))
+                        + Text(" e ")
+                            .foregroundStyle(.white.opacity(0.65))
+                        + Text("Política de Privacidade")
+                            .foregroundStyle(Color(red: 1.0, green: 0.35, blue: 0.54))
+                    )
+                    .font(.system(size: 11.5))
+                    .multilineTextAlignment(.center)
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 36)
+                .padding(.top, 18)
+                .padding(.bottom, 22)
             }
         }
         .sheet(isPresented: $showServerConfig) {
             ServerConfigSheet()
+        }
+        .sheet(isPresented: $showLegalSheet) {
+            CombinedLegalDocumentSheet()
+        }
+    }
+}
+
+private struct FloatingHeartsOverlay: View {
+    private struct HeartParticle: Identifiable {
+        let id: Int
+        let xRatio: CGFloat
+        let startYRatio: CGFloat
+        let size: CGFloat
+        let duration: Double
+        let delay: Double
+        let opacity: Double
+    }
+
+    private let particles: [HeartParticle] = [
+        HeartParticle(id: 0, xRatio: 0.14, startYRatio: 0.78, size: 18, duration: 5.5, delay: 0.0, opacity: 0.45),
+        HeartParticle(id: 1, xRatio: 0.86, startYRatio: 0.72, size: 22, duration: 6.2, delay: 0.8, opacity: 0.50),
+        HeartParticle(id: 2, xRatio: 0.24, startYRatio: 0.54, size: 14, duration: 4.8, delay: 1.4, opacity: 0.38),
+        HeartParticle(id: 3, xRatio: 0.78, startYRatio: 0.46, size: 16, duration: 5.2, delay: 0.4, opacity: 0.42),
+        HeartParticle(id: 4, xRatio: 0.10, startYRatio: 0.34, size: 13, duration: 6.0, delay: 1.9, opacity: 0.35),
+        HeartParticle(id: 5, xRatio: 0.90, startYRatio: 0.24, size: 20, duration: 5.7, delay: 1.1, opacity: 0.46),
+    ]
+
+    @State private var animate = false
+
+    var body: some View {
+        GeometryReader { geo in
+            ZStack {
+                ForEach(particles) { p in
+                    Image(systemName: "heart.fill")
+                        .font(.system(size: p.size))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 1.0, green: 0.36, blue: 0.56),
+                                    Color(red: 0.92, green: 0.10, blue: 0.36)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .shadow(color: Color(red: 1.0, green: 0.16, blue: 0.44).opacity(0.65), radius: 8)
+                        .opacity(animate ? p.opacity : p.opacity * 0.35)
+                        .scaleEffect(animate ? 1.15 : 0.85)
+                        .position(
+                            x: geo.size.width * p.xRatio,
+                            y: geo.size.height * (animate ? (p.startYRatio - 0.12) : p.startYRatio)
+                        )
+                        .animation(
+                            .easeInOut(duration: p.duration)
+                                .repeatForever(autoreverses: true)
+                                .delay(p.delay),
+                            value: animate
+                        )
+                }
+            }
+        }
+        .onAppear {
+            animate = true
         }
     }
 }
