@@ -67,33 +67,29 @@ struct DiscoverView: View {
     }
 
     private var interactionButtons: some View {
-        HStack(spacing: 28) {
+        HStack(spacing: 26) {
             Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 viewModel.actOnTopCard(.reject, appState: appState)
             } label: {
                 ZStack {
                     Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.white, Color(hex: "EEF0F5")],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .fill(AppTheme.Colors.white)
                     Circle()
-                        .strokeBorder(Color.white.opacity(0.9), lineWidth: 1.5)
+                        .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1.5)
                     Image(systemName: "xmark")
-                        .font(.system(size: 20, weight: .bold))
-                        .foregroundStyle(Color(hex: "3D4048"))
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(AppTheme.Colors.darkGray)
                 }
-                .frame(width: 58, height: 58)
-                .shadow(color: Color.black.opacity(0.09), radius: 10, x: 0, y: 5)
+                .frame(width: 62, height: 62)
+                .shadow(color: Color.black.opacity(0.10), radius: 12, x: 0, y: 6)
             }
             .buttonStyle(.plain)
             .disabled(viewModel.candidates.isEmpty)
-            .accessibilityLabel("Rejeitar")
+            .accessibilityLabel("Pular")
 
             Button {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                 withAnimation(.spring(response: 0.22, dampingFraction: 0.55)) {
                     likeBounce = true
                 }
@@ -116,47 +112,42 @@ struct DiscoverView: View {
                     Circle()
                         .fill(
                             LinearGradient(
-                                colors: [AppTheme.Colors.secondaryRed, AppTheme.Colors.primaryRed],
+                                colors: [AppTheme.Colors.primaryRed, AppTheme.Colors.secondaryRed],
                                 startPoint: .topLeading,
                                 endPoint: .bottomTrailing
                             )
                         )
                     Circle()
-                        .strokeBorder(Color.white.opacity(0.35), lineWidth: 1.5)
+                        .strokeBorder(Color.white.opacity(0.35), lineWidth: 2)
                     Image(systemName: "heart.fill")
-                        .font(.system(size: 27, weight: .bold))
-                        .foregroundStyle(AppTheme.Colors.white)
+                        .font(.system(size: 30, weight: .bold))
+                        .foregroundStyle(.white)
                 }
-                .frame(width: 70, height: 70)
-                .shadow(color: AppTheme.Colors.primaryRed.opacity(0.32), radius: 14, x: 0, y: 6)
-                .scaleEffect(likeBounce ? 1.12 : 1.0)
+                .frame(width: 76, height: 76)
+                .shadow(color: AppTheme.Colors.primaryRed.opacity(0.40), radius: 16, x: 0, y: 8)
+                .scaleEffect(likeBounce ? 1.14 : 1.0)
             }
             .buttonStyle(.plain)
             .disabled(viewModel.candidates.isEmpty)
             .accessibilityLabel("Curtir")
 
             Button {
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 if let top = viewModel.candidates.first {
                     directMessageTarget = top
                 }
             } label: {
                 ZStack {
                     Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [Color.white, Color(hex: "EEF0F5")],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .fill(AppTheme.Colors.white)
                     Circle()
-                        .strokeBorder(Color.white.opacity(0.9), lineWidth: 1.5)
+                        .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1.5)
                     Image(systemName: "paperplane.fill")
                         .font(.system(size: 20, weight: .semibold))
                         .foregroundStyle(AppTheme.Colors.primaryRed)
                 }
-                .frame(width: 58, height: 58)
-                .shadow(color: Color.black.opacity(0.09), radius: 10, x: 0, y: 5)
+                .frame(width: 62, height: 62)
+                .shadow(color: Color.black.opacity(0.10), radius: 12, x: 0, y: 6)
             }
             .buttonStyle(.plain)
             .disabled(viewModel.candidates.isEmpty)

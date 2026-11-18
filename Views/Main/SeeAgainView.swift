@@ -70,63 +70,72 @@ struct SeeAgainView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.horizontal, 18)
 
-            HStack(spacing: 24) {
+            HStack(spacing: 26) {
                 Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     if let top = candidates.first {
                         Task { await decide(.pass, for: top) }
                     }
                 } label: {
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 58, height: 58)
-                        .shadow(color: Color.black.opacity(0.09), radius: 10, x: 0, y: 5)
-                        .overlay(
-                            Image(systemName: "xmark")
-                                .font(.system(size: 20, weight: .bold))
-                                .foregroundStyle(Color(hex: "3D4048"))
-                        )
+                    ZStack {
+                        Circle()
+                            .fill(AppTheme.Colors.white)
+                        Circle()
+                            .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1.5)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 22, weight: .bold))
+                            .foregroundStyle(AppTheme.Colors.darkGray)
+                    }
+                    .frame(width: 62, height: 62)
+                    .shadow(color: Color.black.opacity(0.10), radius: 12, x: 0, y: 6)
                 }
                 .buttonStyle(.plain)
                 .disabled(candidates.isEmpty)
 
                 Button {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
                     if let top = candidates.first {
                         Task { await decide(.like, for: top) }
                     }
                 } label: {
-                    Circle()
-                        .fill(
-                            LinearGradient(
-                                colors: [AppTheme.Colors.secondaryRed, AppTheme.Colors.primaryRed],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
+                    ZStack {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [AppTheme.Colors.primaryRed, AppTheme.Colors.secondaryRed],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
                             )
-                        )
-                        .frame(width: 70, height: 70)
-                        .shadow(color: AppTheme.Colors.primaryRed.opacity(0.32), radius: 14, x: 0, y: 6)
-                        .overlay(
-                            Image(systemName: "heart.fill")
-                                .font(.system(size: 27, weight: .bold))
-                                .foregroundStyle(.white)
-                        )
+                        Circle()
+                            .strokeBorder(Color.white.opacity(0.35), lineWidth: 2)
+                        Image(systemName: "heart.fill")
+                            .font(.system(size: 30, weight: .bold))
+                            .foregroundStyle(.white)
+                    }
+                    .frame(width: 76, height: 76)
+                    .shadow(color: AppTheme.Colors.primaryRed.opacity(0.40), radius: 16, x: 0, y: 8)
                 }
                 .buttonStyle(.plain)
                 .disabled(candidates.isEmpty)
 
                 Button {
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     if let top = candidates.first {
                         directMessageTarget = top
                     }
                 } label: {
-                    Circle()
-                        .fill(Color.white)
-                        .frame(width: 58, height: 58)
-                        .shadow(color: Color.black.opacity(0.09), radius: 10, x: 0, y: 5)
-                        .overlay(
-                            Image(systemName: "paperplane.fill")
-                                .font(.system(size: 20, weight: .semibold))
-                                .foregroundStyle(AppTheme.Colors.primaryRed)
-                        )
+                    ZStack {
+                        Circle()
+                            .fill(AppTheme.Colors.white)
+                        Circle()
+                            .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1.5)
+                        Image(systemName: "paperplane.fill")
+                            .font(.system(size: 20, weight: .semibold))
+                            .foregroundStyle(AppTheme.Colors.primaryRed)
+                    }
+                    .frame(width: 62, height: 62)
+                    .shadow(color: Color.black.opacity(0.10), radius: 12, x: 0, y: 6)
                 }
                 .buttonStyle(.plain)
                 .disabled(candidates.isEmpty)
