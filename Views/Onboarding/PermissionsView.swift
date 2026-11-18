@@ -119,8 +119,13 @@ struct PermissionsView: View {
                         .background(AppTheme.Colors.primaryRed, in: Capsule())
                 }
             }
-            .padding(16)
-            .glassCard(cornerRadius: AppTheme.Radius.large, material: .regularMaterial)
+            .padding(18)
+            .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
+                    .strokeBorder(isAuthorized ? AppTheme.Colors.primaryRed.opacity(0.3) : AppTheme.Colors.borderSubtle, lineWidth: 1)
+            )
+            .shadow(color: .black.opacity(0.04), radius: 10, x: 0, y: 4)
         }
         .buttonStyle(.plain)
         .disabled(isAuthorized)

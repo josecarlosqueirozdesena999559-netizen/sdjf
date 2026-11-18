@@ -92,42 +92,42 @@ struct MainContainerView: View {
             Spacer()
 
             HStack(spacing: 10) {
-                if appState.unreadNotificationCount > 0 {
-                    Button {
-                        showNotificationsSheet = true
-                    } label: {
-                        ZStack(alignment: .topTrailing) {
-                            Image(systemName: "bell.fill")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundStyle(AppTheme.Colors.darkGray)
-                                .frame(width: 38, height: 38)
-                                .background(.ultraThinMaterial, in: Circle())
-                                .overlay(
-                                    Circle()
-                                        .strokeBorder(AppTheme.Colors.glassBorder, lineWidth: 1)
-                                )
+                Button {
+                    showNotificationsSheet = true
+                } label: {
+                    ZStack(alignment: .topTrailing) {
+                        Image(systemName: "bell.fill")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundStyle(AppTheme.Colors.primaryRed)
+                            .frame(width: 38, height: 38)
+                            .background(AppTheme.Colors.white, in: Circle())
+                            .overlay(
+                                Circle()
+                                    .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
+                            )
 
+                        if appState.unreadNotificationCount > 0 {
                             Circle()
                                 .fill(AppTheme.Colors.primaryRed)
                                 .frame(width: 10, height: 10)
                                 .offset(x: -2, y: 2)
                         }
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityLabel("Notificações")
                 }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Notificações")
 
                 Button {
                     showFiltersSheet = true
                 } label: {
                     Image(systemName: "gearshape.fill")
                         .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(AppTheme.Colors.darkGray)
+                        .foregroundStyle(AppTheme.Colors.primaryRed)
                         .frame(width: 38, height: 38)
-                        .background(.ultraThinMaterial, in: Circle())
+                        .background(AppTheme.Colors.white, in: Circle())
                         .overlay(
                             Circle()
-                                .strokeBorder(AppTheme.Colors.glassBorder, lineWidth: 1)
+                                .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
                         )
                 }
                 .buttonStyle(.plain)
