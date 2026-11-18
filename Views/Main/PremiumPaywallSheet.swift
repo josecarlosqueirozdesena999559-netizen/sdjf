@@ -97,9 +97,11 @@ struct PremiumPaywallSheet: View {
                     }
 
                     PrimaryButton(
-                        title: appState.isPremium ? "Assinatura Ativa" : "Assinar por R$ 19,90/mês",
+                        title: appState.isPremium
+                            ? "Assinatura Ativa"
+                            : "Assinar por \(subscriptionService.monthlyProduct?.displayPrice ?? "R$ 19,90")/mês",
                         isEnabled: !appState.isPremium,
-                        isLoading: subscriptionService.isPurchasing
+                        isLoading: subscriptionService.isPurchasing || subscriptionService.isLoadingProducts
                     ) {
                         Task {
                             await subscriptionService.purchaseMonthly(appState: appState)
@@ -122,6 +124,11 @@ struct PremiumPaywallSheet: View {
             }
             .background(AppTheme.Colors.background)
             .navigationBarTitleDisplayMode(.inline)
+            .task {
+                if subscriptionService.monthlyProduct == nil {
+                    await subscriptionService.loadProducts()
+                }
+            }
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button {

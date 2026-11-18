@@ -7,8 +7,10 @@ final class SubscriptionService: ObservableObject {
 
     @Published private(set) var monthlyProduct: Product?
     @Published private(set) var isPurchasing = false
+    @Published private(set) var isLoadingProducts = false
     @Published var errorMessage: String?
 
+    private var lastLoadError: String?
     private var updatesTask: Task<Void, Never>?
 
     init() {
@@ -23,12 +25,18 @@ final class SubscriptionService: ObservableObject {
     }
 
     func loadProducts() async {
+        isLoadingProducts = true
+        lastLoadError = nil
         do {
             let products = try await Product.products(for: [Self.monthlyProductId])
             monthlyProduct = products.first
+            if monthlyProduct == nil {
+                lastLoadError = "Produto \(Self.monthlyProductId) não retornado pela App Store."
+            }
         } catch {
-            // Product may not be configured in App Store Connect yet
+            lastLoadError = error.localizedDescription
         }
+        isLoadingProducts = false
     }
 
     func purchaseMonthly(appState: AppState) async {
@@ -40,7 +48,8 @@ final class SubscriptionService: ObservableObject {
                 await loadProducts()
             }
             guard let product = monthlyProduct else {
-                errorMessage = "Plano Premium (R$ 19,90/mês) ainda não disponível na App Store."
+                let detail = lastLoadError.map { " (\($0))" } ?? ""
+                errorMessage = "Plano Premium (R$ 19,90/mês) ainda não disponível na App Store.\(detail)"
                 isPurchasing = false
                 return
             }
