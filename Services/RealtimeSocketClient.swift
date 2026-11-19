@@ -70,6 +70,10 @@ final class RealtimeSocketClient: ObservableObject {
         emit(event: "chat:clear", data: ["conversationId": conversationId])
     }
 
+    func joinChat(conversationId: String) {
+        emit(event: "chat:join", data: ["conversationId": conversationId])
+    }
+
     func leaveChat(conversationId: String) {
         emit(event: "chat:leave", data: ["conversationId": conversationId])
     }
