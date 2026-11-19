@@ -54,6 +54,11 @@ struct MainContainerView: View {
                 await discoverViewModel.loadCandidates()
             }
         }
+        .onChange(of: appState.pendingOpenConversationId) { _, newValue in
+            if newValue != nil {
+                selectedTab = .conversations
+            }
+        }
         .sheet(isPresented: $showFiltersSheet) {
             SettingsView(currentFilter: discoverViewModel.filter) { updated in
                 discoverViewModel.applyFilter(updated)

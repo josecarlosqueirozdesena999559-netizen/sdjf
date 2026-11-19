@@ -52,6 +52,7 @@ struct UserProfile: Identifiable, Hashable, Codable {
     var bio: String
     var isVerified: Bool
     var isOnline: Bool
+    var lastActiveAt: Date?
     var distanceKm: Int
     var city: String
     var legalAcceptance: LegalAcceptance?
@@ -70,6 +71,7 @@ struct UserProfile: Identifiable, Hashable, Codable {
         bio: String,
         isVerified: Bool = false,
         isOnline: Bool = false,
+        lastActiveAt: Date? = nil,
         distanceKm: Int = 2,
         city: String = "São Paulo",
         legalAcceptance: LegalAcceptance? = nil,
@@ -87,6 +89,7 @@ struct UserProfile: Identifiable, Hashable, Codable {
         self.bio = bio
         self.isVerified = isVerified
         self.isOnline = isOnline
+        self.lastActiveAt = lastActiveAt
         self.distanceKm = distanceKm
         self.city = city
         self.legalAcceptance = legalAcceptance

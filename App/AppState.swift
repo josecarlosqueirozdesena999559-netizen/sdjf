@@ -39,6 +39,7 @@ final class AppState: ObservableObject {
     @Published var onlineUsers: [String: Bool] = [:]
     @Published var lastActiveByUser: [String: Date] = [:]
     @Published var typingConversations: Set<String> = []
+    @Published var pendingOpenConversationId: UUID? = nil
 
     let services: ServiceContainer
     let permissionService = PermissionService()
@@ -182,6 +183,24 @@ final class AppState: ObservableObject {
         }
         await refreshUnreadNotifications()
         await refreshSubscriptionStatus()
+    }
+
+    func openDirectChat(with targetUserId: UUID) async {
+        struct OpenChatBody: Encodable {
+            let targetUserId: String
+        }
+        struct OpenChatResponse: Decodable {
+            let matchId: UUID
+            let conversationId: UUID
+        }
+        if let res: OpenChatResponse = try? await APIClient.shared.request(
+            path: "/likes/open-chat",
+            method: "POST",
+            body: OpenChatBody(targetUserId: targetUserId.uuidString.lowercased())
+        ) {
+            await loadSocialData()
+            pendingOpenConversationId = res.conversationId
+        }
     }
 
     func refreshSubscriptionStatus() async {

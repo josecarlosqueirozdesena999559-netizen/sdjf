@@ -137,6 +137,9 @@ private struct ConversationsResponse: Decodable {
             let id: UUID
             let fullName: String
             let username: String
+            let isOnline: Bool?
+            let lastActiveAt: Date?
+            let isVerified: Bool?
             let photos: [PhotoDTO]
         }
         struct MessageDTO: Decodable {
@@ -370,7 +373,7 @@ final class RemoteVerificationService: VerificationServiceProtocol {
 final class RemoteDiscoveryService: DiscoveryServiceProtocol {
     func fetchCandidates(filter: DiscoveryFilter) async throws -> [UserProfile] {
         let lookingForParam = filter.lookingFor.joined(separator: ",")
-        let query = "/discovery?maxDistanceKm=\(Int(filter.maxDistanceKm))&minAge=\(filter.minAge)&maxAge=\(filter.maxAge)&lookingFor=\(lookingForParam)&onlyVerified=\(filter.onlyVerified)&onlyOnline=\(filter.onlyOnline)&page=1&limit=20"
+        let query = "/discovery?maxDistanceKm=\(Int(filter.maxDistanceKm))&minAge=\(filter.minAge)&maxAge=\(filter.maxAge)&lookingFor=\(lookingForParam)&onlyVerified=\(filter.onlyVerified)&onlyOnline=\(filter.onlyOnline)&page=1&limit=50"
         let res: DiscoveryResponse = try await APIClient.shared.request(path: query, method: "GET")
 
         return res.items.map { item in
@@ -461,7 +464,10 @@ final class RemoteChatService: ChatServiceProtocol {
                 age: 25,
                 photos: partner.photos.map { ProfilePhoto(id: $0.id, remoteURL: $0.url) },
                 interests: [],
-                bio: ""
+                bio: "",
+                isVerified: partner.isVerified ?? false,
+                isOnline: partner.isOnline ?? false,
+                lastActiveAt: partner.lastActiveAt
             )
 
             let messages = history.items.map { m in

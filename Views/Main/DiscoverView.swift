@@ -7,7 +7,6 @@ struct DiscoverView: View {
     @State private var showHeartBurst: Bool = false
     @State private var heartBurstOffset: CGFloat = 0
     @State private var heartBurstOpacity: Double = 0
-    @State private var directMessageTarget: UserProfile?
 
     var body: some View {
         VStack(spacing: 14) {
@@ -56,12 +55,10 @@ struct DiscoverView: View {
         .sheet(item: $viewModel.selectedProfileForDetail) { profile in
             ProfileDetailSheet(profile: profile) { targetProfile in
                 viewModel.selectedProfileForDetail = nil
-                directMessageTarget = targetProfile
-            }
-        }
-        .sheet(item: $directMessageTarget) { target in
-            QuickDirectMessageSheet(profile: target) {
-                viewModel.candidates.removeAll { $0.id == target.id }
+                Task {
+                    await appState.openDirectChat(with: targetProfile.id)
+                    viewModel.candidates.removeAll { $0.id == targetProfile.id }
+                }
             }
         }
     }
@@ -134,7 +131,10 @@ struct DiscoverView: View {
             Button {
                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                 if let top = viewModel.candidates.first {
-                    directMessageTarget = top
+                    Task {
+                        await appState.openDirectChat(with: top.id)
+                        viewModel.candidates.removeAll { $0.id == top.id }
+                    }
                 }
             } label: {
                 ZStack {

@@ -175,7 +175,11 @@ struct SeeAgainView: View {
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     if let top = candidates.first {
-                        directMessageTarget = top
+                        Task {
+                            await appState.openDirectChat(with: top.id)
+                            candidates.removeAll { $0.id == top.id }
+                            onMessageSent()
+                        }
                     }
                 } label: {
                     ZStack {
@@ -202,13 +206,11 @@ struct SeeAgainView: View {
         .sheet(item: $selectedProfileForDetail) { profile in
             ProfileDetailSheet(profile: profile) { target in
                 selectedProfileForDetail = nil
-                directMessageTarget = target
-            }
-        }
-        .sheet(item: $directMessageTarget) { target in
-            QuickDirectMessageSheet(profile: target) {
-                candidates.removeAll { $0.id == target.id }
-                onMessageSent()
+                Task {
+                    await appState.openDirectChat(with: target.id)
+                    candidates.removeAll { $0.id == target.id }
+                    onMessageSent()
+                }
             }
         }
     }

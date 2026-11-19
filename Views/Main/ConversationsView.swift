@@ -6,7 +6,7 @@ struct ConversationsView: View {
     @State private var activeConversation: Conversation?
 
     var body: some View {
-        ScrollView {
+        Group {
             if appState.conversations.isEmpty {
                 VStack(spacing: 12) {
                     Image(systemName: "bubble.left.and.bubble.right")
@@ -15,15 +15,15 @@ struct ConversationsView: View {
                     Text("Nenhuma conversa ainda")
                         .font(AppTheme.Typography.headline())
                         .foregroundStyle(AppTheme.Colors.darkGray)
-                    Text("Quando der match, você poderá iniciar uma conversa aqui.")
+                    Text("Quando der match ou enviar mensagem, suas conversas aparecerão aqui.")
                         .font(AppTheme.Typography.subheadline())
                         .foregroundStyle(AppTheme.Colors.textGray)
                         .multilineTextAlignment(.center)
                 }
-                .padding(.top, 80)
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
                 .padding(.horizontal, 24)
             } else {
-                LazyVStack(spacing: 10) {
+                List {
                     ForEach(appState.conversations) { conversation in
                         Button {
                             activeConversation = conversation
@@ -31,12 +31,12 @@ struct ConversationsView: View {
                             HStack(spacing: 14) {
                                 if let firstPhoto = conversation.profile.photos.first {
                                     PhotoContentView(photo: firstPhoto)
-                                        .frame(width: 58, height: 58)
+                                        .frame(width: 56, height: 56)
                                         .clipShape(Circle())
                                 } else {
                                     Circle()
                                         .fill(AppTheme.Colors.primaryRed.opacity(0.14))
-                                        .frame(width: 58, height: 58)
+                                        .frame(width: 56, height: 56)
                                         .overlay(
                                             Text(String(conversation.profile.firstName.prefix(1)).uppercased())
                                                 .font(AppTheme.Typography.headline())
@@ -66,28 +66,59 @@ struct ConversationsView: View {
                                 Spacer()
 
                                 if conversation.unreadCount > 0 {
-                                    Circle()
-                                        .fill(AppTheme.Colors.primaryRed)
-                                        .frame(width: 10, height: 10)
+                                    Text("\(conversation.unreadCount)")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundStyle(.white)
+                                        .padding(.horizontal, 7)
+                                        .padding(.vertical, 3)
+                                        .background(AppTheme.Colors.primaryRed, in: Capsule())
                                 }
                             }
-                            .padding(14)
-                            .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
-                                    .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
-                            )
+                            .padding(.vertical, 6)
                         }
                         .buttonStyle(.plain)
+                        .listRowBackground(AppTheme.Colors.white)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                Task {
+                                    await deleteConversationFromList(conversation)
+                                }
+                            } label: {
+                                Label("Excluir", systemImage: "trash")
+                            }
+                        }
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 24)
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
+                .background(AppTheme.Colors.background)
             }
         }
-        .sheet(item: $activeConversation) { conversation in
+        .onAppear {
+            openPendingIfNeeded()
+        }
+        .onChange(of: appState.pendingOpenConversationId) { _, _ in
+            openPendingIfNeeded()
+        }
+        .fullScreenCover(item: $activeConversation) { conversation in
             ChatDetailView(conversationId: conversation.id, chatService: appState.services.chatService)
+        }
+    }
+
+    private func openPendingIfNeeded() {
+        guard let pendingId = appState.pendingOpenConversationId else { return }
+        if let found = appState.conversations.first(where: { $0.id == pendingId }) {
+            activeConversation = found
+            appState.pendingOpenConversationId = nil
+        }
+    }
+
+    private func deleteConversationFromList(_ conversation: Conversation) async {
+        let idStr = conversation.id.uuidString.lowercased()
+        try? await APIClient.shared.requestVoid(path: "/matches/\(idStr)", method: "DELETE")
+        withAnimation {
+            appState.conversations.removeAll { $0.id == conversation.id }
+            appState.matches.removeAll { $0.id == conversation.id }
         }
     }
 }
@@ -127,7 +158,7 @@ struct ChatDetailView: View {
             if isOnline {
                 return "Online"
             }
-            if let lastSeen = appState.lastActiveByUser[userKey] {
+            if let lastSeen = appState.lastActiveByUser[userKey] ?? partner.lastActiveAt {
                 let formatter = DateFormatter()
                 formatter.dateFormat = "HH:mm"
                 return "Visto por último às \(formatter.string(from: lastSeen))"
@@ -194,20 +225,52 @@ struct ChatDetailView: View {
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .principal) {
-                    VStack(spacing: 1) {
-                        Text(conversation?.profile.firstName ?? "Conversa")
-                            .font(AppTheme.Typography.headline())
-                            .foregroundStyle(AppTheme.Colors.darkGray)
-                        if !partnerStatusText.isEmpty {
-                            Text(partnerStatusText)
-                                .font(.system(size: 11.5, weight: .regular))
-                                .foregroundStyle(Color(hex: "9CA3AF"))
+                ToolbarItem(placement: .topBarLeading) {
+                    HStack(spacing: 10) {
+                        Button {
+                            dismiss()
+                        } label: {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 17, weight: .semibold))
+                                .foregroundStyle(AppTheme.Colors.primaryRed)
+                        }
+
+                        if let firstPhoto = conversation?.profile.photos.first {
+                            PhotoContentView(photo: firstPhoto)
+                                .frame(width: 36, height: 36)
+                                .clipShape(Circle())
+                        } else {
+                            Circle()
+                                .fill(AppTheme.Colors.primaryRed.opacity(0.14))
+                                .frame(width: 36, height: 36)
+                                .overlay(
+                                    Text(String((conversation?.profile.firstName ?? "?").prefix(1)).uppercased())
+                                        .font(AppTheme.Typography.subheadline())
+                                        .foregroundStyle(AppTheme.Colors.primaryRed)
+                                )
+                        }
+
+                        VStack(alignment: .leading, spacing: 1) {
+                            HStack(spacing: 4) {
+                                Text(conversation?.profile.firstName ?? "Conversa")
+                                    .font(AppTheme.Typography.headline())
+                                    .foregroundStyle(AppTheme.Colors.darkGray)
+                                if conversation?.profile.isVerified == true {
+                                    Image(systemName: "checkmark.seal.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundStyle(Color(hex: "3B82F6"))
+                                }
+                            }
+                            if !partnerStatusText.isEmpty {
+                                Text(partnerStatusText)
+                                    .font(.system(size: 11.5, weight: .regular))
+                                    .foregroundStyle(Color(hex: "8E8E93"))
+                            }
                         }
                     }
                 }
 
-                ToolbarItem(placement: .topBarLeading) {
+                ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button {
                             requirePremium {
@@ -241,12 +304,6 @@ struct ChatDetailView: View {
 
                         Divider()
 
-                        Button(role: .destructive) {
-                            showDeleteConvAlert = true
-                        } label: {
-                            Label("Excluir conversa", systemImage: "bubble.left.and.exclamationmark.bubble.right")
-                        }
-
                         Button {
                             showReportSheet = true
                         } label: {
@@ -260,25 +317,15 @@ struct ChatDetailView: View {
                         }
                     } label: {
                         Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 17))
-                            .foregroundStyle(AppTheme.Colors.darkGray)
-                    }
-                }
-
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button {
-                        dismiss()
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 13, weight: .bold))
-                            .foregroundStyle(AppTheme.Colors.darkGray)
-                            .frame(width: 30, height: 30)
-                            .background(AppTheme.Colors.chipUnselected, in: Circle())
+                            .font(.system(size: 18))
+                            .foregroundStyle(AppTheme.Colors.primaryRed)
                     }
                 }
             }
             .onAppear {
-                appState.socketClient.markRead(conversationId: conversationId.uuidString.lowercased())
+                let idStr = conversationId.uuidString.lowercased()
+                appState.socketClient.joinChat(conversationId: idStr)
+                appState.socketClient.markRead(conversationId: idStr)
             }
             .onDisappear {
                 appState.socketClient.sendTyping(conversationId: conversationId.uuidString.lowercased(), isTyping: false)
