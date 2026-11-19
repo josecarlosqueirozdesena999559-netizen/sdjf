@@ -10,8 +10,61 @@ struct SeeAgainView: View {
     @State private var selectedProfileForDetail: UserProfile?
     @State private var directMessageTarget: UserProfile?
 
+    private struct SkippedPhotoDTO: Decodable {
+        let id: String
+        let url: String
+        let thumbnailUrl: String?
+    }
+
+    private struct SkippedInterestDTO: Decodable {
+        let id: String
+        let name: String
+        let icon: String?
+    }
+
+    private struct SkippedCandidateDTO: Decodable {
+        let id: String
+        let fullName: String
+        let username: String
+        let age: Int
+        let bio: String
+        let approximateLocation: String
+        let distanceKm: Int
+        let isOnline: Bool
+        let isVerified: Bool
+        let photos: [SkippedPhotoDTO]
+        let interests: [SkippedInterestDTO]
+
+        func toDomain() -> UserProfile {
+            UserProfile(
+                id: UUID(uuidString: id) ?? UUID(),
+                fullName: fullName,
+                username: username,
+                age: age,
+                photos: photos.map {
+                    ProfilePhoto(
+                        id: UUID(uuidString: $0.id) ?? UUID(),
+                        remoteURL: $0.url
+                    )
+                },
+                interests: interests.map {
+                    Interest(
+                        id: $0.id,
+                        name: $0.name,
+                        icon: $0.icon ?? "sparkles"
+                    )
+                },
+                bio: bio,
+                isVerified: isVerified,
+                isOnline: isOnline,
+                distanceKm: distanceKm,
+                city: approximateLocation
+            )
+        }
+    }
+
     private struct SkippedResponse: Decodable {
-        let items: [BackendCandidateDTO]
+        let items: [SkippedCandidateDTO]
     }
 
     private struct LikeBody: Encodable {
@@ -74,7 +127,7 @@ struct SeeAgainView: View {
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                     if let top = candidates.first {
-                        Task { await decide(.pass, for: top) }
+                        Task { await decide(.reject, for: top) }
                     }
                 } label: {
                     ZStack {

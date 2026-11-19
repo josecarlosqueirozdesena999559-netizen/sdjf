@@ -19,24 +19,18 @@ struct QuickDirectMessageSheet: View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 18) {
                 HStack(spacing: 12) {
-                    if let url = profile.photos.first?.bestURL {
-                        AsyncImage(url: url) { phase in
-                            if case .success(let img) = phase {
-                                img.resizable().scaledToFill()
-                            } else {
-                                Circle().fill(AppTheme.Colors.chipUnselected)
-                            }
-                        }
-                        .frame(width: 52, height: 52)
-                        .clipShape(Circle())
+                    if let firstPhoto = profile.photos.first {
+                        PhotoContentView(photo: firstPhoto)
+                            .frame(width: 52, height: 52)
+                            .clipShape(Circle())
                     }
 
                     VStack(alignment: .leading, spacing: 2) {
                         Text("\(profile.firstName), \(profile.age)")
                             .font(AppTheme.Typography.headline())
                             .foregroundStyle(AppTheme.Colors.darkGray)
-                        if !profile.approximateLocation.isEmpty {
-                            Text(profile.approximateLocation)
+                        if !profile.city.isEmpty {
+                            Text(profile.city)
                                 .font(AppTheme.Typography.caption())
                                 .foregroundStyle(AppTheme.Colors.textGray)
                         }
