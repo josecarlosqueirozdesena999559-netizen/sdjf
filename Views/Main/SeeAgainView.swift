@@ -50,8 +50,8 @@ struct SeeAgainView: View {
                 interests: interests.map {
                     Interest(
                         id: $0.id,
-                        name: $0.name,
-                        icon: $0.icon ?? "sparkles"
+                        title: $0.name,
+                        sfSymbol: $0.icon ?? "sparkles"
                     )
                 },
                 bio: bio,
