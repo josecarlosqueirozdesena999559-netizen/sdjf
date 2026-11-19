@@ -1,5 +1,6 @@
 import SwiftUI
 import AVFoundation
+import PhotosUI
 
 struct ConversationsView: View {
     @EnvironmentObject private var appState: AppState
@@ -137,6 +138,12 @@ struct ChatDetailView: View {
     @State private var showDeleteConvAlert: Bool = false
     @State private var revealedViewOnceText: String?
     @State private var audioPlayer: AVPlayer?
+    @State private var selectedPhotoItem: PhotosPickerItem?
+    @State private var freeSafeModeEndsAt: Date?
+    @State private var safeModeRemainingSeconds: Int = 0
+    @State private var dragUpOffset: CGFloat = 0
+
+    private let safeModeTimer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
     init(conversationId: UUID, chatService: ChatServiceProtocol) {
         self.conversationId = conversationId
@@ -175,8 +182,15 @@ struct ChatDetailView: View {
                         HStack(spacing: 6) {
                             Image(systemName: "timer")
                                 .font(.system(size: 12, weight: .semibold))
-                            Text("Modo temporário ativo: mensagens lidas somem ao sair")
-                                .font(AppTheme.Typography.micro())
+                            if appState.isPremium {
+                                Text("Modo Temporário ativo • Mensagens lidas somem ao sair")
+                                    .font(AppTheme.Typography.micro())
+                            } else {
+                                let mins = safeModeRemainingSeconds / 60
+                                let secs = safeModeRemainingSeconds % 60
+                                Text(String(format: "Modo Seguro (5 min grátis) • %02d:%02d", mins, secs))
+                                    .font(AppTheme.Typography.micro())
+                            }
                         }
                         .foregroundStyle(AppTheme.Colors.primaryRed)
                         .padding(.vertical, 6)
@@ -196,9 +210,30 @@ struct ChatDetailView: View {
                                     .foregroundStyle(AppTheme.Colors.textGray)
                                     .padding(.top, 48)
                             }
+
+                            Text(viewModel.isEphemeralOnExit
+                                 ? "Arraste para cima para voltar ao modo normal"
+                                 : "Arraste para cima para ativar o Modo Seguro")
+                                .font(.system(size: 11))
+                                .foregroundStyle(AppTheme.Colors.textGray.opacity(0.65))
+                                .padding(.top, 14)
                         }
                         .padding(16)
                     }
+                    .simultaneousGesture(
+                        DragGesture(minimumDistance: 35)
+                            .onChanged { value in
+                                if value.translation.height < 0 {
+                                    dragUpOffset = value.translation.height
+                                }
+                            }
+                            .onEnded { value in
+                                if value.translation.height < -70 || dragUpOffset < -70 {
+                                    toggleSafeModeByGesture()
+                                }
+                                dragUpOffset = 0
+                            }
+                    )
 
                     if let editing = viewModel.editingMessage {
                         HStack {
@@ -273,17 +308,6 @@ struct ChatDetailView: View {
                 ToolbarItem(placement: .topBarTrailing) {
                     Menu {
                         Button {
-                            requirePremium {
-                                viewModel.isEphemeralOnExit.toggle()
-                            }
-                        } label: {
-                            Label(
-                                viewModel.isEphemeralOnExit ? "Desativar modo temporário" : "Modo temporário (apagar ao sair)",
-                                systemImage: "timer"
-                            )
-                        }
-
-                        Button {
                             screenShieldEnabled.toggle()
                         } label: {
                             Label(
@@ -328,8 +352,29 @@ struct ChatDetailView: View {
                 appState.socketClient.markRead(conversationId: idStr)
             }
             .onDisappear {
-                appState.socketClient.sendTyping(conversationId: conversationId.uuidString.lowercased(), isTyping: false)
-                appState.socketClient.leaveChat(conversationId: conversationId.uuidString.lowercased())
+                let idStr = conversationId.uuidString.lowercased()
+                appState.socketClient.sendTyping(conversationId: idStr, isTyping: false)
+                appState.socketClient.leaveChat(conversationId: idStr)
+                if viewModel.isEphemeralOnExit {
+                    Task {
+                        try? await APIClient.shared.requestVoid(
+                            path: "/conversations/\(idStr)/purge-ephemeral",
+                            method: "POST"
+                        )
+                        await appState.loadSocialData()
+                    }
+                }
+            }
+            .onReceive(safeModeTimer) { _ in
+                guard viewModel.isEphemeralOnExit, !appState.isPremium, let endsAt = freeSafeModeEndsAt else { return }
+                let rem = Int(endsAt.timeIntervalSinceNow)
+                if rem <= 0 {
+                    viewModel.isEphemeralOnExit = false
+                    freeSafeModeEndsAt = nil
+                    safeModeRemainingSeconds = 0
+                } else {
+                    safeModeRemainingSeconds = rem
+                }
             }
             .sheet(isPresented: $showPaywall) {
                 PremiumPaywallSheet()
@@ -409,8 +454,39 @@ struct ChatDetailView: View {
                                 Image(systemName: "timer")
                                     .font(.system(size: 11))
                             }
-                            Text(message.type == .audio && message.viewedAt == nil ? "Áudio de visualização única" : message.text)
-                                .font(AppTheme.Typography.body())
+                            if message.type == .audio && !message.isViewOnce {
+                                Button {
+                                    if let url = URL(string: message.text) {
+                                        let player = AVPlayer(url: url)
+                                        self.audioPlayer = player
+                                        player.play()
+                                    }
+                                } label: {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "play.circle.fill")
+                                            .font(.system(size: 22))
+                                        Text("Mensagem de áudio")
+                                            .font(AppTheme.Typography.body())
+                                    }
+                                }
+                                .buttonStyle(.plain)
+                            } else if message.type == .image && !message.isViewOnce, let imgUrl = URL(string: message.text) {
+                                AsyncImage(url: imgUrl) { phase in
+                                    if case .success(let img) = phase {
+                                        img
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(maxWidth: 210, maxHeight: 240)
+                                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                    } else {
+                                        ProgressView()
+                                            .frame(width: 160, height: 140)
+                                    }
+                                }
+                            } else {
+                                Text(message.type == .audio && message.viewedAt == nil ? "Áudio de visualização única" : message.text)
+                                    .font(AppTheme.Typography.body())
+                            }
                         }
 
                         if message.editedAt != nil && message.deletedForEveryoneAt == nil {
@@ -465,10 +541,21 @@ struct ChatDetailView: View {
 
     private var inputBar: some View {
         HStack(spacing: 8) {
-            Button {
-                requirePremium {
-                    viewModel.isViewOnce.toggle()
+            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                Image(systemName: "photo")
+                    .font(.system(size: 19))
+                    .foregroundStyle(AppTheme.Colors.primaryRed)
+            }
+            .onChange(of: selectedPhotoItem) { _, newItem in
+                guard let newItem else { return }
+                Task {
+                    await sendSelectedPhoto(newItem)
+                    selectedPhotoItem = nil
                 }
+            }
+
+            Button {
+                toggleViewOnce()
             } label: {
                 Image(systemName: viewModel.isViewOnce ? "1.circle.fill" : "1.circle")
                     .font(.system(size: 20))
@@ -495,12 +582,10 @@ struct ChatDetailView: View {
 
             if viewModel.draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Button {
-                    requirePremium {
-                        if audioRecorder.isRecording {
-                            Task { await finishAndSendViewOnceAudio() }
-                        } else {
-                            audioRecorder.startRecording()
-                        }
+                    if audioRecorder.isRecording {
+                        Task { await finishAndSendAudio() }
+                    } else {
+                        audioRecorder.startRecording()
                     }
                 } label: {
                     Image(systemName: audioRecorder.isRecording ? "stop.fill" : "mic.fill")
@@ -510,7 +595,7 @@ struct ChatDetailView: View {
                         .background(audioRecorder.isRecording ? Color.black : AppTheme.Colors.primaryRed, in: Circle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Gravar áudio único")
+                .accessibilityLabel("Gravar áudio")
             } else {
                 Button {
                     Task {
@@ -563,7 +648,37 @@ struct ChatDetailView: View {
         }
     }
 
-    private func finishAndSendViewOnceAudio() async {
+    private func toggleViewOnce() {
+        if appState.isPremium {
+            viewModel.isViewOnce.toggle()
+            return
+        }
+        let used = UserDefaults.standard.integer(forKey: "free_view_once_used_count")
+        if used < 1 {
+            viewModel.isViewOnce.toggle()
+        } else {
+            showPaywall = true
+        }
+    }
+
+    private func toggleSafeModeByGesture() {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        withAnimation(.easeInOut(duration: 0.25)) {
+            if viewModel.isEphemeralOnExit {
+                viewModel.isEphemeralOnExit = false
+                freeSafeModeEndsAt = nil
+                safeModeRemainingSeconds = 0
+            } else {
+                viewModel.isEphemeralOnExit = true
+                if !appState.isPremium {
+                    freeSafeModeEndsAt = Date().addingTimeInterval(300)
+                    safeModeRemainingSeconds = 300
+                }
+            }
+        }
+    }
+
+    private func finishAndSendAudio() async {
         guard let audioData = audioRecorder.stopRecording() else { return }
         struct AudioUploadResponse: Decodable {
             let url: String
@@ -574,11 +689,50 @@ struct ChatDetailView: View {
             filename: "voice.m4a"
         ) else { return }
 
+        let viewOnce = viewModel.isViewOnce
+        viewModel.isViewOnce = false
+        if viewOnce && !appState.isPremium {
+            let used = UserDefaults.standard.integer(forKey: "free_view_once_used_count")
+            UserDefaults.standard.set(used + 1, forKey: "free_view_once_used_count")
+        }
+
         appState.socketClient.sendMessage(
             conversationId: conversationId.uuidString.lowercased(),
             content: uploaded.url,
             type: "AUDIO",
-            isViewOnce: true,
+            isViewOnce: viewOnce,
+            isEphemeralOnExit: viewModel.isEphemeralOnExit
+        )
+    }
+
+    private func sendSelectedPhoto(_ item: PhotosPickerItem) async {
+        guard let data = try? await item.loadTransferable(type: Data.self) else { return }
+        struct PhotoUploadResp: Decodable {
+            struct PhotoObj: Decodable { let url: String }
+            let photo: PhotoObj?
+            let url: String?
+        }
+        guard let uploaded: PhotoUploadResp = try? await APIClient.shared.uploadJPEG(
+            path: "/photos/upload",
+            imageData: data,
+            filename: "chat_photo.jpg"
+        ) else { return }
+
+        let urlStr = uploaded.photo?.url ?? uploaded.url ?? ""
+        guard !urlStr.isEmpty else { return }
+
+        let viewOnce = viewModel.isViewOnce
+        viewModel.isViewOnce = false
+        if viewOnce && !appState.isPremium {
+            let used = UserDefaults.standard.integer(forKey: "free_view_once_used_count")
+            UserDefaults.standard.set(used + 1, forKey: "free_view_once_used_count")
+        }
+
+        appState.socketClient.sendMessage(
+            conversationId: conversationId.uuidString.lowercased(),
+            content: urlStr,
+            type: "IMAGE",
+            isViewOnce: viewOnce,
             isEphemeralOnExit: viewModel.isEphemeralOnExit
         )
     }

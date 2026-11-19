@@ -34,6 +34,11 @@ final class ChatViewModel: ObservableObject {
         let ephemeral = isEphemeralOnExit
         isViewOnce = false
 
+        if viewOnce && !appState.isPremium {
+            let used = UserDefaults.standard.integer(forKey: "free_view_once_used_count")
+            UserDefaults.standard.set(used + 1, forKey: "free_view_once_used_count")
+        }
+
         let clientMessageId = UUID().uuidString
         appState.socketClient.sendMessage(
             conversationId: conversationId.uuidString.lowercased(),
