@@ -541,66 +541,57 @@ struct ChatDetailView: View {
 
     private var inputBar: some View {
         HStack(spacing: 8) {
-            PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                Image(systemName: "photo")
-                    .font(.system(size: 19))
-                    .foregroundStyle(AppTheme.Colors.primaryRed)
-            }
-            .onChange(of: selectedPhotoItem) { _, newItem in
-                guard let newItem else { return }
-                Task {
-                    await sendSelectedPhoto(newItem)
-                    selectedPhotoItem = nil
+            if audioRecorder.isRecording {
+                Button {
+                    audioRecorder.cancelRecording()
+                } label: {
+                    Image(systemName: "trash.fill")
+                        .font(.system(size: 18))
+                        .foregroundStyle(AppTheme.Colors.textGray)
+                        .frame(width: 36, height: 36)
                 }
-            }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Cancelar gravação")
 
-            Button {
-                toggleViewOnce()
-            } label: {
-                Image(systemName: viewModel.isViewOnce ? "1.circle.fill" : "1.circle")
-                    .font(.system(size: 20))
-                    .foregroundStyle(viewModel.isViewOnce ? AppTheme.Colors.primaryRed : AppTheme.Colors.textGray)
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel("Visualização única")
+                HStack(spacing: 8) {
+                    Circle()
+                        .fill(AppTheme.Colors.primaryRed)
+                        .frame(width: 8, height: 8)
 
-            TextField("Escreva uma mensagem...", text: $viewModel.draftText)
-                .font(AppTheme.Typography.body())
-                .padding(.horizontal, 14)
+                    Text(String(format: "%d:%02d", audioRecorder.elapsedSeconds / 60, audioRecorder.elapsedSeconds % 60))
+                        .font(.system(size: 13, weight: .semibold, design: .monospaced))
+                        .foregroundStyle(AppTheme.Colors.darkGray)
+
+                    HStack(spacing: 2.5) {
+                        ForEach(Array(audioRecorder.levels.enumerated()), id: \.offset) { _, level in
+                            Capsule()
+                                .fill(AppTheme.Colors.primaryRed)
+                                .frame(width: 3, height: max(4, level * 26))
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .trailing)
+                    .animation(.linear(duration: 0.08), value: audioRecorder.levels)
+                }
+                .padding(.horizontal, 12)
                 .frame(height: 44)
                 .background(AppTheme.Colors.white, in: Capsule())
                 .overlay(
                     Capsule()
                         .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
                 )
-                .onChange(of: viewModel.draftText) { _, newValue in
-                    appState.socketClient.sendTyping(
-                        conversationId: conversationId.uuidString.lowercased(),
-                        isTyping: !newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-                    )
-                }
 
-            if viewModel.draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                 Button {
-                    if audioRecorder.isRecording {
-                        Task { await finishAndSendAudio() }
-                    } else {
-                        audioRecorder.startRecording()
-                    }
+                    toggleViewOnce()
                 } label: {
-                    Image(systemName: audioRecorder.isRecording ? "stop.fill" : "mic.fill")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(.white)
-                        .frame(width: 44, height: 44)
-                        .background(audioRecorder.isRecording ? Color.black : AppTheme.Colors.primaryRed, in: Circle())
+                    Image(systemName: viewModel.isViewOnce ? "1.circle.fill" : "1.circle")
+                        .font(.system(size: 20))
+                        .foregroundStyle(viewModel.isViewOnce ? AppTheme.Colors.primaryRed : AppTheme.Colors.textGray)
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel("Gravar áudio")
-            } else {
+                .accessibilityLabel("Áudio de visualização única")
+
                 Button {
-                    Task {
-                        await viewModel.sendMessage(in: conversationId, appState: appState)
-                    }
+                    Task { await finishAndSendAudio() }
                 } label: {
                     Image(systemName: "arrow.up")
                         .font(.system(size: 16, weight: .bold))
@@ -609,6 +600,73 @@ struct ChatDetailView: View {
                         .background(AppTheme.Colors.primaryRed, in: Circle())
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("Enviar áudio")
+            } else {
+                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                    Image(systemName: "photo")
+                        .font(.system(size: 19))
+                        .foregroundStyle(AppTheme.Colors.primaryRed)
+                }
+                .onChange(of: selectedPhotoItem) { _, newItem in
+                    guard let newItem else { return }
+                    Task {
+                        await sendSelectedPhoto(newItem)
+                        selectedPhotoItem = nil
+                    }
+                }
+
+                Button {
+                    toggleViewOnce()
+                } label: {
+                    Image(systemName: viewModel.isViewOnce ? "1.circle.fill" : "1.circle")
+                        .font(.system(size: 20))
+                        .foregroundStyle(viewModel.isViewOnce ? AppTheme.Colors.primaryRed : AppTheme.Colors.textGray)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Visualização única")
+
+                TextField("Escreva uma mensagem...", text: $viewModel.draftText)
+                    .font(AppTheme.Typography.body())
+                    .padding(.horizontal, 14)
+                    .frame(height: 44)
+                    .background(AppTheme.Colors.white, in: Capsule())
+                    .overlay(
+                        Capsule()
+                            .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
+                    )
+                    .onChange(of: viewModel.draftText) { _, newValue in
+                        appState.socketClient.sendTyping(
+                            conversationId: conversationId.uuidString.lowercased(),
+                            isTyping: !newValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                        )
+                    }
+
+                if viewModel.draftText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                    Button {
+                        audioRecorder.startRecording()
+                    } label: {
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(AppTheme.Colors.primaryRed, in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel("Gravar áudio")
+                } else {
+                    Button {
+                        Task {
+                            await viewModel.sendMessage(in: conversationId, appState: appState)
+                        }
+                    } label: {
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 16, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(width: 44, height: 44)
+                            .background(AppTheme.Colors.primaryRed, in: Circle())
+                    }
+                    .buttonStyle(.plain)
+                }
             }
         }
         .padding(.horizontal, 14)
@@ -759,8 +817,13 @@ struct ChatDetailView: View {
 @MainActor
 private final class AudioRecorderHelper: NSObject, ObservableObject {
     @Published var isRecording = false
+    @Published var levels: [CGFloat] = Array(repeating: 0.15, count: 24)
+    @Published var elapsedSeconds: Int = 0
+
     private var recorder: AVAudioRecorder?
     private var fileURL: URL?
+    private var meterTask: Task<Void, Never>?
+    private var startedAt: Date?
 
     func startRecording() {
         let session = AVAudioSession.sharedInstance()
@@ -776,15 +839,52 @@ private final class AudioRecorderHelper: NSObject, ObservableObject {
         ]
 
         recorder = try? AVAudioRecorder(url: url, settings: settings)
+        recorder?.isMeteringEnabled = true
         recorder?.record()
         fileURL = url
+        startedAt = Date()
+        elapsedSeconds = 0
+        levels = Array(repeating: 0.15, count: 24)
         isRecording = true
+
+        meterTask?.cancel()
+        meterTask = Task { [weak self] in
+            while let self, self.isRecording, !Task.isCancelled {
+                self.recorder?.updateMeters()
+                let power = self.recorder?.averagePower(forChannel: 0) ?? -60
+                // Normalize -55 dB ... 0 dB into 0.12 ... 1.0
+                let clamped = max(-55, min(0, power))
+                let normalized = CGFloat((clamped + 55) / 55)
+                let barValue = max(0.12, pow(normalized, 1.4))
+
+                self.levels.removeFirst()
+                self.levels.append(barValue)
+                if let start = self.startedAt {
+                    self.elapsedSeconds = Int(Date().timeIntervalSince(start))
+                }
+                try? await Task.sleep(for: .milliseconds(80))
+            }
+        }
     }
 
     func stopRecording() -> Data? {
+        meterTask?.cancel()
+        meterTask = nil
         recorder?.stop()
         isRecording = false
         guard let url = fileURL else { return nil }
         return try? Data(contentsOf: url)
+    }
+
+    func cancelRecording() {
+        meterTask?.cancel()
+        meterTask = nil
+        recorder?.stop()
+        isRecording = false
+        if let url = fileURL {
+            try? FileManager.default.removeItem(at: url)
+        }
+        fileURL = nil
+        elapsedSeconds = 0
     }
 }
