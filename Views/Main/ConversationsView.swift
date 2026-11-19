@@ -545,8 +545,11 @@ struct ChatDetailView: View {
                 Button {
                     audioRecorder.cancelRecording()
                 } label: {
-                    Image(systemName: "trash.fill")
-                        .font(.system(size: 18))
+                    Image("IconTrash")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 20, height: 20)
                         .foregroundStyle(AppTheme.Colors.textGray)
                         .frame(width: 36, height: 36)
                 }
@@ -593,8 +596,11 @@ struct ChatDetailView: View {
                 Button {
                     Task { await finishAndSendAudio() }
                 } label: {
-                    Image(systemName: "arrow.up")
-                        .font(.system(size: 16, weight: .bold))
+                    Image("IconSend")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 20, height: 20)
                         .foregroundStyle(.white)
                         .frame(width: 44, height: 44)
                         .background(AppTheme.Colors.primaryRed, in: Circle())
@@ -603,8 +609,11 @@ struct ChatDetailView: View {
                 .accessibilityLabel("Enviar áudio")
             } else {
                 PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                    Image(systemName: "photo")
-                        .font(.system(size: 19))
+                    Image("IconCamera")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 22, height: 22)
                         .foregroundStyle(AppTheme.Colors.primaryRed)
                 }
                 .onChange(of: selectedPhotoItem) { _, newItem in
@@ -645,8 +654,11 @@ struct ChatDetailView: View {
                     Button {
                         audioRecorder.startRecording()
                     } label: {
-                        Image(systemName: "mic.fill")
-                            .font(.system(size: 16, weight: .bold))
+                        Image("IconMic")
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 20, height: 20)
                             .foregroundStyle(.white)
                             .frame(width: 44, height: 44)
                             .background(AppTheme.Colors.primaryRed, in: Circle())
@@ -659,8 +671,11 @@ struct ChatDetailView: View {
                             await viewModel.sendMessage(in: conversationId, appState: appState)
                         }
                     } label: {
-                        Image(systemName: "arrow.up")
-                            .font(.system(size: 16, weight: .bold))
+                        Image("IconSend")
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 20, height: 20)
                             .foregroundStyle(.white)
                             .frame(width: 44, height: 44)
                             .background(AppTheme.Colors.primaryRed, in: Circle())
