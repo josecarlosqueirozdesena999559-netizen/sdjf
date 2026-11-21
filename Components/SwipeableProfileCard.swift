@@ -56,18 +56,6 @@ struct SwipeableProfileCard: View {
                             .padding(.vertical, 7)
                             .background(AppTheme.Colors.darkGray.opacity(0.85), in: Capsule())
                             .opacity(rejectOpacity)
-                    } else if profile.isOnline {
-                        HStack(spacing: 6) {
-                            Circle()
-                                .fill(Color.green)
-                                .frame(width: 8, height: 8)
-                            Text("Online")
-                                .font(AppTheme.Typography.micro())
-                                .foregroundStyle(.white)
-                        }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 5)
-                        .glassPill()
                     }
                 }
                 .padding(.top, 26)
@@ -80,7 +68,7 @@ struct SwipeableProfileCard: View {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .center, spacing: 8) {
                     Text("\(profile.firstName), \(profile.age)")
-                        .font(.system(size: 28, weight: .bold, design: .default))
+                        .font(AppTheme.Typography.jakartaBold(28))
                         .foregroundStyle(.white)
 
                     if profile.isVerified {
@@ -88,6 +76,14 @@ struct SwipeableProfileCard: View {
                             .font(.system(size: 20))
                             .foregroundStyle(Color(hex: "3B82F6"))
                             .accessibilityLabel("Perfil verificado")
+                    }
+
+                    if profile.isOnline {
+                        Circle()
+                            .fill(Color(hex: "10B981"))
+                            .frame(width: 10, height: 10)
+                            .overlay(Circle().stroke(Color.white.opacity(0.8), lineWidth: 1.5))
+                            .accessibilityLabel("Online agora")
                     }
 
                     Spacer()

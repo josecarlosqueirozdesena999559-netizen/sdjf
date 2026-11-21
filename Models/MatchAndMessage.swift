@@ -27,6 +27,7 @@ struct ChatMessage: Identifiable, Hashable, Codable {
     var isDelivered: Bool = false
     var isRead: Bool = false
     var localImageData: Data? = nil
+    var audioDurationSeconds: Int? = nil
 
     init(
         id: UUID = UUID(),
@@ -41,7 +42,8 @@ struct ChatMessage: Identifiable, Hashable, Codable {
         deletedForEveryoneAt: Date? = nil,
         isDelivered: Bool = false,
         isRead: Bool = false,
-        localImageData: Data? = nil
+        localImageData: Data? = nil,
+        audioDurationSeconds: Int? = nil
     ) {
         self.id = id
         self.senderIsCurrentUser = senderIsCurrentUser
@@ -56,10 +58,11 @@ struct ChatMessage: Identifiable, Hashable, Codable {
         self.isDelivered = isDelivered
         self.isRead = isRead
         self.localImageData = localImageData
+        self.audioDurationSeconds = audioDurationSeconds
     }
 
     enum CodingKeys: String, CodingKey {
-        case id, senderIsCurrentUser, text, sentAt, type, isViewOnce, viewedAt, isEphemeralOnExit, editedAt, deletedForEveryoneAt, isDelivered, isRead
+        case id, senderIsCurrentUser, text, sentAt, type, isViewOnce, viewedAt, isEphemeralOnExit, editedAt, deletedForEveryoneAt, isDelivered, isRead, audioDurationSeconds
     }
 
     init(from decoder: Decoder) throws {
@@ -76,6 +79,7 @@ struct ChatMessage: Identifiable, Hashable, Codable {
         deletedForEveryoneAt = try container.decodeIfPresent(Date.self, forKey: .deletedForEveryoneAt)
         isDelivered = try container.decodeIfPresent(Bool.self, forKey: .isDelivered) ?? false
         isRead = try container.decodeIfPresent(Bool.self, forKey: .isRead) ?? false
+        audioDurationSeconds = try container.decodeIfPresent(Int.self, forKey: .audioDurationSeconds)
         localImageData = nil
     }
 

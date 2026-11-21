@@ -13,19 +13,20 @@ struct MatchesView: View {
     var body: some View {
         ScrollView {
             if appState.matches.isEmpty {
-                VStack(spacing: 12) {
+                VStack(spacing: 14) {
                     Image(systemName: "heart.circle")
-                        .font(.system(size: 44, weight: .light))
-                        .foregroundStyle(AppTheme.Colors.textGray)
+                        .font(.system(size: 48, weight: .light))
+                        .foregroundStyle(AppTheme.Colors.primaryRed.opacity(0.8))
                     Text("Seus matches aparecerão aqui")
-                        .font(AppTheme.Typography.headline())
+                        .font(AppTheme.Typography.jakartaBold(18))
                         .foregroundStyle(AppTheme.Colors.darkGray)
-                    Text("Continue curtindo perfis na aba Descobrir.")
-                        .font(AppTheme.Typography.subheadline())
+                    Text("Quando você e outra pessoa curtirem um ao outro no Descobrir, o match será criado automaticamente.")
+                        .font(AppTheme.Typography.jakartaRegular(14))
                         .foregroundStyle(AppTheme.Colors.textGray)
+                        .multilineTextAlignment(.center)
                 }
-                .padding(.top, 80)
-                .padding(.horizontal, 24)
+                .padding(.top, 90)
+                .padding(.horizontal, 32)
             } else {
                 LazyVGrid(columns: columns, spacing: 14) {
                     ForEach(appState.matches) { match in
@@ -36,6 +37,9 @@ struct MatchesView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 24)
             }
+        }
+        .refreshable {
+            await appState.loadSocialData()
         }
         .sheet(item: $selectedProfile) { profile in
             ProfileDetailSheet(profile: profile)
@@ -61,7 +65,7 @@ struct MatchesView: View {
                 )
 
                 VStack(alignment: .leading, spacing: 4) {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 5) {
                         Text("\(match.profile.firstName), \(match.profile.age)")
                             .font(AppTheme.Typography.headline())
                             .foregroundStyle(.white)
@@ -71,6 +75,13 @@ struct MatchesView: View {
                             Image(systemName: "checkmark.seal.fill")
                                 .font(.system(size: 13))
                                 .foregroundStyle(.white)
+                        }
+
+                        let partnerOnline = appState.onlineUsers[match.profile.id.uuidString.lowercased()] ?? match.profile.isOnline
+                        if partnerOnline {
+                            Circle()
+                                .fill(Color(hex: "10B981"))
+                                .frame(width: 8, height: 8)
                         }
                     }
 

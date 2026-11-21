@@ -98,15 +98,28 @@ actor APIClient {
     }
 
     func uploadJPEG<T: Decodable>(path: String, imageData: Data, filename: String = "photo.jpg") async throws -> T {
+        try await uploadData(path: path, data: imageData, filename: filename, mimeType: "image/jpeg")
+    }
+
+    func uploadAudio<T: Decodable>(path: String, audioData: Data, filename: String = "voice.m4a") async throws -> T {
+        try await uploadData(path: path, data: audioData, filename: filename, mimeType: "audio/m4a")
+    }
+
+    func uploadData<T: Decodable>(
+        path: String,
+        data: Data,
+        filename: String,
+        mimeType: String
+    ) async throws -> T {
         let boundary = "Boundary-\(UUID().uuidString)"
         var body = Data()
         body.append("--\(boundary)\r\n".data(using: .utf8)!)
         body.append("Content-Disposition: form-data; name=\"file\"; filename=\"\(filename)\"\r\n".data(using: .utf8)!)
-        body.append("Content-Type: image/jpeg\r\n\r\n".data(using: .utf8)!)
-        body.append(imageData)
+        body.append("Content-Type: \(mimeType)\r\n\r\n".data(using: .utf8)!)
+        body.append(data)
         body.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
 
-        let data = try await rawRequest(
+        let resData = try await rawRequest(
             path: path,
             method: "POST",
             bodyData: body,
@@ -114,7 +127,7 @@ actor APIClient {
             requiresAuth: true
         )
 
-        return try decoder.decode(T.self, from: data)
+        return try decoder.decode(T.self, from: resData)
     }
 
     private func rawRequest(

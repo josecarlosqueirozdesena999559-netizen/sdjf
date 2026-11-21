@@ -30,19 +30,36 @@ struct ConversationsView: View {
                             activeConversation = conversation
                         } label: {
                             HStack(spacing: 14) {
-                                if let firstPhoto = conversation.profile.photos.first {
-                                    PhotoContentView(photo: firstPhoto)
-                                        .frame(width: 56, height: 56)
-                                        .clipShape(Circle())
-                                } else {
-                                    Circle()
-                                        .fill(AppTheme.Colors.primaryRed.opacity(0.14))
-                                        .frame(width: 56, height: 56)
-                                        .overlay(
-                                            Text(String(conversation.profile.firstName.prefix(1)).uppercased())
-                                                .font(AppTheme.Typography.headline())
-                                                .foregroundStyle(AppTheme.Colors.primaryRed)
-                                        )
+                                ZStack(alignment: .bottomTrailing) {
+                                    if let firstPhoto = conversation.profile.photos.first {
+                                        PhotoContentView(photo: firstPhoto)
+                                            .frame(width: 56, height: 56)
+                                            .clipShape(Circle())
+                                    } else {
+                                        Circle()
+                                            .fill(
+                                                LinearGradient(
+                                                    colors: [AppTheme.Colors.primaryRed, AppTheme.Colors.secondaryRed],
+                                                    startPoint: .topLeading,
+                                                    endPoint: .bottomTrailing
+                                                )
+                                            )
+                                            .frame(width: 56, height: 56)
+                                            .overlay(
+                                                Text(String(conversation.profile.firstName.prefix(1)).uppercased())
+                                                    .font(AppTheme.Typography.jakartaBold(20))
+                                                    .foregroundStyle(.white)
+                                            )
+                                    }
+
+                                    let isOnline = appState.onlineUsers[conversation.profile.id.uuidString.lowercased()] ?? conversation.profile.isOnline
+                                    if isOnline {
+                                        Circle()
+                                            .fill(Color(hex: "10B981"))
+                                            .frame(width: 14, height: 14)
+                                            .overlay(Circle().stroke(Color.white, lineWidth: 2.5))
+                                            .offset(x: 1, y: 1)
+                                    }
                                 }
 
                                 VStack(alignment: .leading, spacing: 4) {
@@ -93,6 +110,9 @@ struct ConversationsView: View {
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
                 .background(AppTheme.Colors.background)
+                .refreshable {
+                    await appState.loadSocialData()
+                }
             }
         }
         .onAppear {
@@ -156,6 +176,12 @@ struct ChatDetailView: View {
         appState.conversations.first { $0.id == conversationId }
     }
 
+    private var isPartnerOnline: Bool {
+        guard let partner = conversation?.profile else { return false }
+        let userKey = partner.id.uuidString.lowercased()
+        return appState.onlineUsers[userKey] ?? partner.isOnline
+    }
+
     private var partnerStatusText: String {
         let convKey = conversationId.uuidString.lowercased()
         if appState.typingConversations.contains(convKey) {
@@ -204,10 +230,10 @@ struct ChatDetailView: View {
                                     .font(AppTheme.Typography.micro())
                             }
                         }
-                        .foregroundStyle(Color(hex: "00A884"))
+                        .foregroundStyle(AppTheme.Colors.primaryRed)
                         .padding(.vertical, 6)
                         .frame(maxWidth: .infinity)
-                        .background(Color(hex: "00A884").opacity(0.1))
+                        .background(AppTheme.Colors.primaryRed.opacity(0.08))
                     }
 
                     ScrollViewReader { proxy in
@@ -271,14 +297,14 @@ struct ChatDetailView: View {
                                 Text(viewModel.isEphemeralOnExit
                                      ? "Arraste para cima para voltar ao modo normal"
                                      : "Arraste para cima para ativar o Modo Seguro")
-                                    .font(.system(size: 11))
-                                    .foregroundStyle(Color(hex: "8696A0"))
+                                    .font(AppTheme.Typography.caption())
+                                    .foregroundStyle(AppTheme.Colors.textGray)
                                     .padding(.top, 14)
                                     .id("bottom_anchor")
                             }
                             .padding(.vertical, 8)
                         }
-                        .background(Color(hex: "EFEAE2"))
+                        .background(AppTheme.Colors.background)
                         .simultaneousGesture(
                             DragGesture(minimumDistance: 35)
                                 .onChanged { value in
@@ -321,7 +347,7 @@ struct ChatDetailView: View {
                                 viewModel.draftText = ""
                             }
                             .font(AppTheme.Typography.caption())
-                            .foregroundStyle(Color(hex: "00A884"))
+                            .foregroundStyle(AppTheme.Colors.primaryRed)
                         }
                         .padding(.horizontal, 16)
                         .padding(.vertical, 6)
@@ -330,40 +356,56 @@ struct ChatDetailView: View {
 
                     inputBar
                 }
-                .background(Color(hex: "EFEAE2"))
+                .background(AppTheme.Colors.background)
             }
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
-                    HStack(spacing: 8) {
+                    HStack(spacing: 10) {
                         Button {
                             dismiss()
                         } label: {
                             Image(systemName: "chevron.left")
                                 .font(.system(size: 18, weight: .semibold))
-                                .foregroundStyle(Color(hex: "00A884"))
+                                .foregroundStyle(AppTheme.Colors.darkGray)
                         }
 
-                        if let firstPhoto = conversation?.profile.photos.first {
-                            PhotoContentView(photo: firstPhoto)
-                                .frame(width: 38, height: 38)
-                                .clipShape(Circle())
-                        } else {
-                            Circle()
-                                .fill(Color(hex: "00A884").opacity(0.15))
-                                .frame(width: 38, height: 38)
-                                .overlay(
-                                    Text(String((conversation?.profile.firstName ?? "?").prefix(1)).uppercased())
-                                        .font(.system(size: 16, weight: .bold))
-                                        .foregroundStyle(Color(hex: "00A884"))
-                                )
+                        ZStack(alignment: .bottomTrailing) {
+                            if let firstPhoto = conversation?.profile.photos.first {
+                                PhotoContentView(photo: firstPhoto)
+                                    .frame(width: 40, height: 40)
+                                    .clipShape(Circle())
+                            } else {
+                                Circle()
+                                    .fill(
+                                        LinearGradient(
+                                            colors: [AppTheme.Colors.primaryRed, AppTheme.Colors.secondaryRed],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .frame(width: 40, height: 40)
+                                    .overlay(
+                                        Text(String((conversation?.profile.firstName ?? "?").prefix(1)).uppercased())
+                                            .font(AppTheme.Typography.jakartaBold(16))
+                                            .foregroundStyle(.white)
+                                    )
+                            }
+
+                            if isPartnerOnline {
+                                Circle()
+                                    .fill(Color(hex: "10B981"))
+                                    .frame(width: 11, height: 11)
+                                    .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                                    .offset(x: 1, y: 1)
+                            }
                         }
 
                         VStack(alignment: .leading, spacing: 1) {
                             HStack(spacing: 4) {
                                 Text(conversation?.profile.firstName ?? "Conversa")
-                                    .font(.system(size: 16, weight: .semibold))
-                                    .foregroundStyle(Color(hex: "111B21"))
+                                    .font(AppTheme.Typography.jakartaBold(16))
+                                    .foregroundStyle(AppTheme.Colors.darkGray)
                                 if conversation?.profile.isVerified == true {
                                     Image(systemName: "checkmark.seal.fill")
                                         .font(.system(size: 12))
@@ -372,13 +414,24 @@ struct ChatDetailView: View {
                             }
 
                             if !partnerStatusText.isEmpty {
-                                Text(partnerStatusText)
-                                    .font(.system(size: 11.5, weight: .regular))
-                                    .foregroundStyle(
-                                        partnerStatusText == "digitando..." || partnerStatusText == "online"
-                                        ? Color(hex: "25D366")
-                                        : Color(hex: "667781")
-                                    )
+                                HStack(spacing: 4) {
+                                    if partnerStatusText == "online" {
+                                        Circle()
+                                            .fill(Color(hex: "10B981"))
+                                            .frame(width: 6, height: 6)
+                                        Text("Online")
+                                            .font(AppTheme.Typography.caption())
+                                            .foregroundStyle(Color(hex: "10B981"))
+                                    } else if partnerStatusText == "digitando..." {
+                                        Text("digitando...")
+                                            .font(AppTheme.Typography.caption().italic())
+                                            .foregroundStyle(AppTheme.Colors.primaryRed)
+                                    } else {
+                                        Text(partnerStatusText)
+                                            .font(AppTheme.Typography.caption())
+                                            .foregroundStyle(AppTheme.Colors.textGray)
+                                    }
+                                }
                             }
                         }
                     }
@@ -419,9 +472,10 @@ struct ChatDetailView: View {
                             Label("Bloquear usuário", systemImage: "hand.raised")
                         }
                     } label: {
-                        Image(systemName: "ellipsis.circle")
-                            .font(.system(size: 20))
-                            .foregroundStyle(Color(hex: "00A884"))
+                        Image(systemName: "ellipsis")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundStyle(AppTheme.Colors.darkGray)
+                            .frame(width: 36, height: 36)
                     }
                 }
             }
@@ -517,7 +571,7 @@ struct ChatDetailView: View {
                 } label: {
                     Image(systemName: "trash")
                         .font(.system(size: 19))
-                        .foregroundStyle(Color(hex: "EA4335"))
+                        .foregroundStyle(AppTheme.Colors.primaryRed)
                         .frame(width: 38, height: 38)
                 }
                 .buttonStyle(.plain)
@@ -525,17 +579,23 @@ struct ChatDetailView: View {
 
                 HStack(spacing: 8) {
                     Circle()
-                        .fill(Color(hex: "EA4335"))
+                        .fill(AppTheme.Colors.primaryRed)
                         .frame(width: 8, height: 8)
 
                     Text(String(format: "%d:%02d", audioRecorder.elapsedSeconds / 60, audioRecorder.elapsedSeconds % 60))
-                        .font(.system(size: 14, weight: .semibold, design: .monospaced))
-                        .foregroundStyle(Color(hex: "111B21"))
+                        .font(AppTheme.Typography.jakartaBold(15).monospacedDigit())
+                        .foregroundStyle(AppTheme.Colors.darkGray)
 
                     HStack(spacing: 2.5) {
                         ForEach(Array(audioRecorder.levels.enumerated()), id: \.offset) { _, level in
                             Capsule()
-                                .fill(Color(hex: "00A884"))
+                                .fill(
+                                    LinearGradient(
+                                        colors: [AppTheme.Colors.primaryRed, AppTheme.Colors.secondaryRed],
+                                        startPoint: .bottom,
+                                        endPoint: .top
+                                    )
+                                )
                                 .frame(width: 2.5, height: max(4, level * 26))
                         }
                     }
@@ -544,19 +604,27 @@ struct ChatDetailView: View {
                 }
                 .padding(.horizontal, 14)
                 .frame(height: 42)
-                .background(Color.white, in: Capsule())
-                .shadow(color: Color.black.opacity(0.06), radius: 2, y: 1)
+                .background(Color(hex: "F3F4F6"), in: Capsule())
 
                 Button {
                     toggleViewOnce()
                 } label: {
                     ZStack {
-                        Circle()
-                            .strokeBorder(viewModel.isViewOnce ? Color(hex: "00A884") : Color(hex: "8696A0"), lineWidth: 1.5)
-                            .frame(width: 26, height: 26)
-                        Text("1")
-                            .font(.system(size: 12, weight: .bold))
-                            .foregroundStyle(viewModel.isViewOnce ? Color(hex: "00A884") : Color(hex: "8696A0"))
+                        if viewModel.isViewOnce {
+                            Circle()
+                                .fill(AppTheme.Colors.primaryRed)
+                                .frame(width: 26, height: 26)
+                            Text("1")
+                                .font(AppTheme.Typography.jakartaBold(12))
+                                .foregroundStyle(.white)
+                        } else {
+                            Circle()
+                                .strokeBorder(AppTheme.Colors.textGray.opacity(0.4), lineWidth: 1.5)
+                                .frame(width: 26, height: 26)
+                            Text("1")
+                                .font(AppTheme.Typography.jakartaBold(12))
+                                .foregroundStyle(AppTheme.Colors.textGray)
+                        }
                     }
                 }
                 .buttonStyle(.plain)
@@ -569,7 +637,15 @@ struct ChatDetailView: View {
                         .font(.system(size: 18, weight: .bold))
                         .foregroundStyle(.white)
                         .frame(width: 42, height: 42)
-                        .background(Color(hex: "00A884"), in: Circle())
+                        .background(
+                            LinearGradient(
+                                colors: [AppTheme.Colors.primaryRed, AppTheme.Colors.secondaryRed],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            in: Circle()
+                        )
+                        .shadow(color: AppTheme.Colors.primaryRed.opacity(0.35), radius: 6, y: 3)
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Enviar áudio")
@@ -577,7 +653,7 @@ struct ChatDetailView: View {
                 PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                     Image(systemName: "camera.fill")
                         .font(.system(size: 20))
-                        .foregroundStyle(Color(hex: "00A884"))
+                        .foregroundStyle(AppTheme.Colors.primaryRed)
                         .frame(width: 36, height: 36)
                 }
                 .onChange(of: selectedPhotoItem) { _, newItem in
@@ -592,23 +668,32 @@ struct ChatDetailView: View {
                     toggleViewOnce()
                 } label: {
                     ZStack {
-                        Circle()
-                            .strokeBorder(viewModel.isViewOnce ? Color(hex: "00A884") : Color(hex: "8696A0"), lineWidth: 1.5)
-                            .frame(width: 24, height: 24)
-                        Text("1")
-                            .font(.system(size: 11, weight: .bold))
-                            .foregroundStyle(viewModel.isViewOnce ? Color(hex: "00A884") : Color(hex: "8696A0"))
+                        if viewModel.isViewOnce {
+                            Circle()
+                                .fill(AppTheme.Colors.primaryRed)
+                                .frame(width: 26, height: 26)
+                            Text("1")
+                                .font(AppTheme.Typography.jakartaBold(11))
+                                .foregroundStyle(.white)
+                        } else {
+                            Circle()
+                                .strokeBorder(AppTheme.Colors.textGray.opacity(0.4), lineWidth: 1.5)
+                                .frame(width: 26, height: 26)
+                            Text("1")
+                                .font(AppTheme.Typography.jakartaBold(11))
+                                .foregroundStyle(AppTheme.Colors.textGray)
+                        }
                     }
                 }
                 .buttonStyle(.plain)
                 .accessibilityLabel("Visualização única")
 
-                TextField("Mensagem", text: $viewModel.draftText)
-                    .font(.system(size: 16))
+                TextField("Mensagem...", text: $viewModel.draftText)
+                    .font(AppTheme.Typography.jakartaRegular(15))
+                    .foregroundStyle(AppTheme.Colors.darkGray)
                     .padding(.horizontal, 14)
                     .frame(height: 42)
-                    .background(Color.white, in: Capsule())
-                    .shadow(color: Color.black.opacity(0.05), radius: 2, y: 1)
+                    .background(Color(hex: "F3F4F6"), in: Capsule())
                     .onChange(of: viewModel.draftText) { _, newValue in
                         appState.socketClient.sendTyping(
                             conversationId: conversationId.uuidString.lowercased(),
@@ -624,7 +709,15 @@ struct ChatDetailView: View {
                             .font(.system(size: 18, weight: .semibold))
                             .foregroundStyle(.white)
                             .frame(width: 42, height: 42)
-                            .background(Color(hex: "00A884"), in: Circle())
+                            .background(
+                                LinearGradient(
+                                    colors: [AppTheme.Colors.primaryRed, AppTheme.Colors.secondaryRed],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                in: Circle()
+                            )
+                            .shadow(color: AppTheme.Colors.primaryRed.opacity(0.35), radius: 6, y: 3)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Gravar áudio")
@@ -638,16 +731,28 @@ struct ChatDetailView: View {
                             .font(.system(size: 18, weight: .bold))
                             .foregroundStyle(.white)
                             .frame(width: 42, height: 42)
-                            .background(Color(hex: "00A884"), in: Circle())
+                            .background(
+                                LinearGradient(
+                                    colors: [AppTheme.Colors.primaryRed, AppTheme.Colors.secondaryRed],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                ),
+                                in: Circle()
+                            )
+                            .shadow(color: AppTheme.Colors.primaryRed.opacity(0.35), radius: 6, y: 3)
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel("Enviar mensagem")
                 }
             }
         }
-        .padding(.horizontal, 10)
+        .padding(.horizontal, 12)
         .padding(.vertical, 8)
-        .background(Color(hex: "F0F2F5"))
+        .background(Color.white)
+        .overlay(alignment: .top) {
+            Divider()
+                .foregroundStyle(AppTheme.Colors.glassBorder)
+        }
     }
 
     private func requirePremium(_ action: () -> Void) {
@@ -713,8 +818,9 @@ struct ChatDetailView: View {
     }
 
     private func finishAndSendAudio() async {
+        let recordedSeconds = audioRecorder.elapsedSeconds
         guard let audioData = audioRecorder.stopRecording(),
-              let localURL = audioRecorder.fileURL else { return }
+              let _ = audioRecorder.fileURL else { return }
 
         let viewOnce = viewModel.isViewOnce
         viewModel.isViewOnce = false
@@ -724,16 +830,20 @@ struct ChatDetailView: View {
         }
 
         let tempId = UUID()
+        let cachedLocalURL = FileManager.default.temporaryDirectory.appendingPathComponent("cached_voice_\(tempId.uuidString).m4a")
+        try? audioData.write(to: cachedLocalURL)
+
         let optimisticAudio = ChatMessage(
             id: tempId,
             senderIsCurrentUser: true,
-            text: localURL.absoluteString,
+            text: cachedLocalURL.absoluteString,
             sentAt: Date(),
             type: .audio,
             isViewOnce: viewOnce,
             isEphemeralOnExit: viewModel.isEphemeralOnExit,
             isDelivered: false,
-            isRead: false
+            isRead: false,
+            audioDurationSeconds: max(1, recordedSeconds)
         )
         if let idx = appState.conversations.firstIndex(where: { $0.id == conversationId }) {
             appState.conversations[idx].messages.append(optimisticAudio)
@@ -743,9 +853,9 @@ struct ChatDetailView: View {
         struct AudioUploadResponse: Decodable {
             let url: String
         }
-        guard let uploaded: AudioUploadResponse = try? await APIClient.shared.uploadJPEG(
+        guard let uploaded: AudioUploadResponse = try? await APIClient.shared.uploadAudio(
             path: "/messages/audio-upload",
-            imageData: audioData,
+            audioData: audioData,
             filename: "voice.m4a"
         ) else { return }
 
@@ -842,6 +952,7 @@ struct ChatDetailView: View {
 struct MessageStatusCheckmarks: View {
     let isDelivered: Bool
     let isRead: Bool
+    var isCurrentUser: Bool = true
 
     var body: some View {
         HStack(spacing: -3.5) {
@@ -852,7 +963,11 @@ struct MessageStatusCheckmarks: View {
                     .font(.system(size: 9.5, weight: .bold))
             }
         }
-        .foregroundStyle(isRead ? Color(hex: "53BDEB") : Color(hex: "8696A0"))
+        .foregroundStyle(
+            isCurrentUser
+                ? (isRead ? Color.white : Color.white.opacity(0.7))
+                : (isRead ? AppTheme.Colors.primaryRed : AppTheme.Colors.textGray)
+        )
     }
 }
 
@@ -874,11 +989,15 @@ struct ChatDateSeparator: View {
 
     var body: some View {
         Text(dateText)
-            .font(.system(size: 11, weight: .semibold))
-            .foregroundStyle(Color(hex: "54656F"))
-            .padding(.horizontal, 10)
-            .padding(.vertical, 4)
-            .background(Color.white.opacity(0.85), in: Capsule())
+            .font(AppTheme.Typography.caption())
+            .foregroundStyle(AppTheme.Colors.textGray)
+            .padding(.horizontal, 12)
+            .padding(.vertical, 5)
+            .background(Color.white.opacity(0.9), in: Capsule())
+            .overlay(
+                Capsule()
+                    .strokeBorder(AppTheme.Colors.glassBorder, lineWidth: 0.8)
+            )
             .shadow(color: .black.opacity(0.04), radius: 2, y: 1)
             .padding(.vertical, 6)
     }
@@ -886,18 +1005,28 @@ struct ChatDateSeparator: View {
 
 private func resolveMediaURL(_ raw: String) -> URL? {
     guard !raw.isEmpty else { return nil }
+    if raw.hasPrefix("file://") {
+        return URL(string: raw)
+    }
     if raw.contains("localhost:9000") || raw.contains("127.0.0.1:9000") {
         let path = raw.components(separatedBy: ":9000").last ?? ""
         let base = NetworkConfig.baseURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
         return URL(string: base + path)
     }
-    return URL(string: raw)
+    if raw.hasPrefix("http://") || raw.hasPrefix("https://") {
+        return URL(string: raw)
+    }
+    let base = NetworkConfig.baseURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+    let cleanPath = raw.hasPrefix("/") ? raw : "/\(raw)"
+    return URL(string: base + cleanPath)
 }
 
 struct WhatsAppAudioBubble: View {
     let message: ChatMessage
     @ObservedObject var playbackManager: AudioPlaybackManager
     let onConsumeViewOnce: () -> Void
+
+    @State private var remoteDuration: Double? = nil
 
     var isCurrentAudioPlaying: Bool {
         playbackManager.playingMessageId == message.id && playbackManager.isPlaying
@@ -915,7 +1044,14 @@ struct WhatsAppAudioBubble: View {
             let rem = Int(playbackManager.currentTime)
             return String(format: "%d:%02d", rem / 60, rem % 60)
         }
-        return "0:15"
+        if let dur = message.audioDurationSeconds, dur > 0 {
+            return String(format: "%d:%02d", dur / 60, dur % 60)
+        }
+        if let dur = remoteDuration, dur > 0 {
+            let s = Int(dur)
+            return String(format: "%d:%02d", s / 60, s % 60)
+        }
+        return "0:00"
     }
 
     var body: some View {
@@ -928,14 +1064,31 @@ struct WhatsAppAudioBubble: View {
                 }
             } label: {
                 ZStack {
-                    Circle()
-                        .fill(message.senderIsCurrentUser ? Color(hex: "00A884") : AppTheme.Colors.primaryRed)
-                        .frame(width: 40, height: 40)
+                    if message.senderIsCurrentUser {
+                        Circle()
+                            .fill(Color.white)
+                            .frame(width: 40, height: 40)
 
-                    Image(systemName: isCurrentAudioPlaying ? "pause.fill" : "play.fill")
-                        .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(.white)
-                        .offset(x: isCurrentAudioPlaying ? 0 : 1.5)
+                        Image(systemName: isCurrentAudioPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(AppTheme.Colors.primaryRed)
+                            .offset(x: isCurrentAudioPlaying ? 0 : 1.5)
+                    } else {
+                        Circle()
+                            .fill(
+                                LinearGradient(
+                                    colors: [AppTheme.Colors.primaryRed, AppTheme.Colors.secondaryRed],
+                                    startPoint: .topLeading,
+                                    endPoint: .bottomTrailing
+                                )
+                            )
+                            .frame(width: 40, height: 40)
+
+                        Image(systemName: isCurrentAudioPlaying ? "pause.fill" : "play.fill")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(.white)
+                            .offset(x: isCurrentAudioPlaying ? 0 : 1.5)
+                    }
                 }
             }
             .buttonStyle(.plain)
@@ -944,11 +1097,11 @@ struct WhatsAppAudioBubble: View {
                 GeometryReader { geo in
                     ZStack(alignment: .leading) {
                         Capsule()
-                            .fill(Color(hex: "8696A0").opacity(0.35))
+                            .fill(message.senderIsCurrentUser ? Color.white.opacity(0.35) : Color(hex: "E5E7EB"))
                             .frame(height: 4)
 
                         Capsule()
-                            .fill(message.senderIsCurrentUser ? Color(hex: "00A884") : AppTheme.Colors.primaryRed)
+                            .fill(message.senderIsCurrentUser ? Color.white : AppTheme.Colors.primaryRed)
                             .frame(width: max(4, geo.size.width * CGFloat(progress)), height: 4)
                     }
                     .frame(height: 4)
@@ -958,8 +1111,8 @@ struct WhatsAppAudioBubble: View {
 
                 HStack {
                     Text(timeLabel)
-                        .font(.system(size: 11, weight: .regular))
-                        .foregroundStyle(Color(hex: "667781"))
+                        .font(AppTheme.Typography.caption())
+                        .foregroundStyle(message.senderIsCurrentUser ? Color.white.opacity(0.85) : AppTheme.Colors.textGray)
 
                     Spacer()
 
@@ -969,22 +1122,38 @@ struct WhatsAppAudioBubble: View {
                         } label: {
                             Text(String(format: "%.1fx", playbackManager.playbackRate).replacingOccurrences(of: ".0x", with: "x"))
                                 .font(.system(size: 10, weight: .bold))
-                                .foregroundStyle(Color(hex: "111B21"))
+                                .foregroundStyle(message.senderIsCurrentUser ? Color.white : AppTheme.Colors.darkGray)
                                 .padding(.horizontal, 5)
                                 .padding(.vertical, 2)
-                                .background(Color(hex: "E9EDEF"), in: Capsule())
+                                .background(
+                                    message.senderIsCurrentUser ? Color.white.opacity(0.25) : Color(hex: "F3F4F6"),
+                                    in: Capsule()
+                                )
                         }
                         .buttonStyle(.plain)
                     }
 
                     Image(systemName: "mic.fill")
                         .font(.system(size: 11))
-                        .foregroundStyle(message.senderIsCurrentUser ? Color(hex: "53BDEB") : Color(hex: "8696A0"))
+                        .foregroundStyle(message.senderIsCurrentUser ? Color.white.opacity(0.85) : AppTheme.Colors.primaryRed)
                 }
             }
             .frame(minWidth: 160, maxWidth: 200)
         }
         .padding(.vertical, 4)
+        .task {
+            if message.audioDurationSeconds == nil, let url = resolveMediaURL(message.text) {
+                let asset = AVURLAsset(url: url)
+                if let dur = try? await asset.load(.duration) {
+                    let secs = dur.seconds
+                    if secs > 0 && !secs.isNaN {
+                        await MainActor.run {
+                            remoteDuration = secs
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -996,13 +1165,6 @@ struct WhatsAppMessageBubble: View {
 
     var isCurrentUser: Bool {
         message.senderIsCurrentUser
-    }
-
-    var bubbleBgColor: Color {
-        if message.deletedForEveryoneAt != nil {
-            return Color(hex: "E9EDEF")
-        }
-        return isCurrentUser ? Color(hex: "E7FFDB") : Color.white
     }
 
     var timeString: String {
@@ -1020,14 +1182,13 @@ struct WhatsAppMessageBubble: View {
                     HStack(spacing: 6) {
                         Image(systemName: "circle.slash")
                             .font(.system(size: 13))
-                            .foregroundStyle(Color(hex: "8696A0"))
+                            .foregroundStyle(AppTheme.Colors.textGray)
                         Text("Esta mensagem foi apagada")
-                            .font(.system(size: 14.5, weight: .regular))
-                            .italic()
-                            .foregroundStyle(Color(hex: "8696A0"))
+                            .font(AppTheme.Typography.caption().italic())
+                            .foregroundStyle(AppTheme.Colors.textGray)
                     }
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 7)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
                 } else if message.isViewOnce && !isCurrentUser && message.viewedAt == nil {
                     Button {
                         onConsumeViewOnce()
@@ -1035,15 +1196,15 @@ struct WhatsAppMessageBubble: View {
                         HStack(spacing: 8) {
                             ZStack {
                                 Circle()
-                                    .strokeBorder(Color(hex: "00A884"), lineWidth: 1.5)
+                                    .fill(AppTheme.Colors.primaryRed)
                                     .frame(width: 28, height: 28)
                                 Text("1")
-                                    .font(.system(size: 13, weight: .bold))
-                                    .foregroundStyle(Color(hex: "00A884"))
+                                    .font(AppTheme.Typography.jakartaBold(13))
+                                    .foregroundStyle(.white)
                             }
                             Text(message.type == .audio ? "Mensagem de voz (1x)" : "Foto de visualização única")
-                                .font(.system(size: 14.5, weight: .medium))
-                                .foregroundStyle(Color(hex: "111B21"))
+                                .font(AppTheme.Typography.jakartaMedium(14))
+                                .foregroundStyle(AppTheme.Colors.darkGray)
                         }
                         .padding(.horizontal, 12)
                         .padding(.vertical, 8)
@@ -1055,10 +1216,10 @@ struct WhatsAppMessageBubble: View {
                             HStack(spacing: 4) {
                                 Image(systemName: "1.circle.fill")
                                     .font(.system(size: 11))
-                                    .foregroundStyle(Color(hex: "00A884"))
+                                    .foregroundStyle(isCurrentUser ? .white : AppTheme.Colors.primaryRed)
                                 Text("Visualização única")
-                                    .font(.system(size: 10, weight: .semibold))
-                                    .foregroundStyle(Color(hex: "00A884"))
+                                    .font(AppTheme.Typography.caption())
+                                    .foregroundStyle(isCurrentUser ? .white : AppTheme.Colors.primaryRed)
                             }
                             .padding(.top, 4)
                             .padding(.horizontal, 8)
@@ -1074,13 +1235,14 @@ struct WhatsAppMessageBubble: View {
 
                         HStack(spacing: 4) {
                             Text(timeString)
-                                .font(.system(size: 10.5))
-                                .foregroundStyle(Color(hex: "667781"))
+                                .font(AppTheme.Typography.micro())
+                                .foregroundStyle(isCurrentUser ? Color.white.opacity(0.8) : AppTheme.Colors.textGray)
 
                             if isCurrentUser {
                                 MessageStatusCheckmarks(
                                     isDelivered: message.isDelivered,
-                                    isRead: message.isRead
+                                    isRead: message.isRead,
+                                    isCurrentUser: true
                                 )
                             }
                         }
@@ -1124,16 +1286,17 @@ struct WhatsAppMessageBubble: View {
                             if message.isViewOnce {
                                 Image(systemName: "1.circle.fill")
                                     .font(.system(size: 10))
-                                    .foregroundStyle(Color(hex: "00A884"))
+                                    .foregroundStyle(isCurrentUser ? .white : AppTheme.Colors.primaryRed)
                             }
                             Text(timeString)
-                                .font(.system(size: 10.5))
-                                .foregroundStyle(Color(hex: "667781"))
+                                .font(AppTheme.Typography.micro())
+                                .foregroundStyle(isCurrentUser ? Color.white.opacity(0.8) : AppTheme.Colors.textGray)
 
                             if isCurrentUser {
                                 MessageStatusCheckmarks(
                                     isDelivered: message.isDelivered,
-                                    isRead: message.isRead
+                                    isRead: message.isRead,
+                                    isCurrentUser: true
                                 )
                             }
                         }
@@ -1143,50 +1306,83 @@ struct WhatsAppMessageBubble: View {
                 } else {
                     HStack(alignment: .bottom, spacing: 8) {
                         Text(message.text)
-                            .font(.system(size: 15.5, weight: .regular))
-                            .foregroundStyle(Color(hex: "111B21"))
+                            .font(AppTheme.Typography.jakartaRegular(15.5))
+                            .foregroundStyle(isCurrentUser ? .white : AppTheme.Colors.darkGray)
                             .fixedSize(horizontal: false, vertical: true)
 
                         HStack(spacing: 3) {
                             if message.editedAt != nil {
                                 Text("editada")
-                                    .font(.system(size: 9.5))
-                                    .foregroundStyle(Color(hex: "667781"))
+                                    .font(AppTheme.Typography.micro())
+                                    .foregroundStyle(isCurrentUser ? Color.white.opacity(0.7) : AppTheme.Colors.textGray)
                             }
 
                             Text(timeString)
-                                .font(.system(size: 10.5))
-                                .foregroundStyle(Color(hex: "667781"))
+                                .font(AppTheme.Typography.micro())
+                                .foregroundStyle(isCurrentUser ? Color.white.opacity(0.8) : AppTheme.Colors.textGray)
 
                             if isCurrentUser {
                                 MessageStatusCheckmarks(
                                     isDelivered: message.isDelivered,
-                                    isRead: message.isRead
+                                    isRead: message.isRead,
+                                    isCurrentUser: true
                                 )
                             }
                         }
                         .offset(y: 2)
                     }
-                    .padding(.horizontal, 11)
-                    .padding(.vertical, 7)
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 8)
                 }
             }
-            .background(bubbleBgColor)
+            .background {
+                if message.deletedForEveryoneAt != nil {
+                    Color(hex: "F3F4F6")
+                } else if isCurrentUser {
+                    LinearGradient(
+                        colors: [AppTheme.Colors.primaryRed, AppTheme.Colors.secondaryRed],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                } else {
+                    Color.white
+                }
+            }
             .clipShape(
                 UnevenRoundedRectangle(
-                    topLeadingRadius: 14,
-                    bottomLeadingRadius: isCurrentUser ? 14 : 3,
-                    bottomTrailingRadius: isCurrentUser ? 3 : 14,
-                    topTrailingRadius: 14,
+                    topLeadingRadius: 16,
+                    bottomLeadingRadius: isCurrentUser ? 16 : 4,
+                    bottomTrailingRadius: isCurrentUser ? 4 : 16,
+                    topTrailingRadius: 16,
                     style: .continuous
                 )
             )
-            .shadow(color: Color.black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+            .overlay(
+                UnevenRoundedRectangle(
+                    topLeadingRadius: 16,
+                    bottomLeadingRadius: isCurrentUser ? 16 : 4,
+                    bottomTrailingRadius: isCurrentUser ? 4 : 16,
+                    topTrailingRadius: 16,
+                    style: .continuous
+                )
+                .strokeBorder(
+                    isCurrentUser ? Color.clear : AppTheme.Colors.glassBorder,
+                    lineWidth: 1
+                )
+            )
+            .shadow(
+                color: isCurrentUser
+                    ? AppTheme.Colors.primaryRed.opacity(0.18)
+                    : Color.black.opacity(0.04),
+                radius: 4,
+                x: 0,
+                y: 2
+            )
 
             if !isCurrentUser { Spacer(minLength: 44) }
         }
         .padding(.horizontal, 12)
-        .padding(.vertical, 2.5)
+        .padding(.vertical, 3)
     }
 }
 
@@ -1247,6 +1443,10 @@ final class AudioPlaybackManager: NSObject, ObservableObject {
     private var timeObserverToken: Any?
 
     func togglePlay(messageId: UUID, url: URL) {
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .default, options: [.defaultToSpeaker])
+        try? session.setActive(true)
+
         if playingMessageId == messageId {
             if isPlaying {
                 player?.pause()
@@ -1263,6 +1463,7 @@ final class AudioPlaybackManager: NSObject, ObservableObject {
 
         let item = AVPlayerItem(url: url)
         let newPlayer = AVPlayer(playerItem: item)
+        newPlayer.volume = 1.0
         self.player = newPlayer
         self.playingMessageId = messageId
         self.playbackRate = 1.0
@@ -1352,7 +1553,7 @@ private final class AudioRecorderHelper: NSObject, ObservableObject {
 
     func startRecording() {
         let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playAndRecord, mode: .default)
+        try? session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
         try? session.setActive(true)
 
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("voice_\(UUID().uuidString).m4a")
@@ -1397,6 +1598,9 @@ private final class AudioRecorderHelper: NSObject, ObservableObject {
         meterTask = nil
         recorder?.stop()
         isRecording = false
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .default, options: [.defaultToSpeaker])
+        try? session.setActive(true)
         guard let url = fileURL else { return nil }
         return try? Data(contentsOf: url)
     }
