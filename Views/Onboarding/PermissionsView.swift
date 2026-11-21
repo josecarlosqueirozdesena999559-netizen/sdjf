@@ -80,7 +80,6 @@ struct PermissionsView: View {
                             )
                         )
                         .frame(width: 48, height: 48)
-                        .shadow(color: AppTheme.Colors.primaryRed.opacity(0.22), radius: 8, x: 0, y: 4)
 
                     Image(systemName: icon)
                         .font(.system(size: 19, weight: .semibold))
@@ -90,10 +89,10 @@ struct PermissionsView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(title)
                         .font(AppTheme.Typography.headline())
-                        .foregroundStyle(AppTheme.Colors.darkGray)
+                        .foregroundStyle(Color(hex: "292932"))
                     Text(description)
                         .font(AppTheme.Typography.caption())
-                        .foregroundStyle(AppTheme.Colors.textGray)
+                        .foregroundStyle(Color(hex: "85858D"))
                         .multilineTextAlignment(.leading)
                 }
 
@@ -120,12 +119,12 @@ struct PermissionsView: View {
                 }
             }
             .padding(18)
-            .background(AppTheme.Colors.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
+            .background(Color.white, in: RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous))
             .overlay(
                 RoundedRectangle(cornerRadius: AppTheme.Radius.large, style: .continuous)
-                    .strokeBorder(isAuthorized ? AppTheme.Colors.primaryRed.opacity(0.3) : AppTheme.Colors.borderSubtle, lineWidth: 1)
+                    .strokeBorder(isAuthorized ? AppTheme.Colors.primaryRed.opacity(0.3) : Color.gray.opacity(0.15), lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.04), radius: 10, x: 0, y: 4)
+            .shadow(color: Color.black.opacity(0.04), radius: 6, x: 0, y: 2)
         }
         .buttonStyle(.plain)
         .disabled(isAuthorized)

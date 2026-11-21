@@ -673,9 +673,9 @@ struct ChatDetailView: View {
             appState.conversations[cIdx].messages[mIdx].text = "Visualização única aberta"
         }
 
-        if message.type == .audio, let url = URL(string: res.revealedContent) {
+        if message.type == .audio, let url = resolveMediaURL(res.revealedContent) {
             playbackManager.togglePlay(messageId: message.id, url: url)
-        } else if message.type == .image, let url = URL(string: res.revealedContent) {
+        } else if message.type == .image, let url = resolveMediaURL(res.revealedContent) {
             previewImageURL = url
         } else {
             revealedViewOnceText = res.revealedContent
@@ -884,6 +884,16 @@ struct ChatDateSeparator: View {
     }
 }
 
+private func resolveMediaURL(_ raw: String) -> URL? {
+    guard !raw.isEmpty else { return nil }
+    if raw.contains("localhost:9000") || raw.contains("127.0.0.1:9000") {
+        let path = raw.components(separatedBy: ":9000").last ?? ""
+        let base = NetworkConfig.baseURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+        return URL(string: base + path)
+    }
+    return URL(string: raw)
+}
+
 struct WhatsAppAudioBubble: View {
     let message: ChatMessage
     @ObservedObject var playbackManager: AudioPlaybackManager
@@ -913,7 +923,7 @@ struct WhatsAppAudioBubble: View {
             Button {
                 if message.isViewOnce && !message.senderIsCurrentUser && message.viewedAt == nil {
                     onConsumeViewOnce()
-                } else if let url = URL(string: message.text) {
+                } else if let url = resolveMediaURL(message.text) {
                     playbackManager.togglePlay(messageId: message.id, url: url)
                 }
             } label: {
@@ -1080,7 +1090,7 @@ struct WhatsAppMessageBubble: View {
                 } else if message.type == .image {
                     VStack(alignment: .trailing, spacing: 0) {
                         Button {
-                            onImageTap(URL(string: message.text), message.localImageData)
+                            onImageTap(resolveMediaURL(message.text), message.localImageData)
                         } label: {
                             if let localData = message.localImageData, let uiImg = UIImage(data: localData) {
                                 Image(uiImage: uiImg)
@@ -1088,7 +1098,7 @@ struct WhatsAppMessageBubble: View {
                                     .scaledToFill()
                                     .frame(maxWidth: 240, maxHeight: 280)
                                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            } else if let imgUrl = URL(string: message.text) {
+                            } else if let imgUrl = resolveMediaURL(message.text) {
                                 AsyncImage(url: imgUrl) { phase in
                                     if case .success(let img) = phase {
                                         img

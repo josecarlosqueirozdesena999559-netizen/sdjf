@@ -114,10 +114,10 @@ struct MainContainerView: View {
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundStyle(AppTheme.Colors.primaryRed)
                             .frame(width: 38, height: 38)
-                            .background(AppTheme.Colors.white, in: Circle())
+                            .background(Color.white, in: Circle())
                             .overlay(
                                 Circle()
-                                    .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
+                                    .strokeBorder(Color.gray.opacity(0.15), lineWidth: 1)
                             )
 
                         if appState.unreadNotificationCount > 0 {
@@ -138,10 +138,10 @@ struct MainContainerView: View {
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundStyle(AppTheme.Colors.primaryRed)
                         .frame(width: 38, height: 38)
-                        .background(AppTheme.Colors.white, in: Circle())
+                        .background(Color.white, in: Circle())
                         .overlay(
                             Circle()
-                                .strokeBorder(AppTheme.Colors.borderSubtle, lineWidth: 1)
+                                .strokeBorder(Color.gray.opacity(0.15), lineWidth: 1)
                         )
                 }
                 .buttonStyle(.plain)
@@ -201,14 +201,25 @@ private struct NotificationsSheet: View {
                     ProgressView()
                         .tint(AppTheme.Colors.primaryRed)
                 } else if items.isEmpty {
-                    VStack(spacing: 10) {
-                        Image(systemName: "bell.slash")
-                            .font(.system(size: 32))
-                            .foregroundStyle(AppTheme.Colors.primaryRed)
-                        Text("Nenhuma notificação no momento.")
+                    VStack(spacing: 14) {
+                        ZStack {
+                            Circle()
+                                .fill(AppTheme.Colors.primaryRed.opacity(0.12))
+                                .frame(width: 72, height: 72)
+                            Image(systemName: "bell.fill")
+                                .font(.system(size: 30, weight: .semibold))
+                                .foregroundStyle(AppTheme.Colors.primaryRed)
+                        }
+                        Text("Nenhuma notificação no momento")
+                            .font(AppTheme.Typography.headline())
+                            .foregroundStyle(AppTheme.Colors.darkGray)
+                        Text("Você será avisado quando receber novas curtidas, mensagens ou novos matches!")
                             .font(AppTheme.Typography.subheadline())
                             .foregroundStyle(AppTheme.Colors.textGray)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
                     }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
                 } else {
                     List(items) { item in
                         Button {
@@ -240,7 +251,7 @@ private struct NotificationsSheet: View {
                             .padding(.vertical, 4)
                         }
                         .buttonStyle(.plain)
-                        .listRowBackground(AppTheme.Colors.white)
+                        .listRowBackground(Color.white)
                     }
                     .listStyle(.insetGrouped)
                     .scrollContentBackground(.hidden)
@@ -278,20 +289,36 @@ private struct NotificationsSheet: View {
 
     @ViewBuilder
     private func avatarView(for item: NotificationDTO) -> some View {
-        if let urlStr = item.actorProfile?.photos.first?.thumbnailUrl ?? item.actorProfile?.photos.first?.url,
-           let url = URL(string: urlStr) {
-            AsyncImage(url: url) { phase in
+        let rawUrl = item.actorProfile?.photos.first?.thumbnailUrl ?? item.actorProfile?.photos.first?.url
+        let resolved: URL? = {
+            guard let rawUrl, !rawUrl.isEmpty else { return nil }
+            if rawUrl.contains("localhost:9000") || rawUrl.contains("127.0.0.1:9000") {
+                let path = rawUrl.components(separatedBy: ":9000").last ?? ""
+                let base = NetworkConfig.baseURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                return URL(string: base + path)
+            }
+            return URL(string: rawUrl)
+        }()
+
+        if let resolved {
+            AsyncImage(url: resolved) { phase in
                 if case .success(let image) = phase {
                     image.resizable().scaledToFill()
                 } else {
-                    Circle().fill(AppTheme.Colors.chipUnselected)
+                    Circle()
+                        .fill(AppTheme.Colors.primaryRed.opacity(0.12))
+                        .overlay(
+                            Image(systemName: item.type == "NEW_MATCH" ? "heart.fill" : "bell.fill")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundStyle(AppTheme.Colors.primaryRed)
+                        )
                 }
             }
             .frame(width: 48, height: 48)
             .clipShape(Circle())
         } else {
             Circle()
-                .fill(AppTheme.Colors.primaryRed.opacity(0.14))
+                .fill(AppTheme.Colors.primaryRed.opacity(0.12))
                 .frame(width: 48, height: 48)
                 .overlay(
                     Image(systemName: item.type == "NEW_MATCH" ? "heart.fill" : "bell.fill")
@@ -322,12 +349,23 @@ private struct NotificationActorProfileSheet: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 16) {
-                    if let urlStr = actor.photos.first?.url, let url = URL(string: urlStr) {
-                        AsyncImage(url: url) { phase in
+                    let rawUrl = actor.photos.first?.url
+                    let resolved: URL? = {
+                        guard let rawUrl, !rawUrl.isEmpty else { return nil }
+                        if rawUrl.contains("localhost:9000") || rawUrl.contains("127.0.0.1:9000") {
+                            let path = rawUrl.components(separatedBy: ":9000").last ?? ""
+                            let base = NetworkConfig.baseURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                            return URL(string: base + path)
+                        }
+                        return URL(string: rawUrl)
+                    }()
+
+                    if let resolved {
+                        AsyncImage(url: resolved) { phase in
                             if case .success(let img) = phase {
                                 img.resizable().scaledToFill()
                             } else {
-                                Rectangle().fill(AppTheme.Colors.chipUnselected)
+                                Rectangle().fill(AppTheme.Colors.primaryRed.opacity(0.08))
                             }
                         }
                         .frame(maxWidth: .infinity)

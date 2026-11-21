@@ -128,12 +128,22 @@ struct PhotoProgressBars: View {
 struct PhotoContentView: View {
     let photo: ProfilePhoto
 
+    private var resolvedURL: URL? {
+        guard let remote = photo.remoteURL, !remote.isEmpty else { return nil }
+        if remote.contains("localhost:9000") || remote.contains("127.0.0.1:9000") {
+            let path = remote.components(separatedBy: ":9000").last ?? ""
+            let base = NetworkConfig.baseURL.absoluteString.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+            return URL(string: base + path)
+        }
+        return URL(string: remote)
+    }
+
     var body: some View {
         if let data = photo.imageData, let uiImage = UIImage(data: data) {
             Image(uiImage: uiImage)
                 .resizable()
                 .scaledToFill()
-        } else if let remote = photo.remoteURL, let url = URL(string: remote) {
+        } else if let url = resolvedURL {
             AsyncImage(url: url) { phase in
                 switch phase {
                 case .success(let image):
@@ -152,7 +162,7 @@ struct PhotoContentView: View {
     }
 
     private var demoPlaceholder: some View {
-        let colors = (photo.placeholderPaletteHexes ?? ["292932", "494957"]).map { Color(hex: $0) }
+        let colors = (photo.placeholderPaletteHexes ?? ["FF6584", "FF1764"]).map { Color(hex: $0) }
         return ZStack {
             LinearGradient(
                 colors: colors,
@@ -162,7 +172,7 @@ struct PhotoContentView: View {
             VStack(spacing: 12) {
                 Image(systemName: photo.placeholderSymbol ?? "person.fill")
                     .font(.system(size: 54, weight: .light))
-                    .foregroundStyle(Color.white.opacity(0.78))
+                    .foregroundStyle(Color.white.opacity(0.85))
                 if let caption = photo.placeholderCaption {
                     Text(caption)
                         .font(AppTheme.Typography.caption())
