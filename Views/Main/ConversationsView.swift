@@ -1278,13 +1278,15 @@ final class AudioPlaybackManager: NSObject, ObservableObject {
 
         let interval = CMTime(seconds: 0.05, preferredTimescale: CMTimeScale(NSEC_PER_SEC))
         timeObserverToken = newPlayer.addPeriodicTimeObserver(forInterval: interval, queue: .main) { [weak self] time in
-            guard let self, let currentItem = self.player?.currentItem else { return }
-            let current = time.seconds
-            let duration = currentItem.duration.seconds
-            if duration > 0 && !duration.isNaN {
-                self.currentTime = current
-                self.totalDuration = duration
-                self.progress = min(1.0, max(0.0, current / duration))
+            Task { @MainActor [weak self] in
+                guard let self, let currentItem = self.player?.currentItem else { return }
+                let current = time.seconds
+                let duration = currentItem.duration.seconds
+                if duration > 0 && !duration.isNaN {
+                    self.currentTime = current
+                    self.totalDuration = duration
+                    self.progress = min(1.0, max(0.0, current / duration))
+                }
             }
         }
 
