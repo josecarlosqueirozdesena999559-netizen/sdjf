@@ -1,36 +1,8 @@
 import Foundation
 
 enum NetworkConfig {
-    /// Default live server URL (updated for TestFlight builds).
-    static let defaultURL = "https://latest-extraction-amy-thehun.trycloudflare.com"
-    private static let overrideKey = "api_base_url_override"
-
-    static var customURL: String? {
-        get {
-            let val = UserDefaults.standard.string(forKey: overrideKey)?.trimmingCharacters(in: .whitespacesAndNewlines)
-            return (val?.isEmpty == false) ? val : nil
-        }
-        set {
-            let trimmed = newValue?.trimmingCharacters(in: .whitespacesAndNewlines)
-            if let trimmed, !trimmed.isEmpty {
-                UserDefaults.standard.set(trimmed, forKey: overrideKey)
-            } else {
-                UserDefaults.standard.removeObject(forKey: overrideKey)
-            }
-        }
-    }
-
-    static var baseURL: URL {
-        if let custom = customURL, let url = URL(string: custom) {
-            return url
-        }
-        if let plistValue = Bundle.main.object(forInfoDictionaryKey: "API_BASE_URL") as? String,
-           !plistValue.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-           let url = URL(string: plistValue) {
-            return url
-        }
-        return URL(string: defaultURL)!
-    }
+    /// Fixed backend URL for production and App Store review.
+    static let baseURL = URL(string: "https://latest-extraction-amy-thehun.trycloudflare.com")!
 
     static var socketWebSocketURL: URL {
         var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)!
