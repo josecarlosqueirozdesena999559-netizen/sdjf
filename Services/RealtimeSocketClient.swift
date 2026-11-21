@@ -7,6 +7,9 @@ final class RealtimeSocketClient: ObservableObject {
     @Published private(set) var isConnected = false
 
     var onNewMessage: ((_ conversationId: String, _ messageId: String, _ senderId: String, _ content: String, _ type: String, _ isViewOnce: Bool, _ isEphemeralOnExit: Bool, _ createdAt: Date) -> Void)?
+    var onMessageSent: ((_ conversationId: String, _ messageId: String, _ clientMessageId: String?, _ content: String, _ type: String, _ isViewOnce: Bool, _ isEphemeralOnExit: Bool, _ createdAt: Date) -> Void)?
+    var onMessageDelivered: ((_ conversationId: String, _ messageId: String) -> Void)?
+    var onMessageRead: ((_ conversationId: String, _ messageIds: [String]) -> Void)?
     var onMessageEdited: ((_ conversationId: String, _ messageId: String, _ content: String, _ editedAt: Date) -> Void)?
     var onMessageDeleted: ((_ conversationId: String, _ messageId: String) -> Void)?
     var onMessageConsumed: ((_ conversationId: String, _ messageId: String) -> Void)?
@@ -160,6 +163,28 @@ final class RealtimeSocketClient: ObservableObject {
                     let dateStr = payload["createdAt"] as? String
                     let date = dateStr.flatMap { ISO8601DateFormatter().date(from: $0) } ?? Date()
                     onNewMessage?(conversationId, id, senderId, content, type, isViewOnce, isEphemeral, date)
+                }
+            case "message:sent":
+                if let conversationId = payload["conversationId"] as? String,
+                   let id = payload["id"] as? String,
+                   let content = payload["content"] as? String {
+                    let clientMessageId = payload["clientMessageId"] as? String
+                    let type = (payload["type"] as? String) ?? "TEXT"
+                    let isViewOnce = (payload["isViewOnce"] as? Bool) ?? false
+                    let isEphemeral = (payload["isEphemeralOnExit"] as? Bool) ?? false
+                    let dateStr = payload["createdAt"] as? String
+                    let date = dateStr.flatMap { ISO8601DateFormatter().date(from: $0) } ?? Date()
+                    onMessageSent?(conversationId, id, clientMessageId, content, type, isViewOnce, isEphemeral, date)
+                }
+            case "message:delivered":
+                if let conversationId = payload["conversationId"] as? String,
+                   let messageId = payload["messageId"] as? String {
+                    onMessageDelivered?(conversationId, messageId)
+                }
+            case "message:read":
+                if let conversationId = payload["conversationId"] as? String,
+                   let messageIds = payload["messageIds"] as? [String] {
+                    onMessageRead?(conversationId, messageIds)
                 }
             case "message:edited":
                 if let conversationId = payload["conversationId"] as? String,

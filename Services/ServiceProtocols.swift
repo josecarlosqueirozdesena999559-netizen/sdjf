@@ -52,5 +52,6 @@ protocol MatchServiceProtocol {
 
 protocol ChatServiceProtocol {
     func fetchConversations() async throws -> [Conversation]
+    func fetchMessages(for conversationId: UUID) async throws -> [ChatMessage]
     func sendMessage(text: String, conversationId: UUID) async throws -> ChatMessage
 }

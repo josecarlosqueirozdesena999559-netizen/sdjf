@@ -64,7 +64,9 @@ final class AppState: ObservableObject {
                 sentAt: createdAt,
                 type: ChatMessageType(rawValue: type) ?? .text,
                 isViewOnce: isViewOnce,
-                isEphemeralOnExit: isEphemeralOnExit
+                isEphemeralOnExit: isEphemeralOnExit,
+                isDelivered: true,
+                isRead: false
             )
             if let idx = self.conversations.firstIndex(where: { $0.id == convUUID }) {
                 if !self.conversations[idx].messages.contains(where: { $0.id == msgUUID }) {
@@ -75,6 +77,62 @@ final class AppState: ObservableObject {
                 }
             } else {
                 Task { await self.loadSocialData() }
+            }
+        }
+
+        socketClient.onMessageSent = { [weak self] conversationId, messageId, clientMessageId, content, type, isViewOnce, isEphemeralOnExit, createdAt in
+            guard let self, let convUUID = UUID(uuidString: conversationId), let msgUUID = UUID(uuidString: messageId) else { return }
+            if let idx = self.conversations.firstIndex(where: { $0.id == convUUID }) {
+                if let optIdx = self.conversations[idx].messages.firstIndex(where: {
+                    $0.senderIsCurrentUser && ($0.id == msgUUID || ($0.text == content && $0.type.rawValue == type))
+                }) {
+                    self.conversations[idx].messages[optIdx] = ChatMessage(
+                        id: msgUUID,
+                        senderIsCurrentUser: true,
+                        text: content,
+                        sentAt: createdAt,
+                        type: ChatMessageType(rawValue: type) ?? .text,
+                        isViewOnce: isViewOnce,
+                        isEphemeralOnExit: isEphemeralOnExit,
+                        isDelivered: false,
+                        isRead: false
+                    )
+                } else if !self.conversations[idx].messages.contains(where: { $0.id == msgUUID }) {
+                    let sentMsg = ChatMessage(
+                        id: msgUUID,
+                        senderIsCurrentUser: true,
+                        text: content,
+                        sentAt: createdAt,
+                        type: ChatMessageType(rawValue: type) ?? .text,
+                        isViewOnce: isViewOnce,
+                        isEphemeralOnExit: isEphemeralOnExit,
+                        isDelivered: false,
+                        isRead: false
+                    )
+                    self.conversations[idx].messages.append(sentMsg)
+                }
+            }
+        }
+
+        socketClient.onMessageDelivered = { [weak self] conversationId, messageId in
+            guard let self,
+                  let convUUID = UUID(uuidString: conversationId),
+                  let msgUUID = UUID(uuidString: messageId),
+                  let cIdx = self.conversations.firstIndex(where: { $0.id == convUUID }),
+                  let mIdx = self.conversations[cIdx].messages.firstIndex(where: { $0.id == msgUUID }) else { return }
+            self.conversations[cIdx].messages[mIdx].isDelivered = true
+        }
+
+        socketClient.onMessageRead = { [weak self] conversationId, messageIds in
+            guard let self,
+                  let convUUID = UUID(uuidString: conversationId),
+                  let cIdx = self.conversations.firstIndex(where: { $0.id == convUUID }) else { return }
+            let idSet = Set(messageIds.compactMap { UUID(uuidString: $0) })
+            for idx in self.conversations[cIdx].messages.indices {
+                if idSet.contains(self.conversations[cIdx].messages[idx].id) || messageIds.isEmpty {
+                    self.conversations[cIdx].messages[idx].isDelivered = true
+                    self.conversations[cIdx].messages[idx].isRead = true
+                }
             }
         }
 

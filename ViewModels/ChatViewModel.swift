@@ -65,4 +65,18 @@ final class ChatViewModel: ObservableObject {
 
         isSending = false
     }
+
+    func loadMessagesIfNeeded(for conversationId: UUID, appState: AppState) async {
+        if let fresh = try? await chatService.fetchMessages(for: conversationId) {
+            if let idx = appState.conversations.firstIndex(where: { $0.id == conversationId }) {
+                var existingMap = Dictionary(uniqueKeysWithValues: appState.conversations[idx].messages.map { ($0.id, $0) })
+                for m in fresh {
+                    existingMap[m.id] = m
+                }
+                let sorted = existingMap.values.sorted { $0.sentAt < $1.sentAt }
+                appState.conversations[idx].messages = sorted
+                appState.conversations[idx].unreadCount = 0
+            }
+        }
+    }
 }

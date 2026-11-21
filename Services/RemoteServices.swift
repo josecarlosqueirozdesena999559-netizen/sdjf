@@ -162,6 +162,14 @@ private struct MessagesHistoryResponse: Decodable {
         let senderId: UUID
         let content: String
         let createdAt: Date
+        let type: String?
+        let isViewOnce: Bool?
+        let isEphemeralOnExit: Bool?
+        let viewedAt: Date?
+        let editedAt: Date?
+        let deletedForEveryoneAt: Date?
+        let deliveredAt: Date?
+        let readAt: Date?
     }
     let items: [MessageDTO]
 }
@@ -475,7 +483,15 @@ final class RemoteChatService: ChatServiceProtocol {
                     id: m.id,
                     senderIsCurrentUser: m.senderId == currentUserId,
                     text: m.content,
-                    sentAt: m.createdAt
+                    sentAt: m.createdAt,
+                    type: ChatMessageType(rawValue: m.type ?? "TEXT") ?? .text,
+                    isViewOnce: m.isViewOnce ?? false,
+                    viewedAt: m.viewedAt,
+                    isEphemeralOnExit: m.isEphemeralOnExit ?? false,
+                    editedAt: m.editedAt,
+                    deletedForEveryoneAt: m.deletedForEveryoneAt,
+                    isDelivered: m.deliveredAt != nil,
+                    isRead: m.readAt != nil
                 )
             }
 
@@ -490,6 +506,29 @@ final class RemoteChatService: ChatServiceProtocol {
         }
 
         return conversations
+    }
+
+    func fetchMessages(for conversationId: UUID) async throws -> [ChatMessage] {
+        let history: MessagesHistoryResponse = try await APIClient.shared.request(
+            path: "/conversations/\(conversationId.uuidString.lowercased())/messages?limit=50",
+            method: "GET"
+        )
+        return history.items.map { m in
+            ChatMessage(
+                id: m.id,
+                senderIsCurrentUser: m.senderId == currentUserId,
+                text: m.content,
+                sentAt: m.createdAt,
+                type: ChatMessageType(rawValue: m.type ?? "TEXT") ?? .text,
+                isViewOnce: m.isViewOnce ?? false,
+                viewedAt: m.viewedAt,
+                isEphemeralOnExit: m.isEphemeralOnExit ?? false,
+                editedAt: m.editedAt,
+                deletedForEveryoneAt: m.deletedForEveryoneAt,
+                isDelivered: m.deliveredAt != nil,
+                isRead: m.readAt != nil
+            )
+        }
     }
 
     func sendMessage(text: String, conversationId: UUID) async throws -> ChatMessage {
