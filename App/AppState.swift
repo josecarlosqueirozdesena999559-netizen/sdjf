@@ -47,6 +47,16 @@ final class AppState: ObservableObject {
 
     init(services: ServiceContainer = .live) {
         self.services = services
+        let hasTokens = KeychainHelper.read(forKey: "access_token") != nil || KeychainHelper.read(forKey: "refresh_token") != nil
+        if hasTokens,
+           let data = UserDefaults.standard.data(forKey: "stored_user_profile"),
+           let cached = try? JSONDecoder().decode(UserProfile.self, from: data) {
+            self.currentUser = cached
+            self.route = .main
+            (services.chatService as? RemoteChatService)?.setCurrentUserId(cached.id)
+        } else {
+            self.route = .welcome
+        }
         setupSocketListeners()
         Task {
             await bootstrap()
@@ -216,14 +226,21 @@ final class AppState: ObservableObject {
             (services.chatService as? RemoteChatService)?.setCurrentUserId(savedProfile.id)
             await loadSocialData()
             socketClient.connect()
-            route = .main
-        } else {
-            route = .welcome
+            if route != .main {
+                withAnimation(.easeInOut(duration: 0.25)) {
+                    route = .main
+                }
+            }
+        } else if currentUser == nil {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                route = .welcome
+            }
         }
     }
 
     func completeOnboarding(with profile: UserProfile) async {
         currentUser = profile
+        try? await services.userRepository.saveProfile(profile)
         (services.chatService as? RemoteChatService)?.setCurrentUserId(profile.id)
         await loadSocialData()
         socketClient.connect()

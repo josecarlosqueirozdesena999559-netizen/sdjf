@@ -1203,7 +1203,7 @@ struct WhatsAppMessageBubble: View {
                                     .foregroundStyle(.white)
                             }
                             Text(message.type == .audio ? "Mensagem de voz (1x)" : "Foto de visualização única")
-                                .font(AppTheme.Typography.jakartaMedium(14))
+                                .font(AppTheme.Typography.jakartaSemiBold(14))
                                 .foregroundStyle(AppTheme.Colors.darkGray)
                         }
                         .padding(.horizontal, 12)
@@ -1553,7 +1553,7 @@ private final class AudioRecorderHelper: NSObject, ObservableObject {
 
     func startRecording() {
         let session = AVAudioSession.sharedInstance()
-        try? session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetooth])
+        try? session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker, .allowBluetoothHFP])
         try? session.setActive(true)
 
         let url = FileManager.default.temporaryDirectory.appendingPathComponent("voice_\(UUID().uuidString).m4a")

@@ -349,10 +349,34 @@ final class RemoteUserRepository: UserRepositoryProtocol {
     }
 
     func loadCurrentProfile() async throws -> UserProfile? {
-        guard KeychainHelper.read(forKey: "access_token") != nil else {
-            return nil
+        let hasToken = KeychainHelper.read(forKey: "access_token") != nil || KeychainHelper.read(forKey: "refresh_token") != nil
+
+        if let cached = try? await localFallback.loadCurrentProfile(), hasToken {
+            return cached
         }
-        return try await localFallback.loadCurrentProfile()
+
+        if hasToken {
+            if let me: UserMeDTO = try? await APIClient.shared.request(path: "/users/me", method: "GET") {
+                let profile = UserProfile(
+                    id: me.id,
+                    fullName: me.fullName,
+                    email: me.email,
+                    username: me.username,
+                    age: me.age,
+                    photos: me.photos.map { ProfilePhoto(id: $0.id, remoteURL: $0.url) },
+                    interests: me.interests.map { Interest(id: $0.slug, title: $0.name, sfSymbol: $0.icon) },
+                    bio: me.bio,
+                    isVerified: me.isVerified,
+                    isOnline: me.isOnline,
+                    distanceKm: 0,
+                    city: me.city
+                )
+                try? await localFallback.saveProfile(profile)
+                return profile
+            }
+        }
+
+        return nil
     }
 
     func clearLocalSession() async throws {
