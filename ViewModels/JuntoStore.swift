@@ -38,11 +38,18 @@ final class JuntoStore: ObservableObject {
             title: "Viagem Ubatuba",
             category: "Viagem",
             coverImageName: "GroupPraia",
-            potBalance: 640.00,
+            potBalance: 600.00,
             potTarget: 1000.00,
             totalSpent: 1840.00,
             myShare: 0.0,
             members: ["EU", "PS", "MA", "CR", "BL"],
+            participants: [
+                GroupParticipant(name: "Você", username: "lucas.andrade", quotaAmount: 200.00, hasPaid: true),
+                GroupParticipant(name: "Pedro Santos", username: "pedro.santos", quotaAmount: 200.00, hasPaid: true),
+                GroupParticipant(name: "Camila Rocha", username: "camila.rocha", quotaAmount: 200.00, hasPaid: true),
+                GroupParticipant(name: "Matheus Alves", username: "matheus.alves", quotaAmount: 200.00, hasPaid: false),
+                GroupParticipant(name: "Beatriz Lima", username: "bia.lima", quotaAmount: 200.00, hasPaid: false)
+            ],
             hasCollectivePot: true,
             comandaItems: [
                 ComandaItem(name: "Casa de Praia (Diária)", detail: "1/5 da reserva", price: 110.00, isSelected: true),
@@ -51,13 +58,19 @@ final class JuntoStore: ObservableObject {
         ),
         RoleGroup(
             title: "Churrasco de Domingo",
-            category: "Outros",
+            category: "Churrasco",
             coverImageName: "GroupChurrasco",
-            potBalance: 180.00,
+            potBalance: 150.00,
             potTarget: 300.00,
             totalSpent: 420.00,
             myShare: 35.36,
             members: ["EU", "PS", "MA", "CR"],
+            participants: [
+                GroupParticipant(name: "Você", username: "lucas.andrade", quotaAmount: 75.00, hasPaid: false),
+                GroupParticipant(name: "Pedro Santos", username: "pedro.santos", quotaAmount: 75.00, hasPaid: true),
+                GroupParticipant(name: "Camila Rocha", username: "camila.rocha", quotaAmount: 75.00, hasPaid: true),
+                GroupParticipant(name: "Matheus Alves", username: "matheus.alves", quotaAmount: 75.00, hasPaid: false)
+            ],
             hasCollectivePot: true,
             comandaItems: [
                 ComandaItem(name: "Picanha Premium (Rateio)", detail: "Dividido por 4", price: 24.00, isSelected: true),
@@ -74,6 +87,11 @@ final class JuntoStore: ObservableObject {
             totalSpent: 980.00,
             myShare: 145.00,
             members: ["EU", "MA", "BL"],
+            participants: [
+                GroupParticipant(name: "Você", username: "lucas.andrade", quotaAmount: 0, hasPaid: false),
+                GroupParticipant(name: "Matheus Alves", username: "matheus.alves", quotaAmount: 0, hasPaid: false),
+                GroupParticipant(name: "Beatriz Lima", username: "bia.lima", quotaAmount: 0, hasPaid: false)
+            ],
             hasCollectivePot: false,
             comandaItems: [
                 ComandaItem(name: "Internet Fibra 500Mb", detail: "Dividido por 3", price: 45.00, isSelected: true),
@@ -334,30 +352,54 @@ final class JuntoStore: ObservableObject {
         showToast("Despesa \"\(cleanName)\" adicionada.", icon: "checkmark.circle")
     }
 
-    /// Adiciona membro real ao grupo
+    /// Adiciona membro real ao grupo e recalcula as cotas do Pote automaticamente
     func addMemberToGroup(groupId: UUID, memberUsername: String) {
         let clean = memberUsername.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "@", with: "").lowercased()
         guard clean.count >= 2, let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
 
-        let initials = String(clean.prefix(2)).uppercased()
-        if !groups[idx].members.contains(initials) {
-            groups[idx].members.append(initials)
-            activities.insert(
-                ActivityEvent(
-                    icon: "person.badge.plus",
-                    title: "@\(clean) entrou no grupo",
-                    subtitle: groups[idx].title,
-                    timeAgo: "Agora",
-                    amountText: nil,
-                    isPositive: true
-                ),
-                at: 0
-            )
-            showToast("@\(clean) adicionado ao grupo.", icon: "person.badge.plus")
+        if groups[idx].participants.contains(where: { $0.username.lowercased() == clean }) {
+            showToast("@\(clean) já está no grupo.", icon: "info.circle")
+            return
         }
+
+        let displayName = directoryUsers.first(where: { $0.username.lowercased() == clean })?.name
+            ?? clean.split(separator: ".").map { $0.capitalized }.joined(separator: " ")
+
+        let initials = String(clean.prefix(2)).uppercased()
+        groups[idx].members.append(initials)
+        groups[idx].participants.append(
+            GroupParticipant(name: displayName, username: clean, quotaAmount: 0, hasPaid: false)
+        )
+
+        // Recalcula automaticamente o valor por pessoa do Pote
+        if groups[idx].hasCollectivePot && groups[idx].potTarget > 0 {
+            let newQuota = groups[idx].potTarget / Double(groups[idx].participants.count)
+            for i in groups[idx].participants.indices {
+                groups[idx].participants[i].quotaAmount = newQuota
+            }
+        }
+
+        activities.insert(
+            ActivityEvent(
+                icon: "person.badge.plus",
+                title: "\(displayName) entrou no grupo",
+                subtitle: "\(groups[idx].title) • Cotas atualizadas",
+                timeAgo: "Agora",
+                amountText: nil,
+                isPositive: true
+            ),
+            at: 0
+        )
+        showToast("@\(clean) adicionado e cotas recalculadas!", icon: "person.badge.plus")
     }
 
-    func createNewGroup(title: String, category: String, hasPot: Bool) {
+    func createNewGroup(
+        title: String,
+        category: String,
+        hasPot: Bool,
+        potTarget: Double = 0,
+        invitedPeople: [SearchableUser] = []
+    ) {
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanTitle.isEmpty else {
             showToast("Informe o nome do grupo.", icon: "exclamationmark.circle")
@@ -367,8 +409,24 @@ final class JuntoStore: ObservableObject {
         let cover: String
         switch category {
         case "Viagem": cover = "GroupPraia"
-        case "Casal": cover = "GroupBar"
+        case "Bar & Drinks", "Casal", "Festa": cover = "GroupBar"
         default: cover = "GroupChurrasco"
+        }
+
+        let totalPeopleCount = 1 + invitedPeople.count
+        let quotaPerPerson = (hasPot && potTarget > 0) ? (potTarget / Double(totalPeopleCount)) : 0
+
+        var participantsList: [GroupParticipant] = [
+            GroupParticipant(name: "Você", username: user.username, quotaAmount: quotaPerPerson, hasPaid: false)
+        ]
+        var memberInitials: [String] = ["EU"]
+
+        for person in invitedPeople {
+            participantsList.append(
+                GroupParticipant(name: person.name, username: person.username, quotaAmount: quotaPerPerson, hasPaid: false)
+            )
+            let initStr = person.name.split(separator: " ").prefix(2).map { String($0.prefix(1)) }.joined().uppercased()
+            memberInitials.append(initStr.isEmpty ? String(person.username.prefix(2)).uppercased() : initStr)
         }
 
         let newGroup = RoleGroup(
@@ -376,27 +434,65 @@ final class JuntoStore: ObservableObject {
             category: category,
             coverImageName: cover,
             potBalance: 0,
-            potTarget: hasPot ? 300 : 0,
+            potTarget: hasPot ? potTarget : 0,
             totalSpent: 0,
             myShare: 0,
-            members: ["EU"],
+            members: memberInitials,
+            participants: participantsList,
             hasCollectivePot: hasPot,
             comandaItems: []
         )
 
         groups.insert(newGroup, at: 0)
+
+        let subtitleText = (hasPot && quotaPerPerson > 0)
+            ? "\(category) • \(Self.formatBRL(quotaPerPerson)) p/ cada (\(totalPeopleCount) pessoas)"
+            : "\(category) • \(totalPeopleCount) participante(s)"
+
         activities.insert(
             ActivityEvent(
-                icon: "person.2",
-                title: "Você criou o grupo \"\(cleanTitle)\"",
-                subtitle: category,
+                icon: hasPot ? "dollarsign.circle" : "person.2",
+                title: "Grupo \"\(cleanTitle)\" criado",
+                subtitle: subtitleText,
                 timeAgo: "Agora",
-                amountText: nil,
+                amountText: (hasPot && potTarget > 0) ? Self.formatBRL(potTarget) : nil,
                 isPositive: true
             ),
             at: 0
         )
-        showToast("Grupo \"\(cleanTitle)\" criado.", icon: "checkmark.circle")
+        showToast("Grupo \"\(cleanTitle)\" criado e cotas distribuídas!", icon: "checkmark.circle")
+    }
+
+    /// Paga a cota de um participante no Pote Coletivo (atualiza saldo e status automaticamente)
+    func payParticipantPotQuota(groupId: UUID, participantId: UUID, openPix: Bool = true) {
+        guard let gIdx = groups.firstIndex(where: { $0.id == groupId }),
+              let pIdx = groups[gIdx].participants.firstIndex(where: { $0.id == participantId }) else { return }
+
+        guard !groups[gIdx].participants[pIdx].hasPaid else { return }
+        let quota = groups[gIdx].participants[pIdx].quotaAmount
+        let personName = groups[gIdx].participants[pIdx].name
+        let groupTitle = groups[gIdx].title
+
+        groups[gIdx].participants[pIdx].hasPaid = true
+        groups[gIdx].potBalance += quota
+
+        activities.insert(
+            ActivityEvent(
+                icon: "checkmark.circle",
+                title: "\(personName) pagou a cota do Pote",
+                subtitle: "\(groupTitle) • Saldo \(Self.formatBRL(groups[gIdx].potBalance))",
+                timeAgo: "Agora",
+                amountText: "+ \(Self.formatBRL(quota))",
+                isPositive: true
+            ),
+            at: 0
+        )
+
+        if openPix && quota > 0 {
+            openPixPayment(title: "Cota do Pote • \(groupTitle)", recipient: "Pote \(groupTitle)", amount: quota)
+        } else {
+            showToast("Cota de \(personName) marcada como paga!", icon: "checkmark.circle")
+        }
     }
 
     func addQuickExpense(description: String, amount: Double, groupTitle: String) {

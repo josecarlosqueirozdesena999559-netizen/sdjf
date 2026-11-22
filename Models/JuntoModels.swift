@@ -105,6 +105,14 @@ struct ComandaItem: Identifiable {
     var isSelected: Bool
 }
 
+struct GroupParticipant: Identifiable, Hashable {
+    let id = UUID()
+    let name: String
+    let username: String
+    var quotaAmount: Double
+    var hasPaid: Bool
+}
+
 struct RoleGroup: Identifiable {
     let id = UUID()
     var title: String
@@ -115,6 +123,7 @@ struct RoleGroup: Identifiable {
     var totalSpent: Double
     var myShare: Double
     var members: [String]
+    var participants: [GroupParticipant]
     var hasCollectivePot: Bool
     var comandaItems: [ComandaItem]
 }
