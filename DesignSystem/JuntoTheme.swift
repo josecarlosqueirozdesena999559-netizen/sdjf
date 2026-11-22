@@ -107,48 +107,56 @@ struct JuntoLogoMark: View {
     }
 }
 
-// MARK: - Avatar Ilustrado Flat Estilo "Praia" (Personagens minimalistas sem rosto de todas as cores)
+// MARK: - Ícone Customizado do Pote Coletivo (minimalista e único do Juntô)
+struct JuntoPotIcon: View {
+    var size: CGFloat = 22
+
+    var body: some View {
+        ZStack {
+            // Moedinha manga entrando no pote
+            Circle()
+                .fill(JuntoColors.accent)
+                .frame(width: size * 0.34, height: size * 0.34)
+                .offset(y: -size * 0.36)
+
+            // Tampa do pote
+            RoundedRectangle(cornerRadius: size * 0.08)
+                .fill(JuntoColors.primary)
+                .frame(width: size * 0.62, height: size * 0.14)
+                .offset(y: -size * 0.10)
+
+            // Corpo arredondado do pote
+            RoundedRectangle(cornerRadius: size * 0.24, style: .continuous)
+                .fill(JuntoColors.primary)
+                .frame(width: size * 0.78, height: size * 0.56)
+                .offset(y: size * 0.22)
+
+            // Detalhe luminoso interno
+            RoundedRectangle(cornerRadius: size * 0.06)
+                .fill(Color.white.opacity(0.28))
+                .frame(width: size * 0.10, height: size * 0.26)
+                .offset(x: -size * 0.20, y: size * 0.22)
+        }
+        .frame(width: size, height: size)
+    }
+}
+
+// MARK: - Avatar Premium Minimalista (Estilo Apple/Revolut — gradiente suave + silhueta limpa sem gênero)
 struct GeometricAvatarView: View {
     var seed: String = "junto"
     var displayName: String? = nil
     var avatarData: Data? = nil
     var size: CGFloat = 56
 
-    private static let bgColors: [Color] = [
-        Color(hex: "#F5EBDD"), // Areia
-        Color(hex: "#E8F0FE"), // Azul névoa
-        Color(hex: "#E6F7EE"), // Menta suave
-        Color(hex: "#FFF1DF"), // Pêssego claro
-        Color(hex: "#F3E8FF"), // Lavanda suave
-        Color(hex: "#FCE7F3"), // Rosa claro
-        Color(hex: "#E0F2FE"), // Celeste claro
-        Color(hex: "#FEF3C7")  // Sol suave
-    ]
-
-    private static let shirtColors: [Color] = [
-        Color(hex: "#14213D"), // Azul-noite
-        Color(hex: "#FCA311"), // Manga
-        Color(hex: "#16A34A"), // Esmeralda
-        Color(hex: "#E2711D"), // Terracota
-        Color(hex: "#1D4E89"), // Oceano
-        Color(hex: "#7C3AED"), // Violeta
-        Color(hex: "#0D9488"), // Turquesa
-        Color(hex: "#DB2777")  // Magenta
-    ]
-
-    private static let skinColors: [Color] = [
-        Color(hex: "#5C3A28"), // Pele retinta
-        Color(hex: "#8D5B3E"), // Pele parda escura
-        Color(hex: "#B88462"), // Pele parda clara
-        Color(hex: "#D7A988"), // Pele oliva
-        Color(hex: "#ECC6AA")  // Pele clara
-    ]
-
-    private static let hairColors: [Color] = [
-        Color(hex: "#14213D"), // Azul-noite (mesmo estilo da praia!)
-        Color(hex: "#1E1B18"), // Preto suave
-        Color(hex: "#3B281F"), // Castanho escuro
-        Color(hex: "#5A3E2B")  // Castanho médio
+    private static let gradients: [(Color, Color)] = [
+        (Color(hex: "#1E3A5F"), Color(hex: "#14213D")), // Azul-noite
+        (Color(hex: "#F59E0B"), Color(hex: "#D97706")), // Manga dourada
+        (Color(hex: "#10B981"), Color(hex: "#059669")), // Esmeralda
+        (Color(hex: "#3B82F6"), Color(hex: "#1D4ED8")), // Royal suave
+        (Color(hex: "#F97316"), Color(hex: "#EA580C")), // Coral
+        (Color(hex: "#8B5CF6"), Color(hex: "#6D28D9")), // Violeta
+        (Color(hex: "#14B8A6"), Color(hex: "#0F766E")), // Turquesa
+        (Color(hex: "#EC4899"), Color(hex: "#BE185D"))  // Framboesa
     ]
 
     private var hashValueStable: Int {
@@ -159,10 +167,9 @@ struct GeometricAvatarView: View {
         return abs(hash)
     }
 
-    private var bg: Color { Self.bgColors[hashValueStable % Self.bgColors.count] }
-    private var shirt: Color { Self.shirtColors[(hashValueStable / 3) % Self.shirtColors.count] }
-    private var skin: Color { Self.skinColors[(hashValueStable / 7) % Self.skinColors.count] }
-    private var hair: Color { Self.hairColors[(hashValueStable / 11) % Self.hairColors.count] }
+    private var pair: (Color, Color) {
+        Self.gradients[hashValueStable % Self.gradients.count]
+    }
 
     var body: some View {
         Group {
@@ -174,44 +181,21 @@ struct GeometricAvatarView: View {
                     .clipShape(Circle())
             } else {
                 ZStack {
-                    Circle().fill(bg)
+                    LinearGradient(
+                        colors: [pair.0, pair.1],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
 
-                    // Cabelo arredondado neutro (estilo praia, sem gênero específico)
+                    // Brilho sutil no topo (acabamento premium)
                     Circle()
-                        .fill(hair)
-                        .frame(width: size * 0.42, height: size * 0.42)
-                        .offset(y: -size * 0.14)
+                        .fill(Color.white.opacity(0.14))
+                        .frame(width: size * 0.85, height: size * 0.85)
+                        .offset(x: -size * 0.25, y: -size * 0.32)
 
-                    // Ombros / Camiseta colorida
-                    Ellipse()
-                        .fill(shirt)
-                        .frame(width: size * 0.72, height: size * 0.46)
-                        .offset(y: size * 0.36)
-
-                    // Pescoço
-                    RoundedRectangle(cornerRadius: size * 0.06)
-                        .fill(skin)
-                        .frame(width: size * 0.14, height: size * 0.18)
-                        .offset(y: size * 0.10)
-
-                    // Cabeça minimalista sem rosto (faceless)
-                    Ellipse()
-                        .fill(skin)
-                        .frame(width: size * 0.30, height: size * 0.34)
-                        .offset(y: -size * 0.09)
-
-                    // Franja suave neutra no topo
-                    Path { p in
-                        p.addArc(
-                            center: CGPoint(x: size * 0.50, y: size * 0.38),
-                            radius: size * 0.155,
-                            startAngle: .degrees(190),
-                            endAngle: .degrees(350),
-                            clockwise: false
-                        )
-                        p.closeSubpath()
-                    }
-                    .fill(hair)
+                    Image(systemName: "person.fill")
+                        .font(.system(size: size * 0.44, weight: .regular))
+                        .foregroundColor(.white.opacity(0.92))
                 }
                 .frame(width: size, height: size)
                 .clipShape(Circle())

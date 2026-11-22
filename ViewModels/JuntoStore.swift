@@ -44,11 +44,11 @@ final class JuntoStore: ObservableObject {
             myShare: 0.0,
             members: ["EU", "PS", "MA", "CR", "BL"],
             participants: [
-                GroupParticipant(name: "Você", username: "lucas.andrade", quotaAmount: 200.00, hasPaid: true),
-                GroupParticipant(name: "Pedro Santos", username: "pedro.santos", quotaAmount: 200.00, hasPaid: true),
-                GroupParticipant(name: "Camila Rocha", username: "camila.rocha", quotaAmount: 200.00, hasPaid: true),
-                GroupParticipant(name: "Matheus Alves", username: "matheus.alves", quotaAmount: 200.00, hasPaid: false),
-                GroupParticipant(name: "Beatriz Lima", username: "bia.lima", quotaAmount: 200.00, hasPaid: false)
+                GroupParticipant(name: "Você", username: "lucas.andrade", quotaAmount: 200.00, hasPaid: true, role: .owner),
+                GroupParticipant(name: "Pedro Santos", username: "pedro.santos", quotaAmount: 200.00, hasPaid: true, role: .admin),
+                GroupParticipant(name: "Camila Rocha", username: "camila.rocha", quotaAmount: 200.00, hasPaid: true, role: .member),
+                GroupParticipant(name: "Matheus Alves", username: "matheus.alves", quotaAmount: 200.00, hasPaid: false, role: .member),
+                GroupParticipant(name: "Beatriz Lima", username: "bia.lima", quotaAmount: 200.00, hasPaid: false, role: .member)
             ],
             hasCollectivePot: true,
             comandaItems: [
@@ -66,10 +66,10 @@ final class JuntoStore: ObservableObject {
             myShare: 35.36,
             members: ["EU", "PS", "MA", "CR"],
             participants: [
-                GroupParticipant(name: "Você", username: "lucas.andrade", quotaAmount: 75.00, hasPaid: false),
-                GroupParticipant(name: "Pedro Santos", username: "pedro.santos", quotaAmount: 75.00, hasPaid: true),
-                GroupParticipant(name: "Camila Rocha", username: "camila.rocha", quotaAmount: 75.00, hasPaid: true),
-                GroupParticipant(name: "Matheus Alves", username: "matheus.alves", quotaAmount: 75.00, hasPaid: false)
+                GroupParticipant(name: "Você", username: "lucas.andrade", quotaAmount: 75.00, hasPaid: false, role: .owner),
+                GroupParticipant(name: "Pedro Santos", username: "pedro.santos", quotaAmount: 75.00, hasPaid: true, role: .member),
+                GroupParticipant(name: "Camila Rocha", username: "camila.rocha", quotaAmount: 75.00, hasPaid: true, role: .member),
+                GroupParticipant(name: "Matheus Alves", username: "matheus.alves", quotaAmount: 75.00, hasPaid: false, role: .member)
             ],
             hasCollectivePot: true,
             comandaItems: [
@@ -88,9 +88,9 @@ final class JuntoStore: ObservableObject {
             myShare: 145.00,
             members: ["EU", "MA", "BL"],
             participants: [
-                GroupParticipant(name: "Você", username: "lucas.andrade", quotaAmount: 0, hasPaid: false),
-                GroupParticipant(name: "Matheus Alves", username: "matheus.alves", quotaAmount: 0, hasPaid: false),
-                GroupParticipant(name: "Beatriz Lima", username: "bia.lima", quotaAmount: 0, hasPaid: false)
+                GroupParticipant(name: "Você", username: "lucas.andrade", quotaAmount: 0, hasPaid: false, role: .owner),
+                GroupParticipant(name: "Matheus Alves", username: "matheus.alves", quotaAmount: 0, hasPaid: false, role: .member),
+                GroupParticipant(name: "Beatriz Lima", username: "bia.lima", quotaAmount: 0, hasPaid: false, role: .member)
             ],
             hasCollectivePot: false,
             comandaItems: [
@@ -312,11 +312,61 @@ final class JuntoStore: ObservableObject {
         openPixPayment(title: "Pote • \(groupTitle)", recipient: "Pote Coletivo \(groupTitle)", amount: amount)
     }
 
-    /// Adiciona despesa real dentro de um grupo (atualiza comanda, total e sua cota)
+    /// Apenas Dono ou Admin podem lançar novas despesas no grupo
+    func canCurrentUserAddExpenses(in group: RoleGroup) -> Bool {
+        if let me = group.participants.first(where: { $0.name == "Você" || $0.username == user.username }) {
+            return me.role == .owner || me.role == .admin
+        }
+        return false
+    }
+
+    /// Promove ou remove permissão de Admin de um participante
+    func toggleParticipantAdmin(groupId: UUID, participantId: UUID) {
+        guard let gIdx = groups.firstIndex(where: { $0.id == groupId }),
+              let pIdx = groups[gIdx].participants.firstIndex(where: { $0.id == participantId }) else { return }
+
+        guard groups[gIdx].participants[pIdx].role != .owner else { return }
+
+        let name = groups[gIdx].participants[pIdx].name
+        if groups[gIdx].participants[pIdx].role == .admin {
+            groups[gIdx].participants[pIdx].role = .member
+            showToast("\(name) não é mais admin.", icon: "person")
+        } else {
+            groups[gIdx].participants[pIdx].role = .admin
+            showToast("\(name) agora é admin do grupo.", icon: "checkmark.shield")
+        }
+    }
+
+    /// Remove um participante do grupo e recalcula automaticamente as cotas do Pote
+    func removeParticipantFromGroup(groupId: UUID, participantId: UUID) {
+        guard let gIdx = groups.firstIndex(where: { $0.id == groupId }),
+              let pIdx = groups[gIdx].participants.firstIndex(where: { $0.id == participantId }) else { return }
+
+        guard groups[gIdx].participants[pIdx].role != .owner else {
+            showToast("O dono não pode ser removido do grupo.", icon: "exclamationmark.circle")
+            return
+        }
+
+        let removed = groups[gIdx].participants.remove(at: pIdx)
+        if groups[gIdx].hasCollectivePot && groups[gIdx].potTarget > 0 && !groups[gIdx].participants.isEmpty {
+            let newQuota = groups[gIdx].potTarget / Double(groups[gIdx].participants.count)
+            for i in groups[gIdx].participants.indices {
+                groups[gIdx].participants[i].quotaAmount = newQuota
+            }
+        }
+        showToast("\(removed.name) foi removido do grupo.", icon: "person.badge.minus")
+    }
+
+    /// Adiciona despesa real dentro de um grupo (restrito ao Dono ou Admins)
     func addExpenseToGroup(groupId: UUID, name: String, totalAmount: Double, payFromPot: Bool) {
         let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanName.isEmpty, totalAmount > 0,
               let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
+
+        guard canCurrentUserAddExpenses(in: groups[idx]) else {
+            showToast("Apenas o dono ou admins podem adicionar despesas.", icon: "lock")
+            return
+        }
 
         let memberCount = max(groups[idx].members.count, 1)
         let perPerson = totalAmount / Double(memberCount)
@@ -417,7 +467,7 @@ final class JuntoStore: ObservableObject {
         let quotaPerPerson = (hasPot && potTarget > 0) ? (potTarget / Double(totalPeopleCount)) : 0
 
         var participantsList: [GroupParticipant] = [
-            GroupParticipant(name: "Você", username: user.username, quotaAmount: quotaPerPerson, hasPaid: false)
+            GroupParticipant(name: "Você", username: user.username, quotaAmount: quotaPerPerson, hasPaid: false, role: .owner)
         ]
         var memberInitials: [String] = ["EU"]
 

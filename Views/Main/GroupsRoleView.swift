@@ -466,8 +466,8 @@ struct GroupDetailSheet: View {
     @State private var expenseAmount = ""
     @State private var payFromPot = false
 
-    @State private var showAddMemberForm = false
-    @State private var newMemberHandle = ""
+    @State private var showAddMemberScreen = false
+    @State private var selectedParticipantForAction: GroupParticipant? = nil
 
     private var groupIndex: Int? {
         store.groups.firstIndex(where: { $0.id == groupId })
@@ -477,6 +477,7 @@ struct GroupDetailSheet: View {
         if let idx = groupIndex {
             let group = store.groups[idx]
             let selectedTotal = group.comandaItems.filter { $0.isSelected }.reduce(0) { $0 + $1.price }
+            let canAddExpenses = store.canCurrentUserAddExpenses(in: group)
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
@@ -526,11 +527,73 @@ struct GroupDetailSheet: View {
                     .frame(height: 140)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
+                    // Lista de participantes rolável para o lado (ao clicar: Tornar admin / Remover)
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("Participantes (\(group.participants.count))")
+                                .font(.inter(14, weight: .medium))
+                                .foregroundColor(JuntoColors.textMain)
+                            Spacer()
+                            Button {
+                                showAddMemberScreen = true
+                            } label: {
+                                Label("Adicionar membro", systemImage: "person.badge.plus")
+                                    .font(.inter(12, weight: .medium))
+                                    .foregroundColor(JuntoColors.primary)
+                            }
+                        }
+
+                        ScrollView(.horizontal, showsIndicators: false) {
+                            HStack(spacing: 14) {
+                                ForEach(group.participants) { participant in
+                                    Button {
+                                        if participant.role != .owner {
+                                            selectedParticipantForAction = participant
+                                        }
+                                    } label: {
+                                        VStack(spacing: 5) {
+                                            ZStack(alignment: .bottomTrailing) {
+                                                GeometricAvatarView(seed: participant.username, size: 48)
+                                                if participant.role == .owner || participant.role == .admin {
+                                                    Image(systemName: participant.role == .owner ? "crown.fill" : "checkmark.shield.fill")
+                                                        .font(.system(size: 10))
+                                                        .foregroundColor(.white)
+                                                        .frame(width: 18, height: 18)
+                                                        .background(participant.role == .owner ? JuntoColors.primary : JuntoColors.accent)
+                                                        .clipShape(Circle())
+                                                        .overlay(Circle().stroke(Color.white, lineWidth: 1.5))
+                                                }
+                                            }
+
+                                            Text(participant.name.split(separator: " ").first.map(String.init) ?? participant.name)
+                                                .font(.inter(12, weight: .regular))
+                                                .foregroundColor(JuntoColors.textMain)
+                                                .lineLimit(1)
+
+                                            if participant.role != .member {
+                                                Text(participant.role.rawValue)
+                                                    .font(.inter(10, weight: .medium))
+                                                    .foregroundColor(participant.role == .owner ? JuntoColors.primary : JuntoColors.orangeSave)
+                                            }
+                                        }
+                                        .frame(width: 62)
+                                    }
+                                }
+                            }
+                            .padding(.vertical, 2)
+                        }
+
+                        Text("Toque em um participante para tornar admin ou remover.")
+                            .font(.inter(11, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                    }
+
                     // POTE COLETIVO + COTAS DISTRIBUÍDAS POR PARTICIPANTE
                     if group.hasCollectivePot {
                         VStack(alignment: .leading, spacing: 14) {
-                            HStack {
-                                Label("Pote Coletivo", systemImage: "dollarsign.circle")
+                            HStack(spacing: 8) {
+                                JuntoPotIcon(size: 22)
+                                Text("Pote Coletivo")
                                     .font(.inter(15, weight: .medium))
                                     .foregroundColor(JuntoColors.textMain)
                                 Spacer()
@@ -559,9 +622,20 @@ struct GroupDetailSheet: View {
                                         GeometricAvatarView(seed: participant.username, size: 36)
 
                                         VStack(alignment: .leading, spacing: 1) {
-                                            Text(participant.name)
-                                                .font(.inter(14, weight: .regular))
-                                                .foregroundColor(JuntoColors.textMain)
+                                            HStack(spacing: 5) {
+                                                Text(participant.name)
+                                                    .font(.inter(14, weight: .regular))
+                                                    .foregroundColor(JuntoColors.textMain)
+                                                if participant.role != .member {
+                                                    Text(participant.role.rawValue)
+                                                        .font(.inter(10, weight: .medium))
+                                                        .foregroundColor(participant.role == .owner ? JuntoColors.primary : JuntoColors.orangeSave)
+                                                        .padding(.horizontal, 6)
+                                                        .padding(.vertical, 2)
+                                                        .background(participant.role == .owner ? JuntoColors.primaryLight : JuntoColors.accentLight)
+                                                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                                                }
+                                            }
                                             Text("Cota: \(JuntoStore.formatBRL(participant.quotaAmount))")
                                                 .font(.inter(12, weight: .regular))
                                                 .foregroundColor(JuntoColors.textMuted)
@@ -599,38 +673,6 @@ struct GroupDetailSheet: View {
                                     Divider()
                                 }
                             }
-
-                            // Adicionar mais um membro (recalcula automaticamente as cotas!)
-                            Button {
-                                withAnimation { showAddMemberForm.toggle() }
-                            } label: {
-                                Label(showAddMemberForm ? "Fechar" : "Adicionar pessoa (recalcula cotas)", systemImage: showAddMemberForm ? "xmark" : "person.badge.plus")
-                                    .font(.inter(13, weight: .medium))
-                                    .foregroundColor(JuntoColors.primary)
-                            }
-
-                            if showAddMemberForm {
-                                HStack(spacing: 8) {
-                                    CleanOutlineInput(
-                                        label: "",
-                                        placeholder: "ex: ana.paula",
-                                        text: $newMemberHandle,
-                                        autocapitalization: .never,
-                                        leadingPrefix: "@"
-                                    )
-                                    Button("Incluir") {
-                                        store.addMemberToGroup(groupId: groupId, memberUsername: newMemberHandle)
-                                        newMemberHandle = ""
-                                        showAddMemberForm = false
-                                    }
-                                    .font(.inter(13, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 16)
-                                    .frame(height: 50)
-                                    .background(JuntoColors.primary)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                                }
-                            }
                         }
                         .padding(16)
                         .background(JuntoColors.warmBg)
@@ -638,23 +680,29 @@ struct GroupDetailSheet: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
 
-                    // Despesas / Comanda do Grupo
+                    // Despesas / Comanda do Grupo (somente Dono ou Admin podem adicionar novas despesas)
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("Despesas do grupo")
                                 .font(.inter(15, weight: .medium))
                                 .foregroundColor(JuntoColors.textMain)
                             Spacer()
-                            Button {
-                                withAnimation { showAddExpenseForm.toggle() }
-                            } label: {
-                                Label(showAddExpenseForm ? "Cancelar" : "Nova despesa", systemImage: showAddExpenseForm ? "xmark" : "plus")
-                                    .font(.inter(13, weight: .medium))
-                                    .foregroundColor(JuntoColors.primary)
+                            if canAddExpenses {
+                                Button {
+                                    withAnimation { showAddExpenseForm.toggle() }
+                                } label: {
+                                    Label(showAddExpenseForm ? "Cancelar" : "Nova despesa", systemImage: showAddExpenseForm ? "xmark" : "plus")
+                                        .font(.inter(13, weight: .medium))
+                                        .foregroundColor(JuntoColors.primary)
+                                }
+                            } else {
+                                Text("Somente dono/admins")
+                                    .font(.inter(11, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
                             }
                         }
 
-                        if showAddExpenseForm {
+                        if canAddExpenses && showAddExpenseForm {
                             VStack(spacing: 12) {
                                 CleanOutlineInput(label: "Descrição", placeholder: "Ex: Mercado, Bebidas, Uber", text: $expenseName)
                                 CleanOutlineInput(label: "Valor total (R$)", placeholder: "0,00", text: $expenseAmount, keyboardType: .decimalPad, leadingPrefix: "R$")
@@ -729,6 +777,125 @@ struct GroupDetailSheet: View {
                 .padding(.bottom, 30)
             }
             .background(Color.white)
+            .fullScreenCover(isPresented: $showAddMemberScreen) {
+                AddGroupMemberScreen(groupId: groupId)
+                    .environmentObject(store)
+            }
+            .confirmationDialog(
+                selectedParticipantForAction?.name ?? "Participante",
+                isPresented: Binding(
+                    get: { selectedParticipantForAction != nil },
+                    set: { if !$0 { selectedParticipantForAction = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                if let p = selectedParticipantForAction {
+                    Button(p.role == .admin ? "Remover permissão de admin" : "Tornar admin") {
+                        store.toggleParticipantAdmin(groupId: groupId, participantId: p.id)
+                    }
+                    Button("Remover do grupo", role: .destructive) {
+                        store.removeParticipantFromGroup(groupId: groupId, participantId: p.id)
+                    }
+                    Button("Cancelar", role: .cancel) {}
+                }
+            }
         }
+    }
+}
+
+// MARK: - Tela dedicada "Adicionar membro" listando os amigos já adicionados
+struct AddGroupMemberScreen: View {
+    @EnvironmentObject var store: JuntoStore
+    let groupId: UUID
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private var currentGroup: RoleGroup? {
+        store.groups.first(where: { $0.id == groupId })
+    }
+
+    private var filteredFriends: [FriendItem] {
+        let base = store.friends
+        if searchText.trimmingCharacters(in: .whitespaces).isEmpty { return base }
+        return base.filter {
+            $0.name.localizedCaseInsensitiveContains(searchText) ||
+            $0.username.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                CircleNavButton(icon: "chevron.left") { dismiss() }
+                Spacer()
+                Text("Adicionar membro")
+                    .font(.inter(17, weight: .medium))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                Spacer().frame(width: 44)
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 12)
+            .padding(.bottom, 16)
+
+            CleanOutlineInput(
+                label: "",
+                placeholder: "Buscar entre seus amigos...",
+                text: $searchText,
+                autocapitalization: .never
+            )
+            .padding(.horizontal, 20)
+            .padding(.bottom, 14)
+
+            Divider().opacity(0.6)
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    ForEach(filteredFriends) { friend in
+                        let alreadyInGroup = currentGroup?.participants.contains(where: {
+                            $0.username.lowercased() == friend.username.lowercased()
+                        }) ?? false
+
+                        HStack(spacing: 12) {
+                            GeometricAvatarView(seed: friend.username, size: 46)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(friend.name)
+                                    .font(.inter(15, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMain)
+                                Text("@\(friend.username)")
+                                    .font(.inter(12, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                            }
+
+                            Spacer()
+
+                            Button {
+                                guard !alreadyInGroup else { return }
+                                store.addMemberToGroup(groupId: groupId, memberUsername: friend.username)
+                            } label: {
+                                Text(alreadyInGroup ? "No grupo" : "Adicionar")
+                                    .font(.inter(13, weight: .medium))
+                                    .foregroundColor(alreadyInGroup ? JuntoColors.textMuted : .white)
+                                    .padding(.horizontal, 14)
+                                    .frame(height: 36)
+                                    .background(alreadyInGroup ? JuntoColors.surfaceSubtle : JuntoColors.primary)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(alreadyInGroup ? JuntoColors.border : Color.clear, lineWidth: 1)
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                            .disabled(alreadyInGroup)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+
+                        Divider().padding(.leading, 78)
+                    }
+                }
+            }
+        }
+        .background(Color.white.ignoresSafeArea())
     }
 }

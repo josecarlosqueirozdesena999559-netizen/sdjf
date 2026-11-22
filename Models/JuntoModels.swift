@@ -105,12 +105,19 @@ struct ComandaItem: Identifiable {
     var isSelected: Bool
 }
 
+enum GroupParticipantRole: String, Hashable {
+    case owner = "Dono"
+    case admin = "Admin"
+    case member = "Membro"
+}
+
 struct GroupParticipant: Identifiable, Hashable {
     let id = UUID()
     let name: String
     let username: String
     var quotaAmount: Double
     var hasPaid: Bool
+    var role: GroupParticipantRole = .member
 }
 
 struct RoleGroup: Identifiable {
