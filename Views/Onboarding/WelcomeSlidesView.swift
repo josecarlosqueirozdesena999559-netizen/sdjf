@@ -31,7 +31,7 @@ struct WelcomeSlidesView: View {
                 image: "OnbExpenses",
                 title: "Lance despesas em segundos",
                 text: "Escaneie a comanda, escolha quem participou e use o Pote Coletivo para juntar antes do rolê.",
-                chipIcon: "tray.and.arrow.down",
+                chipIcon: "flame.fill",
                 chipTitle: "Pote do churrasco",
                 chipValue: "R$ 180,00",
                 chipColor: JuntoColors.accent
@@ -40,7 +40,7 @@ struct WelcomeSlidesView: View {
                 image: "OnbPix",
                 title: "Acerte tudo com Pix",
                 text: "Um toque gera o Pix com o valor exato e a dívida é baixada automaticamente.",
-                chipIcon: "checkmark.circle",
+                chipIcon: "checkmark.seal.fill",
                 chipTitle: "Pagamento confirmado",
                 chipValue: "R$ 105,36",
                 chipColor: JuntoColors.pixGreen
@@ -53,21 +53,19 @@ struct WelcomeSlidesView: View {
             JuntoColors.warmBg.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Topo: logo + pular
+                // Topo limpo sem a logo do Juntô (apenas Pular)
                 HStack {
-                    JuntoLogoMark(size: 30)
-                    Text("Juntô")
-                        .font(.inter(16, weight: .medium))
-                        .foregroundColor(JuntoColors.textMain)
                     Spacer()
                     if currentPage < slides.count - 1 {
                         Button("Pular") { store.finishSlidesToGetStarted() }
                             .font(.inter(14, weight: .regular))
                             .foregroundColor(JuntoColors.textMuted)
+                    } else {
+                        Text(" ").font(.inter(14))
                     }
                 }
                 .padding(.horizontal, 24)
-                .padding(.top, 12)
+                .padding(.top, 14)
 
                 TabView(selection: $currentPage) {
                     ForEach(Array(slides.enumerated()), id: \.offset) { idx, slide in

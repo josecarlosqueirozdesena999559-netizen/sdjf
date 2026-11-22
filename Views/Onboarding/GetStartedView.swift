@@ -13,7 +13,7 @@ struct GetStartedView: View {
 
                 VStack(spacing: 18) {
                     ZStack(alignment: .bottomTrailing) {
-                        GeometricAvatarView(seed: store.user.username, size: 96)
+                        GeometricAvatarView(seed: store.user.username, displayName: store.user.fullName, size: 96)
 
                         Image(systemName: "checkmark.circle.fill")
                             .font(.system(size: 26))

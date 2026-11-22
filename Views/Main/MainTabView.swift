@@ -59,7 +59,7 @@ struct MainTabView: View {
                         } label: {
                             VStack(spacing: 3) {
                                 if tab == .account {
-                                    GeometricAvatarView(seed: store.user.username, avatarData: store.user.avatarData, size: 22)
+                                    GeometricAvatarView(seed: store.user.username, displayName: store.user.fullName, avatarData: store.user.avatarData, size: 22)
                                         .overlay(
                                             Circle()
                                                 .stroke(isSelected ? JuntoColors.textMain : Color.clear, lineWidth: 1.2)
@@ -119,7 +119,7 @@ struct MainTabView: View {
         switch tab {
         case .friends: return selected ? "person.fill" : "person"
         case .groups: return selected ? "person.2.fill" : "person.2"
-        case .activities: return selected ? "waveform.path.ecg.rectangle.fill" : "waveform.path.ecg.rectangle"
+        case .activities: return selected ? "arrow.left.arrow.right.circle.fill" : "arrow.left.arrow.right.circle"
         case .account: return "person.crop.circle"
         }
     }

@@ -50,13 +50,14 @@ struct ActivitiesView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
                         ForEach(filteredActivities) { item in
+                            let accent = iconAccentColor(for: item.icon)
                             HStack(spacing: 14) {
                                 Image(systemName: item.icon)
-                                    .font(.system(size: 16, weight: .regular))
-                                    .foregroundColor(JuntoColors.primary)
-                                    .frame(width: 38, height: 38)
-                                    .background(JuntoColors.primaryLight)
-                                    .cornerRadius(10)
+                                    .font(.system(size: 16, weight: .medium))
+                                    .foregroundColor(accent)
+                                    .frame(width: 40, height: 40)
+                                    .background(accent.opacity(0.12))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
 
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(item.title)
@@ -72,13 +73,13 @@ struct ActivitiesView: View {
                                 if let amt = item.amountText {
                                     Text(amt)
                                         .font(.inter(14, weight: .medium))
-                                        .foregroundColor(JuntoColors.primary)
+                                        .foregroundColor(item.isPositive ? JuntoColors.pixGreen : JuntoColors.orangeSave)
                                 }
                             }
                             .padding(.horizontal, 20)
                             .padding(.vertical, 14)
 
-                            Divider().padding(.leading, 72)
+                            Divider().padding(.leading, 74)
                         }
                     }
                     .padding(.bottom, 140)
@@ -86,5 +87,14 @@ struct ActivitiesView: View {
             }
         }
         .background(Color.white)
+    }
+
+    private func iconAccentColor(for icon: String) -> Color {
+        switch icon {
+        case "checkmark.seal.fill", "arrow.uturn.left": return JuntoColors.pixGreen
+        case "banknote.fill", "flame.fill": return JuntoColors.accent
+        case "house.fill": return JuntoColors.orangeSave
+        default: return JuntoColors.primary
+        }
     }
 }

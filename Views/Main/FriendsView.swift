@@ -117,7 +117,7 @@ struct FriendsView: View {
                     VStack(spacing: 0) {
                         ForEach(filteredFriends) { friend in
                             HStack(spacing: 14) {
-                                GeometricAvatarView(seed: friend.username, size: 48)
+                                GeometricAvatarView(seed: friend.username, displayName: friend.name, size: 48)
 
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(friend.name)
@@ -182,14 +182,31 @@ struct FriendsView: View {
     }
 }
 
-// MARK: - Tela Completa de Adicionar Amigo (digitar @nome_de_usuario e enviar convite)
+// MARK: - Tela Completa de Adicionar Amigo (busca letra por letra + avatar + Adicionar / Convite enviado bloqueado)
 struct AddFriendScreen: View {
     @EnvironmentObject var store: JuntoStore
     @Environment(\.dismiss) private var dismiss
-    @State private var handle: String = ""
+    @State private var query: String = ""
 
-    private var cleanHandle: String {
-        handle.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "@", with: "").lowercased()
+    private var cleanQuery: String {
+        query.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "@", with: "").lowercased()
+    }
+
+    private var searchResults: [SearchableUser] {
+        guard !cleanQuery.isEmpty else { return [] }
+        var matches = store.directoryUsers.filter {
+            $0.username.lowercased().contains(cleanQuery) ||
+            $0.name.lowercased().contains(cleanQuery)
+        }
+        // Se digitou um @username exato com 3+ letras que não está no diretório, permite convidar também
+        if cleanQuery.count >= 3 && !matches.contains(where: { $0.username.lowercased() == cleanQuery }) {
+            let formattedName = cleanQuery
+                .split(separator: ".")
+                .map { $0.capitalized }
+                .joined(separator: " ")
+            matches.append(SearchableUser(name: formattedName, username: cleanQuery))
+        }
+        return matches
     }
 
     var body: some View {
@@ -205,59 +222,88 @@ struct AddFriendScreen: View {
             }
             .padding(.horizontal, 18)
             .padding(.top, 12)
-            .padding(.bottom, 26)
+            .padding(.bottom, 18)
 
-            VStack(alignment: .leading, spacing: 20) {
-                // Prévia ao vivo do avatar ilustrado do amigo conforme digita
-                if cleanHandle.count >= 2 {
-                    HStack(spacing: 14) {
-                        GeometricAvatarView(seed: cleanHandle, size: 54)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("@\(cleanHandle)")
-                                .font(.inter(16, weight: .medium))
-                                .foregroundColor(JuntoColors.textMain)
-                            Text("Pronto para receber seu convite no Juntô")
-                                .font(.inter(13, weight: .regular))
-                                .foregroundColor(JuntoColors.textMuted)
-                        }
-                        Spacer()
-                    }
-                    .padding(14)
-                    .background(JuntoColors.warmBg)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Digite o nome de usuário")
-                        .font(.inter(22, weight: .regular))
-                        .foregroundColor(JuntoColors.textMain)
-                    Text("Informe o @usuário da pessoa para enviar o convite.")
-                        .font(.inter(14, weight: .regular))
-                        .foregroundColor(JuntoColors.textMuted)
-                }
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Pesquise pelo @usuário ou nome")
+                    .font(.inter(14, weight: .regular))
+                    .foregroundColor(JuntoColors.textMuted)
 
                 CleanOutlineInput(
-                    label: "Nome de usuário",
-                    placeholder: "ex: ana.paula",
-                    text: $handle,
+                    label: "",
+                    placeholder: "Digite uma letra ou @usuário (ex: ana)",
+                    text: $query,
                     autocapitalization: .never,
                     leadingPrefix: "@"
                 )
-
-                JuntoPillButton(title: "Enviar convite", icon: "paperplane", color: JuntoColors.primary) {
-                    guard cleanHandle.count >= 3 else {
-                        store.showToast("Digite um nome de usuário válido.", icon: "exclamationmark.circle")
-                        return
-                    }
-                    store.sendFriendInvite(username: cleanHandle)
-                    dismiss()
-                }
-                .padding(.top, 4)
             }
-            .padding(.horizontal, 22)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 14)
 
-            Spacer()
+            Divider().opacity(0.6)
+
+            if cleanQuery.isEmpty {
+                VStack(spacing: 10) {
+                    Spacer().frame(height: 50)
+                    Image(systemName: "person.2")
+                        .font(.system(size: 32, weight: .thin))
+                        .foregroundColor(JuntoColors.textLight)
+                    Text("Comece a digitar para encontrar amigos no Juntô")
+                        .font(.inter(14, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 40)
+                }
+                .frame(maxWidth: .infinity)
+                Spacer()
+            } else {
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        ForEach(searchResults) { person in
+                            let alreadySent = store.isInviteSent(for: person.username)
+
+                            HStack(spacing: 12) {
+                                GeometricAvatarView(seed: person.username, displayName: person.name, size: 46)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(person.name)
+                                        .font(.inter(15, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMain)
+                                    Text("@\(person.username)")
+                                        .font(.inter(12, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                }
+
+                                Spacer()
+
+                                Button {
+                                    guard !alreadySent else { return }
+                                    store.sendFriendInvite(username: person.username, displayName: person.name)
+                                } label: {
+                                    HStack(spacing: 5) {
+                                        if alreadySent {
+                                            Image(systemName: "checkmark")
+                                                .font(.system(size: 11, weight: .medium))
+                                        }
+                                        Text(alreadySent ? "Convite enviado" : "Adicionar")
+                                            .font(.inter(13, weight: .medium))
+                                    }
+                                    .foregroundColor(alreadySent ? JuntoColors.textMuted : .white)
+                                    .padding(.horizontal, 14)
+                                    .frame(height: 36)
+                                    .background(alreadySent ? JuntoColors.surfaceSubtle : JuntoColors.primary)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                }
+                                .disabled(alreadySent)
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 12)
+
+                            Divider().padding(.leading, 78)
+                        }
+                    }
+                }
+            }
         }
         .background(Color.white.ignoresSafeArea())
     }

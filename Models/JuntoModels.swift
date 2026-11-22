@@ -28,7 +28,7 @@ enum MainTab: Int, CaseIterable {
         switch self {
         case .friends: return "person"
         case .groups: return "person.2"
-        case .activities: return "waveform.path.ecg.rectangle"
+        case .activities: return "arrow.left.arrow.right.circle"
         case .account: return "person.crop.circle"
         }
     }
@@ -80,6 +80,12 @@ struct UserProfile {
         }
         return String(fullName.prefix(2)).uppercased()
     }
+}
+
+struct SearchableUser: Identifiable, Hashable {
+    let id = UUID()
+    let name: String
+    let username: String
 }
 
 struct FriendItem: Identifiable {

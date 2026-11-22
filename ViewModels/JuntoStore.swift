@@ -83,11 +83,30 @@ final class JuntoStore: ObservableObject {
     ]
 
     @Published var activities: [ActivityEvent] = [
-        ActivityEvent(icon: "bolt", title: "Pedro Santos pagou via Pix", subtitle: "Viagem Ubatuba • Baixa automática", timeAgo: "Há 8 min", amountText: "+ R$ 100,00", isPositive: true),
-        ActivityEvent(icon: "doc.text.viewfinder", title: "Comanda escaneada com IA", subtitle: "Churrasco de Domingo • 3 itens", timeAgo: "Há 1 hora", amountText: "R$ 63,36", isPositive: true),
-        ActivityEvent(icon: "tray.and.arrow.down", title: "Camila recarregou o Pote", subtitle: "Viagem Ubatuba • Saldo R$ 640,00", timeAgo: "Ontem", amountText: "+ R$ 150,00", isPositive: true),
-        ActivityEvent(icon: "house", title: "Matheus adicionou \"Internet Fibra\"", subtitle: "Contas do Apê 402", timeAgo: "Há 2 dias", amountText: "R$ 135,00", isPositive: false)
+        ActivityEvent(icon: "checkmark.seal.fill", title: "Pedro Santos pagou via Pix", subtitle: "Viagem Ubatuba • Baixa automática", timeAgo: "Há 8 min", amountText: "+ R$ 100,00", isPositive: true),
+        ActivityEvent(icon: "doc.text.fill", title: "Comanda dividida com IA", subtitle: "Churrasco de Domingo • 3 itens", timeAgo: "Há 1 hora", amountText: "R$ 63,36", isPositive: true),
+        ActivityEvent(icon: "banknote.fill", title: "Camila recarregou o Pote", subtitle: "Viagem Ubatuba • Saldo R$ 640,00", timeAgo: "Ontem", amountText: "+ R$ 150,00", isPositive: true),
+        ActivityEvent(icon: "house.fill", title: "Matheus adicionou \"Internet Fibra\"", subtitle: "Contas do Apê 402", timeAgo: "Há 2 dias", amountText: "R$ 135,00", isPositive: false)
     ]
+
+    // Diretório de usuários para busca em tempo real letra por letra
+    let directoryUsers: [SearchableUser] = [
+        SearchableUser(name: "Ana Paula Silva", username: "ana.paula"),
+        SearchableUser(name: "Bruno Mendes", username: "bruno.mendes"),
+        SearchableUser(name: "Carla Teixeira", username: "carla.teixeira"),
+        SearchableUser(name: "Daniela Souza", username: "dani.souza"),
+        SearchableUser(name: "Eduardo Martins", username: "edu.martins"),
+        SearchableUser(name: "Felipe Rocha", username: "felipe.rocha"),
+        SearchableUser(name: "Gabriela Costa", username: "gabi.costa"),
+        SearchableUser(name: "Henrique Dias", username: "henrique.dias"),
+        SearchableUser(name: "Juliana Ferreira", username: "ju.ferreira"),
+        SearchableUser(name: "Mariana Alves", username: "mari.alves"),
+        SearchableUser(name: "Rafael Nunes", username: "rafa.nunes"),
+        SearchableUser(name: "Thiago Oliveira", username: "thiago.oliveira"),
+        SearchableUser(name: "Vitória Lima", username: "vitoria.lima")
+    ]
+
+    @Published var sentInviteUsernames: Set<String> = []
 
     @Published var notifications: [AppNotification] = [
         AppNotification(icon: "bolt", title: "Pix recebido na hora", message: "Pedro Santos quitou R$ 100,00 com baixa automática.", timeAgo: "8 min", isUnread: true),
@@ -190,7 +209,12 @@ final class JuntoStore: ObservableObject {
         }
     }
 
-    func sendFriendInvite(username raw: String) {
+    func isInviteSent(for username: String) -> Bool {
+        let clean = username.lowercased().replacingOccurrences(of: "@", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        return sentInviteUsernames.contains(clean) || friends.contains(where: { $0.username.lowercased() == clean })
+    }
+
+    func sendFriendInvite(username raw: String, displayName customName: String? = nil) {
         let clean = raw
             .lowercased()
             .replacingOccurrences(of: "@", with: "")
@@ -201,12 +225,19 @@ final class JuntoStore: ObservableObject {
             return
         }
 
+        // Impede reenvio duplicado ao clicar novamente
+        if isInviteSent(for: clean) {
+            return
+        }
+
         if blockedUsernames.contains(clean) {
             showToast("Este usuário está bloqueado.", icon: "hand.raised")
             return
         }
 
-        let displayName = clean
+        sentInviteUsernames.insert(clean)
+
+        let displayName = customName ?? clean
             .split(separator: ".")
             .map { $0.capitalized }
             .joined(separator: " ")
@@ -219,8 +250,8 @@ final class JuntoStore: ObservableObject {
         activities.insert(
             ActivityEvent(
                 icon: "person.badge.plus",
-                title: "Convite enviado para @\(clean)",
-                subtitle: "Aguardando confirmação",
+                title: "Convite enviado para \(displayName)",
+                subtitle: "@\(clean) • Aguardando confirmação",
                 timeAgo: "Agora",
                 amountText: nil,
                 isPositive: true

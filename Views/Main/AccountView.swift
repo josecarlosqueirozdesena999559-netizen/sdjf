@@ -22,7 +22,7 @@ struct AccountView: View {
                     // Perfil: Avatar circular geométrico + Câmera + Nome/Email + "Editar" esmeralda
                     HStack(spacing: 14) {
                         ZStack(alignment: .bottomTrailing) {
-                            GeometricAvatarView(seed: store.user.username, avatarData: store.user.avatarData, size: 64)
+                            GeometricAvatarView(seed: store.user.username, displayName: store.user.fullName, avatarData: store.user.avatarData, size: 64)
 
                             PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                                 Image(systemName: "camera.fill")
@@ -190,11 +190,12 @@ struct AccountView: View {
     }
 }
 
-// MARK: - Tela "Configurações de conta" EXATAMENTE igual à screenshot 18.25.25 (2)
+// MARK: - Tela "Editar perfil" com a identidade própria do Juntô (sem Fuso Horário / Idioma — apenas Brasil)
 struct AccountSettingsScreen: View {
     @EnvironmentObject var store: JuntoStore
     @Environment(\.dismiss) private var dismiss
 
+    @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var editField: EditableField? = nil
     @State private var showBlockedSheet = false
     @State private var showDisconnectAlert = false
@@ -215,122 +216,154 @@ struct AccountSettingsScreen: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            // Topo: botão voltar circular + título "Configurações de conta"
-            HStack {
-                CircleNavButton(icon: "chevron.left") { dismiss() }
-                Spacer()
-                Text("Configurações de conta")
-                    .font(.inter(17, weight: .regular))
-                    .foregroundColor(JuntoColors.textMain)
-                Spacer()
-                Spacer().frame(width: 44)
-            }
-            .padding(.horizontal, 18)
-            .padding(.top, 10)
-            .padding(.bottom, 16)
+        ZStack {
+            JuntoColors.warmBg.ignoresSafeArea()
 
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 20) {
-                    editableRow(label: "Nome completo", value: store.user.fullName) {
-                        editField = .name
-                    }
+            VStack(spacing: 0) {
+                // Topo limpo
+                HStack {
+                    CircleNavButton(icon: "chevron.left") { dismiss() }
+                    Spacer()
+                    Text("Editar perfil")
+                        .font(.inter(17, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                    Spacer()
+                    Spacer().frame(width: 44)
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 10)
+                .padding(.bottom, 14)
 
-                    editableRow(label: "Endereço de e-mail", value: store.user.email) {
-                        editField = .email
-                    }
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 20) {
+                        // Cartão de foto / avatar
+                        VStack(spacing: 12) {
+                            ZStack(alignment: .bottomTrailing) {
+                                GeometricAvatarView(
+                                    seed: store.user.username,
+                                    displayName: store.user.fullName,
+                                    avatarData: store.user.avatarData,
+                                    size: 84
+                                )
 
-                    VStack(alignment: .leading, spacing: 4) {
-                        editableRow(label: "Telefone", value: "\(store.user.country.dialCode) \(store.user.phone)") {
-                            editField = .phone
-                        }
-                        Button("Confirmar seu número de telefone") {
-                            store.showToast("SMS de confirmação enviado.", icon: "message")
-                        }
-                        .font(.inter(14, weight: .regular))
-                        .foregroundColor(JuntoColors.linkBlue)
-                    }
-
-                    editableRow(label: "Chave Pix (Recebimento)", value: store.user.pixKey) {
-                        editField = .pixKey
-                    }
-
-                    editableRow(label: "Senha", value: "••••••••") {
-                        editField = .password
-                    }
-
-                    // Pickers estilo pílula cinza claro (sem moeda BRL pois já é padrão nativo)
-                    pillPickerDisplay(label: "Fuso Horário", value: store.user.timezone)
-                    pillPickerDisplay(label: "Idioma (Para e-mails e notificações)", value: store.user.language)
-
-                    // Configurações de privacidade (LGPD)
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("Configurações de privacidade")
-                            .font(.inter(15, weight: .regular))
-                            .foregroundColor(JuntoColors.textMain)
-
-                        HStack(alignment: .top, spacing: 10) {
-                            Button {
-                                store.user.allowRecommendations.toggle()
-                            } label: {
-                                Image(systemName: store.user.allowRecommendations ? "checkmark.square.fill" : "square")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(JuntoColors.linkBlue)
+                                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                                    Image(systemName: "camera.fill")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(.white)
+                                        .frame(width: 28, height: 28)
+                                        .background(JuntoColors.primary)
+                                        .clipShape(Circle())
+                                        .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                                }
                             }
-                            .padding(.top, 2)
+                            .onChange(of: selectedPhotoItem) { _, newItem in
+                                Task {
+                                    if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                                        store.user.avatarData = data
+                                        store.showToast("Foto atualizada.", icon: "camera")
+                                    }
+                                }
+                            }
 
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("Permitir que o Juntô me recomende como amigo a outros usuários")
-                                    .font(.inter(14, weight: .regular))
+                            VStack(spacing: 2) {
+                                Text(store.user.fullName)
+                                    .font(.inter(17, weight: .medium))
                                     .foregroundColor(JuntoColors.textMain)
-                                Text("O Juntô somente recomendará você a usuários que já tenham seu e-mail ou telefone na agenda.")
-                                    .font(.inter(12, weight: .regular))
-                                    .italic()
+                                Text("@\(store.user.username) · 🇧🇷 Brasil")
+                                    .font(.inter(13, weight: .regular))
                                     .foregroundColor(JuntoColors.textMuted)
                             }
                         }
-                    }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 18)
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
 
-                    // Botão Salvar mudanças (exatamente como no modelo)
-                    Button {
-                        store.showToast("Alterações salvas.", icon: "checkmark.circle")
-                        dismiss()
-                    } label: {
-                        Text("Salvar mudanças")
-                            .font(.inter(16, weight: .regular))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 22)
-                            .frame(height: 46)
-                            .background(JuntoColors.orangeSave)
-                            .cornerRadius(8)
-                    }
-                    .padding(.top, 4)
+                        // Cartão de Dados Pessoais
+                        VStack(alignment: .leading, spacing: 0) {
+                            sectionTitle("Dados da conta")
 
-                    // Recursos avançados (Bloqueios, Dispositivos, Excluir conta)
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Recursos avançados")
-                            .font(.inter(20, weight: .regular))
-                            .foregroundColor(JuntoColors.textMain)
-                            .padding(.top, 12)
+                            profileFieldRow(icon: "person", label: "Nome completo", value: store.user.fullName) {
+                                editField = .name
+                            }
+                            Divider().padding(.leading, 54)
 
-                        advancedActionButton("Gerenciar a lista de bloqueios") {
-                            showBlockedSheet = true
+                            profileFieldRow(icon: "envelope", label: "E-mail", value: store.user.email) {
+                                editField = .email
+                            }
+                            Divider().padding(.leading, 54)
+
+                            profileFieldRow(icon: "phone", label: "Telefone (Brasil)", value: "+55 \(store.user.phone)") {
+                                editField = .phone
+                            }
+                            Divider().padding(.leading, 54)
+
+                            profileFieldRow(icon: "qrcode", label: "Chave Pix", value: store.user.pixKey) {
+                                editField = .pixKey
+                            }
+                            Divider().padding(.leading, 54)
+
+                            profileFieldRow(icon: "lock", label: "Senha", value: "••••••••") {
+                                editField = .password
+                            }
+                        }
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                        // Cartão de Privacidade
+                        VStack(alignment: .leading, spacing: 12) {
+                            Toggle(isOn: $store.user.allowRecommendations) {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Permitir ser encontrado por amigos")
+                                        .font(.inter(14, weight: .medium))
+                                        .foregroundColor(JuntoColors.textMain)
+                                    Text("Outros usuários podem te encontrar pelo @usuário ou contato.")
+                                        .font(.inter(12, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                }
+                            }
+                            .tint(JuntoColors.primary)
+                        }
+                        .padding(16)
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                        // Botão Salvar no estilo Juntô
+                        JuntoPillButton(title: "Salvar alterações", color: JuntoColors.primary) {
+                            store.showToast("Perfil atualizado.", icon: "checkmark.circle")
+                            dismiss()
                         }
 
-                        advancedActionButton("Desconectar de todos os dispositivos") {
-                            showDisconnectAlert = true
-                        }
+                        // Cartão de Segurança & LGPD
+                        VStack(alignment: .leading, spacing: 0) {
+                            sectionTitle("Segurança e privacidade")
 
-                        advancedActionButton("Excluir conta", isDestructive: true) {
-                            showDeleteAlert = true
+                            securityRow(icon: "hand.raised", title: "Gerenciar lista de bloqueios", tint: JuntoColors.textMain) {
+                                showBlockedSheet = true
+                            }
+                            Divider().padding(.leading, 54)
+
+                            securityRow(icon: "iphone.and.arrow.forward", title: "Desconectar de todos os dispositivos", tint: JuntoColors.textMain) {
+                                showDisconnectAlert = true
+                            }
+                            Divider().padding(.leading, 54)
+
+                            securityRow(icon: "trash", title: "Excluir conta", tint: JuntoColors.danger) {
+                                showDeleteAlert = true
+                            }
                         }
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 40)
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 40)
             }
         }
-        .background(Color.white.ignoresSafeArea())
         .sheet(item: $editField) { field in
             EditFieldSimpleSheet(field: field)
                 .environmentObject(store)
@@ -360,66 +393,69 @@ struct AccountSettingsScreen: View {
         }
     }
 
-    private func editableRow(label: String, value: String, action: @escaping () -> Void) -> some View {
-        VStack(alignment: .leading, spacing: 4) {
-            Text(label)
-                .font(.inter(14, weight: .regular))
-                .foregroundColor(JuntoColors.textMain)
-
-            HStack(spacing: 8) {
-                Text(value)
-                    .font(.inter(17, weight: .medium))
-                    .foregroundColor(JuntoColors.textMain)
-
-                Button(action: action) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "pencil")
-                            .font(.system(size: 13))
-                        Text("Editar")
-                            .font(.inter(14, weight: .regular))
-                    }
-                    .foregroundColor(JuntoColors.linkBlue)
-                }
-            }
-        }
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title.uppercased())
+            .font(.inter(11, weight: .medium))
+            .tracking(0.8)
+            .foregroundColor(JuntoColors.textMuted)
+            .padding(.horizontal, 16)
+            .padding(.top, 14)
+            .padding(.bottom, 6)
     }
 
-    private func pillPickerDisplay(label: String, value: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text(label)
-                .font(.inter(14, weight: .regular))
-                .foregroundColor(JuntoColors.textMain)
+    private func profileFieldRow(icon: String, label: String, value: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundColor(JuntoColors.primary)
+                    .frame(width: 30, height: 30)
+                    .background(JuntoColors.primaryLight)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
 
-            HStack {
-                Text(value)
-                    .font(.inter(15, weight: .regular))
-                    .foregroundColor(JuntoColors.textMuted)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(label)
+                        .font(.inter(12, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                    Text(value)
+                        .font(.inter(14, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                        .lineLimit(1)
+                }
+
                 Spacer()
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 12))
-                    .foregroundColor(JuntoColors.textMain)
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(JuntoColors.textLight)
             }
             .padding(.horizontal, 14)
-            .frame(width: 240, height: 38)
-            .background(JuntoColors.surfaceSubtle)
-            .overlay(Capsule().stroke(JuntoColors.border, lineWidth: 1))
-            .clipShape(Capsule())
+            .padding(.vertical, 12)
         }
     }
 
-    private func advancedActionButton(_ title: String, isDestructive: Bool = false, action: @escaping () -> Void) -> some View {
+    private func securityRow(icon: String, title: String, tint: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            Text(title)
-                .font(.inter(14, weight: .regular))
-                .foregroundColor(isDestructive ? JuntoColors.danger : JuntoColors.textMain)
-                .padding(.horizontal, 16)
-                .frame(height: 42)
-                .background(isDestructive ? JuntoColors.dangerLight : JuntoColors.surfaceSubtle)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(isDestructive ? JuntoColors.danger.opacity(0.3) : JuntoColors.border, lineWidth: 1)
-                )
-                .cornerRadius(6)
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.system(size: 15, weight: .regular))
+                    .foregroundColor(tint)
+                    .frame(width: 30, height: 30)
+                    .background(tint == JuntoColors.danger ? JuntoColors.dangerLight : JuntoColors.surfaceSubtle)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                Text(title)
+                    .font(.inter(14, weight: .regular))
+                    .foregroundColor(tint)
+
+                Spacer()
+
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 12, weight: .regular))
+                    .foregroundColor(JuntoColors.textLight)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 13)
         }
     }
 }
