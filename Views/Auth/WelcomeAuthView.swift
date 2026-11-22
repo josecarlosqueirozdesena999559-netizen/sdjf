@@ -4,59 +4,63 @@ struct WelcomeAuthView: View {
     @EnvironmentObject var store: JuntoStore
 
     var body: some View {
-        ZStack(alignment: .bottom) {
-            Color.white.ignoresSafeArea()
+        ZStack {
+            JuntoColors.warmBg.ignoresSafeArea()
 
-            // Base autoral do Juntô: arcos suaves minimalistas (sem montanhas do Splitwise!)
-            JuntoBottomWaves()
-                .frame(height: 92)
-                .ignoresSafeArea(edges: .bottom)
+            // Ondas presas no rodapé real da tela (cobre a safe area, sem faixa branca)
+            VStack(spacing: 0) {
+                Spacer()
+                JuntoBottomWaves()
+                    .frame(height: 150)
+            }
+            .ignoresSafeArea(edges: .bottom)
 
             VStack(spacing: 0) {
                 Spacer()
 
                 VStack(spacing: 16) {
-                    JuntoLogoMark(size: 90)
+                    JuntoLogoMark(size: 88)
 
                     Text("Juntô")
-                        .font(.inter(26, weight: .medium))
+                        .font(.inter(28, weight: .medium))
                         .foregroundColor(JuntoColors.textMain)
 
-                    Text("Divida rolês, viagens e contas sem estresse.")
-                        .font(.inter(14, weight: .regular))
+                    Text("Divida rolês, viagens e contas\nsem estresse.")
+                        .font(.inter(15, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
+                        .multilineTextAlignment(.center)
                 }
 
-                Spacer().frame(height: 54)
+                Spacer().frame(height: 52)
 
-                VStack(spacing: 16) {
-                    JuntoPillButton(title: "Cadastrar-se", color: JuntoColors.primary) {
+                VStack(spacing: 12) {
+                    JuntoPillButton(title: "Criar conta", color: JuntoColors.primary) {
                         withAnimation(.easeInOut(duration: 0.22)) {
                             store.route = .registerFlow
                         }
                     }
 
-                    JuntoPillButton(title: "Entrar", color: JuntoColors.darkButton) {
+                    JuntoOutlineButton(title: "Entrar", color: JuntoColors.primary) {
                         withAnimation(.easeInOut(duration: 0.22)) {
                             store.route = .login
                         }
                     }
                 }
-                .padding(.horizontal, 44)
+                .padding(.horizontal, 32)
 
                 HStack(spacing: 8) {
                     Text("Termos").underline()
-                    Text("|")
-                    Text("Política de privacidade").underline()
-                    Text("|")
+                    Text("·")
+                    Text("Privacidade").underline()
+                    Text("·")
                     Text("Fale conosco").underline()
                 }
                 .font(.inter(12, weight: .regular))
                 .foregroundColor(JuntoColors.textMuted)
-                .padding(.top, 28)
+                .padding(.top, 24)
 
                 Spacer()
-                Spacer().frame(height: 64)
+                Spacer().frame(height: 150)
             }
         }
     }
@@ -68,33 +72,47 @@ private struct JuntoBottomWaves: View {
             let w = geo.size.width
             let h = geo.size.height
             ZStack {
+                // Camada areia
                 Path { p in
-                    p.move(to: CGPoint(x: 0, y: h * 0.45))
-                    p.addQuadCurve(to: CGPoint(x: w * 0.58, y: h * 0.32), control: CGPoint(x: w * 0.26, y: 0))
-                    p.addQuadCurve(to: CGPoint(x: w, y: h * 0.52), control: CGPoint(x: w * 0.82, y: h * 0.60))
+                    p.move(to: CGPoint(x: 0, y: h * 0.30))
+                    p.addCurve(
+                        to: CGPoint(x: w, y: h * 0.22),
+                        control1: CGPoint(x: w * 0.30, y: h * 0.02),
+                        control2: CGPoint(x: w * 0.65, y: h * 0.48)
+                    )
                     p.addLine(to: CGPoint(x: w, y: h))
                     p.addLine(to: CGPoint(x: 0, y: h))
                     p.closeSubpath()
                 }
-                .fill(JuntoColors.primaryLight)
+                .fill(JuntoColors.sand)
 
+                // Camada manga
                 Path { p in
-                    p.move(to: CGPoint(x: 0, y: h * 0.72))
-                    p.addQuadCurve(to: CGPoint(x: w * 0.52, y: h * 0.44), control: CGPoint(x: w * 0.25, y: h * 0.30))
-                    p.addQuadCurve(to: CGPoint(x: w, y: h * 0.28), control: CGPoint(x: w * 0.78, y: h * 0.55))
+                    p.move(to: CGPoint(x: 0, y: h * 0.55))
+                    p.addCurve(
+                        to: CGPoint(x: w, y: h * 0.42),
+                        control1: CGPoint(x: w * 0.35, y: h * 0.30),
+                        control2: CGPoint(x: w * 0.70, y: h * 0.70)
+                    )
                     p.addLine(to: CGPoint(x: w, y: h))
                     p.addLine(to: CGPoint(x: 0, y: h))
                     p.closeSubpath()
                 }
-                .fill(JuntoColors.primary.opacity(0.18))
+                .fill(JuntoColors.accent)
 
+                // Camada azul-noite
                 Path { p in
-                    p.move(to: CGPoint(x: w * 0.25, y: h))
-                    p.addQuadCurve(to: CGPoint(x: w, y: h * 0.48), control: CGPoint(x: w * 0.68, y: h * 0.34))
+                    p.move(to: CGPoint(x: 0, y: h * 0.78))
+                    p.addCurve(
+                        to: CGPoint(x: w, y: h * 0.66),
+                        control1: CGPoint(x: w * 0.40, y: h * 0.58),
+                        control2: CGPoint(x: w * 0.72, y: h * 0.90)
+                    )
                     p.addLine(to: CGPoint(x: w, y: h))
+                    p.addLine(to: CGPoint(x: 0, y: h))
                     p.closeSubpath()
                 }
-                .fill(JuntoColors.primary.opacity(0.88))
+                .fill(JuntoColors.primary)
             }
         }
     }

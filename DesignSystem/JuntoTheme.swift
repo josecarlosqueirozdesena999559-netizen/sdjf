@@ -1,30 +1,34 @@
 import SwiftUI
 
-// MARK: - Paleta Autoral Minimalista do Juntô (Azul Cobalto + Celeste + Branco Puro)
+// MARK: - Paleta Autoral do Juntô (Azul-Noite + Manga + Areia) — profissional e única
 enum JuntoColors {
-    static let primary = Color(hex: "#2563EB")         // Azul Cobalto moderno (nossa marca!)
-    static let primaryLight = Color(hex: "#EFF6FF")    // Azul gelo suave
-    static let primaryAccent = Color(hex: "#38BDF8")   // Ciano celeste da logo
-    static let pixGreen = Color(hex: "#059669")        // Verde limpo para receber / Pix
-    static let pixGreenLight = Color(hex: "#ECFDF5")
-    static let darkButton = Color(hex: "#18181B")      // Grafite elegante (Entrar)
-    static let proIndigo = Color(hex: "#4F46E5")       // Índigo Juntô Pro
-    static let proBgLight = Color(hex: "#EEF2FF")
-    static let orangeSave = Color(hex: "#EA580C")      // Coral quente para pendente / salvar
-    static let linkBlue = Color(hex: "#2563EB")
-    static let danger = Color(hex: "#DC2626")
-    static let dangerLight = Color(hex: "#FEF2F2")
+    static let primary = Color(hex: "#14213D")         // Azul-noite (marca / botões principais)
+    static let primaryLight = Color(hex: "#EEF1F6")    // Névoa azulada
+    static let accent = Color(hex: "#FCA311")          // Manga (destaques da marca)
+    static let accentLight = Color(hex: "#FFF4DE")
+    static let primaryAccent = Color(hex: "#FCA311")
+    static let sand = Color(hex: "#F5EBDD")            // Areia
+    static let warmBg = Color(hex: "#FAF8F5")          // Off-white quente (onboarding)
+    static let pixGreen = Color(hex: "#16A34A")        // Receber / Pix
+    static let pixGreenLight = Color(hex: "#EAF7EE")
+    static let darkButton = Color(hex: "#14213D")
+    static let proIndigo = Color(hex: "#14213D")       // Juntô Pro em azul-noite + manga
+    static let proBgLight = Color(hex: "#FFF4DE")
+    static let orangeSave = Color(hex: "#E2711D")      // Você deve / pendente
+    static let linkBlue = Color(hex: "#1D4E89")
+    static let danger = Color(hex: "#C62828")
+    static let dangerLight = Color(hex: "#FDECEC")
 
     static let bgMain = Color.white
     static let surface = Color.white
-    static let surfaceSubtle = Color(hex: "#F4F5F7")
-    static let border = Color(hex: "#E5E7EB")
-    static let inputBorder = Color(hex: "#9CA3AF")
-    static let inputBorderFocus = Color(hex: "#2563EB")
+    static let surfaceSubtle = Color(hex: "#F4F4F2")
+    static let border = Color(hex: "#E6E4E0")
+    static let inputBorder = Color(hex: "#A8A6A1")
+    static let inputBorderFocus = Color(hex: "#14213D")
 
-    static let textMain = Color(hex: "#1F2937")        // Grafite suave
-    static let textMuted = Color(hex: "#6B7280")
-    static let textLight = Color(hex: "#9CA3AF")
+    static let textMain = Color(hex: "#1B1F27")
+    static let textMuted = Color(hex: "#6B6E76")
+    static let textLight = Color(hex: "#A3A5AA")
 }
 
 // MARK: - Tipografia Inter Limpa (SEM bolds pesados — apenas Regular e Medium)
@@ -75,14 +79,8 @@ struct JuntoLogoMark: View {
 
     var body: some View {
         ZStack {
-            RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
-                .fill(
-                    LinearGradient(
-                        colors: [JuntoColors.primary, Color(hex: "#1D4ED8")],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    )
-                )
+            RoundedRectangle(cornerRadius: size * 0.26, style: .continuous)
+                .fill(JuntoColors.primary)
                 .frame(width: size, height: size)
 
             // Elo esquerdo (Branco)
@@ -102,8 +100,8 @@ struct JuntoLogoMark: View {
                 .fill(Color.white)
                 .frame(width: size * 0.14, height: size * 0.14)
             Circle()
-                .fill(Color(hex: "#10B981"))
-                .frame(width: size * 0.075, height: size * 0.075)
+                .fill(JuntoColors.primary)
+                .frame(width: size * 0.07, height: size * 0.07)
         }
         .frame(width: size, height: size)
     }
@@ -363,8 +361,35 @@ struct CleanOutlineSecureInput: View {
     }
 }
 
-// MARK: - Botão Pílula Limpo
+// MARK: - Botão Retangular Profissional (cantos suaves 10pt)
 struct JuntoPillButton: View {
+    let title: String
+    var icon: String? = nil
+    var color: Color = JuntoColors.primary
+    var textColor: Color = .white
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                if let icon = icon {
+                    Image(systemName: icon)
+                        .font(.system(size: 16, weight: .regular))
+                }
+                Text(title)
+                    .font(.inter(16, weight: .medium))
+            }
+            .foregroundColor(textColor)
+            .frame(maxWidth: .infinity)
+            .frame(height: 52)
+            .background(color)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+    }
+}
+
+// MARK: - Botão Retangular Contornado (secundário)
+struct JuntoOutlineButton: View {
     let title: String
     var icon: String? = nil
     var color: Color = JuntoColors.primary
@@ -380,11 +405,14 @@ struct JuntoPillButton: View {
                 Text(title)
                     .font(.inter(16, weight: .medium))
             }
-            .foregroundColor(.white)
+            .foregroundColor(color)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
-            .background(color)
-            .clipShape(Capsule())
+            .background(Color.white)
+            .overlay(
+                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                    .stroke(color, lineWidth: 1.2)
+            )
         }
     }
 }
@@ -398,11 +426,11 @@ struct SubtleFacetBackground: View {
             ZStack {
                 Color.white
                 Circle()
-                    .fill(JuntoColors.primaryLight.opacity(0.45))
+                    .fill(JuntoColors.sand.opacity(0.35))
                     .frame(width: w * 0.9, height: w * 0.9)
                     .offset(x: -w * 0.35, y: -h * 0.15)
                 Circle()
-                    .fill(Color(hex: "#F0F9FF").opacity(0.65))
+                    .fill(JuntoColors.primaryLight.opacity(0.6))
                     .frame(width: w * 0.85, height: w * 0.85)
                     .offset(x: w * 0.42, y: h * 0.35)
             }

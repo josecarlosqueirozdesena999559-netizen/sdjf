@@ -2,8 +2,8 @@ import SwiftUI
 
 struct LoginView: View {
     @EnvironmentObject var store: JuntoStore
-    @State private var identifier: String = "didjdtgg@gmail.com"
-    @State private var password: String = "12345678"
+    @State private var identifier: String = ""
+    @State private var password: String = ""
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {

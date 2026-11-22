@@ -8,12 +8,12 @@ final class JuntoStore: ObservableObject {
     @Published var openCreateGroupWithCategory: String? = nil
 
     @Published var user = UserProfile(
-        fullName: "José Carlos Queiroz",
-        username: "jose.carlos",
-        email: "jose.carlos@gmail.com",
+        fullName: "Lucas Andrade",
+        username: "lucas.andrade",
+        email: "lucas.andrade@exemplo.com",
         country: CountryOption.all[0],
-        phone: "(84) 98834-1068",
-        pixKey: "jose.carlos@gmail.com"
+        phone: "(11) 91234-5678",
+        pixKey: "lucas.andrade@exemplo.com"
     )
 
     // Cadastro temporário (1 campo por tela)
@@ -160,7 +160,7 @@ final class JuntoStore: ObservableObject {
     func completeRegistration() {
         let cleanName = draftFullName.trimmingCharacters(in: .whitespacesAndNewlines)
         user = UserProfile(
-            fullName: cleanName.isEmpty ? "José Carlos" : cleanName,
+            fullName: cleanName.isEmpty ? "Novo usuário" : cleanName,
             username: draftUsername.replacingOccurrences(of: "@", with: "").lowercased(),
             email: draftEmail.trimmingCharacters(in: .whitespacesAndNewlines),
             country: draftCountry,

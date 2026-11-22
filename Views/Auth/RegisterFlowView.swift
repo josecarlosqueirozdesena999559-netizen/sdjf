@@ -43,10 +43,10 @@ struct RegisterFlowView: View {
             VStack(alignment: .leading, spacing: 20) {
                 switch step {
                 case 1:
-                    stepTitle("Qual é o seu e-mail?", subtitle: "Usaremos para proteger sua conta e enviar recibos.")
+                    stepTitle("Qual é o seu e-mail?", subtitle: "Ele será usado para entrar e proteger sua conta.")
                     CleanOutlineInput(
                         label: "Endereço de e-mail",
-                        placeholder: "ex: jose.carlos@gmail.com",
+                        placeholder: "ex: voce@email.com",
                         text: $store.draftEmail,
                         keyboardType: .emailAddress,
                         autocapitalization: .never
@@ -67,7 +67,7 @@ struct RegisterFlowView: View {
                             Text("@")
                                 .font(.inter(15, weight: .regular))
                                 .foregroundColor(JuntoColors.textMuted)
-                            TextField("ex: jose.carlos", text: $store.draftUsername)
+                            TextField("ex: maria.oliveira", text: $store.draftUsername)
                                 .font(.inter(15, weight: .regular))
                                 .foregroundColor(JuntoColors.textMain)
                                 .textInputAutocapitalization(.never)
@@ -98,7 +98,7 @@ struct RegisterFlowView: View {
                     stepTitle("Como você se chama?", subtitle: "Esse nome aparecerá para seus amigos nos grupos.")
                     CleanOutlineInput(
                         label: "Nome completo",
-                        placeholder: "ex: José Carlos Queiroz",
+                        placeholder: "ex: Maria Oliveira",
                         text: $store.draftFullName
                     )
 
@@ -138,7 +138,7 @@ struct RegisterFlowView: View {
                                 )
                             }
 
-                            TextField("(84) 98834-1068", text: $store.draftPhone)
+                            TextField("(11) 91234-5678", text: $store.draftPhone)
                                 .font(.inter(15, weight: .regular))
                                 .foregroundColor(JuntoColors.textMain)
                                 .keyboardType(.phonePad)

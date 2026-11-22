@@ -29,9 +29,9 @@ struct GroupsRoleView: View {
                         .padding(.horizontal, 18)
                         .frame(height: 44)
                         .background(Color.white)
-                        .clipShape(Capsule())
-                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
-                        .overlay(Capsule().stroke(JuntoColors.border.opacity(0.6), lineWidth: 0.6))
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 2)
+                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(JuntoColors.border, lineWidth: 0.8))
                 }
             }
             .padding(.horizontal, 18)
@@ -308,7 +308,7 @@ struct GroupDetailSheet: View {
                             .frame(maxWidth: .infinity)
                             .frame(height: 52)
                             .background(JuntoColors.primaryLight)
-                            .clipShape(Capsule())
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
                     }
                     .padding(16)

@@ -42,8 +42,8 @@ struct MainTabView: View {
                         .padding(.horizontal, 20)
                         .frame(height: 48)
                         .background(JuntoColors.primary)
-                        .clipShape(Capsule())
-                        .shadow(color: JuntoColors.primary.opacity(0.28), radius: 10, x: 0, y: 4)
+                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        .shadow(color: JuntoColors.primary.opacity(0.24), radius: 10, x: 0, y: 4)
                     }
                     .padding(.trailing, 18)
                 }
