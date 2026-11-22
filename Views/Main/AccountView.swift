@@ -10,23 +10,10 @@ struct AccountView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Topo: botão lupa circular flutuante
-            HStack {
-                CircleNavButton(icon: "magnifyingglass") {
-                    store.showToast("Busca nas configurações.", icon: "magnifyingglass")
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 18)
-            .padding(.top, 10)
-            .padding(.bottom, 12)
-
-            Divider().opacity(0.5)
-
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Conta")
-                        .font(.inter(24, weight: .regular))
+                        .font(.inter(24, weight: .medium))
                         .foregroundColor(JuntoColors.textMain)
                         .padding(.horizontal, 20)
                         .padding(.top, 16)

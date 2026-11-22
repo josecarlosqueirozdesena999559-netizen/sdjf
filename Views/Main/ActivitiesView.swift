@@ -3,7 +3,6 @@ import SwiftUI
 struct ActivitiesView: View {
     @EnvironmentObject var store: JuntoStore
     @State private var searchText = ""
-    @State private var showSearch = false
 
     private var filteredActivities: [ActivityEvent] {
         if searchText.isEmpty { return store.activities }
@@ -15,29 +14,25 @@ struct ActivitiesView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Topo: botão lupa circular flutuante
-            HStack {
-                CircleNavButton(icon: "magnifyingglass") {
-                    withAnimation { showSearch.toggle() }
-                }
-                Spacer()
-            }
-            .padding(.horizontal, 18)
-            .padding(.top, 10)
-            .padding(.bottom, 14)
-
-            if showSearch {
-                CleanOutlineInput(label: "", placeholder: "Buscar atividade", text: $searchText)
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 10)
-            }
-
             Text("Atividade recente")
-                .font(.inter(24, weight: .regular))
+                .font(.inter(24, weight: .medium))
                 .foregroundColor(JuntoColors.textMain)
                 .padding(.horizontal, 20)
-                .padding(.top, 10)
-                .padding(.bottom, 16)
+                .padding(.top, 14)
+                .padding(.bottom, 12)
+
+            AnimatedSearchBar(
+                text: $searchText,
+                placeholders: [
+                    "Pesquisando alguma atividade?",
+                    "Buscar Pix ou despesa...",
+                    "Procurando um pagamento?"
+                ]
+            )
+            .padding(.horizontal, 20)
+            .padding(.bottom, 14)
+
+            Divider().opacity(0.6)
 
             if filteredActivities.isEmpty {
                 // Caixa cinza clara exata da referência

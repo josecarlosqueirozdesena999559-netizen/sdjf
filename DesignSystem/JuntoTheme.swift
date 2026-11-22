@@ -107,21 +107,47 @@ struct JuntoLogoMark: View {
     }
 }
 
-// MARK: - Avatar Circular Geométrico Aleatório / Determinístico (para usuários sem foto)
+// MARK: - Avatar Ilustrado Flat Estilo "Praia" (Personagens minimalistas sem rosto de todas as cores)
 struct GeometricAvatarView: View {
     var seed: String = "junto"
     var avatarData: Data? = nil
     var size: CGFloat = 56
 
-    private static let palettes: [(Color, Color, Color)] = [
-        (Color(hex: "#2563EB"), Color(hex: "#93C5FD"), Color(hex: "#1D4ED8")), // Cobalto
-        (Color(hex: "#059669"), Color(hex: "#6EE7B7"), Color(hex: "#047857")), // Esmeralda
-        (Color(hex: "#7C3AED"), Color(hex: "#C4B5FD"), Color(hex: "#6D28D9")), // Violeta
-        (Color(hex: "#0284C7"), Color(hex: "#7DD3FC"), Color(hex: "#0369A1")), // Oceano
-        (Color(hex: "#EA580C"), Color(hex: "#FDBA74"), Color(hex: "#C2410C")), // Coral
-        (Color(hex: "#DB2777"), Color(hex: "#F9A8D4"), Color(hex: "#BE185D")), // Rosa
-        (Color(hex: "#D97706"), Color(hex: "#FDE68A"), Color(hex: "#B45309")), // Âmbar
-        (Color(hex: "#334155"), Color(hex: "#94A3B8"), Color(hex: "#1E293B"))  // Grafite
+    private static let bgColors: [Color] = [
+        Color(hex: "#F5EBDD"), // Areia
+        Color(hex: "#E8F0FE"), // Azul névoa
+        Color(hex: "#E6F7EE"), // Menta suave
+        Color(hex: "#FFF1DF"), // Pêssego claro
+        Color(hex: "#F3E8FF"), // Lavanda suave
+        Color(hex: "#FCE7F3"), // Rosa claro
+        Color(hex: "#E0F2FE"), // Celeste claro
+        Color(hex: "#FEF3C7")  // Sol suave
+    ]
+
+    private static let shirtColors: [Color] = [
+        Color(hex: "#14213D"), // Azul-noite
+        Color(hex: "#FCA311"), // Manga
+        Color(hex: "#16A34A"), // Esmeralda
+        Color(hex: "#E2711D"), // Terracota
+        Color(hex: "#2563EB"), // Cobalto
+        Color(hex: "#7C3AED"), // Violeta
+        Color(hex: "#0D9488"), // Turquesa
+        Color(hex: "#DB2777")  // Magenta
+    ]
+
+    private static let skinColors: [Color] = [
+        Color(hex: "#5C3A28"), // Pele retinta
+        Color(hex: "#8D5B3E"), // Pele parda escura
+        Color(hex: "#B88462"), // Pele parda clara
+        Color(hex: "#D7A988"), // Pele oliva
+        Color(hex: "#ECC6AA")  // Pele clara
+    ]
+
+    private static let hairColors: [Color] = [
+        Color(hex: "#14213D"), // Azul-noite (mesmo estilo da praia!)
+        Color(hex: "#1E1B18"), // Preto suave
+        Color(hex: "#3B281F"), // Castanho escuro
+        Color(hex: "#5A3E2B")  // Castanho médio
     ]
 
     private var hashValueStable: Int {
@@ -132,13 +158,11 @@ struct GeometricAvatarView: View {
         return abs(hash)
     }
 
-    private var colors: (Color, Color, Color) {
-        Self.palettes[hashValueStable % Self.palettes.count]
-    }
-
-    private var patternIndex: Int {
-        (hashValueStable / Self.palettes.count) % 4
-    }
+    private var bg: Color { Self.bgColors[hashValueStable % Self.bgColors.count] }
+    private var shirt: Color { Self.shirtColors[(hashValueStable / 3) % Self.shirtColors.count] }
+    private var skin: Color { Self.skinColors[(hashValueStable / 7) % Self.skinColors.count] }
+    private var hair: Color { Self.hairColors[(hashValueStable / 11) % Self.hairColors.count] }
+    private var hairStyle: Int { (hashValueStable / 13) % 4 }
 
     var body: some View {
         Group {
@@ -149,83 +173,158 @@ struct GeometricAvatarView: View {
                     .frame(width: size, height: size)
                     .clipShape(Circle())
             } else {
-                let (c1, c2, c3) = colors
                 ZStack {
-                    Circle().fill(c2)
+                    Circle().fill(bg)
 
-                    switch patternIndex {
-                    case 0:
+                    // Cabelo traseiro (para estilos volumosos / coque / cacheado)
+                    if hairStyle == 0 {
+                        // Afro redondo estiloso (como na ilustração da praia)
+                        Circle()
+                            .fill(hair)
+                            .frame(width: size * 0.48, height: size * 0.48)
+                            .offset(x: -size * 0.03, y: -size * 0.14)
+                    } else if hairStyle == 1 {
+                        // Coque alto
+                        Circle()
+                            .fill(hair)
+                            .frame(width: size * 0.22, height: size * 0.22)
+                            .offset(y: -size * 0.34)
+                        Circle()
+                            .fill(hair)
+                            .frame(width: size * 0.38, height: size * 0.38)
+                            .offset(y: -size * 0.12)
+                    } else if hairStyle == 2 {
+                        // Ondulado médio
+                        Capsule()
+                            .fill(hair)
+                            .frame(width: size * 0.44, height: size * 0.46)
+                            .offset(y: -size * 0.05)
+                    }
+
+                    // Ombros / Camiseta
+                    Ellipse()
+                        .fill(shirt)
+                        .frame(width: size * 0.72, height: size * 0.46)
+                        .offset(y: size * 0.36)
+
+                    // Pescoço
+                    RoundedRectangle(cornerRadius: size * 0.06)
+                        .fill(skin)
+                        .frame(width: size * 0.14, height: size * 0.18)
+                        .offset(y: size * 0.10)
+
+                    // Cabeça minimalista sem rosto (faceless)
+                    Ellipse()
+                        .fill(skin)
+                        .frame(width: size * 0.30, height: size * 0.34)
+                        .offset(y: -size * 0.09)
+
+                    // Topete / Franja frontal
+                    if hairStyle == 3 {
+                        // Curto moderno com topete (como o amigo da direita na praia)
                         Path { p in
-                            p.move(to: CGPoint(x: size * 0.22, y: 0))
-                            p.addLine(to: CGPoint(x: size, y: size * 0.50))
-                            p.addLine(to: CGPoint(x: size * 0.22, y: size))
+                            p.move(to: CGPoint(x: size * 0.34, y: size * 0.36))
+                            p.addQuadCurve(
+                                to: CGPoint(x: size * 0.66, y: size * 0.34),
+                                control: CGPoint(x: size * 0.48, y: size * 0.15)
+                            )
+                            p.addQuadCurve(
+                                to: CGPoint(x: size * 0.64, y: size * 0.43),
+                                control: CGPoint(x: size * 0.68, y: size * 0.39)
+                            )
+                            p.addQuadCurve(
+                                to: CGPoint(x: size * 0.35, y: size * 0.40),
+                                control: CGPoint(x: size * 0.50, y: size * 0.28)
+                            )
                             p.closeSubpath()
                         }
-                        .fill(c1)
-
+                        .fill(hair)
+                    } else {
+                        // Franja suave no topo da cabeça
                         Path { p in
-                            p.move(to: CGPoint(x: size * 0.22, y: 0))
-                            p.addLine(to: CGPoint(x: size, y: 0))
-                            p.addLine(to: CGPoint(x: size, y: size * 0.50))
+                            p.addArc(
+                                center: CGPoint(x: size * 0.50, y: size * 0.38),
+                                radius: size * 0.155,
+                                startAngle: .degrees(190),
+                                endAngle: .degrees(350),
+                                clockwise: false
+                            )
                             p.closeSubpath()
                         }
-                        .fill(c3)
-
-                    case 1:
-                        Path { p in
-                            p.move(to: CGPoint(x: size * 0.50, y: 0))
-                            p.addLine(to: CGPoint(x: size, y: size * 0.50))
-                            p.addLine(to: CGPoint(x: size * 0.50, y: size))
-                            p.addLine(to: CGPoint(x: 0, y: size * 0.50))
-                            p.closeSubpath()
-                        }
-                        .fill(c1)
-
-                        Path { p in
-                            p.move(to: CGPoint(x: size * 0.50, y: 0))
-                            p.addLine(to: CGPoint(x: size, y: size * 0.50))
-                            p.addLine(to: CGPoint(x: size * 0.50, y: size * 0.50))
-                            p.closeSubpath()
-                        }
-                        .fill(c3)
-
-                    case 2:
-                        Path { p in
-                            p.move(to: CGPoint(x: 0, y: size * 0.35))
-                            p.addLine(to: CGPoint(x: size, y: 0))
-                            p.addLine(to: CGPoint(x: size, y: size))
-                            p.addLine(to: CGPoint(x: 0, y: size))
-                            p.closeSubpath()
-                        }
-                        .fill(c1)
-
-                        Path { p in
-                            p.move(to: CGPoint(x: 0, y: size * 0.65))
-                            p.addLine(to: CGPoint(x: size, y: size * 0.35))
-                            p.addLine(to: CGPoint(x: size, y: size))
-                            p.addLine(to: CGPoint(x: 0, y: size))
-                            p.closeSubpath()
-                        }
-                        .fill(c3)
-
-                    default:
-                        Path { p in
-                            p.addRect(CGRect(x: 0, y: 0, width: size * 0.50, height: size * 0.50))
-                            p.addRect(CGRect(x: size * 0.50, y: size * 0.50, width: size * 0.50, height: size * 0.50))
-                        }
-                        .fill(c1)
-
-                        Path { p in
-                            p.move(to: CGPoint(x: size * 0.50, y: 0))
-                            p.addLine(to: CGPoint(x: size, y: 0))
-                            p.addLine(to: CGPoint(x: size * 0.50, y: size * 0.50))
-                            p.closeSubpath()
-                        }
-                        .fill(c3)
+                        .fill(hair)
                     }
                 }
                 .frame(width: size, height: size)
                 .clipShape(Circle())
+            }
+        }
+    }
+}
+
+// MARK: - Barra de Pesquisa Animada (cicla sugestões e limpa ao tocar para digitar)
+struct AnimatedSearchBar: View {
+    @Binding var text: String
+    var placeholders: [String] = [
+        "Pesquisando algum nome?",
+        "Buscar @pedro.santos...",
+        "Procurando um amigo?",
+        "Digite um nome ou @usuário..."
+    ]
+
+    @FocusState private var isFocused: Bool
+    @State private var currentIndex = 0
+    private let timer = Timer.publish(every: 2.6, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 15, weight: .regular))
+                .foregroundColor(isFocused ? JuntoColors.primary : JuntoColors.textMuted)
+
+            ZStack(alignment: .leading) {
+                if text.isEmpty && !isFocused {
+                    Text(placeholders[currentIndex])
+                        .font(.inter(14, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                        .id(currentIndex)
+                        .transition(.asymmetric(
+                            insertion: .move(edge: .bottom).combined(with: .opacity),
+                            removal: .move(edge: .top).combined(with: .opacity)
+                        ))
+                }
+
+                TextField("", text: $text)
+                    .font(.inter(14, weight: .regular))
+                    .foregroundColor(JuntoColors.textMain)
+                    .autocorrectionDisabled()
+                    .textInputAutocapitalization(.never)
+                    .focused($isFocused)
+            }
+            .clipped()
+
+            if !text.isEmpty || isFocused {
+                Button {
+                    text = ""
+                    isFocused = false
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .font(.system(size: 16))
+                        .foregroundColor(JuntoColors.textLight)
+                }
+            }
+        }
+        .padding(.horizontal, 14)
+        .frame(height: 44)
+        .background(JuntoColors.surfaceSubtle)
+        .overlay(
+            RoundedRectangle(cornerRadius: 10, style: .continuous)
+                .stroke(isFocused ? JuntoColors.primary : Color.clear, lineWidth: 1.2)
+        )
+        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        .onReceive(timer) { _ in
+            guard text.isEmpty && !isFocused else { return }
+            withAnimation(.easeInOut(duration: 0.35)) {
+                currentIndex = (currentIndex + 1) % placeholders.count
             }
         }
     }

@@ -5,7 +5,6 @@ struct GroupsRoleView: View {
     @State private var showCreateGroup = false
     @State private var selectedGroup: RoleGroup? = nil
     @State private var searchText = ""
-    @State private var showSearch = false
 
     private var filteredGroups: [RoleGroup] {
         if searchText.isEmpty { return store.groups }
@@ -14,46 +13,42 @@ struct GroupsRoleView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Topo limpo: Lupa à esquerda, pílula "Criar grupo" à direita
+            // Topo estilo WhatsApp: "Grupos" + botão "+" à direita (sem lupa)
             HStack {
-                CircleNavButton(icon: "magnifyingglass") {
-                    withAnimation { showSearch.toggle() }
-                }
+                Text("Grupos")
+                    .font(.inter(24, weight: .medium))
+                    .foregroundColor(JuntoColors.textMain)
                 Spacer()
                 Button {
                     showCreateGroup = true
                 } label: {
-                    Text("Criar grupo")
-                        .font(.inter(14, weight: .regular))
-                        .foregroundColor(JuntoColors.textMain)
-                        .padding(.horizontal, 18)
-                        .frame(height: 44)
-                        .background(Color.white)
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .shadow(color: Color.black.opacity(0.06), radius: 6, x: 0, y: 2)
-                        .overlay(RoundedRectangle(cornerRadius: 10, style: .continuous).stroke(JuntoColors.border, lineWidth: 0.8))
+                    Image(systemName: "plus")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(.white)
+                        .frame(width: 40, height: 40)
+                        .background(JuntoColors.primary)
+                        .clipShape(Circle())
                 }
             }
-            .padding(.horizontal, 18)
-            .padding(.top, 10)
-            .padding(.bottom, 14)
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 12)
 
-            Divider().opacity(0.5)
+            AnimatedSearchBar(
+                text: $searchText,
+                placeholders: [
+                    "Pesquisando algum grupo?",
+                    "Buscar Viagem Ubatuba...",
+                    "Procurando um rolê?"
+                ]
+            )
+            .padding(.horizontal, 20)
+            .padding(.bottom, 12)
 
-            if showSearch {
-                CleanOutlineInput(label: "", placeholder: "Buscar grupo", text: $searchText)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 12)
-            }
+            Divider().opacity(0.6)
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("Grupos")
-                        .font(.inter(24, weight: .regular))
-                        .foregroundColor(JuntoColors.textMain)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 18)
-                        .padding(.bottom, 12)
 
                     ForEach(filteredGroups) { group in
                         Button {
