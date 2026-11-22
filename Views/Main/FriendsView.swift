@@ -111,9 +111,8 @@ struct FriendsView: View {
                             ForEach(filteredFriends) { friend in
                                 HStack(spacing: 14) {
                                     GeometricAvatarView(
-                                        size: 44,
-                                        primaryColor: friend.balance < 0 ? JuntoColors.orangeSave : JuntoColors.primary,
-                                        secondaryColor: friend.balance < 0 ? Color(hex: "#FDBA74") : JuntoColors.primaryMint
+                                        seed: friend.username,
+                                        size: 44
                                     )
 
                                     VStack(alignment: .leading, spacing: 2) {

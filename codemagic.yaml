@@ -1,4 +1,57 @@
 workflows:
+  ios-appetize-preview:
+    name: Appetize.io Preview (Simulador iOS - Sem App Store)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+
+    environment:
+      vars:
+        XCODE_PROJECT: "JuntoApp.xcodeproj"
+        XCODE_SCHEME: "JuntoApp"
+      xcode: latest
+
+    scripts:
+      - name: Generate Xcode project
+        script: |
+          if ! command -v xcodegen &> /dev/null; then
+            brew install xcodegen
+          fi
+          xcodegen generate
+
+      - name: Build iOS Simulator .app for Appetize.io
+        script: |
+          xcodebuild \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME" \
+            -configuration Release \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build/DerivedData \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+
+      - name: Package .zip for Appetize.io
+        script: |
+          mkdir -p build/appetize
+          APP_PATH=$(find build/DerivedData/Build/Products/Release-iphonesimulator -name "*.app" -maxdepth 1 | head -n 1)
+          echo "Found Simulator app: $APP_PATH"
+          cd "$(dirname "$APP_PATH")"
+          zip -r "$CM_BUILD_DIR/build/appetize/JuntoApp-Simulator.zip" "$(basename "$APP_PATH")"
+
+      - name: Upload to Appetize.io (se APPETIZE_API_TOKEN estiver configurado)
+        script: |
+          if [ -n "$APPETIZE_API_TOKEN" ]; then
+            curl --http1.1 -X POST "https://$APPETIZE_API_TOKEN@api.appetize.io/v1/apps" \
+              -F "file=@build/appetize/JuntoApp-Simulator.zip" \
+              -F "platform=ios"
+          else
+            echo "APPETIZE_API_TOKEN não definido. Baixe build/appetize/JuntoApp-Simulator.zip nos Artifacts e suba em https://appetize.io/upload"
+          fi
+
+    artifacts:
+      - build/appetize/JuntoApp-Simulator.zip
+      - /tmp/xcodebuild_logs/*.log
+
   ios-app-store:
     name: TestFlight iOS - Juntô (com.achou.com)
     max_build_duration: 120

@@ -121,12 +121,38 @@ struct JuntoLogoMark: View {
     }
 }
 
-// MARK: - Avatar Circular Geométrico Minimalista (como na aba Conta)
+// MARK: - Avatar Circular Geométrico Aleatório / Determinístico (para usuários sem foto)
 struct GeometricAvatarView: View {
+    var seed: String = "junto"
     var avatarData: Data? = nil
     var size: CGFloat = 56
-    var primaryColor: Color = Color(hex: "#8E0E2C")
-    var secondaryColor: Color = Color(hex: "#C84B62")
+
+    private static let palettes: [(Color, Color, Color)] = [
+        (Color(hex: "#8E0E2C"), Color(hex: "#C84B62"), Color(hex: "#A91234")), // Rubi
+        (Color(hex: "#1B7F6B"), Color(hex: "#8CE0CE"), Color(hex: "#146353")), // Esmeralda
+        (Color(hex: "#4F46E5"), Color(hex: "#A5B4FC"), Color(hex: "#3730A3")), // Índigo
+        (Color(hex: "#0369A1"), Color(hex: "#7DD3FC"), Color(hex: "#075985")), // Oceano
+        (Color(hex: "#EA580C"), Color(hex: "#FDBA74"), Color(hex: "#C2410C")), // Coral
+        (Color(hex: "#7E22CE"), Color(hex: "#D8B4FE"), Color(hex: "#6B21A8")), // Ametista
+        (Color(hex: "#B45309"), Color(hex: "#FDE68A"), Color(hex: "#92400E")), // Âmbar
+        (Color(hex: "#334155"), Color(hex: "#94A3B8"), Color(hex: "#1E293B"))  // Grafite
+    ]
+
+    private var hashValueStable: Int {
+        var hash = 5381
+        for byte in seed.lowercased().utf8 {
+            hash = ((hash << 5) &+ hash) &+ Int(byte)
+        }
+        return abs(hash)
+    }
+
+    private var colors: (Color, Color, Color) {
+        Self.palettes[hashValueStable % Self.palettes.count]
+    }
+
+    private var patternIndex: Int {
+        (hashValueStable / Self.palettes.count) % 4
+    }
 
     var body: some View {
         Group {
@@ -137,23 +163,84 @@ struct GeometricAvatarView: View {
                     .frame(width: size, height: size)
                     .clipShape(Circle())
             } else {
+                let (c1, c2, c3) = colors
                 ZStack {
-                    Circle().fill(secondaryColor)
-                    Path { p in
-                        p.move(to: CGPoint(x: size * 0.22, y: 0))
-                        p.addLine(to: CGPoint(x: size, y: size * 0.50))
-                        p.addLine(to: CGPoint(x: size * 0.22, y: size))
-                        p.closeSubpath()
-                    }
-                    .fill(primaryColor)
+                    Circle().fill(c2)
 
-                    Path { p in
-                        p.move(to: CGPoint(x: size * 0.22, y: 0))
-                        p.addLine(to: CGPoint(x: size, y: 0))
-                        p.addLine(to: CGPoint(x: size, y: size * 0.50))
-                        p.closeSubpath()
+                    switch patternIndex {
+                    case 0:
+                        // Facetas triangulares clássicas
+                        Path { p in
+                            p.move(to: CGPoint(x: size * 0.22, y: 0))
+                            p.addLine(to: CGPoint(x: size, y: size * 0.50))
+                            p.addLine(to: CGPoint(x: size * 0.22, y: size))
+                            p.closeSubpath()
+                        }
+                        .fill(c1)
+
+                        Path { p in
+                            p.move(to: CGPoint(x: size * 0.22, y: 0))
+                            p.addLine(to: CGPoint(x: size, y: 0))
+                            p.addLine(to: CGPoint(x: size, y: size * 0.50))
+                            p.closeSubpath()
+                        }
+                        .fill(c3)
+
+                    case 1:
+                        // Diamante geométrico central
+                        Path { p in
+                            p.move(to: CGPoint(x: size * 0.50, y: 0))
+                            p.addLine(to: CGPoint(x: size, y: size * 0.50))
+                            p.addLine(to: CGPoint(x: size * 0.50, y: size))
+                            p.addLine(to: CGPoint(x: 0, y: size * 0.50))
+                            p.closeSubpath()
+                        }
+                        .fill(c1)
+
+                        Path { p in
+                            p.move(to: CGPoint(x: size * 0.50, y: 0))
+                            p.addLine(to: CGPoint(x: size, y: size * 0.50))
+                            p.addLine(to: CGPoint(x: size * 0.50, y: size * 0.50))
+                            p.closeSubpath()
+                        }
+                        .fill(c3)
+
+                    case 2:
+                        // Blocos diagonais
+                        Path { p in
+                            p.move(to: CGPoint(x: 0, y: size * 0.35))
+                            p.addLine(to: CGPoint(x: size, y: 0))
+                            p.addLine(to: CGPoint(x: size, y: size))
+                            p.addLine(to: CGPoint(x: 0, y: size))
+                            p.closeSubpath()
+                        }
+                        .fill(c1)
+
+                        Path { p in
+                            p.move(to: CGPoint(x: 0, y: size * 0.65))
+                            p.addLine(to: CGPoint(x: size, y: size * 0.35))
+                            p.addLine(to: CGPoint(x: size, y: size))
+                            p.addLine(to: CGPoint(x: 0, y: size))
+                            p.closeSubpath()
+                        }
+                        .fill(c3)
+
+                    default:
+                        // Quadrantes minimalistas
+                        Path { p in
+                            p.addRect(CGRect(x: 0, y: 0, width: size * 0.50, height: size * 0.50))
+                            p.addRect(CGRect(x: size * 0.50, y: size * 0.50, width: size * 0.50, height: size * 0.50))
+                        }
+                        .fill(c1)
+
+                        Path { p in
+                            p.move(to: CGPoint(x: size * 0.50, y: 0))
+                            p.addLine(to: CGPoint(x: size, y: 0))
+                            p.addLine(to: CGPoint(x: size * 0.50, y: size * 0.50))
+                            p.closeSubpath()
+                        }
+                        .fill(c3)
                     }
-                    .fill(Color(hex: "#A91234"))
                 }
                 .frame(width: size, height: size)
                 .clipShape(Circle())

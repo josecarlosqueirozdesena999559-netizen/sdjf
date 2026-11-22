@@ -35,7 +35,7 @@ struct AccountView: View {
                     // Perfil: Avatar circular geométrico + Câmera + Nome/Email + "Editar" esmeralda
                     HStack(spacing: 14) {
                         ZStack(alignment: .bottomTrailing) {
-                            GeometricAvatarView(avatarData: store.user.avatarData, size: 64)
+                            GeometricAvatarView(seed: store.user.username, avatarData: store.user.avatarData, size: 64)
 
                             PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
                                 Image(systemName: "camera.fill")
