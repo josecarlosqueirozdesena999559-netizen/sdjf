@@ -106,8 +106,16 @@ struct GroupsRoleView: View {
         }
         .background(Color.white)
         .fullScreenCover(isPresented: $showCreateGroup) {
-            CreateGroupScreen()
+            CreateGroupScreen(initialType: store.openCreateGroupWithCategory ?? "Viagem")
                 .environmentObject(store)
+                .onDisappear {
+                    store.openCreateGroupWithCategory = nil
+                }
+        }
+        .onAppear {
+            if store.openCreateGroupWithCategory != nil {
+                showCreateGroup = true
+            }
         }
         .sheet(item: $selectedGroup) { group in
             GroupDetailSheet(group: group)
@@ -122,6 +130,7 @@ struct CreateGroupScreen: View {
     @EnvironmentObject var store: JuntoStore
     @Environment(\.dismiss) private var dismiss
 
+    var initialType: String = "Viagem"
     @State private var groupName: String = ""
     @State private var selectedType: String = "Viagem"
     @State private var enableCollectivePot: Bool = true
@@ -237,6 +246,9 @@ struct CreateGroupScreen: View {
             Spacer()
         }
         .background(Color.white.ignoresSafeArea())
+        .onAppear {
+            selectedType = initialType
+        }
     }
 }
 

@@ -5,17 +5,18 @@ import Combine
 final class JuntoStore: ObservableObject {
     @Published var route: AppRoute = .welcomeAuth
     @Published var selectedTab: MainTab = .friends
+    @Published var openCreateGroupWithCategory: String? = nil
 
     @Published var user = UserProfile(
-        fullName: "José Carlos Queiroz de Sena",
+        fullName: "José Carlos Queiroz",
         username: "jose.carlos",
-        email: "didjdtgg@gmail.com",
+        email: "jose.carlos@gmail.com",
         country: CountryOption.all[0],
         phone: "(84) 98834-1068",
-        pixKey: "didjdtgg@gmail.com"
+        pixKey: "jose.carlos@gmail.com"
     )
 
-    // Cadastro temporário
+    // Cadastro temporário (1 campo por tela)
     @Published var draftEmail: String = ""
     @Published var draftUsername: String = ""
     @Published var draftPassword: String = ""
@@ -24,26 +25,15 @@ final class JuntoStore: ObservableObject {
     @Published var draftPhone: String = ""
     @Published var usernameState: UsernameCheckState = .idle
 
-    // Dados do App (limpos e realistas)
-    @Published var friends: [FriendItem] = []
+    // Mocks realistas e completos para testar imediatamente
+    @Published var friends: [FriendItem] = [
+        FriendItem(name: "Pedro Santos", username: "pedro.santos", initials: "PS", balance: 100.00),
+        FriendItem(name: "Camila Rocha", username: "camila.rocha", initials: "CR", balance: 70.00),
+        FriendItem(name: "Matheus Alves", username: "matheus.alves", initials: "MA", balance: -35.36),
+        FriendItem(name: "Beatriz Lima", username: "bia.lima", initials: "BL", balance: 0.0)
+    ]
 
     @Published var groups: [RoleGroup] = [
-        RoleGroup(
-            title: "Churrasco de Domingo",
-            category: "Outros",
-            coverImageName: "GroupChurrasco",
-            potBalance: 180.00,
-            potTarget: 300.00,
-            totalSpent: 420.00,
-            myShare: 0.0,
-            members: ["EU", "PS", "MA", "CR"],
-            hasCollectivePot: true,
-            comandaItems: [
-                ComandaItem(name: "Picanha Premium (Rateio)", detail: "Dividido por 4", price: 35.00, isSelected: true),
-                ComandaItem(name: "Cerveja Artesanal", detail: "Quem bebe álcool", price: 24.00, isSelected: true),
-                ComandaItem(name: "Carvão e Gelo", detail: "Rateio geral", price: 11.50, isSelected: true)
-            ]
-        ),
         RoleGroup(
             title: "Viagem Ubatuba",
             category: "Viagem",
@@ -51,28 +41,64 @@ final class JuntoStore: ObservableObject {
             potBalance: 640.00,
             potTarget: 1000.00,
             totalSpent: 1840.00,
-            myShare: 150.00,
-            members: ["EU", "PS", "MA", "CR", "RC"],
+            myShare: 0.0,
+            members: ["EU", "PS", "MA", "CR", "BL"],
             hasCollectivePot: true,
             comandaItems: [
                 ComandaItem(name: "Casa de Praia (Diária)", detail: "1/5 da reserva", price: 110.00, isSelected: true),
                 ComandaItem(name: "Gasolina + Pedágio", detail: "Carro do Pedro", price: 40.00, isSelected: true)
             ]
+        ),
+        RoleGroup(
+            title: "Churrasco de Domingo",
+            category: "Outros",
+            coverImageName: "GroupChurrasco",
+            potBalance: 180.00,
+            potTarget: 300.00,
+            totalSpent: 420.00,
+            myShare: 35.36,
+            members: ["EU", "PS", "MA", "CR"],
+            hasCollectivePot: true,
+            comandaItems: [
+                ComandaItem(name: "Picanha Premium (Rateio)", detail: "Dividido por 4", price: 24.00, isSelected: true),
+                ComandaItem(name: "Carvão, Gelo & Pão de Alho", detail: "Rateio geral", price: 11.36, isSelected: true),
+                ComandaItem(name: "Pack Cerveja Artesanal", detail: "Quem bebe álcool", price: 28.00, isSelected: false)
+            ]
+        ),
+        RoleGroup(
+            title: "Contas do Apê 402",
+            category: "Casa",
+            coverImageName: "GroupBar",
+            potBalance: 0.0,
+            potTarget: 0.0,
+            totalSpent: 980.00,
+            myShare: 145.00,
+            members: ["EU", "MA", "BL"],
+            hasCollectivePot: false,
+            comandaItems: [
+                ComandaItem(name: "Internet Fibra 500Mb", detail: "Dividido por 3", price: 45.00, isSelected: true),
+                ComandaItem(name: "Energia + Condomínio", detail: "Rateio mensal", price: 100.00, isSelected: true)
+            ]
         )
     ]
 
-    @Published var activities: [ActivityEvent] = []
+    @Published var activities: [ActivityEvent] = [
+        ActivityEvent(icon: "bolt", title: "Pedro Santos pagou via Pix", subtitle: "Viagem Ubatuba • Baixa automática", timeAgo: "Há 8 min", amountText: "+ R$ 100,00", isPositive: true),
+        ActivityEvent(icon: "doc.text.viewfinder", title: "Comanda escaneada com IA", subtitle: "Churrasco de Domingo • 3 itens", timeAgo: "Há 1 hora", amountText: "R$ 63,36", isPositive: true),
+        ActivityEvent(icon: "tray.and.arrow.down", title: "Camila recarregou o Pote", subtitle: "Viagem Ubatuba • Saldo R$ 640,00", timeAgo: "Ontem", amountText: "+ R$ 150,00", isPositive: true),
+        ActivityEvent(icon: "house", title: "Matheus adicionou \"Internet Fibra\"", subtitle: "Contas do Apê 402", timeAgo: "Há 2 dias", amountText: "R$ 135,00", isPositive: false)
+    ]
 
     @Published var notifications: [AppNotification] = [
-        AppNotification(icon: "bolt", title: "Pix recebido", message: "Pedro Santos quitou R$ 45,00 com baixa automática.", timeAgo: "5 min", isUnread: true),
-        AppNotification(icon: "person.2", title: "Novo grupo", message: "Você entrou em Churrasco de Domingo.", timeAgo: "1h", isUnread: false)
+        AppNotification(icon: "bolt", title: "Pix recebido na hora", message: "Pedro Santos quitou R$ 100,00 com baixa automática.", timeAgo: "8 min", isUnread: true),
+        AppNotification(icon: "person.2", title: "Pote Coletivo atualizado", message: "Camila adicionou R$ 150,00 na Viagem Ubatuba.", timeAgo: "1h", isUnread: true),
+        AppNotification(icon: "doc.text.viewfinder", title: "Comanda pronta", message: "Toque para marcar o que você consumiu no Churrasco.", timeAgo: "3h", isUnread: false)
     ]
 
     @Published var blockedUsernames: [String] = []
     @Published var activePixSheet: PixChargeSheetData? = nil
     @Published var showAddExpenseSheet: Bool = false
 
-    // Toast
     @Published var toastMessage: String? = nil
     @Published var toastIcon: String = "checkmark.circle"
     private var toastTask: Task<Void, Never>? = nil
@@ -82,6 +108,10 @@ final class JuntoStore: ObservableObject {
 
     var unreadNotificationsCount: Int {
         notifications.filter { $0.isUnread }.count
+    }
+
+    var netBalance: Double {
+        friends.reduce(0) { $0 + $1.balance }
     }
 
     static func formatBRL(_ value: Double) -> String {
@@ -127,50 +157,35 @@ final class JuntoStore: ObservableObject {
         }
     }
 
-    func advanceToRegisterStep2() {
-        let cleanUser = draftUsername.replacingOccurrences(of: "@", with: "").trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
-        guard !draftEmail.trimmingCharacters(in: .whitespaces).isEmpty else {
-            showToast("Informe seu endereço de e-mail.", icon: "exclamationmark.circle")
-            return
-        }
-        guard cleanUser.count >= 3, usernameState != .unavailable else {
-            showToast("Escolha um nome de usuário disponível.", icon: "exclamationmark.circle")
-            return
-        }
-        guard draftPassword.count >= 8 else {
-            showToast("A senha deve ter no mínimo 8 caracteres.", icon: "lock")
-            return
-        }
-        withAnimation(.easeInOut(duration: 0.22)) {
-            route = .registerStep2
-        }
-    }
-
     func completeRegistration() {
         let cleanName = draftFullName.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !cleanName.isEmpty else {
-            showToast("Informe seu nome completo.", icon: "person")
-            return
-        }
-        guard draftPhone.filter({ $0.isNumber }).count >= 10 else {
-            showToast("Informe um telefone válido.", icon: "phone")
-            return
-        }
         user = UserProfile(
-            fullName: cleanName,
+            fullName: cleanName.isEmpty ? "José Carlos" : cleanName,
             username: draftUsername.replacingOccurrences(of: "@", with: "").lowercased(),
             email: draftEmail.trimmingCharacters(in: .whitespacesAndNewlines),
             country: draftCountry,
             phone: draftPhone,
             pixKey: draftEmail.trimmingCharacters(in: .whitespacesAndNewlines)
         )
-        withAnimation(.easeInOut(duration: 0.25)) {
+        withAnimation(.easeInOut(duration: 0.28)) {
             route = .welcomeSlides
         }
     }
 
-    func finishWelcome() {
-        withAnimation(.easeInOut(duration: 0.25)) {
+    func finishSlidesToGetStarted() {
+        withAnimation(.easeInOut(duration: 0.28)) {
+            route = .getStarted
+        }
+    }
+
+    func startApp(openingGroupCategory: String? = nil) {
+        if let cat = openingGroupCategory {
+            selectedTab = .groups
+            openCreateGroupWithCategory = cat
+        } else {
+            selectedTab = .friends
+        }
+        withAnimation(.easeInOut(duration: 0.28)) {
             route = .main
         }
     }

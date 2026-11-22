@@ -1,31 +1,33 @@
 import SwiftUI
 
-// MARK: - Paleta Minimalista & Limpa (Juntô)
+// MARK: - Paleta Autoral Minimalista do Juntô (Azul Cobalto + Celeste + Branco Puro)
 enum JuntoColors {
-    static let primary = Color(hex: "#1B7F6B")         // Esmeralda calmo & financeiro
-    static let primaryLight = Color(hex: "#E6F5F1")
-    static let primaryMint = Color(hex: "#9CE2D2")
-    static let darkButton = Color(hex: "#1E2022")      // Grafite elegante (Entrar)
-    static let proPurple = Color(hex: "#7841C8")       // Roxo suave Juntô Pro
-    static let proBgLight = Color(hex: "#F3ECFA")
-    static let orangeSave = Color(hex: "#EA5B27")      // Laranja salvar / destaque
-    static let linkBlue = Color(hex: "#1E88C7")        // Azul editar discreto
+    static let primary = Color(hex: "#2563EB")         // Azul Cobalto moderno (nossa marca!)
+    static let primaryLight = Color(hex: "#EFF6FF")    // Azul gelo suave
+    static let primaryAccent = Color(hex: "#38BDF8")   // Ciano celeste da logo
+    static let pixGreen = Color(hex: "#059669")        // Verde limpo para receber / Pix
+    static let pixGreenLight = Color(hex: "#ECFDF5")
+    static let darkButton = Color(hex: "#18181B")      // Grafite elegante (Entrar)
+    static let proIndigo = Color(hex: "#4F46E5")       // Índigo Juntô Pro
+    static let proBgLight = Color(hex: "#EEF2FF")
+    static let orangeSave = Color(hex: "#EA580C")      // Coral quente para pendente / salvar
+    static let linkBlue = Color(hex: "#2563EB")
     static let danger = Color(hex: "#DC2626")
     static let dangerLight = Color(hex: "#FEF2F2")
 
-    static let bgMain = Color.white                    // Branco puro
+    static let bgMain = Color.white
     static let surface = Color.white
-    static let surfaceSubtle = Color(hex: "#F4F5F7")   // Cinza nuvem bem leve
+    static let surfaceSubtle = Color(hex: "#F4F5F7")
     static let border = Color(hex: "#E5E7EB")
-    static let inputBorder = Color(hex: "#8E95A0")
-    static let inputBorderFocus = Color(hex: "#26292E")
+    static let inputBorder = Color(hex: "#9CA3AF")
+    static let inputBorderFocus = Color(hex: "#2563EB")
 
-    static let textMain = Color(hex: "#22252A")        // Grafite suave (sem preto duro)
+    static let textMain = Color(hex: "#1F2937")        // Grafite suave
     static let textMuted = Color(hex: "#6B7280")
     static let textLight = Color(hex: "#9CA3AF")
 }
 
-// MARK: - Tipografia Inter Limpa (SEM bolds exagerados — apenas Regular e Medium)
+// MARK: - Tipografia Inter Limpa (SEM bolds pesados — apenas Regular e Medium)
 extension Font {
     static func inter(_ size: CGFloat, weight: Font.Weight = .regular) -> Font {
         let name: String
@@ -55,7 +57,7 @@ extension Color {
         case 6:
             (r, g, b) = ((int >> 16) & 0xFF, (int >> 8) & 0xFF, int & 0xFF)
         default:
-            (r, g, b) = (27, 127, 107)
+            (r, g, b) = (37, 99, 235)
         }
         self.init(
             .sRGB,
@@ -67,55 +69,41 @@ extension Color {
     }
 }
 
-// MARK: - Logo Geométrica Autoral do Juntô (Facetada Flat Minimalista)
+// MARK: - Logo Autoral do Juntô (Elos Entrelaçados Minimalistas + Núcleo Pix)
 struct JuntoLogoMark: View {
     var size: CGFloat = 86
 
     var body: some View {
         ZStack {
-            // Topo menta
-            Path { p in
-                p.move(to: CGPoint(x: size * 0.50, y: size * 0.04))
-                p.addLine(to: CGPoint(x: size * 0.92, y: size * 0.27))
-                p.addLine(to: CGPoint(x: size * 0.50, y: size * 0.50))
-                p.addLine(to: CGPoint(x: size * 0.08, y: size * 0.27))
-                p.closeSubpath()
-            }
-            .fill(JuntoColors.primaryMint)
+            RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [JuntoColors.primary, Color(hex: "#1D4ED8")],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: size, height: size)
 
-            // Esquerda esmeralda
-            Path { p in
-                p.move(to: CGPoint(x: size * 0.08, y: size * 0.27))
-                p.addLine(to: CGPoint(x: size * 0.50, y: size * 0.50))
-                p.addLine(to: CGPoint(x: size * 0.50, y: size * 0.96))
-                p.addLine(to: CGPoint(x: size * 0.08, y: size * 0.73))
-                p.closeSubpath()
-            }
-            .fill(JuntoColors.primary)
+            // Elo esquerdo (Branco)
+            Circle()
+                .stroke(Color.white, lineWidth: size * 0.09)
+                .frame(width: size * 0.42, height: size * 0.42)
+                .offset(x: -size * 0.12)
 
-            // Direita superior grafite médio
-            Path { p in
-                p.move(to: CGPoint(x: size * 0.92, y: size * 0.27))
-                p.addLine(to: CGPoint(x: size * 0.92, y: size * 0.73))
-                p.addLine(to: CGPoint(x: size * 0.50, y: size * 0.50))
-                p.closeSubpath()
-            }
-            .fill(Color(hex: "#565D66"))
+            // Elo direito (Celeste)
+            Circle()
+                .stroke(JuntoColors.primaryAccent, lineWidth: size * 0.09)
+                .frame(width: size * 0.42, height: size * 0.42)
+                .offset(x: size * 0.12)
 
-            // Direita inferior grafite escuro
-            Path { p in
-                p.move(to: CGPoint(x: size * 0.50, y: size * 0.50))
-                p.addLine(to: CGPoint(x: size * 0.92, y: size * 0.73))
-                p.addLine(to: CGPoint(x: size * 0.50, y: size * 0.96))
-                p.closeSubpath()
-            }
-            .fill(Color(hex: "#32383E"))
-
-            // Letra "J" geométrica limpa recortada em branco
-            Text("J")
-                .font(.system(size: size * 0.52, weight: .semibold, design: .rounded))
-                .foregroundColor(.white)
-                .offset(x: -size * 0.09, y: size * 0.14)
+            // Núcleo de união (Branco + ponto Pix esmeralda)
+            Circle()
+                .fill(Color.white)
+                .frame(width: size * 0.14, height: size * 0.14)
+            Circle()
+                .fill(Color(hex: "#10B981"))
+                .frame(width: size * 0.075, height: size * 0.075)
         }
         .frame(width: size, height: size)
     }
@@ -128,13 +116,13 @@ struct GeometricAvatarView: View {
     var size: CGFloat = 56
 
     private static let palettes: [(Color, Color, Color)] = [
-        (Color(hex: "#8E0E2C"), Color(hex: "#C84B62"), Color(hex: "#A91234")), // Rubi
-        (Color(hex: "#1B7F6B"), Color(hex: "#8CE0CE"), Color(hex: "#146353")), // Esmeralda
-        (Color(hex: "#4F46E5"), Color(hex: "#A5B4FC"), Color(hex: "#3730A3")), // Índigo
-        (Color(hex: "#0369A1"), Color(hex: "#7DD3FC"), Color(hex: "#075985")), // Oceano
+        (Color(hex: "#2563EB"), Color(hex: "#93C5FD"), Color(hex: "#1D4ED8")), // Cobalto
+        (Color(hex: "#059669"), Color(hex: "#6EE7B7"), Color(hex: "#047857")), // Esmeralda
+        (Color(hex: "#7C3AED"), Color(hex: "#C4B5FD"), Color(hex: "#6D28D9")), // Violeta
+        (Color(hex: "#0284C7"), Color(hex: "#7DD3FC"), Color(hex: "#0369A1")), // Oceano
         (Color(hex: "#EA580C"), Color(hex: "#FDBA74"), Color(hex: "#C2410C")), // Coral
-        (Color(hex: "#7E22CE"), Color(hex: "#D8B4FE"), Color(hex: "#6B21A8")), // Ametista
-        (Color(hex: "#B45309"), Color(hex: "#FDE68A"), Color(hex: "#92400E")), // Âmbar
+        (Color(hex: "#DB2777"), Color(hex: "#F9A8D4"), Color(hex: "#BE185D")), // Rosa
+        (Color(hex: "#D97706"), Color(hex: "#FDE68A"), Color(hex: "#B45309")), // Âmbar
         (Color(hex: "#334155"), Color(hex: "#94A3B8"), Color(hex: "#1E293B"))  // Grafite
     ]
 
@@ -169,7 +157,6 @@ struct GeometricAvatarView: View {
 
                     switch patternIndex {
                     case 0:
-                        // Facetas triangulares clássicas
                         Path { p in
                             p.move(to: CGPoint(x: size * 0.22, y: 0))
                             p.addLine(to: CGPoint(x: size, y: size * 0.50))
@@ -187,7 +174,6 @@ struct GeometricAvatarView: View {
                         .fill(c3)
 
                     case 1:
-                        // Diamante geométrico central
                         Path { p in
                             p.move(to: CGPoint(x: size * 0.50, y: 0))
                             p.addLine(to: CGPoint(x: size, y: size * 0.50))
@@ -206,7 +192,6 @@ struct GeometricAvatarView: View {
                         .fill(c3)
 
                     case 2:
-                        // Blocos diagonais
                         Path { p in
                             p.move(to: CGPoint(x: 0, y: size * 0.35))
                             p.addLine(to: CGPoint(x: size, y: 0))
@@ -226,7 +211,6 @@ struct GeometricAvatarView: View {
                         .fill(c3)
 
                     default:
-                        // Quadrantes minimalistas
                         Path { p in
                             p.addRect(CGRect(x: 0, y: 0, width: size * 0.50, height: size * 0.50))
                             p.addRect(CGRect(x: size * 0.50, y: size * 0.50, width: size * 0.50, height: size * 0.50))
@@ -249,7 +233,7 @@ struct GeometricAvatarView: View {
     }
 }
 
-// MARK: - Botão Circular Flutuante (Voltar, Fechar, Lupa, Check)
+// MARK: - Botão Circular Flutuante
 struct CircleNavButton: View {
     let icon: String
     var bgColor: Color = .white
@@ -273,7 +257,7 @@ struct CircleNavButton: View {
     }
 }
 
-// MARK: - Inputs Limpos com Borda Fina (Exatamente como no modelo)
+// MARK: - Inputs Limpos com Borda Fina
 struct CleanOutlineInput: View {
     let label: String
     let placeholder: String
@@ -333,9 +317,11 @@ struct CleanOutlineSecureInput: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text(label)
-                .font(.inter(13, weight: .regular))
-                .foregroundColor(JuntoColors.textMain)
+            if !label.isEmpty {
+                Text(label)
+                    .font(.inter(13, weight: .regular))
+                    .foregroundColor(JuntoColors.textMain)
+            }
 
             HStack {
                 if isVisible {
@@ -377,7 +363,7 @@ struct CleanOutlineSecureInput: View {
     }
 }
 
-// MARK: - Botão Pílula Limpo (Estilo Referência)
+// MARK: - Botão Pílula Limpo
 struct JuntoPillButton: View {
     let title: String
     var icon: String? = nil
@@ -403,7 +389,7 @@ struct JuntoPillButton: View {
     }
 }
 
-// MARK: - Padrão Geométrico Ultra Sutil no Fundo (como na tela de Amigos)
+// MARK: - Padrão Geométrico Ultra Sutil no Fundo
 struct SubtleFacetBackground: View {
     var body: some View {
         GeometryReader { geo in
@@ -411,37 +397,14 @@ struct SubtleFacetBackground: View {
             let h = geo.size.height
             ZStack {
                 Color.white
-                Path { p in
-                    p.move(to: CGPoint(x: 0, y: h * 0.25))
-                    p.addLine(to: CGPoint(x: w * 0.45, y: h * 0.08))
-                    p.addLine(to: CGPoint(x: w * 0.35, y: h * 0.42))
-                    p.closeSubpath()
-                }
-                .fill(Color(hex: "#F6F7F9"))
-
-                Path { p in
-                    p.move(to: CGPoint(x: w * 0.45, y: h * 0.08))
-                    p.addLine(to: CGPoint(x: w, y: h * 0.22))
-                    p.addLine(to: CGPoint(x: w * 0.65, y: h * 0.48))
-                    p.closeSubpath()
-                }
-                .fill(Color(hex: "#F9FAFB"))
-
-                Path { p in
-                    p.move(to: CGPoint(x: 0, y: h * 0.60))
-                    p.addLine(to: CGPoint(x: w * 0.55, y: h * 0.45))
-                    p.addLine(to: CGPoint(x: w * 0.30, y: h * 0.88))
-                    p.closeSubpath()
-                }
-                .fill(Color(hex: "#F5F7F8"))
-
-                Path { p in
-                    p.move(to: CGPoint(x: w, y: h * 0.55))
-                    p.addLine(to: CGPoint(x: w * 0.55, y: h * 0.72))
-                    p.addLine(to: CGPoint(x: w, y: h * 0.95))
-                    p.closeSubpath()
-                }
-                .fill(Color(hex: "#F7F8FA"))
+                Circle()
+                    .fill(JuntoColors.primaryLight.opacity(0.45))
+                    .frame(width: w * 0.9, height: w * 0.9)
+                    .offset(x: -w * 0.35, y: -h * 0.15)
+                Circle()
+                    .fill(Color(hex: "#F0F9FF").opacity(0.65))
+                    .frame(width: w * 0.85, height: w * 0.85)
+                    .offset(x: w * 0.42, y: h * 0.35)
             }
         }
         .ignoresSafeArea()

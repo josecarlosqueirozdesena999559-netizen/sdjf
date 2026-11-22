@@ -78,19 +78,18 @@ struct AccountView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 22)
 
-                    // Card Juntô Pro (estilo lilás suave facetado da referência)
+                    // Card Juntô Pro (estilo índigo-lavanda autoral do Juntô)
                     VStack(spacing: 16) {
-                        // Diamante geométrico roxo
                         Image(systemName: "diamond.fill")
                             .font(.system(size: 38, weight: .light))
-                            .foregroundColor(JuntoColors.proPurple)
+                            .foregroundColor(JuntoColors.proIndigo)
                             .padding(.top, 8)
 
                         Text("Faça mais com o Juntô Pro.")
                             .font(.inter(16, weight: .regular))
                             .foregroundColor(JuntoColors.textMain)
 
-                        JuntoPillButton(title: "Obter Juntô Pro", color: JuntoColors.proPurple) {
+                        JuntoPillButton(title: "Obter Juntô Pro", color: JuntoColors.proIndigo) {
                             store.showToast("Juntô Pro: Comanda IA ilimitada e Pix automático.", icon: "sparkles")
                         }
                     }
@@ -106,7 +105,7 @@ struct AccountView: View {
                     }
                     Divider().padding(.leading, 20)
 
-                    accountRow(icon: "diamond.fill", iconColor: JuntoColors.proPurple, title: "Juntô Pro") {
+                    accountRow(icon: "diamond.fill", iconColor: JuntoColors.proIndigo, title: "Juntô Pro") {
                         store.showToast("Você já tem acesso aos recursos do Juntô.", icon: "sparkles")
                     }
 
@@ -273,9 +272,8 @@ struct AccountSettingsScreen: View {
                         editField = .password
                     }
 
-                    // Pickers estilo pílula cinza claro igual ao modelo
+                    // Pickers estilo pílula cinza claro (sem moeda BRL pois já é padrão nativo)
                     pillPickerDisplay(label: "Fuso Horário", value: store.user.timezone)
-                    pillPickerDisplay(label: "Moeda padrão", value: "BRL")
                     pillPickerDisplay(label: "Idioma (Para e-mails e notificações)", value: store.user.language)
 
                     // Configurações de privacidade (LGPD)

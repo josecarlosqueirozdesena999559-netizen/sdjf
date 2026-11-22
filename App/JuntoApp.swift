@@ -24,12 +24,12 @@ struct JuntoRootView: View {
                     WelcomeAuthView()
                 case .login:
                     LoginView()
-                case .registerStep1:
-                    RegisterStep1View()
-                case .registerStep2:
-                    RegisterStep2View()
+                case .registerFlow:
+                    RegisterFlowView()
                 case .welcomeSlides:
                     WelcomeSlidesView()
+                case .getStarted:
+                    GetStartedView()
                 case .main:
                     MainTabView()
                 }

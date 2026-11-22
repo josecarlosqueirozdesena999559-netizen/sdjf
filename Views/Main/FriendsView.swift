@@ -76,12 +76,25 @@ struct FriendsView: View {
                         .padding(.top, 12)
                 }
 
-                // Saudação limpa igual à screenshot
-                Text("Bem-vindo(a) ao Juntô, \(store.user.firstName)!")
-                    .font(.inter(18, weight: .medium))
-                    .foregroundColor(JuntoColors.textMain)
-                    .padding(.horizontal, 20)
-                    .padding(.top, 18)
+                // Saudação limpa + resumo total de saldo
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Bem-vindo(a) ao Juntô, \(store.user.firstName)!")
+                        .font(.inter(18, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+
+                    if !store.friends.isEmpty {
+                        HStack(spacing: 4) {
+                            Text(store.netBalance >= 0 ? "No total, você recebe" : "No total, você deve")
+                                .font(.inter(14, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                            Text(JuntoStore.formatBRL(abs(store.netBalance)))
+                                .font(.inter(14, weight: .medium))
+                                .foregroundColor(store.netBalance >= 0 ? JuntoColors.pixGreen : JuntoColors.orangeSave)
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
 
                 if filteredFriends.isEmpty {
                     // Empty state limpo com o logo geométrico do Juntô
@@ -134,10 +147,10 @@ struct FriendsView: View {
                                         VStack(alignment: .trailing, spacing: 2) {
                                             Text("te deve")
                                                 .font(.inter(11, weight: .regular))
-                                                .foregroundColor(JuntoColors.primary)
+                                                .foregroundColor(JuntoColors.pixGreen)
                                             Text(JuntoStore.formatBRL(friend.balance))
                                                 .font(.inter(15, weight: .medium))
-                                                .foregroundColor(JuntoColors.primary)
+                                                .foregroundColor(JuntoColors.pixGreen)
                                         }
                                     } else if friend.balance < 0 {
                                         VStack(alignment: .trailing, spacing: 4) {

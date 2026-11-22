@@ -3,13 +3,12 @@ import Foundation
 enum AppRoute {
     case welcomeAuth     // Tela inicial com logo Juntô + Cadastrar-se / Entrar
     case login
-    case registerStep1
-    case registerStep2
-    case welcomeSlides
+    case registerFlow    // Cadastro 1 campo por tela (5 passos fluidos)
+    case welcomeSlides   // Carrossel animado de boas-vindas (3 slides inspirados no vídeo)
+    case getStarted      // Tela "Vamos começar!" (Criar rolê/viagem, Casa ou Pular)
     case main
 }
 
-// Ordem exata das abas: Amigos, Grupos, Atividade, Conta
 enum MainTab: Int, CaseIterable {
     case friends = 0
     case groups = 1
