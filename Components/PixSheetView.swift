@@ -13,45 +13,35 @@ struct PixSheetView: View {
         VStack(spacing: 18) {
             Capsule()
                 .fill(JuntoColors.border)
-                .frame(width: 42, height: 5)
+                .frame(width: 40, height: 4)
                 .padding(.top, 10)
 
-            HStack(spacing: 6) {
-                Image(systemName: "bolt.fill")
-                Text("Pix Automático Juntô")
-            }
-            .font(.inter(12, weight: .bold))
-            .foregroundColor(JuntoColors.secondary)
-            .padding(.horizontal, 12)
-            .padding(.vertical, 6)
-            .background(JuntoColors.secondaryLight)
-            .cornerRadius(20)
+            Text("Pagar com Pix")
+                .font(.inter(18, weight: .regular))
+                .foregroundColor(JuntoColors.textMain)
 
             VStack(spacing: 4) {
                 Text(JuntoStore.formatBRL(data.amount))
-                    .font(.inter(28, weight: .heavy))
-                    .foregroundColor(JuntoColors.textMain)
+                    .font(.inter(28, weight: .medium))
+                    .foregroundColor(JuntoColors.primary)
 
-                Text("\(data.title) • Para \(data.recipientName)")
-                    .font(.inter(13, weight: .medium))
+                Text("\(data.title) • \(data.recipientName)")
+                    .font(.inter(13, weight: .regular))
                     .foregroundColor(JuntoColors.textMuted)
             }
 
-            // QR Code Real gerado via CoreImage
             Image(uiImage: generateQRCode(from: data.pixPayload))
                 .interpolation(.none)
                 .resizable()
                 .scaledToFit()
-                .frame(width: 175, height: 175)
+                .frame(width: 170, height: 170)
                 .padding(14)
                 .background(Color.white)
                 .overlay(
-                    RoundedRectangle(cornerRadius: 14)
-                        .stroke(JuntoColors.border, lineWidth: 1.2)
+                    RoundedRectangle(cornerRadius: 12)
+                        .stroke(JuntoColors.border, lineWidth: 1)
                 )
-                .cornerRadius(14)
 
-            // Payload Copia e Cola
             Text(data.pixPayload)
                 .font(.system(size: 11, design: .monospaced))
                 .foregroundColor(JuntoColors.textMuted)
@@ -61,21 +51,19 @@ struct PixSheetView: View {
                 .background(JuntoColors.surfaceSubtle)
                 .cornerRadius(8)
 
-            VStack(spacing: 10) {
-                JuntoPrimaryButton(title: "Copiar Código Pix", icon: "doc.on.doc.fill", color: JuntoColors.secondary) {
-                    UIPasteboard.general.string = data.pixPayload
-                    onCopy()
-                    dismiss()
-                }
-
-                JuntoSecondaryButton(title: "Fechar") {
-                    dismiss()
-                }
+            JuntoPillButton(title: "Copiar código Pix", icon: "doc.on.doc") {
+                UIPasteboard.general.string = data.pixPayload
+                onCopy()
+                dismiss()
             }
+
+            Button("Fechar") { dismiss() }
+                .font(.inter(14, weight: .regular))
+                .foregroundColor(JuntoColors.textMuted)
+                .padding(.bottom, 10)
         }
-        .padding(.horizontal, 22)
-        .padding(.bottom, 24)
-        .background(JuntoColors.surface)
+        .padding(.horizontal, 24)
+        .background(Color.white)
     }
 
     private func generateQRCode(from string: String) -> UIImage {

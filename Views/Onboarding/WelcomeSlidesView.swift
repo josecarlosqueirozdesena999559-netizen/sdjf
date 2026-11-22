@@ -5,116 +5,91 @@ struct WelcomeSlidesView: View {
     @State private var currentPage = 0
     @State private var floatAnim = false
 
-    private let slides: [(icon: String, tint: Color, bg: Color, title: String, desc: String)] = [
+    private let slides: [(icon: String, title: String, desc: String)] = [
         (
-            "tray.and.arrow.down.fill",
-            JuntoColors.primary,
-            JuntoColors.primaryLight,
-            "O Pote Coletivo do Rolê",
-            "A galera junta a grana antes da festa ou viagem. O que sobrar no final volta por Pix automaticamente."
+            "tray.and.arrow.down",
+            "Pote Coletivo do Rolê",
+            "Junte o valor com seus amigos antes da viagem ou churrasco. O que sobrar volta por Pix."
         ),
         (
             "doc.text.viewfinder",
-            JuntoColors.secondary,
-            JuntoColors.secondaryLight,
-            "Comanda Visual com IA",
-            "Tirou foto da conta do bar? Cada amigo toca só no chopp e petisco que consumiu, com 10% automático."
+            "Comanda Inteligente",
+            "Separe os itens do restaurante em segundos e pague apenas o que você realmente consumiu."
         ),
         (
-            "bolt.circle.fill",
-            JuntoColors.accent,
-            JuntoColors.accentLight,
-            "Pix Instantâneo Sem Estresse",
-            "Acabou a vergonha de cobrar. Um toque gera o Pix exato e dá baixa automática em segundos."
+            "bolt.circle",
+            "Pix instantâneo",
+            "Quite suas partes com um toque via Pix Copia e Cola, com baixa automática e sem constrangimento."
         )
     ]
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Cabeçalho de Boas-Vindas Personalizado
-            VStack(spacing: 8) {
-                Text("✨ Tudo pronto!")
-                    .font(.inter(12, weight: .bold))
-                    .foregroundColor(JuntoColors.primary)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
-                    .background(JuntoColors.primaryLight)
-                    .cornerRadius(99)
+        ZStack {
+            SubtleFacetBackground()
 
-                Text("Bem-vindo ao Juntô,\n\(store.user.firstName)!")
-                    .font(.inter(26, weight: .heavy))
-                    .foregroundColor(JuntoColors.textMain)
-                    .multilineTextAlignment(.center)
+            VStack(spacing: 0) {
+                VStack(spacing: 8) {
+                    JuntoLogoMark(size: 54)
+                        .padding(.bottom, 6)
 
-                Text("Deslize para conhecer o novo jeito de curtir sem treta.")
-                    .font(.inter(14))
-                    .foregroundColor(JuntoColors.textMuted)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.top, 36)
-            .padding(.horizontal, 24)
+                    Text("Bem-vindo(a) ao Juntô, \(store.user.firstName)!")
+                        .font(.inter(20, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.top, 46)
+                .padding(.horizontal, 24)
 
-            // Carrossel de Slides com Animação Flat
-            TabView(selection: $currentPage) {
-                ForEach(Array(slides.enumerated()), id: \.offset) { idx, slide in
-                    VStack(spacing: 22) {
-                        ZStack {
-                            RoundedRectangle(cornerRadius: 28)
-                                .fill(slide.bg)
-                                .frame(width: 190, height: 190)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 28)
-                                        .stroke(slide.tint.opacity(0.2), lineWidth: 1.5)
-                                )
+                TabView(selection: $currentPage) {
+                    ForEach(Array(slides.enumerated()), id: \.offset) { idx, slide in
+                        VStack(spacing: 24) {
+                            ZStack {
+                                Circle()
+                                    .fill(JuntoColors.primaryLight)
+                                    .frame(width: 150, height: 150)
 
-                            // Animação flat suave de flutuação
-                            Image(systemName: slide.icon)
-                                .font(.system(size: 74, weight: .semibold))
-                                .foregroundColor(slide.tint)
-                                .offset(y: floatAnim ? -8 : 8)
-                                .animation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true), value: floatAnim)
+                                Image(systemName: slide.icon)
+                                    .font(.system(size: 56, weight: .thin))
+                                    .foregroundColor(JuntoColors.primary)
+                                    .offset(y: floatAnim ? -6 : 6)
+                                    .animation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true), value: floatAnim)
+                            }
+
+                            VStack(spacing: 8) {
+                                Text(slide.title)
+                                    .font(.inter(19, weight: .medium))
+                                    .foregroundColor(JuntoColors.textMain)
+
+                                Text(slide.desc)
+                                    .font(.inter(14, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                                    .multilineTextAlignment(.center)
+                                    .lineSpacing(3)
+                                    .padding(.horizontal, 34)
+                            }
                         }
-
-                        VStack(spacing: 10) {
-                            Text(slide.title)
-                                .font(.inter(20, weight: .heavy))
-                                .foregroundColor(JuntoColors.textMain)
-                                .multilineTextAlignment(.center)
-
-                            Text(slide.desc)
-                                .font(.inter(14))
-                                .foregroundColor(JuntoColors.textMuted)
-                                .multilineTextAlignment(.center)
-                                .lineSpacing(3)
-                                .padding(.horizontal, 28)
-                        }
+                        .tag(idx)
                     }
-                    .tag(idx)
                 }
-            }
-            .tabViewStyle(.page(indexDisplayMode: .never))
-            .onAppear { floatAnim = true }
+                .tabViewStyle(.page(indexDisplayMode: .never))
+                .onAppear { floatAnim = true }
 
-            // Indicadores Flat
-            HStack(spacing: 8) {
-                ForEach(0..<slides.count, id: \.self) { idx in
-                    Capsule()
-                        .fill(currentPage == idx ? JuntoColors.primary : JuntoColors.border)
-                        .frame(width: currentPage == idx ? 26 : 8, height: 8)
-                        .animation(.spring(response: 0.3), value: currentPage)
+                HStack(spacing: 8) {
+                    ForEach(0..<slides.count, id: \.self) { idx in
+                        Capsule()
+                            .fill(currentPage == idx ? JuntoColors.primary : JuntoColors.border)
+                            .frame(width: currentPage == idx ? 22 : 7, height: 7)
+                            .animation(.easeInOut(duration: 0.2), value: currentPage)
+                    }
                 }
-            }
-            .padding(.bottom, 26)
+                .padding(.bottom, 28)
 
-            // Botão Ir ao Início
-            VStack(spacing: 12) {
-                JuntoPrimaryButton(title: "Ir ao Início", icon: "arrow.right") {
+                JuntoPillButton(title: "Ir ao início", color: JuntoColors.primary) {
                     store.finishWelcome()
                 }
+                .padding(.horizontal, 36)
+                .padding(.bottom, 34)
             }
-            .padding(.horizontal, 24)
-            .padding(.bottom, 30)
         }
-        .background(JuntoColors.surface.ignoresSafeArea())
     }
 }

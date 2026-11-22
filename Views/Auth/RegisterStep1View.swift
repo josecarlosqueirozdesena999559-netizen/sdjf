@@ -4,178 +4,120 @@ struct RegisterStep1View: View {
     @EnvironmentObject var store: JuntoStore
 
     var body: some View {
-        ZStack {
-            AnimatedRoleBackground()
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                CircleNavButton(icon: "chevron.left") {
+                    withAnimation { store.route = .welcomeAuth }
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 10)
 
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 22) {
-                    // Header Passo 1
-                    HStack {
-                        Button {
-                            withAnimation { store.route = .login }
-                        } label: {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(JuntoColors.textMain)
-                                .frame(width: 40, height: 40)
-                                .background(Color.white)
-                                .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
-                                .cornerRadius(10)
-                        }
+                VStack(alignment: .leading, spacing: 20) {
+                    Text("Cadastrar-se")
+                        .font(.inter(24, weight: .regular))
+                        .foregroundColor(JuntoColors.textMain)
+                        .padding(.top, 22)
 
-                        Spacer()
-
-                        Text("Passo 1 de 2")
-                            .font(.inter(12, weight: .bold))
-                            .foregroundColor(JuntoColors.primary)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(JuntoColors.primaryLight)
-                            .cornerRadius(8)
-                    }
-                    .padding(.top, 12)
-
-                    VStack(alignment: .leading, spacing: 6) {
-                        Text("Crie sua conta no Juntô")
-                            .font(.inter(26, weight: .heavy))
-                            .foregroundColor(JuntoColors.textMain)
-
-                        Text("Escolha um @usuário único para seus amigos te chamarem pros rolês.")
-                            .font(.inter(14))
-                            .foregroundColor(JuntoColors.textMuted)
-                    }
-
-                    // Card Claro Flat
-                    VStack(spacing: 16) {
-                        FlatInputField(
-                            label: "E-mail",
-                            placeholder: "exemplo@gmail.com",
-                            text: $store.draftEmail,
-                            keyboardType: .emailAddress,
-                            autocapitalization: .never
-                        )
-
-                        // Campo de Nome de Usuário com Verificação ao Vivo
-                        VStack(alignment: .leading, spacing: 6) {
-                            HStack {
-                                Text("Nome de usuário")
-                                    .font(.inter(13, weight: .semibold))
-                                    .foregroundColor(JuntoColors.textMain)
-                                Spacer()
-                                usernameStatusBadge
-                            }
-
-                            HStack(spacing: 6) {
-                                Text("@")
-                                    .font(.inter(15, weight: .bold))
-                                    .foregroundColor(JuntoColors.primary)
-
-                                TextField("ex: joao.silva", text: $store.draftUsername)
-                                    .font(.inter(14, weight: .medium))
-                                    .foregroundColor(JuntoColors.textMain)
-                                    .textInputAutocapitalization(.never)
-                                    .autocorrectionDisabled()
-                                    .onChange(of: store.draftUsername) { _, newValue in
-                                        store.checkUsername(newValue)
-                                    }
-                            }
-                            .padding(.horizontal, 14)
-                            .frame(height: 48)
-                            .background(JuntoColors.bgMain)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(usernameBorderColor, lineWidth: 1.2)
-                            )
-                            .cornerRadius(8)
-                        }
-
-                        FlatSecureField(
-                            label: "Senha",
-                            placeholder: "Mínimo 6 caracteres",
-                            text: $store.draftPassword
-                        )
-
-                        JuntoPrimaryButton(title: "Próximo", icon: "arrow.right") {
-                            store.advanceToRegisterStep2()
-                        }
-                        .padding(.top, 6)
-                    }
-                    .padding(22)
-                    .background(JuntoColors.surface)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14)
-                            .stroke(JuntoColors.border, lineWidth: 1)
+                    CleanOutlineInput(
+                        label: "Endereço de e-mail",
+                        placeholder: "",
+                        text: $store.draftEmail,
+                        keyboardType: .emailAddress,
+                        autocapitalization: .never
                     )
-                    .cornerRadius(14)
 
-                    HStack {
-                        Spacer()
-                        Text("Já possui conta?")
-                            .font(.inter(14))
-                            .foregroundColor(JuntoColors.textMuted)
-                        Button {
-                            withAnimation { store.route = .login }
-                        } label: {
-                            Text("Entrar")
-                                .font(.inter(14, weight: .bold))
-                                .foregroundColor(JuntoColors.primary)
+                    // Nome de usuário com checagem em tempo real discreta e elegante
+                    VStack(alignment: .leading, spacing: 7) {
+                        HStack {
+                            Text("Nome de usuário")
+                                .font(.inter(13, weight: .regular))
+                                .foregroundColor(JuntoColors.textMain)
+                            Spacer()
+                            usernameStatusLabel
                         }
-                        Spacer()
+
+                        HStack(spacing: 4) {
+                            Text("@")
+                                .font(.inter(15, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                            TextField("seu.usuario", text: $store.draftUsername)
+                                .font(.inter(15, weight: .regular))
+                                .foregroundColor(JuntoColors.textMain)
+                                .textInputAutocapitalization(.never)
+                                .autocorrectionDisabled()
+                                .onChange(of: store.draftUsername) { _, newValue in
+                                    store.checkUsername(newValue)
+                                }
+                        }
+                        .padding(.horizontal, 14)
+                        .frame(height: 50)
+                        .background(Color.white)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 11)
+                                .stroke(usernameBorderColor, lineWidth: 1)
+                        )
                     }
+
+                    CleanOutlineSecureInput(
+                        label: "Senha",
+                        placeholder: "",
+                        text: $store.draftPassword,
+                        helperText: "Mínimo de 8 caracteres"
+                    )
+
+                    JuntoPillButton(title: "Próximo", color: JuntoColors.primary) {
+                        store.advanceToRegisterStep2()
+                    }
+                    .padding(.top, 10)
                 }
                 .padding(.horizontal, 22)
                 .padding(.bottom, 30)
             }
         }
+        .background(Color.white.ignoresSafeArea())
     }
 
     private var usernameBorderColor: Color {
         switch store.usernameState {
-        case .available: return JuntoColors.secondary
+        case .available: return JuntoColors.primary
         case .unavailable: return JuntoColors.danger
-        default: return JuntoColors.border
+        default: return JuntoColors.inputBorder
         }
     }
 
     @ViewBuilder
-    private var usernameStatusBadge: some View {
+    private var usernameStatusLabel: some View {
         switch store.usernameState {
         case .idle:
             EmptyView()
         case .tooShort:
-            Text("Mín. 3 caracteres")
-                .font(.inter(11, weight: .semibold))
+            Text("Mínimo 3 letras")
+                .font(.inter(12, weight: .regular))
                 .foregroundColor(JuntoColors.textMuted)
         case .checking:
             HStack(spacing: 4) {
-                ProgressView()
-                    .scaleEffect(0.65)
+                ProgressView().scaleEffect(0.65)
                 Text("Verificando...")
-                    .font(.inter(11, weight: .semibold))
+                    .font(.inter(12, weight: .regular))
                     .foregroundColor(JuntoColors.textMuted)
             }
         case .available:
             HStack(spacing: 4) {
-                Image(systemName: "checkmark.circle.fill")
-                Text("Disponível!")
+                Image(systemName: "checkmark.circle")
+                Text("Disponível")
             }
-            .font(.inter(11, weight: .bold))
-            .foregroundColor(JuntoColors.secondary)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(JuntoColors.secondaryLight)
-            .cornerRadius(6)
+            .font(.inter(12, weight: .medium))
+            .foregroundColor(JuntoColors.primary)
         case .unavailable:
             HStack(spacing: 4) {
-                Image(systemName: "xmark.circle.fill")
+                Image(systemName: "xmark.circle")
                 Text("Indisponível")
             }
-            .font(.inter(11, weight: .bold))
+            .font(.inter(12, weight: .medium))
             .foregroundColor(JuntoColors.danger)
-            .padding(.horizontal, 8)
-            .padding(.vertical, 3)
-            .background(JuntoColors.dangerLight)
-            .cornerRadius(6)
         }
     }
 }

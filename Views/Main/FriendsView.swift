@@ -2,131 +2,220 @@ import SwiftUI
 
 struct FriendsView: View {
     @EnvironmentObject var store: JuntoStore
-    @State private var inviteHandle: String = ""
+    var onOpenNotifications: () -> Void
+
+    @State private var showInviteSheet = false
+    @State private var searchText = ""
+    @State private var showSearchBar = false
+
+    private var filteredFriends: [FriendItem] {
+        if searchText.isEmpty { return store.friends }
+        return store.friends.filter {
+            $0.name.localizedCaseInsensitiveContains(searchText) ||
+            $0.username.localizedCaseInsensitiveContains(searchText)
+        }
+    }
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 16) {
-                // Adicionar amigo apenas pelo @usuário
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Adicionar amigos pelo @usuário")
-                        .font(.inter(14, weight: .bold))
-                        .foregroundColor(JuntoColors.textMain)
+        ZStack {
+            SubtleFacetBackground()
 
-                    HStack(spacing: 8) {
-                        HStack(spacing: 4) {
-                            Text("@")
-                                .font(.inter(15, weight: .bold))
-                                .foregroundColor(JuntoColors.primary)
-                            TextField("digite.o.usuario", text: $inviteHandle)
-                                .font(.inter(14, weight: .medium))
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                        }
-                        .padding(.horizontal, 12)
-                        .frame(height: 46)
-                        .background(JuntoColors.bgMain)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(JuntoColors.border, lineWidth: 1))
-                        .cornerRadius(8)
+            VStack(alignment: .leading, spacing: 0) {
+                // Topo exatamente como no modelo: Lupa à esquerda, Sino + Pílula "Adicionar amigos" à direita
+                HStack(spacing: 10) {
+                    CircleNavButton(icon: "magnifyingglass") {
+                        withAnimation { showSearchBar.toggle() }
+                    }
 
-                        Button {
-                            store.sendFriendInvite(username: inviteHandle)
-                            inviteHandle = ""
-                        } label: {
-                            Text("Enviar convite")
-                                .font(.inter(12, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 14)
-                                .frame(height: 46)
-                                .background(JuntoColors.primary)
-                                .cornerRadius(8)
+                    Spacer()
+
+                    // Sino de notificações discreto
+                    Button(action: onOpenNotifications) {
+                        ZStack(alignment: .topTrailing) {
+                            Image(systemName: "bell")
+                                .font(.system(size: 16, weight: .regular))
+                                .foregroundColor(JuntoColors.textMain)
+                                .frame(width: 44, height: 44)
+                                .background(Color.white)
+                                .clipShape(Circle())
+                                .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+                                .overlay(Circle().stroke(JuntoColors.border.opacity(0.6), lineWidth: 0.6))
+
+                            if store.unreadNotificationsCount > 0 {
+                                Circle()
+                                    .fill(JuntoColors.primary)
+                                    .frame(width: 8, height: 8)
+                                    .offset(x: -10, y: 10)
+                            }
                         }
                     }
+
+                    Button {
+                        showInviteSheet = true
+                    } label: {
+                        Text("Adicionar amigos")
+                            .font(.inter(14, weight: .regular))
+                            .foregroundColor(JuntoColors.textMain)
+                            .padding(.horizontal, 18)
+                            .frame(height: 44)
+                            .background(Color.white)
+                            .clipShape(Capsule())
+                            .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+                            .overlay(Capsule().stroke(JuntoColors.border.opacity(0.6), lineWidth: 0.6))
+                    }
                 }
-                .padding(16)
-                .background(JuntoColors.surface)
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
-                .cornerRadius(14)
+                .padding(.horizontal, 18)
+                .padding(.top, 10)
+                .padding(.bottom, 14)
 
-                Text("Seus Amigos (\(store.friends.count))")
-                    .font(.inter(15, weight: .heavy))
+                Divider().opacity(0.5)
+
+                if showSearchBar {
+                    CleanOutlineInput(label: "", placeholder: "Buscar amigo por nome ou @usuário", text: $searchText)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
+                }
+
+                // Saudação limpa igual à screenshot
+                Text("Bem-vindo(a) ao Juntô, \(store.user.firstName)!")
+                    .font(.inter(18, weight: .medium))
                     .foregroundColor(JuntoColors.textMain)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 18)
 
-                VStack(spacing: 10) {
-                    ForEach(store.friends) { friend in
-                        HStack(spacing: 12) {
-                            RoundedRectangle(cornerRadius: 10)
-                                .fill(friend.balance < 0 ? JuntoColors.dangerLight : JuntoColors.primaryLight)
-                                .frame(width: 44, height: 44)
-                                .overlay(
-                                    Text(friend.initials)
-                                        .font(.inter(14, weight: .heavy))
-                                        .foregroundColor(friend.balance < 0 ? JuntoColors.danger : JuntoColors.primary)
-                                )
+                if filteredFriends.isEmpty {
+                    // Empty state limpo com o logo geométrico do Juntô
+                    Spacer()
 
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(friend.name)
-                                    .font(.inter(14, weight: .bold))
-                                    .foregroundColor(JuntoColors.textMain)
-                                Text("@\(friend.username)")
-                                    .font(.inter(12))
-                                    .foregroundColor(JuntoColors.textMuted)
-                            }
+                    VStack(spacing: 24) {
+                        Text("Você não adicionou amigos ainda.")
+                            .font(.inter(16, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
 
-                            Spacer()
+                        JuntoPillButton(title: "Adicionar amigos no Juntô", icon: "person.badge.plus", color: JuntoColors.primary) {
+                            showInviteSheet = true
+                        }
+                        .padding(.horizontal, 34)
 
-                            if friend.isPendingInvite {
-                                Text("Convite enviado")
-                                    .font(.inter(11, weight: .bold))
-                                    .foregroundColor(JuntoColors.primary)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(JuntoColors.primaryLight)
-                                    .cornerRadius(6)
-                            } else if friend.balance > 0 {
-                                VStack(alignment: .trailing, spacing: 2) {
-                                    Text("Te deve")
-                                        .font(.inter(11, weight: .semibold))
-                                        .foregroundColor(JuntoColors.secondary)
-                                    Text(JuntoStore.formatBRL(friend.balance))
-                                        .font(.inter(14, weight: .heavy))
-                                        .foregroundColor(JuntoColors.secondary)
-                                }
-                            } else if friend.balance < 0 {
-                                VStack(alignment: .trailing, spacing: 4) {
-                                    Text("Você deve \(JuntoStore.formatBRL(abs(friend.balance)))")
-                                        .font(.inter(12, weight: .bold))
-                                        .foregroundColor(JuntoColors.danger)
-                                    Button {
-                                        store.openPixPayment(
-                                            title: "Acerto com \(friend.name)",
-                                            recipient: friend.name,
-                                            amount: abs(friend.balance)
-                                        )
-                                    } label: {
-                                        Text("Pagar Pix →")
-                                            .font(.inter(11, weight: .bold))
-                                            .foregroundColor(.white)
-                                            .padding(.horizontal, 10)
-                                            .padding(.vertical, 5)
-                                            .background(JuntoColors.primary)
-                                            .cornerRadius(6)
+                        JuntoLogoMark(size: 104)
+                            .opacity(0.92)
+                            .padding(.top, 16)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    Spacer()
+                    Spacer().frame(height: 110)
+                } else {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            ForEach(filteredFriends) { friend in
+                                HStack(spacing: 14) {
+                                    GeometricAvatarView(
+                                        size: 44,
+                                        primaryColor: friend.balance < 0 ? JuntoColors.orangeSave : JuntoColors.primary,
+                                        secondaryColor: friend.balance < 0 ? Color(hex: "#FDBA74") : JuntoColors.primaryMint
+                                    )
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(friend.name)
+                                            .font(.inter(15, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMain)
+                                        Text("@\(friend.username)")
+                                            .font(.inter(12, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                    }
+
+                                    Spacer()
+
+                                    if friend.isPendingInvite {
+                                        Text("Convite enviado")
+                                            .font(.inter(12, weight: .regular))
+                                            .foregroundColor(JuntoColors.primary)
+                                    } else if friend.balance > 0 {
+                                        VStack(alignment: .trailing, spacing: 2) {
+                                            Text("te deve")
+                                                .font(.inter(11, weight: .regular))
+                                                .foregroundColor(JuntoColors.primary)
+                                            Text(JuntoStore.formatBRL(friend.balance))
+                                                .font(.inter(15, weight: .medium))
+                                                .foregroundColor(JuntoColors.primary)
+                                        }
+                                    } else if friend.balance < 0 {
+                                        VStack(alignment: .trailing, spacing: 4) {
+                                            Text("você deve \(JuntoStore.formatBRL(abs(friend.balance)))")
+                                                .font(.inter(12, weight: .regular))
+                                                .foregroundColor(JuntoColors.orangeSave)
+                                            Button("Pagar Pix") {
+                                                store.openPixPayment(
+                                                    title: "Acerto com \(friend.name)",
+                                                    recipient: friend.name,
+                                                    amount: abs(friend.balance)
+                                                )
+                                            }
+                                            .font(.inter(12, weight: .medium))
+                                            .foregroundColor(JuntoColors.primary)
+                                        }
+                                    } else {
+                                        Text("quitado")
+                                            .font(.inter(12, weight: .regular))
+                                            .foregroundColor(JuntoColors.textLight)
                                     }
                                 }
-                            } else {
-                                Text("Quitado ✓")
-                                    .font(.inter(12, weight: .semibold))
-                                    .foregroundColor(JuntoColors.textLight)
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 14)
+                                .background(Color.white.opacity(0.85))
+
+                                Divider().padding(.leading, 78)
                             }
                         }
-                        .padding(14)
-                        .background(JuntoColors.surface)
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-                        .cornerRadius(12)
+                        .padding(.top, 14)
+                        .padding(.bottom, 140)
                     }
                 }
             }
-            .padding(16)
         }
+        .sheet(isPresented: $showInviteSheet) {
+            InviteFriendByUsernameSheet()
+                .environmentObject(store)
+                .presentationDetents([.height(290)])
+        }
+    }
+}
+
+struct InviteFriendByUsernameSheet: View {
+    @EnvironmentObject var store: JuntoStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var handle: String = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                CircleNavButton(icon: "xmark") { dismiss() }
+                Spacer()
+                Text("Adicionar amigo")
+                    .font(.inter(17, weight: .regular))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                Spacer().frame(width: 44)
+            }
+            .padding(.top, 16)
+
+            CleanOutlineInput(
+                label: "Nome de usuário do amigo",
+                placeholder: "nome.do.amigo",
+                text: $handle,
+                autocapitalization: .never,
+                leadingPrefix: "@"
+            )
+
+            JuntoPillButton(title: "Enviar convite", color: JuntoColors.primary) {
+                store.sendFriendInvite(username: handle)
+                dismiss()
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 22)
+        .background(Color.white)
     }
 }

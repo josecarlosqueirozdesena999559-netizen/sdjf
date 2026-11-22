@@ -5,66 +5,17 @@ struct MainTabView: View {
     @State private var showNotifications = false
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Cabeçalho Fixo Flat (Olá / Que bom te ter + Avatar + Sino)
-            HStack(spacing: 12) {
-                userAvatarView(size: 44)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Olá, \(store.user.firstName)! 👋")
-                        .font(.inter(16, weight: .bold))
-                        .foregroundColor(JuntoColors.textMain)
-                    Text("Que bom te ter aqui no Juntô")
-                        .font(.inter(12, weight: .medium))
-                        .foregroundColor(JuntoColors.textMuted)
-                }
-
-                Spacer()
-
-                // Sino de Notificações
-                Button {
-                    showNotifications = true
-                    store.markAllNotificationsRead()
-                } label: {
-                    ZStack(alignment: .topTrailing) {
-                        Image(systemName: "bell")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(JuntoColors.textMain)
-                            .frame(width: 42, height: 42)
-                            .background(JuntoColors.bgMain)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(JuntoColors.border, lineWidth: 1)
-                            )
-                            .cornerRadius(10)
-
-                        if store.unreadNotificationsCount > 0 {
-                            Circle()
-                                .fill(JuntoColors.danger)
-                                .frame(width: 9, height: 9)
-                                .overlay(Circle().stroke(Color.white, lineWidth: 1.5))
-                                .offset(x: -7, y: 7)
-                        }
-                    }
-                }
-            }
-            .padding(.horizontal, 18)
-            .padding(.vertical, 12)
-            .background(JuntoColors.surface)
-            .overlay(
-                Rectangle()
-                    .frame(height: 1)
-                    .foregroundColor(JuntoColors.border),
-                alignment: .bottom
-            )
-
-            // Conteúdo da Aba Selecionada
-            ZStack {
+        ZStack(alignment: .bottom) {
+            // Conteúdo da aba ativa
+            Group {
                 switch store.selectedTab {
+                case .friends:
+                    FriendsView(onOpenNotifications: {
+                        showNotifications = true
+                        store.markAllNotificationsRead()
+                    })
                 case .groups:
                     GroupsRoleView()
-                case .friends:
-                    FriendsView()
                 case .activities:
                     ActivitiesView()
                 case .account:
@@ -72,83 +23,174 @@ struct MainTabView: View {
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(JuntoColors.bgMain)
+            .background(Color.white.ignoresSafeArea())
 
-            // Menu Inferior Flat (Grupos, Amigos, Atividades, Conta)
-            HStack(spacing: 0) {
-                ForEach(MainTab.allCases, id: \.rawValue) { tab in
-                    let isSelected = store.selectedTab == tab
+            // Camada flutuante inferior: Botão "Adicionar despesa" + Tab Bar Pílula Vidro
+            VStack(alignment: .trailing, spacing: 14) {
+                // Botão flutuante verde pílula (exibido em Amigos, Grupos e Atividade, como no modelo)
+                if store.selectedTab != .account {
                     Button {
-                        withAnimation(.easeInOut(duration: 0.15)) {
-                            store.selectedTab = tab
-                        }
+                        store.showAddExpenseSheet = true
                     } label: {
-                        VStack(spacing: 4) {
-                            Image(systemName: isSelected ? "\(tab.icon).fill" : tab.icon)
-                                .font(.system(size: 20, weight: isSelected ? .bold : .medium))
-                                .symbolRenderingMode(.hierarchical)
-                            Text(tab.title)
-                                .font(.inter(11, weight: isSelected ? .bold : .medium))
+                        HStack(spacing: 8) {
+                            Image(systemName: "list.bullet.rectangle.portrait")
+                                .font(.system(size: 16, weight: .regular))
+                            Text("Adicionar despesa")
+                                .font(.inter(15, weight: .medium))
                         }
-                        .foregroundColor(isSelected ? JuntoColors.primary : JuntoColors.textLight)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 10)
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 20)
+                        .frame(height: 48)
+                        .background(JuntoColors.primary)
+                        .clipShape(Capsule())
+                        .shadow(color: JuntoColors.primary.opacity(0.28), radius: 10, x: 0, y: 4)
+                    }
+                    .padding(.trailing, 18)
+                }
+
+                // Tab Bar Flutuante Estilo iOS Liquid Glass (Exatamente como nas screenshots)
+                HStack(spacing: 2) {
+                    ForEach(MainTab.allCases, id: \.rawValue) { tab in
+                        let isSelected = store.selectedTab == tab
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.18)) {
+                                store.selectedTab = tab
+                            }
+                        } label: {
+                            VStack(spacing: 3) {
+                                if tab == .account {
+                                    GeometricAvatarView(avatarData: store.user.avatarData, size: 22)
+                                        .overlay(
+                                            Circle()
+                                                .stroke(isSelected ? JuntoColors.textMain : Color.clear, lineWidth: 1.2)
+                                                .padding(-2)
+                                        )
+                                } else {
+                                    Image(systemName: tabIconName(tab, selected: isSelected))
+                                        .font(.system(size: 19, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMain)
+                                }
+
+                                Text(tab.title)
+                                    .font(.inter(11, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMain)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 54)
+                            .background(
+                                Capsule()
+                                    .fill(isSelected ? Color(hex: "#EAECEF") : Color.clear)
+                            )
+                        }
                     }
                 }
+                .padding(5)
+                .background(.ultraThinMaterial)
+                .background(Color.white.opacity(0.75))
+                .clipShape(Capsule())
+                .overlay(
+                    Capsule()
+                        .stroke(Color.black.opacity(0.07), lineWidth: 0.8)
+                )
+                .shadow(color: Color.black.opacity(0.08), radius: 14, x: 0, y: 4)
+                .padding(.horizontal, 20)
+                .padding(.bottom, 8)
             }
-            .background(JuntoColors.surface)
-            .overlay(
-                Rectangle()
-                    .frame(height: 1)
-                    .foregroundColor(JuntoColors.border),
-                alignment: .top
-            )
         }
         .sheet(isPresented: $showNotifications) {
             NotificationsSheetView()
                 .environmentObject(store)
                 .presentationDetents([.medium])
         }
+        .sheet(isPresented: $store.showAddExpenseSheet) {
+            AddExpenseSheetView()
+                .environmentObject(store)
+                .presentationDetents([.medium])
+        }
         .sheet(item: $store.activePixSheet) { pixData in
             PixSheetView(data: pixData) {
-                store.showToast("Código Pix copiado! Pague no seu banco.", icon: "bolt.fill")
+                store.showToast("Código Pix copiado.", icon: "doc.on.doc")
             }
             .presentationDetents([.medium, .large])
         }
     }
 
-    @ViewBuilder
-    private func userAvatarView(size: CGFloat) -> some View {
-        ZStack(alignment: .bottomTrailing) {
-            if let data = store.user.avatarData, let uiImg = UIImage(data: data) {
-                Image(uiImage: uiImg)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: size, height: size)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-            } else {
-                RoundedRectangle(cornerRadius: 12)
-                    .fill(
-                        LinearGradient(
-                            colors: [JuntoColors.primary, Color(hex: "#7C3AED")],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
-                    )
-                    .frame(width: size, height: size)
-                    .overlay(
-                        Text(store.user.avatarEmoji ?? store.user.initials)
-                            .font(.inter(size * 0.38, weight: .heavy))
-                            .foregroundColor(.white)
-                    )
+    private func tabIconName(_ tab: MainTab, selected: Bool) -> String {
+        switch tab {
+        case .friends: return selected ? "person.fill" : "person"
+        case .groups: return selected ? "person.2.fill" : "person.2"
+        case .activities: return selected ? "waveform.path.ecg.rectangle.fill" : "waveform.path.ecg.rectangle"
+        case .account: return "person.crop.circle"
+        }
+    }
+}
+
+struct AddExpenseSheetView: View {
+    @EnvironmentObject var store: JuntoStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var descriptionText: String = ""
+    @State private var amountText: String = ""
+    @State private var selectedGroupTitle: String = ""
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                CircleNavButton(icon: "xmark") { dismiss() }
+                Spacer()
+                Text("Adicionar despesa")
+                    .font(.inter(17, weight: .regular))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                CircleNavButton(icon: "checkmark", bgColor: JuntoColors.primary, fgColor: .white) {
+                    let numeric = Double(amountText.replacingOccurrences(of: ",", with: ".")) ?? 0
+                    store.addQuickExpense(description: descriptionText, amount: numeric, groupTitle: selectedGroupTitle)
+                    dismiss()
+                }
+            }
+            .padding(.top, 16)
+
+            CleanOutlineInput(label: "Descrição", placeholder: "Ex: Jantar, Uber, Mercado", text: $descriptionText)
+
+            CleanOutlineInput(
+                label: "Valor (BRL)",
+                placeholder: "0,00",
+                text: $amountText,
+                keyboardType: .decimalPad,
+                leadingPrefix: "R$"
+            )
+
+            if !store.groups.isEmpty {
+                VStack(alignment: .leading, spacing: 7) {
+                    Text("Grupo (opcional)")
+                        .font(.inter(13, weight: .regular))
+                        .foregroundColor(JuntoColors.textMain)
+
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        HStack(spacing: 8) {
+                            ForEach(store.groups) { g in
+                                let active = selectedGroupTitle == g.title
+                                Button {
+                                    selectedGroupTitle = active ? "" : g.title
+                                } label: {
+                                    Text(g.title)
+                                        .font(.inter(13, weight: .regular))
+                                        .foregroundColor(active ? .white : JuntoColors.textMain)
+                                        .padding(.horizontal, 14)
+                                        .padding(.vertical, 8)
+                                        .background(active ? JuntoColors.primary : JuntoColors.surfaceSubtle)
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
+                    }
+                }
             }
 
-            Circle()
-                .fill(JuntoColors.secondary)
-                .frame(width: 11, height: 11)
-                .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                .offset(x: 2, y: 2)
+            Spacer()
         }
+        .padding(.horizontal, 20)
+        .background(Color.white)
     }
 }
 
@@ -160,50 +202,50 @@ struct NotificationsSheetView: View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
                 Text("Notificações")
-                    .font(.inter(18, weight: .heavy))
+                    .font(.inter(20, weight: .regular))
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
                 Button("Fechar") { dismiss() }
-                    .font(.inter(13, weight: .semibold))
+                    .font(.inter(14, weight: .regular))
                     .foregroundColor(JuntoColors.primary)
             }
             .padding(.top, 20)
 
+            Divider()
+
             ScrollView(showsIndicators: false) {
-                VStack(spacing: 10) {
+                VStack(spacing: 0) {
                     ForEach(store.notifications) { item in
                         HStack(alignment: .top, spacing: 12) {
                             Image(systemName: item.icon)
-                                .font(.system(size: 20))
+                                .font(.system(size: 16, weight: .regular))
                                 .foregroundColor(JuntoColors.primary)
-                                .frame(width: 38, height: 38)
+                                .frame(width: 34, height: 34)
                                 .background(JuntoColors.primaryLight)
-                                .cornerRadius(10)
+                                .clipShape(Circle())
 
                             VStack(alignment: .leading, spacing: 3) {
                                 HStack {
                                     Text(item.title)
-                                        .font(.inter(13, weight: .bold))
+                                        .font(.inter(14, weight: .medium))
                                         .foregroundColor(JuntoColors.textMain)
                                     Spacer()
                                     Text(item.timeAgo)
-                                        .font(.inter(11, weight: .semibold))
+                                        .font(.inter(12, weight: .regular))
                                         .foregroundColor(JuntoColors.textLight)
                                 }
                                 Text(item.message)
-                                    .font(.inter(12))
+                                    .font(.inter(13, weight: .regular))
                                     .foregroundColor(JuntoColors.textMuted)
                             }
                         }
-                        .padding(12)
-                        .background(JuntoColors.bgMain)
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
-                        .cornerRadius(10)
+                        .padding(.vertical, 12)
+                        Divider()
                     }
                 }
             }
         }
         .padding(.horizontal, 20)
-        .background(JuntoColors.surface)
+        .background(Color.white)
     }
 }

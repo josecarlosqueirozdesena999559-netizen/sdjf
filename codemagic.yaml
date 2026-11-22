@@ -42,8 +42,8 @@ workflows:
 
       - name: Set build version
         script: |
-          agvtool new-marketing-version 1.0.19
-          agvtool new-version -all $((135 + ${PROJECT_BUILD_NUMBER:-1}))
+          agvtool new-marketing-version 1.0.20
+          agvtool new-version -all $((136 + ${PROJECT_BUILD_NUMBER:-1}))
 
       - name: Build IPA
         script: |

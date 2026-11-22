@@ -2,331 +2,246 @@ import SwiftUI
 
 struct GroupsRoleView: View {
     @EnvironmentObject var store: JuntoStore
-    @State private var quickUsername: String = ""
-    @State private var showCreateRole = false
-    @State private var selectedGroupForComanda: RoleGroup? = nil
+    @State private var showCreateGroup = false
+    @State private var selectedGroup: RoleGroup? = nil
+    @State private var searchText = ""
+    @State private var showSearch = false
+
+    private var filteredGroups: [RoleGroup] {
+        if searchText.isEmpty { return store.groups }
+        return store.groups.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
+    }
 
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(spacing: 16) {
-                // 1. Card de Convite Rápido apenas com @usuário
-                VStack(alignment: .leading, spacing: 10) {
-                    HStack {
-                        Label("Adicionar amigo pelo @usuário", systemImage: "person.badge.plus")
-                            .font(.inter(13, weight: .bold))
-                            .foregroundColor(JuntoColors.textMain)
-                        Spacer()
-                        Text("Rápido")
-                            .font(.inter(11, weight: .semibold))
-                            .foregroundColor(JuntoColors.primary)
-                            .padding(.horizontal, 8)
-                            .padding(.vertical, 3)
-                            .background(JuntoColors.primaryLight)
-                            .cornerRadius(6)
-                    }
-
-                    HStack(spacing: 8) {
-                        HStack(spacing: 4) {
-                            Text("@")
-                                .font(.inter(14, weight: .bold))
-                                .foregroundColor(JuntoColors.primary)
-                            TextField("nome.do.amigo", text: $quickUsername)
-                                .font(.inter(13, weight: .medium))
-                                .textInputAutocapitalization(.never)
-                                .autocorrectionDisabled()
-                        }
-                        .padding(.horizontal, 12)
+        VStack(alignment: .leading, spacing: 0) {
+            // Topo limpo: Lupa à esquerda, pílula "Criar grupo" à direita
+            HStack {
+                CircleNavButton(icon: "magnifyingglass") {
+                    withAnimation { showSearch.toggle() }
+                }
+                Spacer()
+                Button {
+                    showCreateGroup = true
+                } label: {
+                    Text("Criar grupo")
+                        .font(.inter(14, weight: .regular))
+                        .foregroundColor(JuntoColors.textMain)
+                        .padding(.horizontal, 18)
                         .frame(height: 44)
-                        .background(JuntoColors.bgMain)
-                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(JuntoColors.border, lineWidth: 1))
-                        .cornerRadius(8)
-
-                        Button {
-                            store.sendFriendInvite(username: quickUsername)
-                            quickUsername = ""
-                        } label: {
-                            HStack(spacing: 5) {
-                                Text("Enviar convite")
-                                    .font(.inter(12, weight: .bold))
-                                Image(systemName: "paperplane.fill")
-                                    .font(.system(size: 11))
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 14)
-                            .frame(height: 44)
-                            .background(JuntoColors.primary)
-                            .cornerRadius(8)
-                        }
-                    }
-                }
-                .padding(14)
-                .background(JuntoColors.surface)
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
-                .cornerRadius(14)
-
-                // 2. Resumo Financeiro Flat (BRL)
-                HStack(spacing: 12) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Você vai receber")
-                            .font(.inter(12, weight: .semibold))
-                            .foregroundColor(JuntoColors.textMuted)
-                        Text(JuntoStore.formatBRL(store.totalToReceive))
-                            .font(.inter(18, weight: .heavy))
-                            .foregroundColor(JuntoColors.secondary)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
-                    .background(JuntoColors.surface)
-                    .overlay(
-                        HStack {
-                            Rectangle().fill(JuntoColors.secondary).frame(width: 4)
-                            Spacer()
-                        }
-                    )
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-                    .cornerRadius(12)
-
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Sua parte a pagar")
-                            .font(.inter(12, weight: .semibold))
-                            .foregroundColor(JuntoColors.textMuted)
-                        Text(JuntoStore.formatBRL(store.totalToPay))
-                            .font(.inter(18, weight: .heavy))
-                            .foregroundColor(JuntoColors.danger)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
-                    .background(JuntoColors.surface)
-                    .overlay(
-                        HStack {
-                            Rectangle().fill(JuntoColors.danger).frame(width: 4)
-                            Spacer()
-                        }
-                    )
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-                    .cornerRadius(12)
-                }
-
-                // 3. Cabeçalho da Seção de Grupos / Rolês (Nosso Diferencial)
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Seus Rolês & Potes")
-                            .font(.inter(16, weight: .heavy))
-                            .foregroundColor(JuntoColors.textMain)
-                        Text("Com Pote Coletivo, Comanda IA e Pix")
-                            .font(.inter(12))
-                            .foregroundColor(JuntoColors.textMuted)
-                    }
-                    Spacer()
-                    Button {
-                        showCreateRole = true
-                    } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "plus")
-                            Text("Novo Rolê")
-                        }
-                        .font(.inter(12, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(JuntoColors.primary)
-                        .cornerRadius(8)
-                    }
-                }
-                .padding(.top, 4)
-
-                // 4. Cards Inovadores de Rolês com Fotos Reais
-                ForEach(store.groups) { group in
-                    RoleGroupCard(
-                        group: group,
-                        onOpenComanda: { selectedGroupForComanda = group },
-                        onRechargePot: {
-                            store.openPixPayment(
-                                title: "Recarga do Pote • \(group.title)",
-                                recipient: "Pote Coletivo Juntô",
-                                amount: 50.00
-                            )
-                        },
-                        onRefundPot: {
-                            store.refundPotRemainder(for: group.id)
-                        },
-                        onPayShare: {
-                            store.openPixPayment(
-                                title: group.title,
-                                recipient: "Grupo \(group.title)",
-                                amount: max(group.myShare, 25.00)
-                            )
-                        }
-                    )
+                        .background(Color.white)
+                        .clipShape(Capsule())
+                        .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 2)
+                        .overlay(Capsule().stroke(JuntoColors.border.opacity(0.6), lineWidth: 0.6))
                 }
             }
-            .padding(16)
+            .padding(.horizontal, 18)
+            .padding(.top, 10)
+            .padding(.bottom, 14)
+
+            Divider().opacity(0.5)
+
+            if showSearch {
+                CleanOutlineInput(label: "", placeholder: "Buscar grupo", text: $searchText)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+            }
+
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    Text("Grupos")
+                        .font(.inter(24, weight: .regular))
+                        .foregroundColor(JuntoColors.textMain)
+                        .padding(.horizontal, 20)
+                        .padding(.top, 18)
+                        .padding(.bottom, 12)
+
+                    ForEach(filteredGroups) { group in
+                        Button {
+                            selectedGroup = group
+                        } label: {
+                            HStack(spacing: 14) {
+                                Image(group.coverImageName)
+                                    .resizable()
+                                    .scaledToFill()
+                                    .frame(width: 58, height: 58)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text(group.title)
+                                        .font(.inter(16, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMain)
+
+                                    if group.hasCollectivePot {
+                                        Text("Pote Coletivo: \(JuntoStore.formatBRL(group.potBalance))")
+                                            .font(.inter(13, weight: .regular))
+                                            .foregroundColor(JuntoColors.primary)
+                                    } else {
+                                        Text(group.category)
+                                            .font(.inter(13, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                    }
+
+                                    if group.myShare > 0 {
+                                        Text("Sua parte: \(JuntoStore.formatBRL(group.myShare))")
+                                            .font(.inter(12, weight: .regular))
+                                            .foregroundColor(JuntoColors.orangeSave)
+                                    }
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 13, weight: .regular))
+                                    .foregroundColor(JuntoColors.textLight)
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 14)
+                        }
+
+                        Divider().padding(.leading, 92)
+                    }
+                }
+                .padding(.bottom, 140)
+            }
         }
-        .sheet(isPresented: $showCreateRole) {
-            CreateRoleSheetView()
+        .background(Color.white)
+        .fullScreenCover(isPresented: $showCreateGroup) {
+            CreateGroupScreen()
                 .environmentObject(store)
-                .presentationDetents([.medium])
         }
-        .sheet(item: $selectedGroupForComanda) { group in
-            ComandaIASheetView(group: group)
+        .sheet(item: $selectedGroup) { group in
+            GroupDetailSheet(group: group)
                 .environmentObject(store)
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.large])
         }
     }
 }
 
-struct RoleGroupCard: View {
-    let group: RoleGroup
-    let onOpenComanda: () -> Void
-    let onRechargePot: () -> Void
-    let onRefundPot: () -> Void
-    let onPayShare: () -> Void
+// MARK: - Tela "Criar um grupo" EXATAMENTE igual à screenshot 18.25.26
+struct CreateGroupScreen: View {
+    @EnvironmentObject var store: JuntoStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var groupName: String = ""
+    @State private var selectedType: String = "Viagem"
+    @State private var enableCollectivePot: Bool = true
+
+    private let types: [(name: String, icon: String)] = [
+        ("Viagem", "airplane"),
+        ("Casa", "house"),
+        ("Casal", "heart"),
+        ("Outros", "list.bullet.rectangle")
+    ]
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Capa Real do Rolê
-            ZStack(alignment: .bottomLeading) {
-                Image(group.coverImageName)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 118)
-                    .clipped()
-
-                LinearGradient(
-                    colors: [Color.black.opacity(0.15), Color.black.opacity(0.75)],
-                    startPoint: .top,
-                    endPoint: .bottom
-                )
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text(group.category.uppercased())
-                        .font(.inter(10, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Color.white.opacity(0.22))
-                        .cornerRadius(6)
-
-                    Text(group.title)
-                        .font(.inter(17, weight: .heavy))
-                        .foregroundColor(.white)
+        VStack(alignment: .leading, spacing: 0) {
+            // Topo: X circular branco | "Criar um grupo" | ✓ circular verde esmeralda
+            HStack {
+                CircleNavButton(icon: "xmark") { dismiss() }
+                Spacer()
+                Text("Criar um grupo")
+                    .font(.inter(17, weight: .regular))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                CircleNavButton(icon: "checkmark", bgColor: JuntoColors.primary, fgColor: .white) {
+                    store.createNewGroup(title: groupName, category: selectedType, hasPot: enableCollectivePot)
+                    dismiss()
                 }
-                .padding(14)
             }
-            .frame(height: 118)
+            .padding(.horizontal, 18)
+            .padding(.top, 12)
+            .padding(.bottom, 24)
 
-            // Corpo do Card
-            VStack(alignment: .leading, spacing: 12) {
-                if group.hasCollectivePot {
-                    // DIFERENCIAL: Pote Coletivo do Rolê
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack {
-                            Label("Pote Coletivo", systemImage: "tray.and.arrow.down.fill")
-                                .font(.inter(12, weight: .bold))
-                                .foregroundColor(JuntoColors.textMain)
-                            Spacer()
-                            Text("Saldo: \(JuntoStore.formatBRL(group.potBalance))")
-                                .font(.inter(12, weight: .heavy))
-                                .foregroundColor(JuntoColors.secondary)
-                        }
-
-                        GeometryReader { geo in
-                            let ratio = group.potTarget > 0 ? min(group.potBalance / group.potTarget, 1.0) : 0
-                            ZStack(alignment: .leading) {
-                                Capsule().fill(JuntoColors.border)
-                                Capsule()
-                                    .fill(JuntoColors.secondary)
-                                    .frame(width: geo.size.width * ratio)
-                            }
-                        }
-                        .frame(height: 6)
-
-                        HStack(spacing: 8) {
-                            Button(action: onRechargePot) {
-                                Label("Recarregar Pix", systemImage: "bolt.fill")
-                                    .font(.inter(11, weight: .bold))
-                                    .foregroundColor(JuntoColors.primary)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 34)
-                                    .background(JuntoColors.surface)
-                                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(JuntoColors.border, lineWidth: 1))
-                                    .cornerRadius(8)
-                            }
-
-                            Button(action: onRefundPot) {
-                                Label("Devolver Sobra", systemImage: "arrow.uturn.left")
-                                    .font(.inter(11, weight: .bold))
-                                    .foregroundColor(JuntoColors.secondary)
-                                    .frame(maxWidth: .infinity)
-                                    .frame(height: 34)
-                                    .background(JuntoColors.surface)
-                                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(JuntoColors.border, lineWidth: 1))
-                                    .cornerRadius(8)
-                            }
-                        }
-                    }
-                    .padding(12)
-                    .background(JuntoColors.surfaceSubtle)
-                    .cornerRadius(10)
-                }
-
-                // Linha de Ação: Comanda IA & Pagamento Pix
-                HStack(spacing: 8) {
-                    Button(action: onOpenComanda) {
-                        Label("Comanda IA", systemImage: "doc.text.viewfinder")
-                            .font(.inter(12, weight: .bold))
+            // Caixa tracejada de foto + Campo "Nome do grupo" com linha inferior verde esmeralda
+            HStack(alignment: .center, spacing: 16) {
+                RoundedRectangle(cornerRadius: 10)
+                    .fill(JuntoColors.surfaceSubtle)
+                    .frame(width: 62, height: 62)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 10)
+                            .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                            .foregroundColor(JuntoColors.textLight)
+                    )
+                    .overlay(
+                        Image(systemName: "camera")
+                            .font(.system(size: 20, weight: .regular))
                             .foregroundColor(JuntoColors.textMain)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 40)
-                            .background(JuntoColors.bgMain)
-                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(JuntoColors.border, lineWidth: 1))
-                            .cornerRadius(8)
-                    }
+                    )
 
-                    if group.myShare > 0 {
-                        Button(action: onPayShare) {
-                            Label("Pagar \(JuntoStore.formatBRL(group.myShare))", systemImage: "bolt.fill")
-                                .font(.inter(12, weight: .bold))
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 40)
-                                .background(JuntoColors.primary)
-                                .cornerRadius(8)
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Nome do grupo")
+                        .font(.inter(13, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+
+                    TextField("", text: $groupName)
+                        .font(.inter(16, weight: .regular))
+                        .foregroundColor(JuntoColors.textMain)
+
+                    Rectangle()
+                        .fill(JuntoColors.primary)
+                        .frame(height: 1.5)
+                }
+            }
+            .padding(.horizontal, 20)
+
+            // Seção Tipo (4 cards quadrados brancos limpos com ícones finos)
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Tipo")
+                    .font(.inter(14, weight: .regular))
+                    .foregroundColor(JuntoColors.textMuted)
+
+                HStack(spacing: 10) {
+                    ForEach(types, id: \.name) { item in
+                        let isSelected = selectedType == item.name
+                        Button {
+                            selectedType = item.name
+                        } label: {
+                            VStack(spacing: 8) {
+                                Image(systemName: item.icon)
+                                    .font(.system(size: 22, weight: .light))
+                                    .foregroundColor(isSelected ? JuntoColors.primary : JuntoColors.textMain)
+                                Text(item.name)
+                                    .font(.inter(13, weight: .regular))
+                                    .foregroundColor(isSelected ? JuntoColors.primary : JuntoColors.textMain)
+                            }
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 82)
+                            .background(isSelected ? JuntoColors.primaryLight.opacity(0.55) : Color.white)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(isSelected ? JuntoColors.primary : JuntoColors.border, lineWidth: isSelected ? 1.3 : 1)
+                            )
+                            .cornerRadius(12)
                         }
                     }
                 }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 30)
 
-                // Rodapé: Participantes e Gasto Total
-                HStack {
-                    HStack(spacing: -6) {
-                        ForEach(group.members.prefix(5), id: \.self) { m in
-                            Text(m)
-                                .font(.inter(9, weight: .bold))
-                                .foregroundColor(JuntoColors.textMain)
-                                .frame(width: 26, height: 26)
-                                .background(JuntoColors.primaryLight)
-                                .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                                .clipShape(Circle())
-                        }
-                    }
-
-                    Spacer()
-
-                    Text("Total do rolê: \(JuntoStore.formatBRL(group.totalSpent))")
-                        .font(.inter(11, weight: .semibold))
+            // Nosso Diferencial integrado com a mesma leveza minimalista
+            Toggle(isOn: $enableCollectivePot) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Ativar Pote Coletivo (Pix)")
+                        .font(.inter(14, weight: .regular))
+                        .foregroundColor(JuntoColors.textMain)
+                    Text("Reúna o saldo antes do rolê e devolva a sobra por Pix.")
+                        .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                 }
             }
-            .padding(14)
+            .tint(JuntoColors.primary)
+            .padding(.horizontal, 20)
+            .padding(.top, 28)
+
+            Spacer()
         }
-        .background(JuntoColors.surface)
-        .overlay(RoundedRectangle(cornerRadius: 16).stroke(JuntoColors.border, lineWidth: 1))
-        .cornerRadius(16)
+        .background(Color.white.ignoresSafeArea())
     }
 }
 
-// MARK: - Sheet Comanda Inteligente com IA
-struct ComandaIASheetView: View {
+// MARK: - Detalhe do Grupo (Pote Coletivo + Comanda IA + Pix)
+struct GroupDetailSheet: View {
     @EnvironmentObject var store: JuntoStore
     @State var group: RoleGroup
     @Environment(\.dismiss) private var dismiss
@@ -336,155 +251,101 @@ struct ComandaIASheetView: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Comanda Inteligente (IA)")
-                        .font(.inter(18, weight: .heavy))
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack {
+                    CircleNavButton(icon: "xmark") { dismiss() }
+                    Spacer()
+                    Text(group.title)
+                        .font(.inter(17, weight: .medium))
                         .foregroundColor(JuntoColors.textMain)
-                    Text("Toque apenas no que você consumiu em \(group.title)")
-                        .font(.inter(12))
-                        .foregroundColor(JuntoColors.textMuted)
+                    Spacer()
+                    Spacer().frame(width: 44)
                 }
-                Spacer()
-            }
-            .padding(.top, 20)
+                .padding(.top, 16)
 
-            ScrollView(showsIndicators: false) {
-                VStack(spacing: 10) {
-                    ForEach($group.comandaItems) { $item in
-                        Button {
-                            item.isSelected.toggle()
-                        } label: {
-                            HStack {
-                                Image(systemName: item.isSelected ? "checkmark.square.fill" : "square")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(item.isSelected ? JuntoColors.primary : JuntoColors.textLight)
+                Image(group.coverImageName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(height: 150)
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(item.name)
-                                        .font(.inter(13, weight: .bold))
-                                        .foregroundColor(JuntoColors.textMain)
-                                    Text(item.detail)
-                                        .font(.inter(11))
-                                        .foregroundColor(JuntoColors.textMuted)
-                                }
+                if group.hasCollectivePot {
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("Pote Coletivo")
+                                .font(.inter(15, weight: .medium))
+                                .foregroundColor(JuntoColors.textMain)
+                            Spacer()
+                            Text(JuntoStore.formatBRL(group.potBalance))
+                                .font(.inter(16, weight: .medium))
+                                .foregroundColor(JuntoColors.primary)
+                        }
 
-                                Spacer()
-
-                                Text(JuntoStore.formatBRL(item.price))
-                                    .font(.inter(14, weight: .heavy))
-                                    .foregroundColor(JuntoColors.textMain)
+                        HStack(spacing: 10) {
+                            JuntoPillButton(title: "Recarregar Pix", color: JuntoColors.primary) {
+                                dismiss()
+                                store.openPixPayment(title: "Pote • \(group.title)", recipient: "Pote Juntô", amount: 50.00)
                             }
-                            .padding(12)
-                            .background(item.isSelected ? JuntoColors.primaryLight.opacity(0.55) : JuntoColors.bgMain)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(item.isSelected ? JuntoColors.primary : JuntoColors.border, lineWidth: 1)
-                            )
-                            .cornerRadius(10)
+                            Button("Devolver sobra") {
+                                store.refundPotRemainder(for: group.id)
+                                dismiss()
+                            }
+                            .font(.inter(14, weight: .regular))
+                            .foregroundColor(JuntoColors.primary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(JuntoColors.primaryLight)
+                            .clipShape(Capsule())
                         }
                     }
+                    .padding(16)
+                    .background(JuntoColors.surfaceSubtle)
+                    .cornerRadius(14)
                 }
-            }
 
-            HStack {
-                Text("Sua cota selecionada:")
-                    .font(.inter(14, weight: .bold))
-                    .foregroundColor(JuntoColors.secondary)
-                Spacer()
-                Text(JuntoStore.formatBRL(selectedTotal))
-                    .font(.inter(20, weight: .heavy))
-                    .foregroundColor(JuntoColors.secondary)
-            }
-            .padding(14)
-            .background(JuntoColors.secondaryLight)
-            .cornerRadius(10)
-
-            JuntoPrimaryButton(title: "Pagar \(JuntoStore.formatBRL(selectedTotal)) via Pix", icon: "bolt.fill") {
-                dismiss()
-                store.openPixPayment(title: "Comanda • \(group.title)", recipient: group.title, amount: selectedTotal)
-            }
-            .padding(.bottom, 16)
-        }
-        .padding(.horizontal, 20)
-        .background(JuntoColors.surface)
-    }
-}
-
-// MARK: - Sheet Criar Novo Rolê
-struct CreateRoleSheetView: View {
-    @EnvironmentObject var store: JuntoStore
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var title: String = ""
-    @State private var category: String = "Churrasco"
-    @State private var enablePot: Bool = true
-    @State private var potGoal: String = "300"
-
-    private let categories = ["Churrasco", "Bar & Drinks", "Viagem Praia"]
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Criar Novo Rolê")
-                .font(.inter(20, weight: .heavy))
-                .foregroundColor(JuntoColors.textMain)
-                .padding(.top, 20)
-
-            FlatInputField(label: "Nome do rolê", placeholder: "Ex: Churrasco de Sábado", text: $title)
-
-            VStack(alignment: .leading, spacing: 6) {
-                Text("Tema do Rolê")
-                    .font(.inter(13, weight: .semibold))
-                    .foregroundColor(JuntoColors.textMain)
-                HStack(spacing: 8) {
-                    ForEach(categories, id: \.self) { cat in
-                        Button {
-                            category = cat
-                        } label: {
-                            Text(cat)
-                                .font(.inter(12, weight: .bold))
-                                .foregroundColor(category == cat ? .white : JuntoColors.textMain)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 8)
-                                .background(category == cat ? JuntoColors.primary : JuntoColors.bgMain)
-                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(JuntoColors.border, lineWidth: 1))
-                                .cornerRadius(8)
-                        }
-                    }
-                }
-            }
-
-            Toggle(isOn: $enablePot) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Ativar Pote Coletivo")
-                        .font(.inter(13, weight: .bold))
-                        .foregroundColor(JuntoColors.textMain)
-                    Text("A galera deposita antes e o que sobrar volta por Pix")
-                        .font(.inter(11))
+                if !group.comandaItems.isEmpty {
+                    Text("Comanda Inteligente (selecione o que consumiu)")
+                        .font(.inter(14, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
+
+                    VStack(spacing: 0) {
+                        ForEach($group.comandaItems) { $item in
+                            Button {
+                                item.isSelected.toggle()
+                            } label: {
+                                HStack {
+                                    Image(systemName: item.isSelected ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 19, weight: .regular))
+                                        .foregroundColor(item.isSelected ? JuntoColors.primary : JuntoColors.textLight)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(item.name)
+                                            .font(.inter(14, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMain)
+                                        Text(item.detail)
+                                            .font(.inter(12, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                    }
+                                    Spacer()
+                                    Text(JuntoStore.formatBRL(item.price))
+                                        .font(.inter(14, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMain)
+                                }
+                                .padding(.vertical, 12)
+                            }
+                            Divider()
+                        }
+                    }
+
+                    JuntoPillButton(title: "Pagar \(JuntoStore.formatBRL(selectedTotal)) via Pix", color: JuntoColors.primary) {
+                        dismiss()
+                        store.openPixPayment(title: group.title, recipient: group.title, amount: selectedTotal)
+                    }
                 }
             }
-            .tint(JuntoColors.secondary)
-
-            if enablePot {
-                FlatInputField(label: "Meta do Pote (BRL)", placeholder: "300", text: $potGoal, keyboardType: .numberPad, leadingPrefix: "R$")
-            }
-
-            Spacer()
-
-            JuntoPrimaryButton(title: "Criar Rolê Agora", icon: "sparkles") {
-                store.createNewRole(
-                    title: title,
-                    category: category,
-                    hasPot: enablePot,
-                    initialPotTarget: Double(potGoal) ?? 300
-                )
-                dismiss()
-            }
-            .padding(.bottom, 16)
+            .padding(.horizontal, 20)
+            .padding(.bottom, 30)
         }
-        .padding(.horizontal, 20)
-        .background(JuntoColors.surface)
+        .background(Color.white)
     }
 }

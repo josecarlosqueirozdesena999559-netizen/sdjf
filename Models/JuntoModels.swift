@@ -1,33 +1,35 @@
 import Foundation
 
 enum AppRoute {
+    case welcomeAuth     // Tela inicial com logo Juntô + Cadastrar-se / Entrar
     case login
     case registerStep1
     case registerStep2
-    case welcome
+    case welcomeSlides
     case main
 }
 
+// Ordem exata das abas: Amigos, Grupos, Atividade, Conta
 enum MainTab: Int, CaseIterable {
-    case groups = 0
-    case friends = 1
+    case friends = 0
+    case groups = 1
     case activities = 2
     case account = 3
 
     var title: String {
         switch self {
-        case .groups: return "Grupos"
         case .friends: return "Amigos"
-        case .activities: return "Atividades"
+        case .groups: return "Grupos"
+        case .activities: return "Atividade"
         case .account: return "Conta"
         }
     }
 
     var icon: String {
         switch self {
-        case .groups: return "sparkles.rectangle.stack"
-        case .friends: return "person.2"
-        case .activities: return "bolt.horizontal.circle"
+        case .friends: return "person"
+        case .groups: return "person.2"
+        case .activities: return "waveform.path.ecg.rectangle"
         case .account: return "person.crop.circle"
         }
     }
@@ -62,9 +64,11 @@ struct UserProfile {
     var country: CountryOption
     var phone: String
     var pixKey: String
+    var timezone: String = "(GMT-03:00) Brasília"
     let currency: String = "BRL"
+    var language: String = "Português (Brasil)"
+    var allowRecommendations: Bool = true
     var avatarData: Data? = nil
-    var avatarEmoji: String? = nil
 
     var firstName: String {
         fullName.split(separator: " ").first.map(String.init) ?? "Amigo"
@@ -84,7 +88,7 @@ struct FriendItem: Identifiable {
     let name: String
     let username: String
     let initials: String
-    var balance: Double // > 0 te deve, < 0 você deve, 0 zerado
+    var balance: Double
     var isPendingInvite: Bool = false
 }
 
