@@ -1,0 +1,64 @@
+workflows:
+  ios-app-store:
+    name: TestFlight iOS - Juntô (com.achou.com)
+    max_build_duration: 120
+    instance_type: mac_mini_m2
+
+    integrations:
+      app_store_connect: "Codemagicfds"
+
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.achou.com
+      vars:
+        XCODE_PROJECT: "JuntoApp.xcodeproj"
+        XCODE_SCHEME: "JuntoApp"
+      xcode: latest
+
+    scripts:
+      - name: Generate Xcode project
+        script: |
+          if ! command -v xcodegen &> /dev/null; then
+            brew install xcodegen
+          fi
+          xcodegen generate
+
+      - name: Set up keychain
+        script: |
+          keychain initialize
+
+      - name: Add certificates to keychain
+        script: |
+          keychain add-certificates
+
+      - name: Check signing identities
+        script: |
+          security find-identity -v -p codesigning
+
+      - name: Set up code signing
+        script: |
+          xcode-project use-profiles
+
+      - name: Set build version
+        script: |
+          agvtool new-marketing-version 1.0.19
+          agvtool new-version -all $((135 + ${PROJECT_BUILD_NUMBER:-1}))
+
+      - name: Build IPA
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME" \
+            --config Release
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
+
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
