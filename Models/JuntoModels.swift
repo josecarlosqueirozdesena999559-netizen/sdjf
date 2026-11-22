@@ -88,6 +88,20 @@ struct SearchableUser: Identifiable, Hashable {
     let username: String
 }
 
+enum ChatMessageKind: Hashable {
+    case text(String)
+    case photo(Data?, String) // imagem opcional + legenda
+    case audio(Int)           // duração em segundos
+    case document(String, String) // nome do arquivo + tamanho
+}
+
+struct ChatMessage: Identifiable, Hashable {
+    let id = UUID()
+    let isFromMe: Bool
+    let kind: ChatMessageKind
+    let timeText: String
+}
+
 struct FriendItem: Identifiable {
     let id = UUID()
     let name: String
@@ -95,6 +109,8 @@ struct FriendItem: Identifiable {
     let initials: String
     var balance: Double
     var isPendingInvite: Bool = false
+    var isOnline: Bool = false
+    var lastSeenText: String = "visto por último hoje às 18:10"
 }
 
 struct ComandaItem: Identifiable {

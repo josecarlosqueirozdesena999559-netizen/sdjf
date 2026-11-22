@@ -27,10 +27,27 @@ final class JuntoStore: ObservableObject {
 
     // Mocks realistas e completos para testar imediatamente
     @Published var friends: [FriendItem] = [
-        FriendItem(name: "Pedro Santos", username: "pedro.santos", initials: "PS", balance: 100.00),
-        FriendItem(name: "Camila Rocha", username: "camila.rocha", initials: "CR", balance: 70.00),
-        FriendItem(name: "Matheus Alves", username: "matheus.alves", initials: "MA", balance: -35.36),
-        FriendItem(name: "Beatriz Lima", username: "bia.lima", initials: "BL", balance: 0.0)
+        FriendItem(name: "Pedro Santos", username: "pedro.santos", initials: "PS", balance: 100.00, isOnline: true, lastSeenText: "online"),
+        FriendItem(name: "Camila Rocha", username: "camila.rocha", initials: "CR", balance: 70.00, isOnline: false, lastSeenText: "visto por último hoje às 19:42"),
+        FriendItem(name: "Matheus Alves", username: "matheus.alves", initials: "MA", balance: -35.36, isOnline: true, lastSeenText: "online"),
+        FriendItem(name: "Beatriz Lima", username: "bia.lima", initials: "BL", balance: 0.0, isOnline: false, lastSeenText: "visto por último ontem às 22:15")
+    ]
+
+    // Conversas de chat por @username
+    @Published var chatMessages: [String: [ChatMessage]] = [
+        "pedro.santos": [
+            ChatMessage(isFromMe: false, kind: .text("Fala! Já separei os R$ 100 da viagem de Ubatuba."), timeText: "19:12"),
+            ChatMessage(isFromMe: true, kind: .text("Show Pedro, pode mandar por Pix quando puder 👍"), timeText: "19:15"),
+            ChatMessage(isFromMe: false, kind: .audio(12), timeText: "19:18")
+        ],
+        "camila.rocha": [
+            ChatMessage(isFromMe: false, kind: .text("Oi! Te mando minha parte do churrasco ainda hoje."), timeText: "18:30"),
+            ChatMessage(isFromMe: true, kind: .text("Tranquilo, sem pressa!"), timeText: "18:34")
+        ],
+        "matheus.alves": [
+            ChatMessage(isFromMe: false, kind: .document("Comanda_Churrasco.pdf", "248 KB"), timeText: "17:45"),
+            ChatMessage(isFromMe: false, kind: .text("Ficou R$ 35,36 a sua parte da carne e do gelo."), timeText: "17:46")
+        ]
     ]
 
     @Published var groups: [RoleGroup] = [
@@ -225,6 +242,42 @@ final class JuntoStore: ObservableObject {
         withAnimation(.easeInOut(duration: 0.28)) {
             route = .main
         }
+    }
+
+    // MARK: - Chat com Amigos (Texto, Foto, Áudio, Documento & Apagar Conversa)
+    func messages(for username: String) -> [ChatMessage] {
+        chatMessages[username.lowercased()] ?? []
+    }
+
+    func lastMessagePreview(for username: String) -> String {
+        guard let last = messages(for: username).last else {
+            return "Sem mensagens"
+        }
+        switch last.kind {
+        case .text(let txt): return txt
+        case .photo(_, let caption): return caption.isEmpty ? "Foto" : "Foto: \(caption)"
+        case .audio(let secs): return "Áudio (0:\(String(format: "%02d", secs)))"
+        case .document(let name, _): return "Documento: \(name)"
+        }
+    }
+
+    private func currentTimeString() -> String {
+        let f = DateFormatter()
+        f.dateFormat = "HH:mm"
+        return f.string(from: Date())
+    }
+
+    func sendChatMessage(to username: String, kind: ChatMessageKind) {
+        let key = username.lowercased()
+        let msg = ChatMessage(isFromMe: true, kind: kind, timeText: currentTimeString())
+        chatMessages[key, default: []].append(msg)
+    }
+
+    /// Apaga as mensagens da conversa. Se houver dívida (balance != 0), o amigo continua na lista inicial sem mensagens.
+    func clearConversation(for username: String) {
+        let key = username.lowercased()
+        chatMessages[key] = []
+        showToast("Conversa apagada.", icon: "trash")
     }
 
     func isInviteSent(for username: String) -> Bool {

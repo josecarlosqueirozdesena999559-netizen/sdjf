@@ -5,11 +5,14 @@ struct FriendsView: View {
     var onOpenNotifications: () -> Void
 
     @State private var showAddFriendScreen = false
+    @State private var selectedChatFriend: FriendItem? = nil
     @State private var searchText = ""
 
-    private var filteredFriends: [FriendItem] {
-        if searchText.isEmpty { return store.friends }
-        return store.friends.filter {
+    /// Na tela inicial aparecem SOMENTE amigos que te devem ou a quem você deve (balance != 0)
+    private var activeDebtFriends: [FriendItem] {
+        let withDebt = store.friends.filter { $0.balance != 0 }
+        if searchText.isEmpty { return withDebt }
+        return withDebt.filter {
             $0.name.localizedCaseInsensitiveContains(searchText) ||
             $0.username.localizedCaseInsensitiveContains(searchText)
         }
@@ -17,7 +20,7 @@ struct FriendsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Cabeçalho estilo WhatsApp: Título à esquerda | Sino + Botão "+" à direita (SEM lupa!)
+            // Cabeçalho estilo WhatsApp: Título | Sino + Botão "+"
             HStack(spacing: 10) {
                 Text("Amigos")
                     .font(.inter(24, weight: .medium))
@@ -25,7 +28,6 @@ struct FriendsView: View {
 
                 Spacer()
 
-                // Sino de notificações
                 Button(action: onOpenNotifications) {
                     ZStack(alignment: .topTrailing) {
                         Image(systemName: "bell")
@@ -44,7 +46,6 @@ struct FriendsView: View {
                     }
                 }
 
-                // Botão "+" estilo WhatsApp para adicionar amigos
                 Button {
                     showAddFriendScreen = true
                 } label: {
@@ -60,7 +61,7 @@ struct FriendsView: View {
             .padding(.top, 12)
             .padding(.bottom, 12)
 
-            // Barra de pesquisa com animação digitando letra por letra ("@lucas123", "@ana.paula"...)
+            // Barra de pesquisa com animação digitando letra por letra
             AnimatedSearchBar(
                 text: $searchText,
                 placeholders: [
@@ -79,7 +80,7 @@ struct FriendsView: View {
                     .font(.inter(16, weight: .medium))
                     .foregroundColor(JuntoColors.textMain)
 
-                if !store.friends.isEmpty {
+                if !activeDebtFriends.isEmpty {
                     HStack(spacing: 4) {
                         Text(store.netBalance >= 0 ? "No total, você recebe" : "No total, você deve")
                             .font(.inter(13, weight: .regular))
@@ -95,15 +96,15 @@ struct FriendsView: View {
 
             Divider().opacity(0.6)
 
-            if filteredFriends.isEmpty {
+            if activeDebtFriends.isEmpty {
                 Spacer()
-                VStack(spacing: 16) {
-                    Text(searchText.isEmpty ? "Você ainda não adicionou amigos." : "Nenhum amigo encontrado.")
+                VStack(spacing: 14) {
+                    Text(searchText.isEmpty ? "Nenhuma pendência com amigos no momento." : "Nenhum amigo encontrado.")
                         .font(.inter(15, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
 
                     if searchText.isEmpty {
-                        JuntoPillButton(title: "Adicionar amigo", icon: "person.badge.plus", color: JuntoColors.primary) {
+                        JuntoPillButton(title: "Ver todos os amigos", icon: "person.2", color: JuntoColors.primary) {
                             showAddFriendScreen = true
                         }
                         .padding(.horizontal, 40)
@@ -113,28 +114,39 @@ struct FriendsView: View {
                 Spacer()
                 Spacer().frame(height: 100)
             } else {
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        ForEach(filteredFriends) { friend in
+                // Lista estilo WhatsApp com swipe para "Apagar conversa"
+                List {
+                    ForEach(activeDebtFriends) { friend in
+                        Button {
+                            selectedChatFriend = friend
+                        } label: {
                             HStack(spacing: 14) {
-                                GeometricAvatarView(seed: friend.username, displayName: friend.name, size: 48)
+                                // Bolinha verde online SOMENTE aqui na tela inicial quando online
+                                ZStack(alignment: .bottomTrailing) {
+                                    GeometricAvatarView(seed: friend.username, displayName: friend.name, size: 50)
+                                    if friend.isOnline {
+                                        Circle()
+                                            .fill(JuntoColors.pixGreen)
+                                            .frame(width: 13, height: 13)
+                                            .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                                    }
+                                }
 
-                                VStack(alignment: .leading, spacing: 2) {
+                                VStack(alignment: .leading, spacing: 3) {
                                     Text(friend.name)
-                                        .font(.inter(15, weight: .regular))
+                                        .font(.inter(15, weight: .medium))
                                         .foregroundColor(JuntoColors.textMain)
-                                    Text("@\(friend.username)")
-                                        .font(.inter(12, weight: .regular))
+                                        .lineLimit(1)
+
+                                    Text(store.lastMessagePreview(for: friend.username))
+                                        .font(.inter(13, weight: .regular))
                                         .foregroundColor(JuntoColors.textMuted)
+                                        .lineLimit(1)
                                 }
 
                                 Spacer()
 
-                                if friend.isPendingInvite {
-                                    Text("Convite enviado")
-                                        .font(.inter(12, weight: .regular))
-                                        .foregroundColor(JuntoColors.primary)
-                                } else if friend.balance > 0 {
+                                if friend.balance > 0 {
                                     VStack(alignment: .trailing, spacing: 2) {
                                         Text("te deve")
                                             .font(.inter(11, weight: .regular))
@@ -144,48 +156,60 @@ struct FriendsView: View {
                                             .foregroundColor(JuntoColors.pixGreen)
                                     }
                                 } else if friend.balance < 0 {
-                                    VStack(alignment: .trailing, spacing: 4) {
-                                        Text("você deve \(JuntoStore.formatBRL(abs(friend.balance)))")
-                                            .font(.inter(12, weight: .regular))
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        Text("você deve")
+                                            .font(.inter(11, weight: .regular))
                                             .foregroundColor(JuntoColors.orangeSave)
-                                        Button("Pagar Pix") {
-                                            store.openPixPayment(
-                                                title: "Acerto com \(friend.name)",
-                                                recipient: friend.name,
-                                                amount: abs(friend.balance)
-                                            )
-                                        }
-                                        .font(.inter(12, weight: .medium))
-                                        .foregroundColor(JuntoColors.primary)
+                                        Text(JuntoStore.formatBRL(abs(friend.balance)))
+                                            .font(.inter(15, weight: .medium))
+                                            .foregroundColor(JuntoColors.orangeSave)
                                     }
-                                } else {
-                                    Text("quitado")
-                                        .font(.inter(12, weight: .regular))
-                                        .foregroundColor(JuntoColors.textLight)
                                 }
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 13)
-
-                            Divider().padding(.leading, 82)
+                            .padding(.vertical, 6)
+                        }
+                        .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+                        .listRowBackground(Color.white)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+                            Button(role: .destructive) {
+                                // Se tiver dívida, o amigo continua na lista porém sem mensagens
+                                store.clearConversation(for: friend.username)
+                            } label: {
+                                Label("Apagar conversa", systemImage: "trash")
+                            }
                         }
                     }
-                    .padding(.bottom, 140)
+
+                    // Espaço para a barra flutuante inferior
+                    Color.clear
+                        .frame(height: 120)
+                        .listRowSeparator(.hidden)
+                        .listRowBackground(Color.clear)
                 }
+                .listStyle(.plain)
+                .scrollContentBackground(.hidden)
             }
         }
         .background(Color.white)
         .fullScreenCover(isPresented: $showAddFriendScreen) {
-            AddFriendScreen()
+            AddFriendScreen { friendToChat in
+                selectedChatFriend = friendToChat
+            }
+            .environmentObject(store)
+        }
+        .fullScreenCover(item: $selectedChatFriend) { friend in
+            FriendChatScreen(friend: friend)
                 .environmentObject(store)
         }
     }
 }
 
-// MARK: - Tela Completa de Adicionar Amigo (busca letra por letra + avatar + Adicionar / Convite enviado bloqueado)
+// MARK: - Tela do botão "+": Lista de todos os amigos + Busca de novos amigos letra por letra
 struct AddFriendScreen: View {
     @EnvironmentObject var store: JuntoStore
     @Environment(\.dismiss) private var dismiss
+    var onOpenChat: ((FriendItem) -> Void)? = nil
+
     @State private var query: String = ""
 
     private var cleanQuery: String {
@@ -196,9 +220,8 @@ struct AddFriendScreen: View {
         guard !cleanQuery.isEmpty else { return [] }
         var matches = store.directoryUsers.filter {
             $0.username.lowercased().contains(cleanQuery) ||
-            $0.name.lowercased().contains(cleanQuery)
+            $0.name.localizedCaseInsensitiveContains(cleanQuery)
         }
-        // Se digitou um @username exato com 3+ letras que não está no diretório, permite convidar também
         if cleanQuery.count >= 3 && !matches.contains(where: { $0.username.lowercased() == cleanQuery }) {
             let formattedName = cleanQuery
                 .split(separator: ".")
@@ -214,7 +237,7 @@ struct AddFriendScreen: View {
             HStack {
                 CircleNavButton(icon: "chevron.left") { dismiss() }
                 Spacer()
-                Text("Adicionar amigo")
+                Text("Amigos e convites")
                     .font(.inter(17, weight: .medium))
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
@@ -222,41 +245,80 @@ struct AddFriendScreen: View {
             }
             .padding(.horizontal, 18)
             .padding(.top, 12)
-            .padding(.bottom, 18)
+            .padding(.bottom, 16)
 
-            VStack(alignment: .leading, spacing: 14) {
-                Text("Pesquise pelo @usuário ou nome")
-                    .font(.inter(14, weight: .regular))
-                    .foregroundColor(JuntoColors.textMuted)
-
-                CleanOutlineInput(
-                    label: "",
-                    placeholder: "Digite uma letra ou @usuário (ex: ana)",
-                    text: $query,
-                    autocapitalization: .never,
-                    leadingPrefix: "@"
-                )
-            }
+            CleanOutlineInput(
+                label: "",
+                placeholder: "Pesquisar novos amigos por @usuário ou nome...",
+                text: $query,
+                autocapitalization: .never,
+                leadingPrefix: "@"
+            )
             .padding(.horizontal, 20)
             .padding(.bottom, 14)
 
             Divider().opacity(0.6)
 
             if cleanQuery.isEmpty {
-                VStack(spacing: 10) {
-                    Spacer().frame(height: 50)
-                    Image(systemName: "person.2")
-                        .font(.system(size: 32, weight: .thin))
-                        .foregroundColor(JuntoColors.textLight)
-                    Text("Comece a digitar para encontrar amigos no Juntô")
-                        .font(.inter(14, weight: .regular))
-                        .foregroundColor(JuntoColors.textMuted)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 40)
+                // Lista completa de todos os amigos já adicionados (inclusive quitados)
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("Seus amigos (\(store.friends.count))")
+                            .font(.inter(13, weight: .medium))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 14)
+                            .padding(.bottom, 8)
+
+                        ForEach(store.friends) { friend in
+                            Button {
+                                dismiss()
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                                    onOpenChat?(friend)
+                                }
+                            } label: {
+                                HStack(spacing: 12) {
+                                    GeometricAvatarView(seed: friend.username, displayName: friend.name, size: 46)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(friend.name)
+                                            .font(.inter(15, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMain)
+                                        Text("@\(friend.username)")
+                                            .font(.inter(12, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                    }
+
+                                    Spacer()
+
+                                    if friend.isPendingInvite {
+                                        Text("Convite enviado")
+                                            .font(.inter(12, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                    } else if friend.balance > 0 {
+                                        Text("+ \(JuntoStore.formatBRL(friend.balance))")
+                                            .font(.inter(13, weight: .medium))
+                                            .foregroundColor(JuntoColors.pixGreen)
+                                    } else if friend.balance < 0 {
+                                        Text("- \(JuntoStore.formatBRL(abs(friend.balance)))")
+                                            .font(.inter(13, weight: .medium))
+                                            .foregroundColor(JuntoColors.orangeSave)
+                                    } else {
+                                        Text("Conversar")
+                                            .font(.inter(12, weight: .medium))
+                                            .foregroundColor(JuntoColors.primary)
+                                    }
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 12)
+                            }
+
+                            Divider().padding(.leading, 78)
+                        }
+                    }
                 }
-                .frame(maxWidth: .infinity)
-                Spacer()
             } else {
+                // Busca letra por letra de novos amigos (botão toggle Instagram: Adicionar / Convite enviado)
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
                         ForEach(searchResults) { person in
