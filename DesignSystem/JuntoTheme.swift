@@ -107,22 +107,48 @@ struct JuntoLogoMark: View {
     }
 }
 
-// MARK: - Avatar Minimalista Sem Gênero (Cores vibrantes da paleta, neutro para qualquer pessoa)
+// MARK: - Avatar Ilustrado Flat Estilo "Praia" (Personagens minimalistas sem rosto de todas as cores)
 struct GeometricAvatarView: View {
     var seed: String = "junto"
     var displayName: String? = nil
     var avatarData: Data? = nil
     var size: CGFloat = 56
 
-    private static let palettes: [(bg: Color, accent: Color, fg: Color)] = [
-        (Color(hex: "#14213D"), Color(hex: "#233763"), Color.white),            // Azul-noite
-        (Color(hex: "#FCA311"), Color(hex: "#F59E0B"), Color(hex: "#14213D")),  // Manga
-        (Color(hex: "#16A34A"), Color(hex: "#15803D"), Color.white),            // Esmeralda
-        (Color(hex: "#E2711D"), Color(hex: "#C85A17"), Color.white),            // Terracota
-        (Color(hex: "#1D4E89"), Color(hex: "#163B68"), Color.white),            // Oceano
-        (Color(hex: "#6D4C91"), Color(hex: "#573B75"), Color.white),            // Ameixa suave
-        (Color(hex: "#0F766E"), Color(hex: "#115E59"), Color.white),            // Petróleo
-        (Color(hex: "#B45309"), Color(hex: "#92400E"), Color.white)             // Âmbar
+    private static let bgColors: [Color] = [
+        Color(hex: "#F5EBDD"), // Areia
+        Color(hex: "#E8F0FE"), // Azul névoa
+        Color(hex: "#E6F7EE"), // Menta suave
+        Color(hex: "#FFF1DF"), // Pêssego claro
+        Color(hex: "#F3E8FF"), // Lavanda suave
+        Color(hex: "#FCE7F3"), // Rosa claro
+        Color(hex: "#E0F2FE"), // Celeste claro
+        Color(hex: "#FEF3C7")  // Sol suave
+    ]
+
+    private static let shirtColors: [Color] = [
+        Color(hex: "#14213D"), // Azul-noite
+        Color(hex: "#FCA311"), // Manga
+        Color(hex: "#16A34A"), // Esmeralda
+        Color(hex: "#E2711D"), // Terracota
+        Color(hex: "#1D4E89"), // Oceano
+        Color(hex: "#7C3AED"), // Violeta
+        Color(hex: "#0D9488"), // Turquesa
+        Color(hex: "#DB2777")  // Magenta
+    ]
+
+    private static let skinColors: [Color] = [
+        Color(hex: "#5C3A28"), // Pele retinta
+        Color(hex: "#8D5B3E"), // Pele parda escura
+        Color(hex: "#B88462"), // Pele parda clara
+        Color(hex: "#D7A988"), // Pele oliva
+        Color(hex: "#ECC6AA")  // Pele clara
+    ]
+
+    private static let hairColors: [Color] = [
+        Color(hex: "#14213D"), // Azul-noite (mesmo estilo da praia!)
+        Color(hex: "#1E1B18"), // Preto suave
+        Color(hex: "#3B281F"), // Castanho escuro
+        Color(hex: "#5A3E2B")  // Castanho médio
     ]
 
     private var hashValueStable: Int {
@@ -133,20 +159,10 @@ struct GeometricAvatarView: View {
         return abs(hash)
     }
 
-    private var palette: (bg: Color, accent: Color, fg: Color) {
-        Self.palettes[hashValueStable % Self.palettes.count]
-    }
-
-    private var initialsText: String {
-        let source = (displayName?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false)
-            ? displayName!
-            : seed.replacingOccurrences(of: "@", with: "").replacingOccurrences(of: ".", with: " ")
-        let parts = source.split(separator: " ")
-        if parts.count >= 2 {
-            return "\(parts[0].prefix(1))\(parts[1].prefix(1))".uppercased()
-        }
-        return String(source.prefix(2)).uppercased()
-    }
+    private var bg: Color { Self.bgColors[hashValueStable % Self.bgColors.count] }
+    private var shirt: Color { Self.shirtColors[(hashValueStable / 3) % Self.shirtColors.count] }
+    private var skin: Color { Self.skinColors[(hashValueStable / 7) % Self.skinColors.count] }
+    private var hair: Color { Self.hairColors[(hashValueStable / 11) % Self.hairColors.count] }
 
     var body: some View {
         Group {
@@ -158,23 +174,44 @@ struct GeometricAvatarView: View {
                     .clipShape(Circle())
             } else {
                 ZStack {
-                    Circle().fill(palette.bg)
+                    Circle().fill(bg)
 
-                    // Arco geométrico suave (mesmo estilo minimalista sem gênero)
+                    // Cabelo arredondado neutro (estilo praia, sem gênero específico)
                     Circle()
-                        .fill(palette.accent)
-                        .frame(width: size * 0.95, height: size * 0.95)
-                        .offset(x: size * 0.34, y: size * 0.34)
+                        .fill(hair)
+                        .frame(width: size * 0.42, height: size * 0.42)
+                        .offset(y: -size * 0.14)
 
-                    if size <= 28 {
-                        Image(systemName: "person.fill")
-                            .font(.system(size: size * 0.44, weight: .regular))
-                            .foregroundColor(palette.fg)
-                    } else {
-                        Text(initialsText)
-                            .font(.inter(size * 0.35, weight: .medium))
-                            .foregroundColor(palette.fg)
+                    // Ombros / Camiseta colorida
+                    Ellipse()
+                        .fill(shirt)
+                        .frame(width: size * 0.72, height: size * 0.46)
+                        .offset(y: size * 0.36)
+
+                    // Pescoço
+                    RoundedRectangle(cornerRadius: size * 0.06)
+                        .fill(skin)
+                        .frame(width: size * 0.14, height: size * 0.18)
+                        .offset(y: size * 0.10)
+
+                    // Cabeça minimalista sem rosto (faceless)
+                    Ellipse()
+                        .fill(skin)
+                        .frame(width: size * 0.30, height: size * 0.34)
+                        .offset(y: -size * 0.09)
+
+                    // Franja suave neutra no topo
+                    Path { p in
+                        p.addArc(
+                            center: CGPoint(x: size * 0.50, y: size * 0.38),
+                            radius: size * 0.155,
+                            startAngle: .degrees(190),
+                            endAngle: .degrees(350),
+                            clockwise: false
+                        )
+                        p.closeSubpath()
                     }
+                    .fill(hair)
                 }
                 .frame(width: size, height: size)
                 .clipShape(Circle())

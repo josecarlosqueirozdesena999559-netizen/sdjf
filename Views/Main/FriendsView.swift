@@ -277,24 +277,24 @@ struct AddFriendScreen: View {
                                 Spacer()
 
                                 Button {
-                                    guard !alreadySent else { return }
-                                    store.sendFriendInvite(username: person.username, displayName: person.name)
-                                } label: {
-                                    HStack(spacing: 5) {
-                                        if alreadySent {
-                                            Image(systemName: "checkmark")
-                                                .font(.system(size: 11, weight: .medium))
-                                        }
-                                        Text(alreadySent ? "Convite enviado" : "Adicionar")
-                                            .font(.inter(13, weight: .medium))
+                                    if alreadySent {
+                                        store.cancelFriendInvite(username: person.username)
+                                    } else {
+                                        store.sendFriendInvite(username: person.username, displayName: person.name)
                                     }
-                                    .foregroundColor(alreadySent ? JuntoColors.textMuted : .white)
-                                    .padding(.horizontal, 14)
-                                    .frame(height: 36)
-                                    .background(alreadySent ? JuntoColors.surfaceSubtle : JuntoColors.primary)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                } label: {
+                                    Text(alreadySent ? "Convite enviado" : "Adicionar")
+                                        .font(.inter(13, weight: .medium))
+                                        .foregroundColor(alreadySent ? JuntoColors.textMain : .white)
+                                        .padding(.horizontal, 14)
+                                        .frame(height: 36)
+                                        .background(alreadySent ? JuntoColors.surfaceSubtle : JuntoColors.primary)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                                .stroke(alreadySent ? JuntoColors.border : Color.clear, lineWidth: 1)
+                                        )
+                                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
                                 }
-                                .disabled(alreadySent)
                             }
                             .padding(.horizontal, 20)
                             .padding(.vertical, 12)

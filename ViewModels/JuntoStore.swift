@@ -83,10 +83,10 @@ final class JuntoStore: ObservableObject {
     ]
 
     @Published var activities: [ActivityEvent] = [
-        ActivityEvent(icon: "checkmark.seal.fill", title: "Pedro Santos pagou via Pix", subtitle: "Viagem Ubatuba • Baixa automática", timeAgo: "Há 8 min", amountText: "+ R$ 100,00", isPositive: true),
-        ActivityEvent(icon: "doc.text.fill", title: "Comanda dividida com IA", subtitle: "Churrasco de Domingo • 3 itens", timeAgo: "Há 1 hora", amountText: "R$ 63,36", isPositive: true),
-        ActivityEvent(icon: "banknote.fill", title: "Camila recarregou o Pote", subtitle: "Viagem Ubatuba • Saldo R$ 640,00", timeAgo: "Ontem", amountText: "+ R$ 150,00", isPositive: true),
-        ActivityEvent(icon: "house.fill", title: "Matheus adicionou \"Internet Fibra\"", subtitle: "Contas do Apê 402", timeAgo: "Há 2 dias", amountText: "R$ 135,00", isPositive: false)
+        ActivityEvent(icon: "checkmark.circle", title: "Pedro Santos pagou via Pix", subtitle: "Viagem Ubatuba • Baixa automática", timeAgo: "Há 8 min", amountText: "+ R$ 100,00", isPositive: true),
+        ActivityEvent(icon: "list.bullet.rectangle.portrait", title: "Comanda dividida com IA", subtitle: "Churrasco de Domingo • 3 itens", timeAgo: "Há 1 hora", amountText: "R$ 63,36", isPositive: true),
+        ActivityEvent(icon: "dollarsign.circle", title: "Camila contribuiu no Pote", subtitle: "Viagem Ubatuba • Saldo R$ 640,00", timeAgo: "Ontem", amountText: "+ R$ 150,00", isPositive: true),
+        ActivityEvent(icon: "house", title: "Matheus adicionou \"Internet Fibra\"", subtitle: "Contas do Apê 402", timeAgo: "Há 2 dias", amountText: "R$ 135,00", isPositive: false)
     ]
 
     // Diretório de usuários para busca em tempo real letra por letra
@@ -259,6 +259,102 @@ final class JuntoStore: ObservableObject {
             at: 0
         )
         showToast("Convite enviado para @\(clean).", icon: "paperplane")
+    }
+
+    /// Cancela / desfaz o convite enviado (comportamento toggle igual Instagram Seguir / Solicitado)
+    func cancelFriendInvite(username raw: String) {
+        let clean = raw
+            .lowercased()
+            .replacingOccurrences(of: "@", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        sentInviteUsernames.remove(clean)
+        friends.removeAll { $0.username.lowercased() == clean && $0.isPendingInvite }
+        showToast("Convite para @\(clean) cancelado.", icon: "xmark.circle")
+    }
+
+    /// Contribuição real no Pote Coletivo do grupo (atualiza saldo + registra atividade + abre Pix)
+    func contributeToPot(groupId: UUID, amount: Double) {
+        guard amount > 0, let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
+        groups[idx].potBalance += amount
+        let groupTitle = groups[idx].title
+
+        activities.insert(
+            ActivityEvent(
+                icon: "dollarsign.circle",
+                title: "Você contribuiu no Pote",
+                subtitle: "\(groupTitle) • Saldo \(Self.formatBRL(groups[idx].potBalance))",
+                timeAgo: "Agora",
+                amountText: "+ \(Self.formatBRL(amount))",
+                isPositive: true
+            ),
+            at: 0
+        )
+
+        openPixPayment(title: "Pote • \(groupTitle)", recipient: "Pote Coletivo \(groupTitle)", amount: amount)
+    }
+
+    /// Adiciona despesa real dentro de um grupo (atualiza comanda, total e sua cota)
+    func addExpenseToGroup(groupId: UUID, name: String, totalAmount: Double, payFromPot: Bool) {
+        let cleanName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanName.isEmpty, totalAmount > 0,
+              let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
+
+        let memberCount = max(groups[idx].members.count, 1)
+        let perPerson = totalAmount / Double(memberCount)
+
+        if payFromPot && groups[idx].hasCollectivePot {
+            groups[idx].potBalance = max(0, groups[idx].potBalance - totalAmount)
+        } else {
+            groups[idx].myShare += perPerson
+        }
+
+        groups[idx].totalSpent += totalAmount
+        groups[idx].comandaItems.insert(
+            ComandaItem(
+                name: cleanName,
+                detail: payFromPot ? "Pago com o Pote" : "Dividido por \(memberCount)",
+                price: perPerson,
+                isSelected: !payFromPot
+            ),
+            at: 0
+        )
+
+        activities.insert(
+            ActivityEvent(
+                icon: "list.bullet.rectangle.portrait",
+                title: "Você adicionou \"\(cleanName)\"",
+                subtitle: groups[idx].title,
+                timeAgo: "Agora",
+                amountText: Self.formatBRL(totalAmount),
+                isPositive: false
+            ),
+            at: 0
+        )
+        showToast("Despesa \"\(cleanName)\" adicionada.", icon: "checkmark.circle")
+    }
+
+    /// Adiciona membro real ao grupo
+    func addMemberToGroup(groupId: UUID, memberUsername: String) {
+        let clean = memberUsername.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "@", with: "").lowercased()
+        guard clean.count >= 2, let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
+
+        let initials = String(clean.prefix(2)).uppercased()
+        if !groups[idx].members.contains(initials) {
+            groups[idx].members.append(initials)
+            activities.insert(
+                ActivityEvent(
+                    icon: "person.badge.plus",
+                    title: "@\(clean) entrou no grupo",
+                    subtitle: groups[idx].title,
+                    timeAgo: "Agora",
+                    amountText: nil,
+                    isPositive: true
+                ),
+                at: 0
+            )
+            showToast("@\(clean) adicionado ao grupo.", icon: "person.badge.plus")
+        }
     }
 
     func createNewGroup(title: String, category: String, hasPot: Bool) {

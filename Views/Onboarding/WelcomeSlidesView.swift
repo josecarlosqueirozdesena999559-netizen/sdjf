@@ -22,7 +22,7 @@ struct WelcomeSlidesView: View {
                 image: "OnbFriends",
                 title: "Bem-vindo ao Juntô, \(store.user.firstName)",
                 text: "Viagens, rolês e contas de casa organizados num só lugar, com saldos sempre claros.",
-                chipIcon: "arrow.down.left",
+                chipIcon: "arrow.down.left.circle.fill",
                 chipTitle: "No total, você recebe",
                 chipValue: "R$ 134,64",
                 chipColor: JuntoColors.pixGreen
@@ -31,7 +31,7 @@ struct WelcomeSlidesView: View {
                 image: "OnbExpenses",
                 title: "Lance despesas em segundos",
                 text: "Escaneie a comanda, escolha quem participou e use o Pote Coletivo para juntar antes do rolê.",
-                chipIcon: "flame.fill",
+                chipIcon: "dollarsign.circle.fill",
                 chipTitle: "Pote do churrasco",
                 chipValue: "R$ 180,00",
                 chipColor: JuntoColors.accent
@@ -40,7 +40,7 @@ struct WelcomeSlidesView: View {
                 image: "OnbPix",
                 title: "Acerte tudo com Pix",
                 text: "Um toque gera o Pix com o valor exato e a dívida é baixada automaticamente.",
-                chipIcon: "checkmark.seal.fill",
+                chipIcon: "checkmark.circle.fill",
                 chipTitle: "Pagamento confirmado",
                 chipValue: "R$ 105,36",
                 chipColor: JuntoColors.pixGreen

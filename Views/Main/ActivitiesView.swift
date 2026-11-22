@@ -53,11 +53,11 @@ struct ActivitiesView: View {
                             let accent = iconAccentColor(for: item.icon)
                             HStack(spacing: 14) {
                                 Image(systemName: item.icon)
-                                    .font(.system(size: 16, weight: .medium))
+                                    .font(.system(size: 16, weight: .regular))
                                     .foregroundColor(accent)
-                                    .frame(width: 40, height: 40)
-                                    .background(accent.opacity(0.12))
-                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                    .frame(width: 42, height: 42)
+                                    .background(accent.opacity(0.10))
+                                    .clipShape(Circle())
 
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(item.title)
@@ -79,7 +79,7 @@ struct ActivitiesView: View {
                             .padding(.horizontal, 20)
                             .padding(.vertical, 14)
 
-                            Divider().padding(.leading, 74)
+                            Divider().padding(.leading, 76)
                         }
                     }
                     .padding(.bottom, 140)
@@ -91,9 +91,9 @@ struct ActivitiesView: View {
 
     private func iconAccentColor(for icon: String) -> Color {
         switch icon {
-        case "checkmark.seal.fill", "arrow.uturn.left": return JuntoColors.pixGreen
-        case "banknote.fill", "flame.fill": return JuntoColors.accent
-        case "house.fill": return JuntoColors.orangeSave
+        case "checkmark.circle", "checkmark.circle.fill": return JuntoColors.pixGreen
+        case "dollarsign.circle": return JuntoColors.accent
+        case "house": return JuntoColors.orangeSave
         default: return JuntoColors.primary
         }
     }
