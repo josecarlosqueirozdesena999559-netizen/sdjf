@@ -29,61 +29,8 @@ struct MainTabView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.white.ignoresSafeArea())
 
-            // Camada flutuante inferior: ao rolar para baixo encolhe para só ícone; ao subir abre com texto (estilo WhatsApp)
+            // Tab Bar Flutuante Estilo iOS Liquid Glass
             VStack(alignment: .trailing, spacing: 12) {
-                if store.selectedTab == .friends {
-                    VStack(alignment: .trailing, spacing: 8) {
-                        Button {
-                            store.showAddExpenseSheet = true
-                        } label: {
-                            HStack(spacing: homeButtonsCollapsed ? 0 : 7) {
-                                Image(systemName: "plus")
-                                    .font(.system(size: homeButtonsCollapsed ? 18 : 14, weight: .medium))
-                                if !homeButtonsCollapsed {
-                                    Text("Adicionar despesa")
-                                        .font(.inter(14, weight: .medium))
-                                        .fixedSize()
-                                        .transition(.opacity.combined(with: .move(edge: .trailing)))
-                                }
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, homeButtonsCollapsed ? 0 : 16)
-                            .frame(width: homeButtonsCollapsed ? 46 : nil, height: 46)
-                            .background(JuntoColors.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: homeButtonsCollapsed ? 14 : 10, style: .continuous))
-                            .shadow(color: JuntoColors.primary.opacity(0.24), radius: 8, x: 0, y: 3)
-                        }
-
-                        Button {
-                            store.showMyExpensesScreen = true
-                        } label: {
-                            HStack(spacing: homeButtonsCollapsed ? 0 : 7) {
-                                Image(systemName: "chart.pie")
-                                    .font(.system(size: homeButtonsCollapsed ? 18 : 14, weight: .regular))
-                                if !homeButtonsCollapsed {
-                                    Text("Minhas despesas")
-                                        .font(.inter(14, weight: .medium))
-                                        .fixedSize()
-                                        .transition(.opacity.combined(with: .move(edge: .trailing)))
-                                }
-                            }
-                            .foregroundColor(JuntoColors.primary)
-                            .padding(.horizontal, homeButtonsCollapsed ? 0 : 16)
-                            .frame(width: homeButtonsCollapsed ? 46 : nil, height: 46)
-                            .background(Color.white)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: homeButtonsCollapsed ? 14 : 10, style: .continuous)
-                                    .stroke(JuntoColors.border, lineWidth: 1)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: homeButtonsCollapsed ? 14 : 10, style: .continuous))
-                            .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 3)
-                        }
-                    }
-                    .animation(.spring(response: 0.30, dampingFraction: 0.82), value: homeButtonsCollapsed)
-                    .padding(.trailing, 20)
-                }
-
-                // Tab Bar Flutuante Estilo iOS Liquid Glass (Exatamente como nas screenshots)
                 HStack(spacing: 2) {
                     ForEach(MainTab.allCases, id: \.rawValue) { tab in
                         let isSelected = store.selectedTab == tab

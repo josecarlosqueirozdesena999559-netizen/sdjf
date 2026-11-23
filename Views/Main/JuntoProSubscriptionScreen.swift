@@ -15,14 +15,13 @@ struct JuntoProSubscriptionScreen: View {
     @State private var showCancelConfirm = false
 
     private let proFeatures: [(title: String, subtitle: String)] = [
-        ("Grupos ilimitados", "No plano gratuito você pode ter apenas 1 grupo. No Pro, crie quantos grupos e viagens quiser."),
-        ("Potes Pessoais (Caixinhas)", "Crie caixinhas individuais para guardar finanças todo mês para uma ocasião especial com meta detalhada."),
-        ("Pote Mensal para excursões", "Controle mensalidades mês a mês (% pago no mês e % da meta geral, 100% só quando todos pagam)."),
-        ("Pagamentos Pix com baixa automática", "Integração Mercado Pago que confirma pagamentos na hora sem precisar de comprovante."),
-        ("Lançamento de despesas via WhatsApp", "Envie áudio, texto ou foto da conta no WhatsApp oficial e divida no grupo automaticamente."),
-        ("Leitura ilimitada de comandas e notas", "Escaneie contas de restaurantes e cupons fiscais item a item sem limite mensal."),
-        ("Alertas de orçamento e lembretes", "Avisos antes de ultrapassar a meta do grupo e lembretes automáticos de cotas pendentes."),
-        ("Exportação em PDF e Excel", "Relatórios completos de prestação de contas com histórico de despesas do grupo.")
+        ("Grupos, viagens e rolês ilimitados", "No plano gratuito você pode ter apenas 1 grupo ativo. No Pro, crie quantos grupos, viagens e rolês quiser com seus amigos."),
+        ("Pote Mensal para excursões e viagens", "Organize viagens parceladas mês a mês com controle da porcentagem de cada ciclo (só fecha em 100% quando todos pagam)."),
+        ("Enquetes ilimitadas no bate-papo", "Decida datas, destinos, passeios e cardápios do rolê com votação em tempo real dentro do chat do grupo."),
+        ("Múltiplos administradores no grupo", "Defina amigos como admins para ajudar a gerenciar participantes, lançar gastos do rolê e confirmar pagamentos."),
+        ("Comanda do rolê e desconto no Pote", "Lance despesas de churrasco, passeios ou hospedagem na comanda do grupo e desconte direto do saldo do Pote Coletivo."),
+        ("Compartilhamento completo no chat", "Envie fotos da viagem, comprovantes, roteiros, arquivos e mensagens de voz no bate-papo do grupo e com amigos."),
+        ("Alertas de meta e lembretes do rolê", "Avisos automáticos da data da meta do grupo e notificações instantâneas quando participantes informam pagamentos.")
     ]
 
     var body: some View {
@@ -54,13 +53,13 @@ struct JuntoProSubscriptionScreen: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
-                    // Cabeçalho minimalista
+                    // Cabeçalho minimalista focado em rolês, viagens e lazer entre amigos
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Mais praticidade para seus grupos")
+                        Text("Mais praticidade para seus rolês e viagens")
                             .font(.inter(22, weight: .medium))
                             .foregroundColor(JuntoColors.textMain)
 
-                        Text("Desbloqueie automação de pagamentos, lançamentos rápidos e relatórios completos.")
+                        Text("Crie grupos ilimitados com seus amigos, organize excursões mensais e decida tudo pelo bate-papo.")
                             .font(.inter(14, weight: .regular))
                             .foregroundColor(JuntoColors.textMuted)
                     }

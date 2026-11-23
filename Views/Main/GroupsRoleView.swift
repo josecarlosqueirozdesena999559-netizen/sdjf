@@ -4,12 +4,9 @@ import CoreImage.CIFilterBuiltins
 
 struct GroupsRoleView: View {
     @EnvironmentObject var store: JuntoStore
-    @State private var showPlusMenuSheet = false
     @State private var showCreateGroup = false
-    @State private var showCreatePersonalPot = false
     @State private var showProPaywall = false
     @State private var selectedGroupId: UUID? = nil
-    @State private var selectedPersonalPotId: UUID? = nil
     @State private var searchText = ""
 
     private var filteredGroups: [RoleGroup] {
@@ -17,24 +14,21 @@ struct GroupsRoleView: View {
         return store.groups.filter { $0.title.localizedCaseInsensitiveContains(searchText) }
     }
 
-    private var filteredPersonalPots: [PersonalSavingsPot] {
-        if searchText.isEmpty { return store.personalPots }
-        return store.personalPots.filter {
-            $0.title.localizedCaseInsensitiveContains(searchText) ||
-            $0.occasion.localizedCaseInsensitiveContains(searchText)
-        }
-    }
-
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Topo: "Grupos" + botão "+" que abre seletor entre Pote em Grupo e Pote Pessoal (Caixinha)
+            // Topo: "Grupos" + botão "+" que cria diretamente um novo grupo/viagem/rolê
             HStack {
                 Text("Grupos")
                     .font(.inter(24, weight: .medium))
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
                 Button {
-                    showPlusMenuSheet = true
+                    if store.canCreateMoreGroups() {
+                        showCreateGroup = true
+                    } else {
+                        store.showToast("Plano gratuito permite 1 grupo. Assine o Juntô Pro para grupos ilimitados.", icon: "lock")
+                        showProPaywall = true
+                    }
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 18, weight: .medium))
@@ -52,8 +46,8 @@ struct GroupsRoleView: View {
                 text: $searchText,
                 placeholders: [
                     "Pesquisar Viagem Ubatuba",
-                    "Pesquisar Réveillon em Pipa",
-                    "Pesquisar Caixinha"
+                    "Pesquisar Churrasco de Sábado",
+                    "Pesquisar Excursão Arraial"
                 ]
             )
             .padding(.horizontal, 20)
@@ -61,173 +55,118 @@ struct GroupsRoleView: View {
 
             Divider().opacity(0.6)
 
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 0) {
-                    ForEach(filteredGroups) { group in
-                        Button {
-                            selectedGroupId = group.id
-                        } label: {
-                            HStack(spacing: 12) {
-                                groupCoverImage(group)
-                                    .frame(width: 54, height: 54)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            if filteredGroups.isEmpty {
+                Spacer()
+                VStack(spacing: 14) {
+                    if searchText.isEmpty {
+                        Image(systemName: "person.2")
+                            .font(.system(size: 34, weight: .thin))
+                            .foregroundColor(JuntoColors.textLight)
 
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack(spacing: 6) {
-                                        Text(group.title)
-                                            .font(.inter(15, weight: .medium))
-                                            .foregroundColor(JuntoColors.textMain)
-                                            .lineLimit(1)
-                                            .truncationMode(.tail)
+                        Text("Nenhum grupo por aqui")
+                            .font(.inter(16, weight: .medium))
+                            .foregroundColor(JuntoColors.textMain)
 
-                                        if group.hasCollectivePot && group.potTarget > 0 {
-                                            let pct = group.overallGoalPercent
-                                            Text("· \(pct)%")
-                                                .font(.inter(12, weight: .medium))
-                                                .foregroundColor(JuntoColors.pixGreen)
-                                        }
-                                    }
-
-                                    if group.potMode == .monthly && group.potTarget > 0 {
-                                        let mIdx = min(max(0, group.selectedMonthIndex), max(0, group.monthlyCycles.count - 1))
-                                        let mPct = group.monthCompletionPercent(at: mIdx)
-                                        let mLabel = group.monthlyCycles.indices.contains(mIdx) ? group.monthlyCycles[mIdx].label : "Mês \(mIdx + 1)"
-                                        Text("\(mLabel): \(mPct)% · Meta: \(JuntoStore.formatBRL(group.potBalance)) de \(JuntoStore.formatBRL(group.potTarget))")
-                                            .font(.inter(12, weight: .regular))
-                                            .foregroundColor(JuntoColors.textMuted)
-                                            .lineLimit(1)
-                                            .minimumScaleFactor(0.85)
-                                    } else if group.hasCollectivePot && group.potTarget > 0 {
-                                        Text("\(JuntoStore.formatBRL(group.potBalance)) de \(JuntoStore.formatBRL(group.potTarget))")
-                                            .font(.inter(13, weight: .regular))
-                                            .foregroundColor(JuntoColors.textMuted)
-                                            .lineLimit(1)
-                                            .minimumScaleFactor(0.85)
-                                    } else {
-                                        Text("\(group.category) · \(group.participants.count) pessoas")
-                                            .font(.inter(13, weight: .regular))
-                                            .foregroundColor(JuntoColors.textMuted)
-                                            .lineLimit(1)
-                                    }
-
-                                    if group.myShare > 0 {
-                                        Text("Sua parte: \(JuntoStore.formatBRL(group.myShare))")
-                                            .font(.inter(12, weight: .regular))
-                                            .foregroundColor(JuntoColors.orangeSave)
-                                            .lineLimit(1)
-                                    }
-                                }
-                                .frame(maxWidth: .infinity, alignment: .leading)
-
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 13, weight: .regular))
-                                    .foregroundColor(JuntoColors.textLight)
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
+                        HStack(spacing: 6) {
+                            Text("Crie um grupo ou viagem clicando no botão")
+                                .font(.inter(14, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                            Image(systemName: "plus")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 24, height: 24)
+                                .background(JuntoColors.primary)
+                                .clipShape(Circle())
+                            Text("acima")
+                                .font(.inter(14, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
                         }
-
-                        Divider().padding(.leading, 86)
-                    }
-
-                    // Lista de Potes Pessoais (Caixinhas) criadas pelo usuário
-                    if !filteredPersonalPots.isEmpty {
-                        VStack(alignment: .leading, spacing: 4) {
-                            HStack(spacing: 6) {
-                                Text("Meus Potes Pessoais")
-                                    .font(.inter(13, weight: .medium))
-                                    .foregroundColor(JuntoColors.textMuted)
-                                Text("PRO")
-                                    .font(.inter(9, weight: .medium))
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 5)
-                                    .padding(.vertical, 1.5)
-                                    .background(JuntoColors.primary)
-                                    .clipShape(Capsule())
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.top, 20)
-                            .padding(.bottom, 4)
-
-                            VStack(spacing: 0) {
-                                ForEach(filteredPersonalPots) { pot in
-                                    Button {
-                                        if store.user.isPro {
-                                            selectedPersonalPotId = pot.id
-                                        } else {
-                                            store.showToast("Pote Pessoal (Caixinha) é exclusivo do Juntô Pro.", icon: "lock")
-                                            showProPaywall = true
-                                        }
-                                    } label: {
-                                        HStack(spacing: 14) {
-                                            Image(systemName: pot.icon)
-                                                .font(.system(size: 19, weight: .regular))
-                                                .foregroundColor(JuntoColors.primary)
-                                                .frame(width: 28)
-
-                                            VStack(alignment: .leading, spacing: 3) {
-                                                HStack(spacing: 6) {
-                                                    Text(pot.title)
-                                                        .font(.inter(15, weight: .medium))
-                                                        .foregroundColor(JuntoColors.textMain)
-                                                    Text("· \(pot.percentCompleted)%")
-                                                        .font(.inter(12, weight: .medium))
-                                                        .foregroundColor(pot.percentCompleted == 100 ? JuntoColors.pixGreen : JuntoColors.primary)
-                                                }
-                                                Text("\(JuntoStore.formatBRL(pot.currentAmount)) de \(JuntoStore.formatBRL(pot.targetAmount)) · \(pot.occasion)")
-                                                    .font(.inter(12, weight: .regular))
-                                                    .foregroundColor(JuntoColors.textMuted)
-                                                    .lineLimit(1)
-                                            }
-
-                                            Spacer()
-
-                                            Image(systemName: store.user.isPro ? "chevron.right" : "lock")
-                                                .font(.system(size: 13, weight: .regular))
-                                                .foregroundColor(JuntoColors.textLight)
-                                        }
-                                        .padding(.horizontal, 20)
-                                        .padding(.vertical, 13)
-                                    }
-                                    Divider().padding(.leading, 62)
-                                }
-                            }
-                        }
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 28)
+                    } else {
+                        Text("Nenhum grupo encontrado.")
+                            .font(.inter(15, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
                     }
                 }
-                .padding(.bottom, 140)
+                .frame(maxWidth: .infinity)
+                Spacer()
+                Spacer().frame(height: 110)
+            } else {
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 0) {
+                        ForEach(filteredGroups) { group in
+                            Button {
+                                selectedGroupId = group.id
+                            } label: {
+                                HStack(spacing: 12) {
+                                    groupCoverImage(group)
+                                        .frame(width: 54, height: 54)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        HStack(spacing: 6) {
+                                            Text(group.title)
+                                                .font(.inter(15, weight: .medium))
+                                                .foregroundColor(JuntoColors.textMain)
+                                                .lineLimit(1)
+                                                .truncationMode(.tail)
+
+                                            if group.hasCollectivePot && group.potTarget > 0 {
+                                                let pct = group.overallGoalPercent
+                                                Text("· \(pct)%")
+                                                    .font(.inter(12, weight: .medium))
+                                                    .foregroundColor(JuntoColors.pixGreen)
+                                            }
+                                        }
+
+                                        if group.potMode == .monthly && group.potTarget > 0 {
+                                            let mIdx = min(max(0, group.selectedMonthIndex), max(0, group.monthlyCycles.count - 1))
+                                            let mPct = group.monthCompletionPercent(at: mIdx)
+                                            let mLabel = group.monthlyCycles.indices.contains(mIdx) ? group.monthlyCycles[mIdx].label : "Mês \(mIdx + 1)"
+                                            Text("\(mLabel): \(mPct)% · Meta: \(JuntoStore.formatBRL(group.potBalance)) de \(JuntoStore.formatBRL(group.potTarget))")
+                                                .font(.inter(12, weight: .regular))
+                                                .foregroundColor(JuntoColors.textMuted)
+                                                .lineLimit(1)
+                                                .minimumScaleFactor(0.85)
+                                        } else if group.hasCollectivePot && group.potTarget > 0 {
+                                            Text("\(JuntoStore.formatBRL(group.potBalance)) de \(JuntoStore.formatBRL(group.potTarget))")
+                                                .font(.inter(13, weight: .regular))
+                                                .foregroundColor(JuntoColors.textMuted)
+                                                .lineLimit(1)
+                                                .minimumScaleFactor(0.85)
+                                        } else {
+                                            Text("\(group.category) · \(group.participants.count) pessoas")
+                                                .font(.inter(13, weight: .regular))
+                                                .foregroundColor(JuntoColors.textMuted)
+                                                .lineLimit(1)
+                                        }
+
+                                        if group.myShare > 0 {
+                                            Text("Sua parte: \(JuntoStore.formatBRL(group.myShare))")
+                                                .font(.inter(12, weight: .regular))
+                                                .foregroundColor(JuntoColors.orangeSave)
+                                                .lineLimit(1)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 13, weight: .regular))
+                                        .foregroundColor(JuntoColors.textLight)
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 12)
+                            }
+
+                            Divider().padding(.leading, 86)
+                        }
+                    }
+                    .padding(.bottom, 140)
+                }
             }
         }
         .background(Color.white)
-        .sheet(isPresented: $showPlusMenuSheet) {
-            CreateGroupOrPotChoiceSheet(
-                isPro: store.user.isPro,
-                onSelectGroupPot: {
-                    showPlusMenuSheet = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
-                        if store.canCreateMoreGroups() {
-                            showCreateGroup = true
-                        } else {
-                            store.showToast("Plano gratuito permite 1 grupo. Assine o Juntô Pro para grupos ilimitados.", icon: "lock")
-                            showProPaywall = true
-                        }
-                    }
-                },
-                onSelectPersonalPot: {
-                    showPlusMenuSheet = false
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
-                        if store.user.isPro {
-                            showCreatePersonalPot = true
-                        } else {
-                            store.showToast("Pote Pessoal (Caixinha) é exclusivo do Juntô Pro.", icon: "lock")
-                            showProPaywall = true
-                        }
-                    }
-                }
-            )
-            .presentationDetents([.height(265)])
-            .presentationCornerRadius(20)
-        }
         .fullScreenCover(isPresented: $showCreateGroup) {
             CreateGroupScreen(initialType: store.openCreateGroupWithCategory ?? "Viagem") { createdGroupId in
                 selectedGroupId = createdGroupId
@@ -236,10 +175,6 @@ struct GroupsRoleView: View {
             .onDisappear {
                 store.openCreateGroupWithCategory = nil
             }
-        }
-        .fullScreenCover(isPresented: $showCreatePersonalPot) {
-            CreatePersonalPotScreen()
-                .environmentObject(store)
         }
         .fullScreenCover(isPresented: $showProPaywall) {
             JuntoProSubscriptionScreen()
@@ -263,16 +198,6 @@ struct GroupsRoleView: View {
                 GroupDetailSheet(groupId: gid)
                     .environmentObject(store)
                     .presentationDetents([.large])
-            }
-        }
-        .sheet(isPresented: Binding(
-            get: { selectedPersonalPotId != nil },
-            set: { if !$0 { selectedPersonalPotId = nil } }
-        )) {
-            if let pid = selectedPersonalPotId {
-                PersonalPotDetailSheet(potId: pid)
-                    .environmentObject(store)
-                    .presentationDetents([.medium, .large])
             }
         }
     }
