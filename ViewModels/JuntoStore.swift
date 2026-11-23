@@ -88,8 +88,18 @@ final class JuntoStore: ObservableObject {
 
     @Published var toastMessage: String? = nil
     @Published var toastIcon: String = "checkmark.circle"
+    @Published var expectedWhatsAppOTP: String = ""
     private var toastTask: Task<Void, Never>? = nil
     private var usernameCheckTask: Task<Void, Never>? = nil
+
+    func generateAndSendWhatsAppOTP() {
+        let code = String(format: "%06d", Int.random(in: 100000...999999))
+        expectedWhatsAppOTP = code
+        let phone = draftPhone
+        Task {
+            _ = await JuntoBackendService.shared.sendWhatsAppVerificationCode(phone: phone, code: code)
+        }
+    }
 
     private let takenUsernames: Set<String> = ["admin", "pedro", "matheus", "camila", "junto", "teste", "suporte"]
 

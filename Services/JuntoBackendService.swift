@@ -110,6 +110,20 @@ actor JuntoBackendService {
     }
 
     // MARK: - 4. Esqueci Minha Senha & Redefinição Real no Redis/PostgreSQL
+    func sendWhatsAppVerificationCode(phone: String, code: String) async -> Bool {
+        let digitsOnly = phone.filter { $0.isNumber }
+        let res = await request(
+            path: "/v1/auth/whatsapp/send-otp",
+            method: "POST",
+            body: [
+                "phone": digitsOnly,
+                "code": code,
+                "template": "junto_codigo_verificacao"
+            ]
+        )
+        return (res?["ok"] as? Bool) ?? true
+    }
+
     func requestPasswordReset(identifier: String, code: String) async -> Bool {
         let res = await request(
             path: "/v1/auth/forgot-password",

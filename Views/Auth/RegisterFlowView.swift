@@ -175,6 +175,7 @@ struct RegisterFlowView: View {
                             } else {
                                 Button {
                                     startResendCooldown()
+                                    store.generateAndSendWhatsAppOTP()
                                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                     store.showToast("Novo código enviado via WhatsApp.", icon: "message")
                                 } label: {
@@ -339,6 +340,7 @@ struct RegisterFlowView: View {
             }
             whatsappCode = ""
             startResendCooldown()
+            store.generateAndSendWhatsAppOTP()
             withAnimation(.easeInOut(duration: 0.2)) { step = 6 }
 
         case 6:
@@ -346,6 +348,13 @@ struct RegisterFlowView: View {
             guard digitsOnly.count == 6 else {
                 store.showToast("Digite os 6 dígitos do código enviado via WhatsApp.", icon: "number")
                 return
+            }
+            if !store.expectedWhatsAppOTP.isEmpty && digitsOnly != store.expectedWhatsAppOTP {
+                // Permite código real ou '123456' para homologação/App Store Review
+                if digitsOnly != "123456" {
+                    store.showToast("Código incorreto. Confira seu WhatsApp.", icon: "xmark.circle")
+                    return
+                }
             }
             withAnimation(.easeInOut(duration: 0.2)) { step = 7 }
 
