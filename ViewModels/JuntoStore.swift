@@ -51,6 +51,7 @@ final class JuntoStore: ObservableObject {
     ]
 
     @Published var showMyExpensesScreen: Bool = false
+    @Published var walletBalance: Double = 120.00
 
     // Conversas de chat por @username (com separadores de data: Ontem, Hoje, etc.)
     @Published var chatMessages: [String: [ChatMessage]] = [
@@ -484,6 +485,88 @@ final class JuntoStore: ObservableObject {
     /// Verifica se o usuário atual é o Dono (responsável) do grupo
     func isCurrentUserOwner(in group: RoleGroup) -> Bool {
         group.participants.first(where: { $0.name == "Você" || $0.username == user.username })?.role == .owner
+    }
+
+    /// Adiciona saldo na Carteira do usuário (via Pix)
+    func addWalletBalance(_ amount: Double) {
+        guard amount > 0 else { return }
+        walletBalance += amount
+        activities.insert(
+            ActivityEvent(
+                icon: "wallet.pass",
+                title: "Saldo adicionado à Carteira",
+                subtitle: "Via Pix • Saldo atual \(Self.formatBRL(walletBalance))",
+                timeAgo: "Agora",
+                amountText: "+ \(Self.formatBRL(amount))",
+                isPositive: true
+            ),
+            at: 0
+        )
+        showToast("\(Self.formatBRL(amount)) adicionados à sua Carteira!", icon: "checkmark.circle")
+    }
+
+    /// Paga a cota do Pote Coletivo usando o saldo da Carteira do usuário
+    func payParticipantPotQuotaWithWallet(groupId: UUID, participantId: UUID) -> Bool {
+        guard let gIdx = groups.firstIndex(where: { $0.id == groupId }),
+              let pIdx = groups[gIdx].participants.firstIndex(where: { $0.id == participantId }) else { return false }
+
+        let quota = groups[gIdx].participants[pIdx].quotaAmount
+        guard !groups[gIdx].participants[pIdx].hasPaid else { return false }
+        guard walletBalance >= quota else {
+            showToast("Saldo insuficiente na carteira. Adicione saldo para continuar.", icon: "exclamationmark.circle")
+            return false
+        }
+
+        walletBalance -= quota
+        groups[gIdx].participants[pIdx].hasPaid = true
+        groups[gIdx].potBalance += quota
+        let groupTitle = groups[gIdx].title
+
+        activities.insert(
+            ActivityEvent(
+                icon: "wallet.pass",
+                title: "Cota paga com Carteira",
+                subtitle: "\(groupTitle) • Saldo carteira \(Self.formatBRL(walletBalance))",
+                timeAgo: "Agora",
+                amountText: "- \(Self.formatBRL(quota))",
+                isPositive: false
+            ),
+            at: 0
+        )
+        showToast("Cota de \(Self.formatBRL(quota)) paga com sua Carteira!", icon: "checkmark.circle")
+        return true
+    }
+
+    /// Paga despesas selecionadas do grupo usando o saldo da Carteira
+    func payGroupExpensesWithWallet(groupId: UUID, amount: Double) -> Bool {
+        guard amount > 0, let gIdx = groups.firstIndex(where: { $0.id == groupId }) else { return false }
+        guard walletBalance >= amount else {
+            showToast("Saldo insuficiente na carteira.", icon: "exclamationmark.circle")
+            return false
+        }
+
+        walletBalance -= amount
+        let groupTitle = groups[gIdx].title
+        groups[gIdx].myShare = max(0, groups[gIdx].myShare - amount)
+        for i in groups[gIdx].comandaItems.indices {
+            if groups[gIdx].comandaItems[i].isSelected {
+                groups[gIdx].comandaItems[i].isSelected = false
+            }
+        }
+
+        activities.insert(
+            ActivityEvent(
+                icon: "wallet.pass",
+                title: "Despesa paga com Carteira",
+                subtitle: "\(groupTitle) • Saldo carteira \(Self.formatBRL(walletBalance))",
+                timeAgo: "Agora",
+                amountText: "- \(Self.formatBRL(amount))",
+                isPositive: false
+            ),
+            at: 0
+        )
+        showToast("\(Self.formatBRL(amount)) pago com saldo da Carteira!", icon: "checkmark.circle")
+        return true
     }
 
     /// Saque do Pote Coletivo via EFI direto para a conta/Pix do responsável do grupo

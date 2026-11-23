@@ -648,6 +648,14 @@ struct GroupDetailSheet: View {
     @State private var showAddMemberScreen = false
     @State private var selectedParticipantForAction: GroupParticipant? = nil
     @State private var showWithdrawSheet = false
+    @State private var pendingPaymentSheet: GroupPaymentRequest? = nil
+
+    struct GroupPaymentRequest: Identifiable {
+        let id = UUID()
+        let title: String
+        let amount: Double
+        let participantId: UUID? // se preenchido = cota do pote; se nil = despesas da comanda
+    }
 
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -895,14 +903,20 @@ struct GroupDetailSheet: View {
                                                 .background(JuntoColors.pixGreenLight)
                                                 .clipShape(RoundedRectangle(cornerRadius: 6))
                                         } else {
-                                            Button(participant.name == "Você" ? "Pagar Pix" : "Confirmar") {
-                                                let isMe = participant.name == "Você"
-                                                if isMe { dismiss() }
-                                                store.payParticipantPotQuota(
-                                                    groupId: groupId,
-                                                    participantId: participant.id,
-                                                    openPix: isMe
-                                                )
+                                            Button(participant.name == "Você" ? "Pagar" : "Confirmar") {
+                                                if participant.name == "Você" {
+                                                    pendingPaymentSheet = GroupPaymentRequest(
+                                                        title: "Cota do Pote • \(group.title)",
+                                                        amount: participant.quotaAmount,
+                                                        participantId: participant.id
+                                                    )
+                                                } else {
+                                                    store.payParticipantPotQuota(
+                                                        groupId: groupId,
+                                                        participantId: participant.id,
+                                                        openPix: false
+                                                    )
+                                                }
                                             }
                                             .font(.inter(12, weight: .medium))
                                             .foregroundColor(.white)
@@ -1007,9 +1021,12 @@ struct GroupDetailSheet: View {
                             }
 
                             if selectedTotal > 0 {
-                                JuntoPillButton(title: "Pagar \(JuntoStore.formatBRL(selectedTotal)) via Pix", color: JuntoColors.pixGreen) {
-                                    dismiss()
-                                    store.openPixPayment(title: group.title, recipient: group.title, amount: selectedTotal)
+                                JuntoPillButton(title: "Pagar \(JuntoStore.formatBRL(selectedTotal))", color: JuntoColors.pixGreen) {
+                                    pendingPaymentSheet = GroupPaymentRequest(
+                                        title: "Despesas • \(group.title)",
+                                        amount: selectedTotal,
+                                        participantId: nil
+                                    )
                                 }
                                 .padding(.top, 8)
                             }
@@ -1051,7 +1068,152 @@ struct GroupDetailSheet: View {
                 .presentationDetents([.height(390)])
                 .presentationCornerRadius(20)
             }
+            .sheet(item: $pendingPaymentSheet) { request in
+                GroupPaymentMethodSheet(
+                    title: request.title,
+                    amount: request.amount,
+                    walletBalance: store.walletBalance,
+                    onPayWithWallet: {
+                        if let pid = request.participantId {
+                            _ = store.payParticipantPotQuotaWithWallet(groupId: groupId, participantId: pid)
+                        } else {
+                            _ = store.payGroupExpensesWithWallet(groupId: groupId, amount: request.amount)
+                        }
+                        pendingPaymentSheet = nil
+                    },
+                    onPayWithPix: {
+                        pendingPaymentSheet = nil
+                        dismiss()
+                        if let pid = request.participantId {
+                            store.payParticipantPotQuota(groupId: groupId, participantId: pid, openPix: true)
+                        } else {
+                            store.openPixPayment(title: request.title, recipient: group.title, amount: request.amount)
+                        }
+                    }
+                )
+                .presentationDetents([.height(310)])
+                .presentationCornerRadius(20)
+            }
         }
+    }
+}
+
+// MARK: - Sheet de Escolha de Pagamento do Grupo (Saldo da Carteira OU Pix)
+struct GroupPaymentMethodSheet: View {
+    let title: String
+    let amount: Double
+    let walletBalance: Double
+    let onPayWithWallet: () -> Void
+    let onPayWithPix: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    private var hasEnoughBalance: Bool {
+        walletBalance >= amount
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Como deseja pagar?")
+                        .font(.inter(18, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                    Text("\(title) · \(JuntoStore.formatBRL(amount))")
+                        .font(.inter(13, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                        .lineLimit(1)
+                }
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(JuntoColors.textMuted)
+                        .frame(width: 32, height: 32)
+                        .background(JuntoColors.surfaceSubtle)
+                        .clipShape(Circle())
+                }
+            }
+            .padding(.top, 20)
+
+            VStack(spacing: 10) {
+                // Opção 1: Carteira Juntô
+                Button(action: onPayWithWallet) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "wallet.pass.fill")
+                            .font(.system(size: 18))
+                            .foregroundColor(hasEnoughBalance ? JuntoColors.primary : JuntoColors.textLight)
+                            .frame(width: 36, height: 36)
+                            .background(hasEnoughBalance ? JuntoColors.primaryLight : JuntoColors.surfaceSubtle)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Saldo da Carteira")
+                                .font(.inter(15, weight: .medium))
+                                .foregroundColor(hasEnoughBalance ? JuntoColors.textMain : JuntoColors.textMuted)
+                            Text(
+                                hasEnoughBalance
+                                    ? "Disponível: \(JuntoStore.formatBRL(walletBalance))"
+                                    : "Saldo insuficiente (\(JuntoStore.formatBRL(walletBalance)))"
+                            )
+                            .font(.inter(12, weight: .regular))
+                            .foregroundColor(hasEnoughBalance ? JuntoColors.pixGreen : JuntoColors.danger)
+                        }
+
+                        Spacer()
+
+                        if hasEnoughBalance {
+                            Text("Pagar")
+                                .font(.inter(13, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 6)
+                                .background(JuntoColors.primary)
+                                .clipShape(RoundedRectangle(cornerRadius: 7))
+                        }
+                    }
+                    .padding(14)
+                    .background(Color.white)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(hasEnoughBalance ? JuntoColors.primary.opacity(0.35) : JuntoColors.border, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+                .disabled(!hasEnoughBalance)
+
+                // Opção 2: Pix
+                Button(action: onPayWithPix) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "qrcode")
+                            .font(.system(size: 18))
+                            .foregroundColor(JuntoColors.pixGreen)
+                            .frame(width: 36, height: 36)
+                            .background(JuntoColors.pixGreenLight)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Pagar via Pix")
+                                .font(.inter(15, weight: .medium))
+                                .foregroundColor(JuntoColors.textMain)
+                            Text("QR Code ou Pix Copia e Cola")
+                                .font(.inter(12, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                        }
+
+                        Spacer()
+
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13))
+                            .foregroundColor(JuntoColors.textLight)
+                    }
+                    .padding(14)
+                    .background(Color.white)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .background(JuntoColors.warmBg.ignoresSafeArea())
     }
 }
 

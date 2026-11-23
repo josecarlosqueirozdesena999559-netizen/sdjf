@@ -6,6 +6,8 @@ struct AccountView: View {
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var showAccountSettings = false
     @State private var showSecurityPrivacy = false
+    @State private var showAddBalanceSheet = false
+    @State private var hideWalletBalance = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -62,7 +64,59 @@ struct AccountView: View {
                         .foregroundColor(JuntoColors.primary)
                     }
                     .padding(.horizontal, 20)
-                    .padding(.bottom, 22)
+                    .padding(.bottom, 18)
+
+                    // Cartão Carteira do Usuário (Saldo + Botão Adicionar Saldo)
+                    VStack(alignment: .leading, spacing: 14) {
+                        HStack {
+                            HStack(spacing: 8) {
+                                Image(systemName: "wallet.pass.fill")
+                                    .font(.system(size: 16))
+                                    .foregroundColor(JuntoColors.accent)
+                                Text("Carteira Juntô")
+                                    .font(.inter(13, weight: .medium))
+                                    .foregroundColor(.white.opacity(0.85))
+                            }
+                            Spacer()
+                            Button {
+                                hideWalletBalance.toggle()
+                            } label: {
+                                Image(systemName: hideWalletBalance ? "eye.slash" : "eye")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(.white.opacity(0.75))
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Saldo disponível")
+                                .font(.inter(11, weight: .regular))
+                                .foregroundColor(.white.opacity(0.65))
+                            Text(hideWalletBalance ? "R$ •••••" : JuntoStore.formatBRL(store.walletBalance))
+                                .font(.inter(26, weight: .medium))
+                                .foregroundColor(.white)
+                        }
+
+                        Button {
+                            showAddBalanceSheet = true
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 13, weight: .semibold))
+                                Text("Adicionar saldo")
+                                    .font(.inter(14, weight: .medium))
+                            }
+                            .foregroundColor(JuntoColors.primary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 44)
+                            .background(Color.white)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        }
+                    }
+                    .padding(18)
+                    .background(JuntoColors.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .padding(.horizontal, 18)
+                    .padding(.bottom, 18)
 
                     // Card Juntô Pro
                     VStack(spacing: 16) {
@@ -121,6 +175,12 @@ struct AccountView: View {
         .fullScreenCover(isPresented: $showSecurityPrivacy) {
             SecurityPrivacyScreen()
                 .environmentObject(store)
+        }
+        .sheet(isPresented: $showAddBalanceSheet) {
+            AddWalletBalanceSheet()
+                .environmentObject(store)
+                .presentationDetents([.height(340)])
+                .presentationCornerRadius(20)
         }
     }
 
@@ -801,5 +861,94 @@ struct DeleteAccountScreen: View {
                 Spacer()
             }
         }
+    }
+}
+
+// MARK: - Sheet para Adicionar Saldo à Carteira via Pix
+struct AddWalletBalanceSheet: View {
+    @EnvironmentObject var store: JuntoStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var amountText: String = "100"
+    private let presets: [Double] = [50, 100, 200]
+
+    private var numericAmount: Double {
+        let cleaned = amountText
+            .replacingOccurrences(of: "R$", with: "")
+            .replacingOccurrences(of: ".", with: "")
+            .replacingOccurrences(of: ",", with: ".")
+            .trimmingCharacters(in: .whitespaces)
+        return Double(cleaned) ?? 0
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Adicionar saldo")
+                        .font(.inter(18, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                    Text("Use o saldo para pagar cotas e despesas dos grupos")
+                        .font(.inter(12, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                }
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(JuntoColors.textMuted)
+                        .frame(width: 32, height: 32)
+                        .background(JuntoColors.surfaceSubtle)
+                        .clipShape(Circle())
+                }
+            }
+            .padding(.top, 20)
+
+            HStack(spacing: 8) {
+                ForEach(presets, id: \.self) { val in
+                    let active = numericAmount == val
+                    Button {
+                        amountText = "\(Int(val))"
+                    } label: {
+                        Text("+ \(JuntoStore.formatBRL(val))")
+                            .font(.inter(13, weight: .medium))
+                            .foregroundColor(active ? .white : JuntoColors.textMain)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 38)
+                            .background(active ? JuntoColors.primary : Color.white)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(active ? JuntoColors.primary : JuntoColors.border, lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+            }
+
+            CleanOutlineInput(
+                label: "Valor do depósito (R$)",
+                placeholder: "0,00",
+                text: $amountText,
+                keyboardType: .decimalPad,
+                leadingPrefix: "R$"
+            )
+
+            JuntoPillButton(
+                title: "Adicionar \(JuntoStore.formatBRL(max(numericAmount, 0))) via Pix",
+                icon: "plus.circle",
+                color: JuntoColors.pixGreen
+            ) {
+                guard numericAmount > 0 else {
+                    store.showToast("Informe um valor válido.", icon: "exclamationmark.circle")
+                    return
+                }
+                store.addWalletBalance(numericAmount)
+                dismiss()
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .background(JuntoColors.warmBg.ignoresSafeArea())
     }
 }
