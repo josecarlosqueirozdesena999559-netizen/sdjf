@@ -123,6 +123,7 @@ struct ChatMessage: Identifiable, Hashable {
     let timeText: String
     var dateLabel: String = "Hoje" // ex: "Ontem", "Hoje", "18 de nov."
     var isEdited: Bool = false
+    var isListened: Bool = false
     var status: MessageDeliveryStatus = .sent
 }
 
@@ -148,6 +149,7 @@ struct PersonalExpenseRecord: Identifiable {
     let dateText: String
     let monthKey: String // ex: "Novembro 2026", "Outubro 2026"
     let groupName: String
+    var isPaid: Bool = false
 }
 
 struct ComandaItem: Identifiable {
@@ -170,6 +172,7 @@ struct GroupParticipant: Identifiable, Hashable {
     let username: String
     var quotaAmount: Double
     var hasPaid: Bool
+    var markedPaidByMember: Bool = false
     var role: GroupParticipantRole = .member
 }
 

@@ -52,44 +52,6 @@ final class JuntoStore: ObservableObject {
 
     @Published var showMyExpensesScreen: Bool = false
 
-    // Carteira Open Finance (Pix em 1 toque sem saldo parado)
-    struct OpenFinanceBankOption: Identifiable, Hashable {
-        let id: String
-        let name: String
-        let shortCode: String
-        let colorHex: String
-    }
-
-    struct ConnectedBankAccount: Equatable {
-        let bankId: String
-        let bankName: String
-        let shortCode: String
-        let maskedAccount: String
-        let colorHex: String
-        let statusText: String
-    }
-
-    let availableOpenFinanceBanks: [OpenFinanceBankOption] = [
-        OpenFinanceBankOption(id: "nubank", name: "Nubank", shortCode: "NU", colorHex: "#820AD1"),
-        OpenFinanceBankOption(id: "itau", name: "Itaú", shortCode: "IT", colorHex: "#EC7000"),
-        OpenFinanceBankOption(id: "inter", name: "Banco Inter", shortCode: "IN", colorHex: "#FF7A00"),
-        OpenFinanceBankOption(id: "bradesco", name: "Bradesco", shortCode: "BR", colorHex: "#CC092F"),
-        OpenFinanceBankOption(id: "santander", name: "Santander", shortCode: "SA", colorHex: "#EC0000"),
-        OpenFinanceBankOption(id: "bb", name: "Banco do Brasil", shortCode: "BB", colorHex: "#003DA5"),
-        OpenFinanceBankOption(id: "caixa", name: "Caixa", shortCode: "CX", colorHex: "#005CA9"),
-        OpenFinanceBankOption(id: "c6", name: "C6 Bank", shortCode: "C6", colorHex: "#1F2937"),
-        OpenFinanceBankOption(id: "btg", name: "BTG Pactual", shortCode: "BTG", colorHex: "#0F172A")
-    ]
-
-    @Published var connectedBank: ConnectedBankAccount? = ConnectedBankAccount(
-        bankId: "nubank",
-        bankName: "Nubank",
-        shortCode: "NU",
-        maskedAccount: "Ag 0001 • Conta •••• 4821",
-        colorHex: "#820AD1",
-        statusText: "Pix em 1 toque ativo"
-    )
-
     // Conversas de chat por @username (com separadores de data: Ontem, Hoje, etc.)
     @Published var chatMessages: [String: [ChatMessage]] = [
         "pedro.santos": [
@@ -534,77 +496,59 @@ final class JuntoStore: ObservableObject {
         group.participants.first(where: { $0.name == "Você" || $0.username == user.username })?.role == .owner
     }
 
-    /// Conecta banco via Open Finance (Pix em 1 toque sem saldo parado)
-    func connectOpenFinanceBank(_ bank: OpenFinanceBankOption) {
-        let last4 = String(format: "%04d", Int.random(in: 1000...9999))
-        connectedBank = ConnectedBankAccount(
-            bankId: bank.id,
-            bankName: bank.name,
-            shortCode: bank.shortCode,
-            maskedAccount: "Ag 0001 • Conta •••• \(last4)",
-            colorHex: bank.colorHex,
-            statusText: "Pix em 1 toque ativo"
-        )
+    /// Marca um áudio como escutado (ondas ficam laranja para quem escutou e para quem enviou)
+    func markAudioListened(username: String, messageId: UUID) {
+        let key = username.lowercased()
+        guard let idx = chatMessages[key]?.firstIndex(where: { $0.id == messageId }) else { return }
+        chatMessages[key]?[idx].isListened = true
+    }
+
+    /// Alterna status Pago / Pendente de uma despesa em "Minhas despesas"
+    func togglePersonalExpensePaid(id: UUID) {
+        guard let idx = personalExpenses.firstIndex(where: { $0.id == id }) else { return }
+        personalExpenses[idx].isPaid.toggle()
+        let paid = personalExpenses[idx].isPaid
+        showToast(paid ? "Despesa marcada como paga." : "Despesa marcada como pendente.", icon: paid ? "checkmark.circle" : "clock")
+    }
+
+    /// Retorna nome e chave Pix do organizador (dono) do grupo
+    func organizerPixInfo(for group: RoleGroup) -> (name: String, pixKey: String) {
+        if let owner = group.participants.first(where: { $0.role == .owner }) {
+            if owner.name == "Você" || owner.username.lowercased() == user.username.lowercased() {
+                return (user.fullName, user.pixKey)
+            }
+            return (owner.name, "\(owner.username)@pix.com.br")
+        }
+        return (user.fullName, user.pixKey)
+    }
+
+    /// Participante informa que já fez o Pix para o organizador (aguarda conferência do dono do grupo)
+    func memberMarkQuotaAsPaid(groupId: UUID, participantId: UUID) {
+        guard let gIdx = groups.firstIndex(where: { $0.id == groupId }),
+              let pIdx = groups[gIdx].participants.firstIndex(where: { $0.id == participantId }) else { return }
+        guard !groups[gIdx].participants[pIdx].hasPaid else { return }
+
+        groups[gIdx].participants[pIdx].markedPaidByMember = true
+        let groupTitle = groups[gIdx].title
+        let quota = groups[gIdx].participants[pIdx].quotaAmount
+
         activities.insert(
             ActivityEvent(
-                icon: "building.columns",
-                title: "\(bank.name) conectado",
-                subtitle: "Open Finance • Pix em 1 toque ativado",
+                icon: "clock.badge.checkmark",
+                title: "Pagamento informado",
+                subtitle: "\(groupTitle) • Aguardando confirmação do dono",
                 timeAgo: "Agora",
-                amountText: nil,
+                amountText: Self.formatBRL(quota),
                 isPositive: true
             ),
             at: 0
         )
-        showToast("\(bank.name) conectado para Pix em 1 toque!", icon: "checkmark.circle")
+        showToast("Marcado como pago! Aguardando o dono do grupo confirmar.", icon: "checkmark.circle")
     }
 
-    /// Desconecta banco do Open Finance
-    func disconnectOpenFinanceBank() {
-        let previousName = connectedBank?.bankName ?? "Banco"
-        connectedBank = nil
-        showToast("\(previousName) desconectado.", icon: "building.columns")
-    }
-
-    /// Paga a cota do Pote Coletivo direto do banco conectado (Open Finance Pix em 1 toque)
-    func payParticipantPotQuotaWithOneTap(groupId: UUID, participantId: UUID) -> Bool {
-        guard let bank = connectedBank else {
-            showToast("Conecte um banco na aba Conta para pagar em 1 toque.", icon: "building.columns")
-            return false
-        }
-        guard let gIdx = groups.firstIndex(where: { $0.id == groupId }),
-              let pIdx = groups[gIdx].participants.firstIndex(where: { $0.id == participantId }) else { return false }
-
-        let quota = groups[gIdx].participants[pIdx].quotaAmount
-        guard !groups[gIdx].participants[pIdx].hasPaid else { return false }
-
-        groups[gIdx].participants[pIdx].hasPaid = true
-        groups[gIdx].potBalance += quota
-        let groupTitle = groups[gIdx].title
-
-        activities.insert(
-            ActivityEvent(
-                icon: "bolt.circle",
-                title: "Cota paga em 1 toque (\(bank.bankName))",
-                subtitle: "\(groupTitle) • Pix direto via Open Finance",
-                timeAgo: "Agora",
-                amountText: "- \(Self.formatBRL(quota))",
-                isPositive: false
-            ),
-            at: 0
-        )
-        showToast("Pix de \(Self.formatBRL(quota)) confirmado via \(bank.bankName)!", icon: "checkmark.circle")
-        return true
-    }
-
-    /// Paga despesas selecionadas do grupo direto do banco conectado (Open Finance Pix em 1 toque)
-    func payGroupExpensesWithOneTap(groupId: UUID, amount: Double) -> Bool {
-        guard let bank = connectedBank else {
-            showToast("Conecte um banco na aba Conta para pagar em 1 toque.", icon: "building.columns")
-            return false
-        }
-        guard amount > 0, let gIdx = groups.firstIndex(where: { $0.id == groupId }) else { return false }
-
+    /// Participante informa que pagou as despesas selecionadas da comanda do grupo
+    func memberMarkGroupExpensesAsPaid(groupId: UUID, amount: Double) {
+        guard amount > 0, let gIdx = groups.firstIndex(where: { $0.id == groupId }) else { return }
         let groupTitle = groups[gIdx].title
         groups[gIdx].myShare = max(0, groups[gIdx].myShare - amount)
         for i in groups[gIdx].comandaItems.indices {
@@ -612,47 +556,46 @@ final class JuntoStore: ObservableObject {
                 groups[gIdx].comandaItems[i].isSelected = false
             }
         }
-
         activities.insert(
             ActivityEvent(
-                icon: "bolt.circle",
-                title: "Despesa paga em 1 toque (\(bank.bankName))",
-                subtitle: "\(groupTitle) • Pix direto via Open Finance",
+                icon: "checkmark.circle",
+                title: "Despesa marcada como paga",
+                subtitle: "\(groupTitle) • Pix enviado ao organizador",
                 timeAgo: "Agora",
-                amountText: "- \(Self.formatBRL(amount))",
-                isPositive: false
-            ),
-            at: 0
-        )
-        showToast("Pix de \(Self.formatBRL(amount)) confirmado via \(bank.bankName)!", icon: "checkmark.circle")
-        return true
-    }
-
-    /// Saque do Pote Coletivo via EFI direto para a conta/Pix do responsável do grupo
-    func withdrawPotViaEfi(groupId: UUID, amount: Double) {
-        guard amount > 0, let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
-        guard isCurrentUserOwner(in: groups[idx]) else {
-            showToast("Apenas o responsável pelo grupo pode sacar o pote.", icon: "lock")
-            return
-        }
-        let withdrawable = min(amount, groups[idx].potBalance)
-        guard withdrawable > 0 else { return }
-
-        groups[idx].potBalance -= withdrawable
-        let groupTitle = groups[idx].title
-
-        activities.insert(
-            ActivityEvent(
-                icon: "arrow.up.right.circle",
-                title: "Saque do Pote via Pix",
-                subtitle: "\(groupTitle) → \(user.pixKey)",
-                timeAgo: "Agora",
-                amountText: "+ \(Self.formatBRL(withdrawable))",
+                amountText: Self.formatBRL(amount),
                 isPositive: true
             ),
             at: 0
         )
-        showToast("Saque de \(Self.formatBRL(withdrawable)) enviado para sua chave Pix!", icon: "checkmark.circle")
+        showToast("Marcado como pago! O organizador já pode conferir.", icon: "checkmark.circle")
+    }
+
+    /// Dono do grupo confere o Pix na conta dele e confirma o pagamento do participante
+    func ownerConfirmParticipantPaid(groupId: UUID, participantId: UUID) {
+        guard let gIdx = groups.firstIndex(where: { $0.id == groupId }),
+              let pIdx = groups[gIdx].participants.firstIndex(where: { $0.id == participantId }) else { return }
+        guard !groups[gIdx].participants[pIdx].hasPaid else { return }
+
+        let quota = groups[gIdx].participants[pIdx].quotaAmount
+        let personName = groups[gIdx].participants[pIdx].name
+        let groupTitle = groups[gIdx].title
+
+        groups[gIdx].participants[pIdx].hasPaid = true
+        groups[gIdx].participants[pIdx].markedPaidByMember = false
+        groups[gIdx].potBalance += quota
+
+        activities.insert(
+            ActivityEvent(
+                icon: "checkmark.circle",
+                title: "Pagamento de \(personName) confirmado",
+                subtitle: "\(groupTitle) • Arrecadado \(Self.formatBRL(groups[gIdx].potBalance))",
+                timeAgo: "Agora",
+                amountText: "+ \(Self.formatBRL(quota))",
+                isPositive: true
+            ),
+            at: 0
+        )
+        showToast("Pagamento de \(personName) confirmado!", icon: "checkmark.circle")
     }
 
     func isInviteSent(for username: String) -> Bool {

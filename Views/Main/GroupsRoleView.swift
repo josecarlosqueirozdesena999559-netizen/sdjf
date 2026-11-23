@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import CoreImage.CIFilterBuiltins
 
 struct GroupsRoleView: View {
     @EnvironmentObject var store: JuntoStore
@@ -669,7 +670,6 @@ struct GroupDetailSheet: View {
 
     @State private var showAddMemberScreen = false
     @State private var selectedParticipantForAction: GroupParticipant? = nil
-    @State private var showWithdrawSheet = false
     @State private var pendingPaymentSheet: GroupPaymentRequest? = nil
 
     struct GroupPaymentRequest: Identifiable {
@@ -877,18 +877,8 @@ struct GroupDetailSheet: View {
                                 }
                             }
 
-                            // Botão de Saque via Pix (sem mencionar EFI — exclusivo para o responsável/dono do grupo)
-                            if store.isCurrentUserOwner(in: group) && group.potBalance > 0 {
-                                JuntoPillButton(
-                                    title: "Sacar \(JuntoStore.formatBRL(group.potBalance))",
-                                    icon: "arrow.up.right.circle",
-                                    color: JuntoColors.primary
-                                ) {
-                                    showWithdrawSheet = true
-                                }
-                            }
-
-                            // Lista automática de cotas
+                            // Lista automática de cotas (membro paga via Pix do organizador e marca como pago; dono confere e confirma)
+                            let isOwner = store.isCurrentUserOwner(in: group)
                             VStack(spacing: 0) {
                                 ForEach(group.participants) { participant in
                                     HStack(spacing: 10) {
@@ -909,9 +899,15 @@ struct GroupDetailSheet: View {
                                                         .clipShape(RoundedRectangle(cornerRadius: 4))
                                                 }
                                             }
-                                            Text("Cota: \(JuntoStore.formatBRL(participant.quotaAmount))")
-                                                .font(.inter(12, weight: .regular))
-                                                .foregroundColor(JuntoColors.textMuted)
+                                            if participant.markedPaidByMember && !participant.hasPaid {
+                                                Text("Cota: \(JuntoStore.formatBRL(participant.quotaAmount)) · Informou pago")
+                                                    .font(.inter(11, weight: .medium))
+                                                    .foregroundColor(JuntoColors.orangeSave)
+                                            } else {
+                                                Text("Cota: \(JuntoStore.formatBRL(participant.quotaAmount))")
+                                                    .font(.inter(12, weight: .regular))
+                                                    .foregroundColor(JuntoColors.textMuted)
+                                            }
                                         }
 
                                         Spacer()
@@ -924,28 +920,56 @@ struct GroupDetailSheet: View {
                                                 .padding(.vertical, 5)
                                                 .background(JuntoColors.pixGreenLight)
                                                 .clipShape(RoundedRectangle(cornerRadius: 6))
-                                        } else {
-                                            Button(participant.name == "Você" ? "Pagar" : "Confirmar") {
-                                                if participant.name == "Você" {
+                                        } else if participant.name == "Você" {
+                                            if participant.markedPaidByMember {
+                                                if isOwner {
+                                                    Button("Confirmar pago") {
+                                                        store.ownerConfirmParticipantPaid(groupId: groupId, participantId: participant.id)
+                                                    }
+                                                    .font(.inter(11, weight: .medium))
+                                                    .foregroundColor(.white)
+                                                    .padding(.horizontal, 10)
+                                                    .padding(.vertical, 6)
+                                                    .background(JuntoColors.pixGreen)
+                                                    .clipShape(RoundedRectangle(cornerRadius: 6))
+                                                } else {
+                                                    Text("Aguardando dono")
+                                                        .font(.inter(11, weight: .medium))
+                                                        .foregroundColor(JuntoColors.orangeSave)
+                                                        .padding(.horizontal, 8)
+                                                        .padding(.vertical, 5)
+                                                        .background(JuntoColors.accentLight)
+                                                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                                                }
+                                            } else {
+                                                Button("Pagar") {
                                                     pendingPaymentSheet = GroupPaymentRequest(
                                                         title: "Cota do Pote • \(group.title)",
                                                         amount: participant.quotaAmount,
                                                         participantId: participant.id
                                                     )
-                                                } else {
-                                                    store.payParticipantPotQuota(
-                                                        groupId: groupId,
-                                                        participantId: participant.id,
-                                                        openPix: false
-                                                    )
                                                 }
+                                                .font(.inter(12, weight: .medium))
+                                                .foregroundColor(.white)
+                                                .padding(.horizontal, 14)
+                                                .padding(.vertical, 6)
+                                                .background(JuntoColors.primary)
+                                                .clipShape(RoundedRectangle(cornerRadius: 6))
                                             }
-                                            .font(.inter(12, weight: .medium))
+                                        } else if isOwner {
+                                            Button("Confirmar pago") {
+                                                store.ownerConfirmParticipantPaid(groupId: groupId, participantId: participant.id)
+                                            }
+                                            .font(.inter(11, weight: .medium))
                                             .foregroundColor(.white)
-                                            .padding(.horizontal, 12)
+                                            .padding(.horizontal, 10)
                                             .padding(.vertical, 6)
-                                            .background(participant.name == "Você" ? JuntoColors.primary : JuntoColors.orangeSave)
+                                            .background(participant.markedPaidByMember ? JuntoColors.pixGreen : JuntoColors.primary)
                                             .clipShape(RoundedRectangle(cornerRadius: 6))
+                                        } else {
+                                            Text(participant.markedPaidByMember ? "Aguardando" : "Pendente")
+                                                .font(.inter(11, weight: .regular))
+                                                .foregroundColor(JuntoColors.textMuted)
                                         }
                                     }
                                     .padding(.vertical, 8)
@@ -1043,7 +1067,7 @@ struct GroupDetailSheet: View {
                             }
 
                             if selectedTotal > 0 {
-                                JuntoPillButton(title: "Pagar \(JuntoStore.formatBRL(selectedTotal))", color: JuntoColors.pixGreen) {
+                                JuntoPillButton(title: "Pagar \(JuntoStore.formatBRL(selectedTotal))", color: JuntoColors.primary) {
                                     pendingPaymentSheet = GroupPaymentRequest(
                                         title: "Despesas • \(group.title)",
                                         amount: selectedTotal,
@@ -1079,66 +1103,72 @@ struct GroupDetailSheet: View {
                 .presentationDetents([.height(270)])
                 .presentationCornerRadius(20)
             }
-            .sheet(isPresented: $showWithdrawSheet) {
-                PotWithdrawSheet(
-                    groupTitle: group.title,
-                    availableAmount: group.potBalance,
-                    pixKey: store.user.pixKey
-                ) { amountToWithdraw in
-                    store.withdrawPotViaEfi(groupId: groupId, amount: amountToWithdraw)
-                }
-                .presentationDetents([.height(390)])
-                .presentationCornerRadius(20)
-            }
             .sheet(item: $pendingPaymentSheet) { request in
-                GroupPaymentMethodSheet(
+                let organizer = store.organizerPixInfo(for: group)
+                OrganizerPixPaymentSheet(
                     title: request.title,
-                    amount: request.amount,
-                    connectedBank: store.connectedBank,
-                    onPayWithOneTap: {
-                        if let pid = request.participantId {
-                            _ = store.payParticipantPotQuotaWithOneTap(groupId: groupId, participantId: pid)
-                        } else {
-                            _ = store.payGroupExpensesWithOneTap(groupId: groupId, amount: request.amount)
-                        }
-                        pendingPaymentSheet = nil
-                    },
-                    onPayWithPix: {
-                        pendingPaymentSheet = nil
-                        dismiss()
-                        if let pid = request.participantId {
-                            store.payParticipantPotQuota(groupId: groupId, participantId: pid, openPix: true)
-                        } else {
-                            store.openPixPayment(title: request.title, recipient: group.title, amount: request.amount)
-                        }
+                    organizerName: organizer.name,
+                    organizerPixKey: organizer.pixKey,
+                    amount: request.amount
+                ) {
+                    if let pid = request.participantId {
+                        store.memberMarkQuotaAsPaid(groupId: groupId, participantId: pid)
+                    } else {
+                        store.memberMarkGroupExpensesAsPaid(groupId: groupId, amount: request.amount)
                     }
-                )
-                .presentationDetents([.height(310)])
+                    pendingPaymentSheet = nil
+                }
+                .presentationDetents([.height(500)])
                 .presentationCornerRadius(20)
             }
         }
     }
 }
 
-// MARK: - Sheet de Escolha de Pagamento do Grupo (Pix em 1 toque Open Finance OU QR Code Pix)
-struct GroupPaymentMethodSheet: View {
+// MARK: - Sheet de Pagamento Direto ao Organizador (Aba QR Code Pix + Aba Copiar Chave Pix + Marcar como pago)
+struct OrganizerPixPaymentSheet: View {
     let title: String
+    let organizerName: String
+    let organizerPixKey: String
     let amount: Double
-    let connectedBank: JuntoStore.ConnectedBankAccount?
-    let onPayWithOneTap: () -> Void
-    let onPayWithPix: () -> Void
+    let onMarkAsPaid: () -> Void
     @Environment(\.dismiss) private var dismiss
-    @State private var isConfirmingBiometric = false
+
+    enum PixTab: String, CaseIterable {
+        case qrCode = "QR Code Pix"
+        case copyKey = "Copiar chave Pix"
+    }
+
+    @State private var selectedTab: PixTab = .qrCode
+    @State private var copiedKey = false
+    @State private var copiedPayload = false
+
+    private var pixPayload: String {
+        let formattedValue = String(format: "%.2f", amount)
+        return "00020126420014br.gov.bcb.pix0120\(organizerPixKey)520400005303986540\(formattedValue.count)\(formattedValue)5802BR5914\(organizerName.prefix(14).uppercased())6009SAO PAULO62070503***6304E1F9"
+    }
+
+    private func generateQRCodeImage(from string: String) -> UIImage? {
+        let context = CIContext()
+        let filter = CIFilter.qrCodeGenerator()
+        filter.message = Data(string.utf8)
+        filter.correctionLevel = "M"
+        guard let outputImage = filter.outputImage else { return nil }
+        let scaled = outputImage.transformed(by: CGAffineTransform(scaleX: 8, y: 8))
+        guard let cgImage = context.createCGImage(scaled, from: scaled.extent) else { return nil }
+        return UIImage(cgImage: cgImage)
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
+            // Cabeçalho
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Como deseja pagar?")
+                    Text("Pagar via Pix")
                         .font(.inter(18, weight: .medium))
                         .foregroundColor(JuntoColors.textMain)
-                    Text("\(title) · \(JuntoStore.formatBRL(amount))")
-                        .font(.inter(13, weight: .regular))
+                    Text("\(title) · Organizador: \(organizerName)")
+                        .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                         .lineLimit(1)
                 }
@@ -1154,268 +1184,124 @@ struct GroupPaymentMethodSheet: View {
             }
             .padding(.top, 20)
 
-            VStack(spacing: 10) {
-                // Opção 1: Pix em 1 toque via Open Finance (direto do banco conectado, sem saldo parado)
-                Button {
-                    guard connectedBank != nil, !isConfirmingBiometric else { return }
-                    isConfirmingBiometric = true
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
-                        isConfirmingBiometric = false
-                        onPayWithOneTap()
+            // Valor em destaque
+            HStack {
+                Text("Valor a transferir")
+                    .font(.inter(13, weight: .regular))
+                    .foregroundColor(JuntoColors.textMuted)
+                Spacer()
+                Text(JuntoStore.formatBRL(amount))
+                    .font(.inter(20, weight: .medium))
+                    .foregroundColor(JuntoColors.primary)
+            }
+            .padding(.horizontal, 14)
+            .padding(.vertical, 10)
+            .background(Color.white)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            // Abas: QR Code Pix | Copiar chave Pix
+            HStack(spacing: 8) {
+                ForEach(PixTab.allCases, id: \.self) { tab in
+                    let active = selectedTab == tab
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.16)) { selectedTab = tab }
+                    } label: {
+                        Text(tab.rawValue)
+                            .font(.inter(13, weight: .medium))
+                            .foregroundColor(active ? .white : JuntoColors.textMain)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 38)
+                            .background(active ? JuntoColors.primary : Color.white)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(active ? JuntoColors.primary : JuntoColors.border, lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
                     }
-                } label: {
-                    HStack(spacing: 12) {
-                        Image(systemName: "faceid")
-                            .font(.system(size: 22, weight: .regular))
-                            .foregroundColor(connectedBank != nil ? JuntoColors.primary : JuntoColors.textLight)
-                            .frame(width: 28)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Pix em 1 toque")
-                                .font(.inter(15, weight: .medium))
-                                .foregroundColor(connectedBank != nil ? JuntoColors.textMain : JuntoColors.textMuted)
-                            if let bank = connectedBank {
-                                Text("Direto do seu \(bank.bankName) • Open Finance")
-                                    .font(.inter(12, weight: .regular))
-                                    .foregroundColor(JuntoColors.pixGreen)
-                            } else {
-                                Text("Conecte um banco na aba Conta para ativar")
-                                    .font(.inter(12, weight: .regular))
-                                    .foregroundColor(JuntoColors.textMuted)
-                            }
-                        }
-
-                        Spacer()
-
-                        if isConfirmingBiometric {
-                            ProgressView()
-                                .scaleEffect(0.8)
-                        } else if connectedBank != nil {
-                            Text("Pagar")
-                                .font(.inter(13, weight: .medium))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 12)
-                                .padding(.vertical, 6)
-                                .background(JuntoColors.primary)
-                                .clipShape(RoundedRectangle(cornerRadius: 7))
-                        }
-                    }
-                    .padding(14)
-                    .background(Color.white)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(connectedBank != nil ? JuntoColors.primary.opacity(0.35) : JuntoColors.border, lineWidth: 1))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-                .disabled(connectedBank == nil || isConfirmingBiometric)
-
-                // Opção 2: Pix QR Code / Copia e Cola
-                Button(action: onPayWithPix) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "qrcode")
-                            .font(.system(size: 20, weight: .regular))
-                            .foregroundColor(JuntoColors.pixGreen)
-                            .frame(width: 28)
-
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Pagar via QR Code Pix")
-                                .font(.inter(15, weight: .medium))
-                                .foregroundColor(JuntoColors.textMain)
-                            Text("Copiar código e pagar no app do seu banco")
-                                .font(.inter(12, weight: .regular))
-                                .foregroundColor(JuntoColors.textMuted)
-                        }
-
-                        Spacer()
-
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 13))
-                            .foregroundColor(JuntoColors.textLight)
-                    }
-                    .padding(14)
-                    .background(Color.white)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
             }
 
-            Spacer()
+            // Conteúdo da aba selecionada
+            if selectedTab == .qrCode {
+                VStack(spacing: 12) {
+                    if let qrImg = generateQRCodeImage(from: pixPayload) {
+                        Image(uiImage: qrImg)
+                            .interpolation(.none)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 165, height: 165)
+                            .padding(10)
+                            .background(Color.white)
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                    }
+
+                    Button {
+                        UIPasteboard.general.string = pixPayload
+                        copiedPayload = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedPayload = false }
+                    } label: {
+                        HStack(spacing: 6) {
+                            Image(systemName: copiedPayload ? "checkmark" : "doc.on.doc")
+                                .font(.system(size: 13))
+                            Text(copiedPayload ? "Código Pix copiado!" : "Copiar código Pix Copia e Cola")
+                                .font(.inter(13, weight: .medium))
+                        }
+                        .foregroundColor(JuntoColors.primary)
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 6)
+            } else {
+                VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Chave Pix do organizador (\(organizerName))")
+                            .font(.inter(12, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                        Text(organizerPixKey)
+                            .font(.inter(16, weight: .medium))
+                            .foregroundColor(JuntoColors.textMain)
+                            .textSelection(.enabled)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(14)
+                    .background(Color.white)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                    JuntoOutlineButton(
+                        title: copiedKey ? "Chave Pix copiada!" : "Copiar chave Pix",
+                        icon: copiedKey ? "checkmark" : "doc.on.doc",
+                        color: JuntoColors.primary
+                    ) {
+                        UIPasteboard.general.string = organizerPixKey
+                        copiedKey = true
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedKey = false }
+                    }
+
+                    Text("Faça o Pix pelo app do seu banco e depois toque em \"Marcar como pago\" abaixo para o dono do grupo conferir.")
+                        .font(.inter(12, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                }
+                .padding(.vertical, 6)
+            }
+
+            Spacer(minLength: 4)
+
+            // Botão final: Marcar como pago (o dono do grupo confere e confirma)
+            JuntoPillButton(
+                title: "Marcar como pago",
+                icon: "checkmark.circle",
+                color: JuntoColors.primary
+            ) {
+                onMarkAsPaid()
+                dismiss()
+            }
+            .padding(.bottom, 10)
         }
         .padding(.horizontal, 20)
         .background(JuntoColors.warmBg.ignoresSafeArea())
-    }
-}
-
-// MARK: - Tela de Saque do Pote com Animação Premium (sem mencionar EFI)
-struct PotWithdrawSheet: View {
-    let groupTitle: String
-    let availableAmount: Double
-    let pixKey: String
-    let onConfirm: (Double) -> Void
-    @Environment(\.dismiss) private var dismiss
-
-    enum WithdrawState {
-        case review
-        case processing
-        case success
-    }
-
-    @State private var state: WithdrawState = .review
-    @State private var checkScale: CGFloat = 0.4
-    @State private var ringOpacity: Double = 0.0
-
-    var body: some View {
-        ZStack {
-            JuntoColors.warmBg.ignoresSafeArea()
-
-            switch state {
-            case .review:
-                VStack(alignment: .leading, spacing: 18) {
-                    HStack {
-                        HStack(spacing: 10) {
-                            JuntoPotIcon(size: 34)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("Sacar do Pote")
-                                    .font(.inter(17, weight: .medium))
-                                    .foregroundColor(JuntoColors.textMain)
-                                Text(groupTitle)
-                                    .font(.inter(12, weight: .regular))
-                                    .foregroundColor(JuntoColors.textMuted)
-                            }
-                        }
-                        Spacer()
-                        Button { dismiss() } label: {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(JuntoColors.textMuted)
-                                .frame(width: 32, height: 32)
-                                .background(JuntoColors.surfaceSubtle)
-                                .clipShape(Circle())
-                        }
-                    }
-                    .padding(.top, 20)
-
-                    // Valor em destaque
-                    VStack(spacing: 4) {
-                        Text("Valor disponível para saque")
-                            .font(.inter(12, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
-                        Text(JuntoStore.formatBRL(availableAmount))
-                            .font(.inter(32, weight: .medium))
-                            .foregroundColor(JuntoColors.textMain)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 14)
-                    .background(Color.white)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                    // Destino Pix
-                    VStack(spacing: 10) {
-                        HStack {
-                            Text("Sua chave Pix")
-                                .font(.inter(13, weight: .regular))
-                                .foregroundColor(JuntoColors.textMuted)
-                            Spacer()
-                            Text(pixKey)
-                                .font(.inter(13, weight: .medium))
-                                .foregroundColor(JuntoColors.textMain)
-                                .lineLimit(1)
-                        }
-                        Divider()
-                        HStack {
-                            Text("Prazo de envio")
-                                .font(.inter(13, weight: .regular))
-                                .foregroundColor(JuntoColors.textMuted)
-                            Spacer()
-                            Text("Pix instantâneo · Sem taxa")
-                                .font(.inter(13, weight: .medium))
-                                .foregroundColor(JuntoColors.pixGreen)
-                        }
-                    }
-                    .padding(14)
-                    .background(Color.white)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-
-                    JuntoPillButton(
-                        title: "Confirmar saque",
-                        icon: "arrow.up.right.circle",
-                        color: JuntoColors.primary
-                    ) {
-                        startWithdrawAnimation()
-                    }
-
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-
-            case .processing:
-                VStack(spacing: 18) {
-                    ProgressView()
-                        .scaleEffect(1.3)
-                        .tint(JuntoColors.primary)
-                    Text("Transferindo via Pix...")
-                        .font(.inter(17, weight: .medium))
-                        .foregroundColor(JuntoColors.textMain)
-                    Text("Enviando \(JuntoStore.formatBRL(availableAmount)) para \(pixKey)")
-                        .font(.inter(13, weight: .regular))
-                        .foregroundColor(JuntoColors.textMuted)
-                        .multilineTextAlignment(.center)
-                }
-                .padding(24)
-
-            case .success:
-                VStack(spacing: 18) {
-                    ZStack {
-                        Circle()
-                            .stroke(JuntoColors.pixGreen.opacity(0.25), lineWidth: 12)
-                            .frame(width: 96, height: 96)
-                            .scaleEffect(checkScale * 1.15)
-                            .opacity(ringOpacity)
-
-                        Circle()
-                            .fill(JuntoColors.pixGreen)
-                            .frame(width: 78, height: 78)
-                            .scaleEffect(checkScale)
-
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 34, weight: .semibold))
-                            .foregroundColor(.white)
-                            .scaleEffect(checkScale)
-                    }
-
-                    VStack(spacing: 6) {
-                        Text("Saque realizado!")
-                            .font(.inter(22, weight: .medium))
-                            .foregroundColor(JuntoColors.textMain)
-
-                        Text("\(JuntoStore.formatBRL(availableAmount)) enviado via Pix para \(pixKey)")
-                            .font(.inter(14, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
-                            .multilineTextAlignment(.center)
-                    }
-
-                    JuntoPillButton(title: "Concluir", color: JuntoColors.primary) {
-                        dismiss()
-                    }
-                    .padding(.top, 8)
-                }
-                .padding(.horizontal, 24)
-            }
-        }
-    }
-
-    private func startWithdrawAnimation() {
-        withAnimation(.easeInOut(duration: 0.2)) {
-            state = .processing
-        }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
-            onConfirm(availableAmount)
-            withAnimation(.spring(response: 0.45, dampingFraction: 0.65)) {
-                state = .success
-                checkScale = 1.0
-                ringOpacity = 1.0
-            }
-        }
     }
 }
 

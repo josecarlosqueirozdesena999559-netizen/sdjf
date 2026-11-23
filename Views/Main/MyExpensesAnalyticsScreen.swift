@@ -319,13 +319,34 @@ struct MyExpensesAnalyticsScreen: View {
                                                 .foregroundColor(JuntoColors.textMuted)
                                         }
 
-                                        Spacer()
+                                        Spacer(minLength: 8)
 
-                                        Text(JuntoStore.formatBRL(item.amount))
-                                            .font(.inter(14, weight: .medium))
-                                            .foregroundColor(JuntoColors.textMain)
+                                        VStack(alignment: .trailing, spacing: 4) {
+                                            Text(JuntoStore.formatBRL(item.amount))
+                                                .font(.inter(14, weight: .medium))
+                                                .foregroundColor(item.isPaid ? JuntoColors.textMuted : JuntoColors.textMain)
+                                                .strikethrough(item.isPaid, color: JuntoColors.textMuted)
+
+                                            Button {
+                                                withAnimation(.easeInOut(duration: 0.18)) {
+                                                    store.togglePersonalExpensePaid(id: item.id)
+                                                }
+                                            } label: {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: item.isPaid ? "checkmark.circle.fill" : "circle")
+                                                        .font(.system(size: 11))
+                                                    Text(item.isPaid ? "Pago" : "Marcar pago")
+                                                        .font(.inter(11, weight: .medium))
+                                                }
+                                                .foregroundColor(item.isPaid ? JuntoColors.pixGreen : JuntoColors.primary)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(item.isPaid ? JuntoColors.pixGreenLight : JuntoColors.primaryLight)
+                                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                                            }
+                                        }
                                     }
-                                    .padding(.vertical, 11)
+                                    .padding(.vertical, 10)
                                     Divider()
                                 }
                             }

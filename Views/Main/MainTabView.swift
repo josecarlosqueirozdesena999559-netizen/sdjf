@@ -337,7 +337,7 @@ struct NotificationsSheetView: View {
                                     HStack {
                                         Text(item.title)
                                             .font(.inter(14, weight: .medium))
-                                            .foregroundColor(item.requestUsername != nil ? JuntoColors.pixGreen : JuntoColors.textMain)
+                                            .foregroundColor(JuntoColors.textMain)
                                         Spacer()
                                         Text(item.timeAgo)
                                             .font(.inter(12, weight: .regular))

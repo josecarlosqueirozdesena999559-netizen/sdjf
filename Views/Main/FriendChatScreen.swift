@@ -300,8 +300,9 @@ struct FriendChatScreen: View {
             .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.8), alignment: .top)
         }
         .onAppear {
-            // Reprodução automática do próximo áudio consecutivo da conversa
+            // Marca áudio como escutado (ondas ficam laranja) e toca o próximo áudio consecutivo automaticamente
             audioManager.onPlaybackFinished = { finishedId in
+                store.markAudioListened(username: friend.username, messageId: finishedId)
                 let list = store.messages(for: friend.username)
                 guard let idx = list.firstIndex(where: { $0.id == finishedId }),
                       idx + 1 < list.count else { return }
@@ -403,16 +404,18 @@ struct FriendChatScreen: View {
                                 .clipShape(Circle())
                         }
 
-                        // Ondas gravadas sincronizadas — ficam em laranja vibrante ao reproduzir!
+                        // Ondas: AZUL enquanto escuta; LARANJA após escutado (sinaliza para ambos que foi ouvido)
                         HStack(spacing: 2.5) {
                             ForEach(Array(bars.enumerated()), id: \.offset) { idx, level in
                                 let barFraction = Double(idx + 1) / Double(max(bars.count, 1))
                                 let isActiveBar = isPlaying && barFraction <= progress
-                                let activeColor: Color = JuntoColors.accent // Laranja vibrante ao escutar
-                                let inactiveColor: Color = msg.isFromMe ? Color.white.opacity(0.40) : JuntoColors.primary.opacity(0.24)
+                                let playingBlue: Color = msg.isFromMe ? Color(hex: "#38BDF8") : Color(hex: "#2563EB")
+                                let listenedOrange: Color = JuntoColors.accent
+                                let unplayedColor: Color = msg.isFromMe ? Color.white.opacity(0.40) : JuntoColors.primary.opacity(0.24)
+                                let barColor: Color = isActiveBar ? playingBlue : (msg.isListened ? listenedOrange : unplayedColor)
 
                                 Capsule()
-                                    .fill(isActiveBar ? activeColor : inactiveColor)
+                                    .fill(barColor)
                                     .frame(width: 2.8, height: max(5, CGFloat(level) * 24))
                                     .animation(.easeOut(duration: 0.1), value: isActiveBar)
                             }
