@@ -19,6 +19,16 @@ struct FriendChatScreen: View {
     @State private var showProfileScreen = false
     @State private var recMicPulse = false
 
+    // Desfazer exclusão com cronômetro de 5 segundos estilo WhatsApp
+    @State private var pendingDeleteMessageId: UUID? = nil
+    @State private var undoCountdown = 5
+    @State private var undoTimer: Timer? = nil
+
+    // Gravação de áudio com trava arrastando para cima estilo WhatsApp
+    @State private var isMicLocked = false
+    @State private var isDraggingMic = false
+    @State private var micDragOffsetY: CGFloat = 0
+
     @StateObject private var audioManager = AudioChatManager()
 
     private var currentFriend: FriendItem {
@@ -133,6 +143,15 @@ struct FriendChatScreen: View {
                         .padding(.vertical, 16)
                     }
                 }
+                .scrollDismissesKeyboard(.interactively)
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 10)
+                        .onChanged { value in
+                            if abs(value.translation.height) > 16 {
+                                UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                            }
+                        }
+                )
                 .background(JuntoColors.warmBg)
                 .onChange(of: messages.count) { _, _ in
                     if let lastId = messages.last?.id {
@@ -141,43 +160,60 @@ struct FriendChatScreen: View {
                 }
             }
 
-            // Banner de Resposta (Reply) ou Edição de mensagem
+            // Snackbar flutuante de Desfazer Exclusão (estilo WhatsApp: 5 segundos com cronômetro para cancelar)
+            if pendingDeleteMessageId != nil {
+                UndoDeleteSnackbar(secondsRemaining: undoCountdown) {
+                    undoDelete()
+                }
+            }
+
+            // Banner de Resposta (Reply) com visual amplo e nítido
             if let replyMsg = replyingToMessage {
                 let author = replyMsg.isFromMe ? "Você" : currentFriend.name
-                HStack(spacing: 10) {
-                    RoundedRectangle(cornerRadius: 2)
-                        .fill(JuntoColors.primary)
-                        .frame(width: 3.5, height: 34)
+                let authorColor = replyMsg.isFromMe ? JuntoColors.primary : Color(hex: "#2563EB")
 
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Respondendo a \(author)")
-                            .font(.inter(12, weight: .medium))
-                            .foregroundColor(JuntoColors.primary)
-                        Text(replyMsg.previewText)
-                            .font(.inter(12, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
-                            .lineLimit(1)
+                HStack(alignment: .center, spacing: 12) {
+                    RoundedRectangle(cornerRadius: 3)
+                        .fill(authorColor)
+                        .frame(width: 4, height: 42)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        HStack(spacing: 6) {
+                            JuntoIcon(kind: .swipeReply, size: 12, color: authorColor, weight: 2.0)
+                            Text(author)
+                                .font(.inter(13, weight: .semibold))
+                                .foregroundColor(authorColor)
+                        }
+
+                        HStack(spacing: 6) {
+                            replyIconForKind(replyMsg.kind)
+                            Text(replyMsg.previewText)
+                                .font(.inter(13, weight: .regular))
+                                .foregroundColor(JuntoColors.textMain.opacity(0.85))
+                                .lineLimit(2)
+                        }
                     }
 
                     Spacer()
 
                     Button {
-                        withAnimation(.easeInOut(duration: 0.15)) { replyingToMessage = nil }
+                        withAnimation(.spring(response: 0.24, dampingFraction: 0.8)) {
+                            replyingToMessage = nil
+                        }
                     } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(JuntoColors.textMuted)
+                        JuntoIcon(kind: .close, size: 12, color: JuntoColors.textMuted, weight: 2.0)
+                            .frame(width: 28, height: 28)
+                            .background(JuntoColors.surfaceSubtle)
+                            .clipShape(Circle())
                     }
                 }
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .background(Color.white)
-                .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.7), alignment: .top)
+                .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.8), alignment: .top)
             } else if editingMessageId != nil {
                 HStack(spacing: 8) {
-                    Image(systemName: "pencil")
-                        .font(.system(size: 13))
-                        .foregroundColor(JuntoColors.primary)
+                    JuntoIcon(kind: .edit, size: 14, color: JuntoColors.primary, weight: 1.8)
                     Text("Editando mensagem")
                         .font(.inter(12, weight: .medium))
                         .foregroundColor(JuntoColors.textMain)
@@ -186,9 +222,7 @@ struct FriendChatScreen: View {
                         editingMessageId = nil
                         inputText = ""
                     } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 12))
-                            .foregroundColor(JuntoColors.textMuted)
+                        JuntoIcon(kind: .close, size: 12, color: JuntoColors.textMuted, weight: 2.0)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -196,29 +230,28 @@ struct FriendChatScreen: View {
                 .background(JuntoColors.primaryLight)
             }
 
-            // Barra Inferior de Envio: estilo WhatsApp ao gravar áudio (lixeira SEM fundo + microfone pulsando + ondas fluidas)
+            // Barra Inferior de Envio: estilo WhatsApp com suporte a trava arrastando para cima
             HStack(alignment: .center, spacing: 10) {
                 if audioManager.isRecording {
-                    // Lixeira limpa SEM fundo para cancelar o áudio
+                    // Lixeira para cancelar o áudio
                     Button {
                         withAnimation(.easeInOut(duration: 0.18)) {
                             recMicPulse = false
+                            isMicLocked = false
                             audioManager.cancelRecording()
                         }
                     } label: {
-                        Image(systemName: "trash")
-                            .font(.system(size: 20, weight: .regular))
-                            .foregroundColor(JuntoColors.danger)
-                            .frame(width: 34, height: 34)
+                        JuntoIcon(kind: .trash, size: 20, color: JuntoColors.danger, weight: 1.8)
+                            .frame(width: 36, height: 36)
                     }
 
-                    // Animação de gravação estilo WhatsApp (microfone vermelho pulsando + timer + ondas fluidas em tempo real)
+                    // Animação de gravação estilo WhatsApp (ponto vermelho pulsando + timer + ondas)
                     HStack(spacing: 8) {
-                        Image(systemName: "mic.fill")
-                            .font(.system(size: 14, weight: .medium))
-                            .foregroundColor(JuntoColors.danger)
-                            .scaleEffect(recMicPulse ? 1.12 : 0.90)
-                            .opacity(recMicPulse ? 1.0 : 0.35)
+                        Circle()
+                            .fill(JuntoColors.danger)
+                            .frame(width: 10, height: 10)
+                            .scaleEffect(recMicPulse ? 1.25 : 0.85)
+                            .opacity(recMicPulse ? 1.0 : 0.4)
                             .onAppear {
                                 withAnimation(.easeInOut(duration: 0.65).repeatForever(autoreverses: true)) {
                                     recMicPulse = true
@@ -233,39 +266,35 @@ struct FriendChatScreen: View {
                             .foregroundColor(JuntoColors.textMain)
                             .monospacedDigit()
 
-                        HStack(spacing: 2.5) {
-                            let bars = Array(audioManager.liveLevels.suffix(26))
-                            ForEach(Array(bars.enumerated()), id: \.offset) { _, lvl in
-                                Capsule()
-                                    .fill(JuntoColors.textMuted.opacity(0.75))
-                                    .frame(width: 2.5, height: max(4, lvl * 24))
+                        if isDraggingMic && !isMicLocked {
+                            Text("← Deslize para cancelar")
+                                .font(.inter(11, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                                .lineLimit(1)
+                        } else {
+                            HStack(spacing: 2.5) {
+                                let bars = Array(audioManager.liveLevels.suffix(22))
+                                ForEach(Array(bars.enumerated()), id: \.offset) { _, lvl in
+                                    Capsule()
+                                        .fill(JuntoColors.textMuted.opacity(0.75))
+                                        .frame(width: 2.5, height: max(4, lvl * 24))
+                                }
                             }
+                            .animation(.easeOut(duration: 0.12), value: audioManager.liveLevels)
                         }
-                        .animation(.easeOut(duration: 0.12), value: audioManager.liveLevels)
-                        .frame(maxWidth: .infinity, alignment: .trailing)
                     }
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 12)
-                    .frame(height: 40)
+                    .frame(height: 42)
                     .background(JuntoColors.surfaceSubtle)
                     .clipShape(Capsule())
 
                     // Enviar áudio gravado
                     Button {
-                        recMicPulse = false
-                        let recorded = audioManager.finishRecording()
-                        store.sendChatMessage(
-                            to: friend.username,
-                            kind: .audio(
-                                duration: recorded.duration,
-                                waveform: recorded.waveform.map { Double($0) },
-                                fileURL: recorded.fileURL
-                            )
-                        )
+                        sendRecordedAudio()
                     } label: {
-                        Image(systemName: "paperplane.fill")
-                            .font(.system(size: 15))
-                            .foregroundColor(.white)
-                            .frame(width: 40, height: 40)
+                        JuntoIcon(kind: .send, size: 16, color: .white, weight: 2.0)
+                            .frame(width: 42, height: 42)
                             .background(JuntoColors.primary)
                             .clipShape(Circle())
                     }
@@ -273,9 +302,7 @@ struct FriendChatScreen: View {
                     Button {
                         showAttachmentMenu = true
                     } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 18, weight: .medium))
-                            .foregroundColor(JuntoColors.primary)
+                        JuntoIcon(kind: .plus, size: 18, color: JuntoColors.primary, weight: 2.0)
                             .frame(width: 40, height: 40)
                             .background(JuntoColors.surfaceSubtle)
                             .clipShape(Circle())
@@ -291,17 +318,73 @@ struct FriendChatScreen: View {
                         .clipShape(RoundedRectangle(cornerRadius: 10))
 
                     if inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        Button {
-                            withAnimation(.easeInOut(duration: 0.18)) {
-                                audioManager.startRecording()
+                        // Microfone estilo WhatsApp: segure e arraste para cima para travar gravação
+                        ZStack(alignment: .bottom) {
+                            if audioManager.isRecording && !isMicLocked {
+                                VStack(spacing: 5) {
+                                    JuntoIcon(kind: .lock, size: 14, color: JuntoColors.primary, weight: 2.0)
+                                        .scaleEffect(micDragOffsetY < -30 ? 1.25 : 1.0)
+                                    Image(systemName: "chevron.up")
+                                        .font(.system(size: 10, weight: .bold))
+                                        .foregroundColor(JuntoColors.primary)
+                                }
+                                .frame(width: 36, height: 52)
+                                .background(Color.white)
+                                .clipShape(Capsule())
+                                .shadow(color: Color.black.opacity(0.14), radius: 8, y: -3)
+                                .offset(y: -54 + min(0, micDragOffsetY * 0.4))
+                                .transition(.scale(scale: 0.85).combined(with: .opacity))
                             }
-                        } label: {
-                            Image(systemName: "mic.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(.white)
-                                .frame(width: 42, height: 42)
-                                .background(JuntoColors.primary)
-                                .clipShape(Circle())
+
+                            Button {
+                                if !audioManager.isRecording {
+                                    isMicLocked = true
+                                    withAnimation(.easeInOut(duration: 0.18)) {
+                                        audioManager.startRecording()
+                                    }
+                                }
+                            } label: {
+                                JuntoIcon(kind: .mic, size: 18, color: .white, weight: 2.0)
+                                    .frame(width: 42, height: 42)
+                                    .background(JuntoColors.primary)
+                                    .clipShape(Circle())
+                            }
+                            .simultaneousGesture(
+                                DragGesture(minimumDistance: 4, coordinateSpace: .local)
+                                    .onChanged { value in
+                                        if !audioManager.isRecording {
+                                            audioManager.startRecording()
+                                            isDraggingMic = true
+                                        }
+                                        micDragOffsetY = value.translation.height
+
+                                        // Arrasto para cima trava a gravação (hands-free!)
+                                        if value.translation.height < -36 && !isMicLocked {
+                                            isMicLocked = true
+                                            micDragOffsetY = 0
+                                            UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
+                                        }
+                                        // Arrasto para a esquerda cancela gravação
+                                        if value.translation.width < -50 {
+                                            audioManager.cancelRecording()
+                                            isMicLocked = false
+                                            isDraggingMic = false
+                                            micDragOffsetY = 0
+                                            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+                                        }
+                                    }
+                                    .onEnded { _ in
+                                        isDraggingMic = false
+                                        micDragOffsetY = 0
+                                        if !isMicLocked && audioManager.isRecording {
+                                            if audioManager.recordingSeconds >= 1 {
+                                                sendRecordedAudio()
+                                            } else {
+                                                isMicLocked = true
+                                            }
+                                        }
+                                    }
+                            )
                         }
                     } else {
                         Button {
@@ -323,12 +406,15 @@ struct FriendChatScreen: View {
                                 )
                             }
                         } label: {
-                            Image(systemName: editingMessageId != nil ? "checkmark" : "paperplane.fill")
-                                .font(.system(size: 16))
-                                .foregroundColor(.white)
-                                .frame(width: 42, height: 42)
-                                .background(JuntoColors.primary)
-                                .clipShape(Circle())
+                            JuntoIcon(
+                                kind: editingMessageId != nil ? .checkmark : .send,
+                                size: 18,
+                                color: .white,
+                                weight: 2.0
+                            )
+                            .frame(width: 42, height: 42)
+                            .background(JuntoColors.primary)
+                            .clipShape(Circle())
                         }
                     }
                 }
@@ -364,10 +450,9 @@ struct FriendChatScreen: View {
                         withAnimation(.easeInOut(duration: 0.15)) { selectedMessageForMenu = nil }
                     },
                     onDelete: {
-                        withAnimation {
-                            store.deleteChatMessage(username: friend.username, messageId: menuMsg.id)
-                            selectedMessageForMenu = nil
-                        }
+                        let targetId = menuMsg.id
+                        selectedMessageForMenu = nil
+                        startUndoDelete(for: targetId)
                     },
                     onDismiss: {
                         withAnimation(.easeInOut(duration: 0.15)) { selectedMessageForMenu = nil }
@@ -391,6 +476,7 @@ struct FriendChatScreen: View {
             }
         }
         .onDisappear {
+            finalizePendingDelete()
             audioManager.onPlaybackFinished = nil
             audioManager.stopPlayback()
             audioManager.cancelRecording()
@@ -599,13 +685,84 @@ struct FriendChatScreen: View {
     }
 
     private var groupedMessagesByDate: [(date: String, items: [ChatMessage])] {
+        let activeMessages = messages.filter { $0.id != pendingDeleteMessageId }
         var order: [String] = []
         var map: [String: [ChatMessage]] = [:]
-        for m in messages {
+        for m in activeMessages {
             if map[m.dateLabel] == nil { order.append(m.dateLabel) }
             map[m.dateLabel, default: []].append(m)
         }
         return order.map { ($0, map[$0] ?? []) }
+    }
+
+    // MARK: - Ações de Envio e Desfazer Exclusão
+    private func sendRecordedAudio() {
+        recMicPulse = false
+        isMicLocked = false
+        isDraggingMic = false
+        micDragOffsetY = 0
+        let recorded = audioManager.finishRecording()
+        store.sendChatMessage(
+            to: friend.username,
+            kind: .audio(
+                duration: recorded.duration,
+                waveform: recorded.waveform.map { Double($0) },
+                fileURL: recorded.fileURL
+            )
+        )
+    }
+
+    private func startUndoDelete(for messageId: UUID) {
+        finalizePendingDelete()
+        withAnimation(.easeInOut(duration: 0.2)) {
+            pendingDeleteMessageId = messageId
+        }
+        undoCountdown = 5
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+
+        undoTimer?.invalidate()
+        undoTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+            if undoCountdown > 1 {
+                undoCountdown -= 1
+            } else {
+                finalizePendingDelete()
+            }
+        }
+    }
+
+    private func undoDelete() {
+        undoTimer?.invalidate()
+        undoTimer = nil
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        withAnimation(.spring(response: 0.26, dampingFraction: 0.82)) {
+            pendingDeleteMessageId = nil
+        }
+        store.showToast("Mensagem restaurada.", icon: "checkmark")
+    }
+
+    private func finalizePendingDelete() {
+        undoTimer?.invalidate()
+        undoTimer = nil
+        if let id = pendingDeleteMessageId {
+            store.deleteChatMessage(username: friend.username, messageId: id)
+            pendingDeleteMessageId = nil
+        }
+    }
+
+    @ViewBuilder
+    private func replyIconForKind(_ kind: ChatMessageKind) -> some View {
+        switch kind {
+        case .audio:
+            JuntoIcon(kind: .mic, size: 12, color: JuntoColors.accent, weight: 1.8)
+        case .photo:
+            JuntoIcon(kind: .photo, size: 12, color: Color(hex: "#2563EB"), weight: 1.8)
+        case .document:
+            JuntoIcon(kind: .docText, size: 12, color: Color(hex: "#7C3AED"), weight: 1.8)
+        case .pix:
+            JuntoIcon(kind: .pix, size: 12, color: JuntoColors.pixGreen, weight: 1.8)
+        default:
+            EmptyView()
+        }
     }
 
     private func datePillHeader(_ label: String) -> some View {
@@ -881,7 +1038,53 @@ struct ChatAttachmentMenuSheet: View {
     }
 }
 
-// MARK: - Gesto Arrastar para o Lado para Responder (estilo WhatsApp)
+// MARK: - Snackbar de Desfazer Exclusão (estilo WhatsApp: 5 segundos com cronômetro para cancelar)
+struct UndoDeleteSnackbar: View {
+    let secondsRemaining: Int
+    let onUndo: () -> Void
+
+    var body: some View {
+        HStack(spacing: 12) {
+            JuntoIcon(kind: .trash, size: 16, color: .white, weight: 1.8)
+
+            Text("Mensagem apagada para todos")
+                .font(.inter(13, weight: .regular))
+                .foregroundColor(.white)
+                .lineLimit(1)
+
+            Spacer(minLength: 4)
+
+            // Badge circular com os segundos restantes
+            Text("\(secondsRemaining)s")
+                .font(.inter(12, weight: .bold))
+                .foregroundColor(JuntoColors.accent)
+                .monospacedDigit()
+                .frame(width: 28, height: 28)
+                .background(Color.white.opacity(0.14))
+                .clipShape(Circle())
+
+            Button(action: onUndo) {
+                Text("Desfazer")
+                    .font(.inter(13, weight: .semibold))
+                    .foregroundColor(JuntoColors.accent)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 6)
+                    .background(Color.white.opacity(0.12))
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
+        .background(Color(hex: "#1E293B"))
+        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+        .shadow(color: Color.black.opacity(0.24), radius: 10, y: 4)
+        .padding(.horizontal, 14)
+        .padding(.bottom, 6)
+        .transition(.move(edge: .bottom).combined(with: .opacity))
+    }
+}
+
+// MARK: - Gesto Arrastar para o Lado para Responder Fluido e Macio (estilo WhatsApp)
 struct SwipeToReplyContainer<Content: View>: View {
     let onReply: () -> Void
     @ViewBuilder let content: () -> Content
@@ -891,38 +1094,51 @@ struct SwipeToReplyContainer<Content: View>: View {
 
     var body: some View {
         ZStack(alignment: .leading) {
-            // Ícone de resposta que aparece suavemente ao arrastar para a direita
-            if dragOffset > 8 {
-                Image(systemName: "arrowshape.turn.up.left.fill")
-                    .font(.system(size: 14, weight: .medium))
-                    .foregroundColor(dragOffset >= 42 ? .white : JuntoColors.primary)
-                    .frame(width: 30, height: 30)
-                    .background(dragOffset >= 42 ? JuntoColors.primary : JuntoColors.primaryLight)
-                    .clipShape(Circle())
-                    .scaleEffect(min(1.0, dragOffset / 40.0))
-                    .opacity(min(1.0, dragOffset / 30.0))
-                    .padding(.leading, 4)
+            // Ícone de resposta suave e fluido
+            if dragOffset > 4 {
+                let progress = min(1.0, dragOffset / 38.0)
+                let isTriggered = dragOffset >= 38
+                ZStack {
+                    Circle()
+                        .fill(isTriggered ? JuntoColors.primary : JuntoColors.primaryLight)
+                        .frame(width: 32, height: 32)
+
+                    JuntoIcon(
+                        kind: .swipeReply,
+                        size: 14,
+                        color: isTriggered ? .white : JuntoColors.primary,
+                        weight: 2.0
+                    )
+                }
+                .scaleEffect(isTriggered ? 1.08 : max(0.5, progress))
+                .opacity(min(1.0, progress * 1.3))
+                .offset(x: min(dragOffset * 0.45, 18))
+                .animation(.interactiveSpring(response: 0.22, dampingFraction: 0.75), value: dragOffset)
             }
 
             content()
                 .offset(x: dragOffset)
         }
         .simultaneousGesture(
-            DragGesture(minimumDistance: 16, coordinateSpace: .local)
+            DragGesture(minimumDistance: 6, coordinateSpace: .local)
                 .onChanged { value in
                     let dx = value.translation.width
                     let dy = value.translation.height
-                    guard dx > 0, abs(dx) > abs(dy) * 1.25 else { return }
-                    let damped = min(dx * 0.65, 58)
+                    // Apenas arrasto horizontal para a direita sem conflito vertical
+                    guard dx > 0, dx > abs(dy) * 1.15 else { return }
+                    // Curva física contínua suave sem degraus
+                    let damped = min(pow(dx, 0.86) * 1.7, 54)
                     dragOffset = damped
-                    if damped >= 42 && !didTriggerHaptic {
+                    if damped >= 38 && !didTriggerHaptic {
                         didTriggerHaptic = true
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    } else if damped < 38 {
+                        didTriggerHaptic = false
                     }
                 }
                 .onEnded { _ in
-                    let shouldReply = dragOffset >= 42
-                    withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+                    let shouldReply = dragOffset >= 38
+                    withAnimation(.spring(response: 0.24, dampingFraction: 0.72)) {
                         dragOffset = 0
                     }
                     didTriggerHaptic = false
