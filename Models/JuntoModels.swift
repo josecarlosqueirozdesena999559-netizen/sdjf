@@ -184,6 +184,19 @@ enum GroupParticipantRole: String, Hashable {
     case member = "Membro"
 }
 
+enum PotRecurrenceMode: String, CaseIterable, Hashable {
+    case single = "Meta única"
+    case monthly = "Mensal (Excursão)"
+}
+
+struct PotMonthCycle: Identifiable, Hashable {
+    let id = UUID()
+    let monthNumber: Int
+    let label: String // ex: "Mês 1 • Nov/26"
+    var paidUsernames: Set<String> = []
+    var markedPaidUsernames: Set<String> = []
+}
+
 struct GroupParticipant: Identifiable, Hashable {
     let id = UUID()
     let name: String
@@ -210,6 +223,101 @@ struct RoleGroup: Identifiable {
     var participants: [GroupParticipant]
     var hasCollectivePot: Bool
     var comandaItems: [ComandaItem]
+
+    // Pote Mensal (Excursões / Viagens parceladas mês a mês)
+    var potMode: PotRecurrenceMode = .single
+    var totalMonths: Int = 1
+    var selectedMonthIndex: Int = 0
+    var monthlyCycles: [PotMonthCycle] = []
+
+    /// Porcentagem concluída de um mês específico (só chega a 100% quando TODOS os participantes pagam aquele mês)
+    func monthCompletionPercent(at index: Int) -> Int {
+        guard !participants.isEmpty else { return 0 }
+        if potMode == .single {
+            let paid = participants.filter { $0.hasPaid }.count
+            return paid == participants.count ? 100 : min(99, Int((Double(paid) / Double(participants.count)) * 100))
+        }
+        guard monthlyCycles.indices.contains(index) else { return 0 }
+        let paidCount = participants.filter { monthlyCycles[index].paidUsernames.contains($0.username.lowercased()) }.count
+        if paidCount == participants.count { return 100 }
+        return min(99, Int((Double(paidCount) / Double(participants.count)) * 100))
+    }
+
+    /// Quantos participantes pagaram no mês selecionado
+    func paidParticipantsCount(at index: Int) -> Int {
+        if potMode == .single {
+            return participants.filter { $0.hasPaid }.count
+        }
+        guard monthlyCycles.indices.contains(index) else { return 0 }
+        return participants.filter { monthlyCycles[index].paidUsernames.contains($0.username.lowercased()) }.count
+    }
+
+    /// Porcentagem total da meta geral (só chega a 100% quando TODOS pagam TODOS os meses)
+    var overallGoalPercent: Int {
+        guard !participants.isEmpty else { return 0 }
+        if potMode == .single {
+            let paid = participants.filter { $0.hasPaid }.count
+            if paid == participants.count { return 100 }
+            if potTarget > 0 {
+                return min(99, Int((potBalance / potTarget) * 100))
+            }
+            return min(99, Int((Double(paid) / Double(participants.count)) * 100))
+        }
+        let totalSlots = max(1, participants.count * max(1, monthlyCycles.count))
+        let paidSlots = monthlyCycles.reduce(0) { acc, cycle in
+            acc + participants.filter { cycle.paidUsernames.contains($0.username.lowercased()) }.count
+        }
+        if paidSlots >= totalSlots { return 100 }
+        return min(99, Int((Double(paidSlots) / Double(totalSlots)) * 100))
+    }
+
+    /// Quantos meses já estão 100% quitados por todos
+    var completedMonthsCount: Int {
+        guard !participants.isEmpty else { return 0 }
+        return monthlyCycles.indices.filter { monthCompletionPercent(at: $0) == 100 }.count
+    }
+
+    /// Valor da mensalidade de 1 mês por pessoa
+    var monthlyQuotaPerPerson: Double {
+        guard !participants.isEmpty, potTarget > 0 else { return 0 }
+        let months = potMode == .monthly ? max(1, totalMonths) : 1
+        return (potTarget / Double(months)) / Double(participants.count)
+    }
+
+    /// Meta de arrecadação de 1 mês (soma de todos os membros naquele mês)
+    var monthlyTargetAmount: Double {
+        let months = potMode == .monthly ? max(1, totalMonths) : 1
+        return potTarget / Double(months)
+    }
+}
+
+/// Pote Pessoal ("Caixinha" individual para guardar dinheiro para uma ocasião especial — Recurso Juntô Pro)
+struct PersonalSavingsPot: Identifiable, Hashable {
+    let id = UUID()
+    var title: String
+    var occasion: String // ex: "Viagem", "Show / Festival", "Reserva", "Presente"
+    var icon: String     // SF Symbol nativo
+    var currentAmount: Double
+    var targetAmount: Double
+    var targetDateText: String
+    var deposits: [PersonalPotDeposit] = []
+
+    var percentCompleted: Int {
+        guard targetAmount > 0 else { return 0 }
+        if currentAmount >= targetAmount { return 100 }
+        return min(99, Int((currentAmount / targetAmount) * 100))
+    }
+
+    var remainingAmount: Double {
+        max(0, targetAmount - currentAmount)
+    }
+}
+
+struct PersonalPotDeposit: Identifiable, Hashable {
+    let id = UUID()
+    let amount: Double
+    let note: String
+    let dateText: String
 }
 
 struct ActivityEvent: Identifiable {

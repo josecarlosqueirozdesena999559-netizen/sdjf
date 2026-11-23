@@ -94,7 +94,7 @@ struct AccountView: View {
                                 .foregroundColor(JuntoColors.primary)
                         }
 
-                        Text("Grupos ilimitados, baixa automática de Pix, despesas via WhatsApp, leitura ilimitada de comandas e relatórios.")
+                        Text("Grupos ilimitados, Potes Pessoais (Caixinhas), Pote Mensal para excursões, baixa automática de Pix e WhatsApp.")
                             .font(.inter(13, weight: .regular))
                             .foregroundColor(JuntoColors.textMuted)
 

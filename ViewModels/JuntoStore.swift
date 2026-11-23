@@ -97,8 +97,8 @@ final class JuntoStore: ObservableObject {
             title: "Viagem Ubatuba",
             category: "Viagem",
             coverImageName: "GroupPraia",
-            potBalance: 600.00,
-            potTarget: 1000.00,
+            potBalance: 1600.00,
+            potTarget: 3000.00,
             totalSpent: 1840.00,
             myShare: 0.0,
             members: ["EU", "PS", "MA", "CR", "BL"],
@@ -113,6 +113,54 @@ final class JuntoStore: ObservableObject {
             comandaItems: [
                 ComandaItem(name: "Casa de Praia (Diária)", detail: "1/5 da reserva", price: 110.00, isSelected: true),
                 ComandaItem(name: "Gasolina + Pedágio", detail: "Carro do Pedro", price: 40.00, isSelected: true)
+            ],
+            potMode: .monthly,
+            totalMonths: 3,
+            selectedMonthIndex: 1,
+            monthlyCycles: [
+                PotMonthCycle(
+                    monthNumber: 1,
+                    label: "Mês 1 • Out/26",
+                    paidUsernames: ["lucas.andrade", "pedro.santos", "camila.rocha", "matheus.alves", "bia.lima"]
+                ),
+                PotMonthCycle(
+                    monthNumber: 2,
+                    label: "Mês 2 • Nov/26",
+                    paidUsernames: ["lucas.andrade", "pedro.santos", "camila.rocha"],
+                    markedPaidUsernames: ["matheus.alves"]
+                ),
+                PotMonthCycle(
+                    monthNumber: 3,
+                    label: "Mês 3 • Dez/26",
+                    paidUsernames: []
+                )
+            ]
+        )
+    ]
+
+    /// Potes Pessoais ("Caixinhas" individuais para guardar dinheiro para uma ocasião especial — recurso Juntô Pro)
+    @Published var personalPots: [PersonalSavingsPot] = [
+        PersonalSavingsPot(
+            title: "Réveillon em Pipa",
+            occasion: "Viagem",
+            icon: "airplane",
+            currentAmount: 850.00,
+            targetAmount: 1500.00,
+            targetDateText: "30 de dez. de 2026",
+            deposits: [
+                PersonalPotDeposit(amount: 350.00, note: "2º depósito na caixinha", dateText: "18 de nov."),
+                PersonalPotDeposit(amount: 500.00, note: "Depósito inicial", dateText: "02 de nov.")
+            ]
+        ),
+        PersonalSavingsPot(
+            title: "Ingresso Lollapalooza",
+            occasion: "Show / Festival",
+            icon: "music.note",
+            currentAmount: 450.00,
+            targetAmount: 900.00,
+            targetDateText: "15 de mar. de 2027",
+            deposits: [
+                PersonalPotDeposit(amount: 450.00, note: "Metade guardada", dateText: "10 de nov.")
             ]
         )
     ]
@@ -587,22 +635,34 @@ final class JuntoStore: ObservableObject {
         return (user.fullName, user.pixKey)
     }
 
-    /// Participante informa que já fez o Pix para o organizador (aguarda conferência do dono do grupo)
-    func memberMarkQuotaAsPaid(groupId: UUID, participantId: UUID) {
+    /// Participante informa que já fez o Pix para o organizador (aguarda conferência do dono do grupo; suporta Pote Mensal)
+    func memberMarkQuotaAsPaid(groupId: UUID, participantId: UUID, monthIndex: Int? = nil) {
         guard let gIdx = groups.firstIndex(where: { $0.id == groupId }),
               let pIdx = groups[gIdx].participants.firstIndex(where: { $0.id == participantId }) else { return }
-        guard !groups[gIdx].participants[pIdx].hasPaid else { return }
 
-        groups[gIdx].participants[pIdx].markedPaidByMember = true
+        let uname = groups[gIdx].participants[pIdx].username.lowercased()
         let groupTitle = groups[gIdx].title
         let quota = groups[gIdx].participants[pIdx].quotaAmount
         let organizer = organizerPixInfo(for: groups[gIdx])
+        let mIdx = monthIndex ?? groups[gIdx].selectedMonthIndex
+
+        if groups[gIdx].potMode == .monthly, groups[gIdx].monthlyCycles.indices.contains(mIdx) {
+            guard !groups[gIdx].monthlyCycles[mIdx].paidUsernames.contains(uname) else { return }
+            groups[gIdx].monthlyCycles[mIdx].markedPaidUsernames.insert(uname)
+        } else {
+            guard !groups[gIdx].participants[pIdx].hasPaid else { return }
+            groups[gIdx].participants[pIdx].markedPaidByMember = true
+        }
+
+        let monthSuffix = (groups[gIdx].potMode == .monthly && groups[gIdx].monthlyCycles.indices.contains(mIdx))
+            ? " (\(groups[gIdx].monthlyCycles[mIdx].label))"
+            : ""
 
         notifications.insert(
             AppNotification(
                 icon: "checkmark.circle",
                 title: "Você pagou a \(organizer.name)",
-                message: "Pagamento de \(Self.formatBRL(quota)) referente ao grupo \(groupTitle).",
+                message: "Pagamento de \(Self.formatBRL(quota)) referente ao grupo \(groupTitle)\(monthSuffix).",
                 timeAgo: "Agora",
                 isUnread: true
             ),
@@ -613,7 +673,7 @@ final class JuntoStore: ObservableObject {
             ActivityEvent(
                 icon: "clock.badge.checkmark",
                 title: "Pagamento informado",
-                subtitle: "\(groupTitle) • Aguardando confirmação do dono",
+                subtitle: "\(groupTitle)\(monthSuffix) • Aguardando confirmação do dono",
                 timeAgo: "Agora",
                 amountText: Self.formatBRL(quota),
                 isPositive: true
@@ -658,25 +718,38 @@ final class JuntoStore: ObservableObject {
         showToast("Marcado como pago! O organizador já pode conferir.", icon: "checkmark.circle")
     }
 
-    /// Dono do grupo confere o Pix na conta dele e confirma o pagamento do participante
-    func ownerConfirmParticipantPaid(groupId: UUID, participantId: UUID) {
+    /// Dono do grupo confere o Pix na conta dele e confirma o pagamento do participante (suporta Pote Mensal por mês)
+    func ownerConfirmParticipantPaid(groupId: UUID, participantId: UUID, monthIndex: Int? = nil) {
         guard let gIdx = groups.firstIndex(where: { $0.id == groupId }),
               let pIdx = groups[gIdx].participants.firstIndex(where: { $0.id == participantId }) else { return }
-        guard !groups[gIdx].participants[pIdx].hasPaid else { return }
 
         let quota = groups[gIdx].participants[pIdx].quotaAmount
         let personName = groups[gIdx].participants[pIdx].name
+        let uname = groups[gIdx].participants[pIdx].username.lowercased()
         let groupTitle = groups[gIdx].title
+        let mIdx = monthIndex ?? groups[gIdx].selectedMonthIndex
 
-        groups[gIdx].participants[pIdx].hasPaid = true
-        groups[gIdx].participants[pIdx].markedPaidByMember = false
-        groups[gIdx].potBalance += quota
+        if groups[gIdx].potMode == .monthly, groups[gIdx].monthlyCycles.indices.contains(mIdx) {
+            guard !groups[gIdx].monthlyCycles[mIdx].paidUsernames.contains(uname) else { return }
+            groups[gIdx].monthlyCycles[mIdx].paidUsernames.insert(uname)
+            groups[gIdx].monthlyCycles[mIdx].markedPaidUsernames.remove(uname)
+            groups[gIdx].potBalance += quota
+        } else {
+            guard !groups[gIdx].participants[pIdx].hasPaid else { return }
+            groups[gIdx].participants[pIdx].hasPaid = true
+            groups[gIdx].participants[pIdx].markedPaidByMember = false
+            groups[gIdx].potBalance += quota
+        }
+
+        let monthSuffix = (groups[gIdx].potMode == .monthly && groups[gIdx].monthlyCycles.indices.contains(mIdx))
+            ? " • \(groups[gIdx].monthlyCycles[mIdx].label)"
+            : ""
 
         activities.insert(
             ActivityEvent(
                 icon: "checkmark.circle",
                 title: "Pagamento de \(personName) confirmado",
-                subtitle: "\(groupTitle) • Arrecadado \(Self.formatBRL(groups[gIdx].potBalance))",
+                subtitle: "\(groupTitle)\(monthSuffix) • Arrecadado \(Self.formatBRL(groups[gIdx].potBalance))",
                 timeAgo: "Agora",
                 amountText: "+ \(Self.formatBRL(quota))",
                 isPositive: true
@@ -808,7 +881,8 @@ final class JuntoStore: ObservableObject {
 
         let removed = groups[gIdx].participants.remove(at: pIdx)
         if groups[gIdx].hasCollectivePot && groups[gIdx].potTarget > 0 && !groups[gIdx].participants.isEmpty {
-            let newQuota = groups[gIdx].potTarget / Double(groups[gIdx].participants.count)
+            let monthsCount = groups[gIdx].potMode == .monthly ? max(1, groups[gIdx].totalMonths) : 1
+            let newQuota = (groups[gIdx].potTarget / Double(monthsCount)) / Double(groups[gIdx].participants.count)
             for i in groups[gIdx].participants.indices {
                 groups[gIdx].participants[i].quotaAmount = newQuota
             }
@@ -893,7 +967,8 @@ final class JuntoStore: ObservableObject {
 
         // Recalcula automaticamente o valor por pessoa do Pote
         if groups[idx].hasCollectivePot && groups[idx].potTarget > 0 {
-            let newQuota = groups[idx].potTarget / Double(groups[idx].participants.count)
+            let monthsCount = groups[idx].potMode == .monthly ? max(1, groups[idx].totalMonths) : 1
+            let newQuota = (groups[idx].potTarget / Double(monthsCount)) / Double(groups[idx].participants.count)
             for i in groups[idx].participants.indices {
                 groups[idx].participants[i].quotaAmount = newQuota
             }
@@ -932,6 +1007,8 @@ final class JuntoStore: ObservableObject {
         category: String,
         hasPot: Bool = true,
         potTarget: Double = 0,
+        potMode: PotRecurrenceMode = .single,
+        totalMonths: Int = 1,
         invitedPeople: [SearchableUser] = [],
         coverImageData: Data? = nil,
         startDate: Date = Date(),
@@ -956,7 +1033,8 @@ final class JuntoStore: ObservableObject {
         }
 
         let totalPeopleCount = 1 + invitedPeople.count
-        let quotaPerPerson = potTarget > 0 ? (potTarget / Double(totalPeopleCount)) : 0
+        let monthsCount = potMode == .monthly ? max(1, totalMonths) : 1
+        let quotaPerPerson = potTarget > 0 ? ((potTarget / Double(monthsCount)) / Double(totalPeopleCount)) : 0
 
         var participantsList: [GroupParticipant] = [
             GroupParticipant(name: "Você", username: user.username, quotaAmount: quotaPerPerson, hasPaid: false, role: .owner)
@@ -969,6 +1047,24 @@ final class JuntoStore: ObservableObject {
             )
             let initStr = person.name.split(separator: " ").prefix(2).map { String($0.prefix(1)) }.joined().uppercased()
             memberInitials.append(initStr.isEmpty ? String(person.username.prefix(2)).uppercased() : initStr)
+        }
+
+        let monthFormatter = DateFormatter()
+        monthFormatter.locale = Locale(identifier: "pt_BR")
+        monthFormatter.dateFormat = "MMM/yy"
+
+        var cycles: [PotMonthCycle] = []
+        if potMode == .monthly {
+            for idx in 0..<monthsCount {
+                let d = Calendar.current.date(byAdding: .month, value: idx, to: startDate) ?? startDate
+                let mStr = monthFormatter.string(from: d).replacingOccurrences(of: ".", with: "").capitalized
+                cycles.append(
+                    PotMonthCycle(
+                        monthNumber: idx + 1,
+                        label: "Mês \(idx + 1) • \(mStr)"
+                    )
+                )
+            }
         }
 
         let newGroup = RoleGroup(
@@ -985,7 +1081,11 @@ final class JuntoStore: ObservableObject {
             members: memberInitials,
             participants: participantsList,
             hasCollectivePot: true,
-            comandaItems: []
+            comandaItems: [],
+            potMode: potMode,
+            totalMonths: monthsCount,
+            selectedMonthIndex: 0,
+            monthlyCycles: cycles
         )
 
         groups.insert(newGroup, at: 0)
@@ -999,9 +1099,14 @@ final class JuntoStore: ObservableObject {
             )
         ]
 
-        let subtitleText = (hasPot && quotaPerPerson > 0)
-            ? "\(category) • \(Self.formatBRL(quotaPerPerson)) p/ cada (\(totalPeopleCount) pessoas)"
-            : "\(category) • \(totalPeopleCount) participante(s)"
+        let subtitleText: String
+        if potMode == .monthly && quotaPerPerson > 0 {
+            subtitleText = "\(category) • \(monthsCount) meses de \(Self.formatBRL(quotaPerPerson))/pessoa"
+        } else if hasPot && quotaPerPerson > 0 {
+            subtitleText = "\(category) • \(Self.formatBRL(quotaPerPerson)) p/ cada (\(totalPeopleCount) pessoas)"
+        } else {
+            subtitleText = "\(category) • \(totalPeopleCount) participante(s)"
+        }
 
         activities.insert(
             ActivityEvent(
@@ -1015,6 +1120,71 @@ final class JuntoStore: ObservableObject {
             at: 0
         )
         showToast("Grupo \"\(cleanTitle)\" criado e cotas distribuídas!", icon: "checkmark.circle")
+    }
+
+    // MARK: - Potes Pessoais ("Caixinhas" individuais para guardar finanças para uma ocasião — Exclusivo Juntô Pro)
+    func createPersonalPot(title: String, occasion: String, icon: String, targetAmount: Double, targetDateText: String) {
+        let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !cleanTitle.isEmpty, targetAmount > 0 else {
+            showToast("Informe o nome e o valor da meta da caixinha.", icon: "exclamationmark.circle")
+            return
+        }
+        let pot = PersonalSavingsPot(
+            title: cleanTitle,
+            occasion: occasion,
+            icon: icon,
+            currentAmount: 0,
+            targetAmount: targetAmount,
+            targetDateText: targetDateText
+        )
+        personalPots.insert(pot, at: 0)
+        activities.insert(
+            ActivityEvent(
+                icon: icon,
+                title: "Caixinha \"\(cleanTitle)\" criada",
+                subtitle: "\(occasion) • Meta \(Self.formatBRL(targetAmount))",
+                timeAgo: "Agora",
+                amountText: Self.formatBRL(targetAmount),
+                isPositive: true
+            ),
+            at: 0
+        )
+        showToast("Caixinha \"\(cleanTitle)\" criada!", icon: "checkmark.circle")
+    }
+
+    func depositIntoPersonalPot(potId: UUID, amount: Double, note: String) {
+        guard amount > 0, let idx = personalPots.firstIndex(where: { $0.id == potId }) else { return }
+        personalPots[idx].currentAmount += amount
+        let cleanNote = note.trimmingCharacters(in: .whitespacesAndNewlines)
+        personalPots[idx].deposits.insert(
+            PersonalPotDeposit(
+                amount: amount,
+                note: cleanNote.isEmpty ? "Depósito na caixinha" : cleanNote,
+                dateText: "Hoje"
+            ),
+            at: 0
+        )
+        let title = personalPots[idx].title
+        let pct = personalPots[idx].percentCompleted
+        activities.insert(
+            ActivityEvent(
+                icon: "checkmark.circle",
+                title: "Guardou em \"\(title)\"",
+                subtitle: "Caixinha pessoal • \(pct)% da meta concluída",
+                timeAgo: "Agora",
+                amountText: "+ \(Self.formatBRL(amount))",
+                isPositive: true
+            ),
+            at: 0
+        )
+        showToast("Guardado \(Self.formatBRL(amount)) na caixinha!", icon: "checkmark.circle")
+    }
+
+    func deletePersonalPot(potId: UUID) {
+        guard let idx = personalPots.firstIndex(where: { $0.id == potId }) else { return }
+        let title = personalPots[idx].title
+        personalPots.remove(at: idx)
+        showToast("Caixinha \"\(title)\" excluída.", icon: "trash")
     }
 
     /// Exclui o grupo e apaga automaticamente toda a conversa em grupo
