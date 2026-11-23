@@ -107,9 +107,10 @@ struct JuntoLogoMark: View {
     }
 }
 
-// MARK: - Ícone Limpo e Profissional do Pote Coletivo
+// MARK: - Ícone Animado do Pote Coletivo (pote com moedinhas saindo suavemente)
 struct JuntoPotIcon: View {
-    var size: CGFloat = 34
+    var size: CGFloat = 36
+    @State private var floatUp = false
 
     var body: some View {
         ZStack {
@@ -117,11 +118,45 @@ struct JuntoPotIcon: View {
                 .fill(JuntoColors.accentLight)
                 .frame(width: size, height: size)
 
-            Image(systemName: "wallet.pass.fill")
-                .font(.system(size: size * 0.48, weight: .regular))
-                .foregroundColor(JuntoColors.primary)
+            // Moedinha 1 saindo para cima-esquerda
+            Circle()
+                .fill(JuntoColors.accent)
+                .frame(width: size * 0.20, height: size * 0.20)
+                .overlay(Circle().stroke(Color.white, lineWidth: 0.8))
+                .offset(x: -size * 0.14, y: floatUp ? -size * 0.30 : -size * 0.14)
+                .opacity(floatUp ? 0.95 : 0.45)
+
+            // Moedinha 2 saindo para cima-direita
+            Circle()
+                .fill(Color(hex: "#F59E0B"))
+                .frame(width: size * 0.16, height: size * 0.16)
+                .overlay(Circle().stroke(Color.white, lineWidth: 0.8))
+                .offset(x: size * 0.16, y: floatUp ? -size * 0.26 : -size * 0.10)
+                .opacity(floatUp ? 0.90 : 0.40)
+
+            // Pote minimalista em azul-noite
+            VStack(spacing: size * 0.03) {
+                RoundedRectangle(cornerRadius: size * 0.05)
+                    .fill(JuntoColors.primary)
+                    .frame(width: size * 0.42, height: size * 0.08)
+
+                RoundedRectangle(cornerRadius: size * 0.16, style: .continuous)
+                    .fill(JuntoColors.primary)
+                    .frame(width: size * 0.54, height: size * 0.36)
+                    .overlay(
+                        Image(systemName: "brazilianrealsign")
+                            .font(.system(size: size * 0.18, weight: .semibold))
+                            .foregroundColor(JuntoColors.accent)
+                    )
+            }
+            .offset(y: size * 0.14)
         }
         .frame(width: size, height: size)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
+                floatUp = true
+            }
+        }
     }
 }
 

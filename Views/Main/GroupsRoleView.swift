@@ -371,36 +371,37 @@ struct CreateGroupScreen: View {
                             leadingPrefix: "R$"
                         )
 
-                        // Data de início e Meta até o dia
-                        HStack(spacing: 12) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Data de início")
-                                    .font(.inter(13, weight: .regular))
+                        // Data de início e Meta até o dia (linhas empilhadas nativas iOS — nunca desconfigura!)
+                        VStack(spacing: 0) {
+                            HStack {
+                                Label("Data de início", systemImage: "calendar")
+                                    .font(.inter(14, weight: .regular))
                                     .foregroundColor(JuntoColors.textMain)
+                                Spacer()
                                 DatePicker("", selection: $startDate, displayedComponents: .date)
                                     .labelsHidden()
                                     .environment(\.locale, Locale(identifier: "pt_BR"))
-                                    .padding(.horizontal, 10)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .frame(height: 46)
-                                    .background(Color.white)
-                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
                             }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
 
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Meta até o dia")
-                                    .font(.inter(13, weight: .regular))
+                            Divider().padding(.leading, 14)
+
+                            HStack {
+                                Label("Meta até o dia", systemImage: "flag")
+                                    .font(.inter(14, weight: .regular))
                                     .foregroundColor(JuntoColors.textMain)
+                                Spacer()
                                 DatePicker("", selection: $targetDate, in: startDate..., displayedComponents: .date)
                                     .labelsHidden()
                                     .environment(\.locale, Locale(identifier: "pt_BR"))
-                                    .padding(.horizontal, 10)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .frame(height: 46)
-                                    .background(Color.white)
-                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
                             }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 10)
                         }
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 11).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 11))
 
                         // Botão "Adicionar membros" -> abre tela com a lista de amigos!
                         VStack(alignment: .leading, spacing: 10) {
@@ -829,10 +830,10 @@ struct GroupDetailSheet: View {
                                 }
                             }
 
-                            // Botão de Saque via EFI (exclusivo para o responsável/dono do grupo)
+                            // Botão de Saque via Pix (sem mencionar EFI — exclusivo para o responsável/dono do grupo)
                             if store.isCurrentUserOwner(in: group) && group.potBalance > 0 {
                                 JuntoPillButton(
-                                    title: "Sacar \(JuntoStore.formatBRL(group.potBalance)) via Pix (EFI)",
+                                    title: "Sacar \(JuntoStore.formatBRL(group.potBalance))",
                                     icon: "arrow.up.right.circle",
                                     color: JuntoColors.primary
                                 ) {
@@ -1029,16 +1030,15 @@ struct GroupDetailSheet: View {
                     pixKey: store.user.pixKey
                 ) { amountToWithdraw in
                     store.withdrawPotViaEfi(groupId: groupId, amount: amountToWithdraw)
-                    showWithdrawSheet = false
                 }
-                .presentationDetents([.height(340)])
+                .presentationDetents([.height(390)])
                 .presentationCornerRadius(20)
             }
         }
     }
 }
 
-// MARK: - Sheet de Saque do Pote via Pix (EFI) para o responsável do grupo
+// MARK: - Tela de Saque do Pote com Animação Premium (sem mencionar EFI)
 struct PotWithdrawSheet: View {
     let groupTitle: String
     let availableAmount: Double
@@ -1046,82 +1046,170 @@ struct PotWithdrawSheet: View {
     let onConfirm: (Double) -> Void
     @Environment(\.dismiss) private var dismiss
 
+    enum WithdrawState {
+        case review
+        case processing
+        case success
+    }
+
+    @State private var state: WithdrawState = .review
+    @State private var checkScale: CGFloat = 0.4
+    @State private var ringOpacity: Double = 0.0
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Sacar saldo do Pote")
-                        .font(.inter(18, weight: .medium))
+        ZStack {
+            JuntoColors.warmBg.ignoresSafeArea()
+
+            switch state {
+            case .review:
+                VStack(alignment: .leading, spacing: 18) {
+                    HStack {
+                        HStack(spacing: 10) {
+                            JuntoPotIcon(size: 34)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Sacar do Pote")
+                                    .font(.inter(17, weight: .medium))
+                                    .foregroundColor(JuntoColors.textMain)
+                                Text(groupTitle)
+                                    .font(.inter(12, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                            }
+                        }
+                        Spacer()
+                        Button { dismiss() } label: {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(JuntoColors.textMuted)
+                                .frame(width: 32, height: 32)
+                                .background(JuntoColors.surfaceSubtle)
+                                .clipShape(Circle())
+                        }
+                    }
+                    .padding(.top, 20)
+
+                    // Valor em destaque
+                    VStack(spacing: 4) {
+                        Text("Valor disponível para saque")
+                            .font(.inter(12, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                        Text(JuntoStore.formatBRL(availableAmount))
+                            .font(.inter(32, weight: .medium))
+                            .foregroundColor(JuntoColors.textMain)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 14)
+                    .background(Color.white)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                    // Destino Pix
+                    VStack(spacing: 10) {
+                        HStack {
+                            Text("Sua chave Pix")
+                                .font(.inter(13, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                            Spacer()
+                            Text(pixKey)
+                                .font(.inter(13, weight: .medium))
+                                .foregroundColor(JuntoColors.textMain)
+                                .lineLimit(1)
+                        }
+                        Divider()
+                        HStack {
+                            Text("Prazo de envio")
+                                .font(.inter(13, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                            Spacer()
+                            Text("Pix instantâneo · Sem taxa")
+                                .font(.inter(13, weight: .medium))
+                                .foregroundColor(JuntoColors.pixGreen)
+                        }
+                    }
+                    .padding(14)
+                    .background(Color.white)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                    JuntoPillButton(
+                        title: "Confirmar saque",
+                        icon: "arrow.up.right.circle",
+                        color: JuntoColors.primary
+                    ) {
+                        startWithdrawAnimation()
+                    }
+
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+
+            case .processing:
+                VStack(spacing: 18) {
+                    ProgressView()
+                        .scaleEffect(1.3)
+                        .tint(JuntoColors.primary)
+                    Text("Transferindo via Pix...")
+                        .font(.inter(17, weight: .medium))
                         .foregroundColor(JuntoColors.textMain)
-                    Text("Transferência instantânea via EFI Bank")
-                        .font(.inter(12, weight: .regular))
-                        .foregroundColor(JuntoColors.textMuted)
-                }
-                Spacer()
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(JuntoColors.textMuted)
-                        .frame(width: 32, height: 32)
-                        .background(JuntoColors.surfaceSubtle)
-                        .clipShape(Circle())
-                }
-            }
-            .padding(.top, 20)
-
-            VStack(spacing: 10) {
-                HStack {
-                    Text("Valor disponível")
+                    Text("Enviando \(JuntoStore.formatBRL(availableAmount)) para \(pixKey)")
                         .font(.inter(13, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
-                    Spacer()
-                    Text(JuntoStore.formatBRL(availableAmount))
-                        .font(.inter(18, weight: .medium))
-                        .foregroundColor(JuntoColors.pixGreen)
+                        .multilineTextAlignment(.center)
                 }
+                .padding(24)
 
-                Divider()
+            case .success:
+                VStack(spacing: 18) {
+                    ZStack {
+                        Circle()
+                            .stroke(JuntoColors.pixGreen.opacity(0.25), lineWidth: 12)
+                            .frame(width: 96, height: 96)
+                            .scaleEffect(checkScale * 1.15)
+                            .opacity(ringOpacity)
 
-                HStack {
-                    Text("Destino (sua chave Pix)")
-                        .font(.inter(13, weight: .regular))
-                        .foregroundColor(JuntoColors.textMuted)
-                    Spacer()
-                    Text(pixKey)
-                        .font(.inter(13, weight: .medium))
-                        .foregroundColor(JuntoColors.textMain)
-                        .lineLimit(1)
+                        Circle()
+                            .fill(JuntoColors.pixGreen)
+                            .frame(width: 78, height: 78)
+                            .scaleEffect(checkScale)
+
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 34, weight: .semibold))
+                            .foregroundColor(.white)
+                            .scaleEffect(checkScale)
+                    }
+
+                    VStack(spacing: 6) {
+                        Text("Saque realizado!")
+                            .font(.inter(22, weight: .medium))
+                            .foregroundColor(JuntoColors.textMain)
+
+                        Text("\(JuntoStore.formatBRL(availableAmount)) enviado via Pix para \(pixKey)")
+                            .font(.inter(14, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .multilineTextAlignment(.center)
+                    }
+
+                    JuntoPillButton(title: "Concluir", color: JuntoColors.primary) {
+                        dismiss()
+                    }
+                    .padding(.top, 8)
                 }
-
-                Divider()
-
-                HStack {
-                    Text("Processamento")
-                        .font(.inter(13, weight: .regular))
-                        .foregroundColor(JuntoColors.textMuted)
-                    Spacer()
-                    Text("Pix EFI · Cai na hora")
-                        .font(.inter(13, weight: .medium))
-                        .foregroundColor(JuntoColors.primary)
-                }
+                .padding(.horizontal, 24)
             }
-            .padding(14)
-            .background(Color.white)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-
-            JuntoPillButton(
-                title: "Confirmar saque de \(JuntoStore.formatBRL(availableAmount))",
-                icon: "checkmark.circle",
-                color: JuntoColors.pixGreen
-            ) {
-                onConfirm(availableAmount)
-            }
-
-            Spacer()
         }
-        .padding(.horizontal, 20)
-        .background(JuntoColors.warmBg.ignoresSafeArea())
+    }
+
+    private func startWithdrawAnimation() {
+        withAnimation(.easeInOut(duration: 0.2)) {
+            state = .processing
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.9) {
+            onConfirm(availableAmount)
+            withAnimation(.spring(response: 0.45, dampingFraction: 0.65)) {
+                state = .success
+                checkScale = 1.0
+                ringOpacity = 1.0
+            }
+        }
     }
 }
 

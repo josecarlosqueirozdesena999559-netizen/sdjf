@@ -428,7 +428,7 @@ struct FriendChatScreen: View {
     }
 }
 
-// MARK: - Tela de Perfil do Usuário (ao tocar no topo da conversa)
+// MARK: - Tela de Perfil do Usuário Estilo WhatsApp (voltar só no topo, sem fundo vermelho no bloquear)
 struct FriendProfileScreen: View {
     @EnvironmentObject var store: JuntoStore
     let friend: FriendItem
@@ -446,113 +446,119 @@ struct FriendProfileScreen: View {
             JuntoColors.warmBg.ignoresSafeArea()
 
             VStack(spacing: 0) {
+                // Topo estilo WhatsApp: apenas botão voltar para a conversa + título
                 HStack {
-                    CircleNavButton(icon: "chevron.left") { dismiss() }
+                    Button { dismiss() } label: {
+                        HStack(spacing: 4) {
+                            Image(systemName: "chevron.left")
+                                .font(.system(size: 17, weight: .medium))
+                            Text("Conversa")
+                                .font(.inter(15, weight: .regular))
+                        }
+                        .foregroundColor(JuntoColors.primary)
+                    }
                     Spacer()
-                    Text("Perfil")
-                        .font(.inter(17, weight: .medium))
+                    Text("Dados do contato")
+                        .font(.inter(16, weight: .medium))
                         .foregroundColor(JuntoColors.textMain)
                     Spacer()
-                    Spacer().frame(width: 44)
+                    Spacer().frame(width: 78)
                 }
-                .padding(.horizontal, 18)
-                .padding(.top, 12)
-                .padding(.bottom, 14)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 12)
+                .background(Color.white)
+                .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.7), alignment: .bottom)
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 18) {
-                        // Cartão de identidade
-                        VStack(spacing: 12) {
-                            GeometricAvatarView(seed: liveFriend.username, size: 88)
+                        // Cabeçalho centralizado limpo estilo WhatsApp
+                        VStack(spacing: 10) {
+                            GeometricAvatarView(seed: liveFriend.username, size: 104)
+                                .padding(.top, 18)
 
-                            VStack(spacing: 4) {
-                                Text(liveFriend.name)
-                                    .font(.inter(20, weight: .medium))
-                                    .foregroundColor(JuntoColors.textMain)
-                                Text("@\(liveFriend.username)")
-                                    .font(.inter(14, weight: .regular))
-                                    .foregroundColor(JuntoColors.textMuted)
-                                Text(liveFriend.isOnline ? "online" : liveFriend.lastSeenText)
-                                    .font(.inter(12, weight: .regular))
-                                    .foregroundColor(liveFriend.isOnline ? JuntoColors.pixGreen : JuntoColors.textLight)
-                                    .padding(.top, 2)
-                            }
+                            Text(liveFriend.name)
+                                .font(.inter(22, weight: .medium))
+                                .foregroundColor(JuntoColors.textMain)
+
+                            Text("@\(liveFriend.username)")
+                                .font(.inter(14, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+
+                            Text(liveFriend.isOnline ? "online" : liveFriend.lastSeenText)
+                                .font(.inter(13, weight: .regular))
+                                .foregroundColor(liveFriend.isOnline ? JuntoColors.pixGreen : JuntoColors.textLight)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 22)
-                        .background(Color.white)
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .padding(.bottom, 8)
 
-                        // Informações & Notificações
+                        // Grupo de informações (Amigos desde + Silenciar notificações)
                         VStack(spacing: 0) {
-                            HStack(spacing: 12) {
+                            HStack(spacing: 14) {
                                 Image(systemName: "calendar")
-                                    .font(.system(size: 15))
-                                    .foregroundColor(JuntoColors.primary)
-                                    .frame(width: 32, height: 32)
-                                    .background(JuntoColors.primaryLight)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .font(.system(size: 16, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                                    .frame(width: 26)
 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Amigos desde")
-                                        .font(.inter(12, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMuted)
-                                    Text(liveFriend.friendsSinceText)
-                                        .font(.inter(14, weight: .medium))
-                                        .foregroundColor(JuntoColors.textMain)
-                                }
+                                Text("Amigos desde")
+                                    .font(.inter(15, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMain)
+
                                 Spacer()
+
+                                Text(liveFriend.friendsSinceText)
+                                    .font(.inter(14, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
                             }
-                            .padding(14)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 14)
 
-                            Divider().padding(.leading, 58)
+                            Divider().padding(.leading, 56)
 
-                            HStack(spacing: 12) {
+                            HStack(spacing: 14) {
                                 Image(systemName: liveFriend.isMuted ? "bell.slash" : "bell")
-                                    .font(.system(size: 15))
-                                    .foregroundColor(JuntoColors.primary)
-                                    .frame(width: 32, height: 32)
-                                    .background(JuntoColors.primaryLight)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .font(.system(size: 16, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                                    .frame(width: 26)
 
                                 Toggle("Silenciar notificações", isOn: Binding(
                                     get: { liveFriend.isMuted },
                                     set: { _ in store.toggleMuteFriend(username: liveFriend.username) }
                                 ))
-                                .font(.inter(14, weight: .regular))
+                                .font(.inter(15, weight: .regular))
                                 .foregroundColor(JuntoColors.textMain)
                                 .tint(JuntoColors.primary)
                             }
-                            .padding(14)
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 10)
                         }
                         .background(Color.white)
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 0.8))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                        // Voltar para a conversa
-                        JuntoPillButton(title: "Voltar para a conversa", icon: "bubble.left", color: JuntoColors.primary) {
-                            dismiss()
-                        }
-
-                        // Bloquear usuário (desfaz amizade automaticamente)
+                        // Ação Bloquear estilo WhatsApp (fundo branco limpo, ícone nosign, texto vermelho discreto)
                         Button {
                             showBlockConfirm = true
                         } label: {
-                            HStack(spacing: 10) {
-                                Image(systemName: "hand.raised")
-                                Text("Bloquear usuário")
-                                    .font(.inter(15, weight: .medium))
+                            HStack(spacing: 14) {
+                                Image(systemName: "nosign")
+                                    .font(.system(size: 16, weight: .regular))
+                                    .foregroundColor(JuntoColors.danger)
+                                    .frame(width: 26)
+
+                                Text("Bloquear \(liveFriend.name.split(separator: " ").first.map(String.init) ?? liveFriend.name)")
+                                    .font(.inter(15, weight: .regular))
+                                    .foregroundColor(JuntoColors.danger)
+
+                                Spacer()
                             }
-                            .foregroundColor(JuntoColors.danger)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 50)
-                            .background(JuntoColors.dangerLight)
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.danger.opacity(0.25), lineWidth: 1))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .padding(.horizontal, 16)
+                            .padding(.vertical, 15)
+                            .background(Color.white)
+                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 0.8))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
                         }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.horizontal, 18)
                     .padding(.bottom, 32)
                 }
             }

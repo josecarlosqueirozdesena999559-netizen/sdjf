@@ -25,22 +25,39 @@ struct MainTabView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.white.ignoresSafeArea())
 
-            // Camada flutuante inferior: "Minhas despesas" + "Adicionar despesa" + Tab Bar Pílula Vidro
-            VStack(alignment: .trailing, spacing: 14) {
-                if store.selectedTab != .account {
-                    HStack(spacing: 10) {
+            // Camada flutuante inferior: Adicionar despesa (em cima) + Minhas despesas (em baixo) SOMENTE na tela inicial
+            VStack(alignment: .trailing, spacing: 12) {
+                if store.selectedTab == .friends {
+                    VStack(alignment: .trailing, spacing: 8) {
+                        Button {
+                            store.showAddExpenseSheet = true
+                        } label: {
+                            HStack(spacing: 7) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 14, weight: .medium))
+                                Text("Adicionar despesa")
+                                    .font(.inter(14, weight: .medium))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .frame(height: 44)
+                            .background(JuntoColors.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .shadow(color: JuntoColors.primary.opacity(0.24), radius: 8, x: 0, y: 3)
+                        }
+
                         Button {
                             store.showMyExpensesScreen = true
                         } label: {
                             HStack(spacing: 7) {
                                 Image(systemName: "chart.pie")
-                                    .font(.system(size: 15, weight: .regular))
+                                    .font(.system(size: 14, weight: .regular))
                                 Text("Minhas despesas")
                                     .font(.inter(14, weight: .medium))
                             }
                             .foregroundColor(JuntoColors.primary)
-                            .padding(.horizontal, 14)
-                            .frame(height: 46)
+                            .padding(.horizontal, 16)
+                            .frame(height: 44)
                             .background(Color.white)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 10, style: .continuous)
@@ -49,25 +66,8 @@ struct MainTabView: View {
                             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 3)
                         }
-
-                        Button {
-                            store.showAddExpenseSheet = true
-                        } label: {
-                            HStack(spacing: 7) {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 15, weight: .medium))
-                                Text("Adicionar despesa")
-                                    .font(.inter(14, weight: .medium))
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 16)
-                            .frame(height: 46)
-                            .background(JuntoColors.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            .shadow(color: JuntoColors.primary.opacity(0.24), radius: 10, x: 0, y: 4)
-                        }
                     }
-                    .padding(.horizontal, 20)
+                    .padding(.trailing, 20)
                 }
 
                 // Tab Bar Flutuante Estilo iOS Liquid Glass (Exatamente como nas screenshots)

@@ -451,7 +451,7 @@ struct FriendOptionsSheet: View {
 
                 Button(action: onBlock) {
                     HStack(spacing: 12) {
-                        Image(systemName: "hand.raised")
+                        Image(systemName: "nosign")
                             .font(.system(size: 17))
                             .foregroundColor(JuntoColors.danger)
                         VStack(alignment: .leading, spacing: 1) {
@@ -460,14 +460,14 @@ struct FriendOptionsSheet: View {
                                 .foregroundColor(JuntoColors.danger)
                             Text("Desfaz a amizade automaticamente")
                                 .font(.inter(11, weight: .regular))
-                                .foregroundColor(JuntoColors.danger.opacity(0.8))
+                                .foregroundColor(JuntoColors.textMuted)
                         }
                         Spacer()
                     }
                     .padding(.horizontal, 16)
                     .frame(height: 54)
-                    .background(JuntoColors.dangerLight)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.danger.opacity(0.25), lineWidth: 1))
+                    .background(Color.white)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
             }

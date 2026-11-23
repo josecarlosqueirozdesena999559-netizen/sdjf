@@ -391,7 +391,7 @@ final class JuntoStore: ObservableObject {
         activities.insert(
             ActivityEvent(
                 icon: "arrow.up.right.circle",
-                title: "Saque do Pote via Pix (EFI)",
+                title: "Saque do Pote via Pix",
                 subtitle: "\(groupTitle) → \(user.pixKey)",
                 timeAgo: "Agora",
                 amountText: "+ \(Self.formatBRL(withdrawable))",
@@ -399,7 +399,7 @@ final class JuntoStore: ObservableObject {
             ),
             at: 0
         )
-        showToast("Saque de \(Self.formatBRL(withdrawable)) enviado via Pix EFI para sua conta!", icon: "checkmark.circle")
+        showToast("Saque de \(Self.formatBRL(withdrawable)) enviado para sua chave Pix!", icon: "checkmark.circle")
     }
 
     func isInviteSent(for username: String) -> Bool {
