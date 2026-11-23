@@ -73,37 +73,52 @@ extension Color {
     }
 }
 
-// MARK: - Logo Autoral do Juntô (Elos Entrelaçados Minimalistas + Núcleo Pix)
+// MARK: - Logo Oficial do Juntô (réplica exata do ícone do app: elo branco + elo manga + núcleo)
+/// Geometria medida pixel a pixel do AppIcon 1024×1024:
+/// • Elo branco: centro (410, 500) · raio externo 200 / interno 120
+/// • Elo manga:  centro (614, 500) · raio externo 200 / interno 120 (sobreposto ao branco)
+/// • Núcleo: centro (514, 500) · branco Ø100 com miolo azul-noite Ø44
 struct JuntoLogoMark: View {
     var size: CGFloat = 86
+    /// `true` = com o fundo azul-noite arredondado (igual ao ícone). `false` = apenas o símbolo (para fundos escuros).
+    var showsBackground: Bool = true
 
     var body: some View {
+        let k = size / 1024
+        let ringPath: CGFloat = 320 * k   // diâmetro da linha central do elo
+        let ringStroke: CGFloat = 80 * k  // espessura do elo
+
         ZStack {
-            RoundedRectangle(cornerRadius: size * 0.26, style: .continuous)
-                .fill(JuntoColors.primary)
-                .frame(width: size, height: size)
+            if showsBackground {
+                RoundedRectangle(cornerRadius: size * 0.2237, style: .continuous)
+                    .fill(Color(hex: "#14213D"))
+                    .frame(width: size, height: size)
+            }
 
-            // Elo esquerdo (Branco)
+            // Elo esquerdo (branco)
             Circle()
-                .stroke(Color.white, lineWidth: size * 0.09)
-                .frame(width: size * 0.42, height: size * 0.42)
-                .offset(x: -size * 0.12)
+                .stroke(Color.white, lineWidth: ringStroke)
+                .frame(width: ringPath, height: ringPath)
+                .offset(x: (410 - 512) * k, y: (500 - 512) * k)
 
-            // Elo direito (Celeste)
+            // Elo direito (manga) — passa por cima do branco, como no ícone
             Circle()
-                .stroke(JuntoColors.primaryAccent, lineWidth: size * 0.09)
-                .frame(width: size * 0.42, height: size * 0.42)
-                .offset(x: size * 0.12)
+                .stroke(Color(hex: "#FCA311"), lineWidth: ringStroke)
+                .frame(width: ringPath, height: ringPath)
+                .offset(x: (614 - 512) * k, y: (500 - 512) * k)
 
-            // Núcleo de união (Branco + ponto Pix esmeralda)
+            // Núcleo de união
             Circle()
                 .fill(Color.white)
-                .frame(width: size * 0.14, height: size * 0.14)
+                .frame(width: 100 * k, height: 100 * k)
+                .offset(x: (514 - 512) * k, y: (500 - 512) * k)
             Circle()
-                .fill(JuntoColors.primary)
-                .frame(width: size * 0.07, height: size * 0.07)
+                .fill(Color(hex: "#14213D"))
+                .frame(width: 44 * k, height: 44 * k)
+                .offset(x: (514 - 512) * k, y: (500 - 512) * k)
         }
         .frame(width: size, height: size)
+        .shadow(color: showsBackground ? Color(hex: "#14213D").opacity(0.18) : .clear, radius: size * 0.08, y: size * 0.04)
     }
 }
 

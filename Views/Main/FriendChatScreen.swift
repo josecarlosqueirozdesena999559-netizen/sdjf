@@ -11,6 +11,7 @@ struct FriendChatScreen: View {
     @State private var inputText = ""
     @State private var editingMessageId: UUID? = nil
     @State private var replyingToMessage: ChatMessage? = nil
+    @State private var selectedMessageForMenu: ChatMessage? = nil
     @State private var showAttachmentMenu = false
     @State private var showPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
@@ -29,7 +30,8 @@ struct FriendChatScreen: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack {
+            VStack(spacing: 0) {
             // Topo limpo estilo WhatsApp (SEM saldo e SEM bolinha online no avatar — toque no perfil abre FriendProfileScreen!)
             HStack(spacing: 12) {
                 Button {
@@ -99,33 +101,22 @@ struct FriendChatScreen: View {
                             ForEach(groupedMessagesByDate, id: \.date) { section in
                                 Section(header: datePillHeader(section.date)) {
                                     ForEach(section.items) { msg in
-                                        chatBubble(msg)
-                                            .id(msg.id)
-                                            .contextMenu {
-                                                Button {
-                                                    withAnimation(.easeInOut(duration: 0.16)) {
-                                                        replyingToMessage = msg
-                                                    }
-                                                } label: {
-                                                    Label("Responder", systemImage: "arrowshape.turn.up.left")
-                                                }
-                                                if msg.isFromMe, case .text(let original) = msg.kind {
-                                                    Button {
-                                                        editingMessageId = msg.id
-                                                        replyingToMessage = nil
-                                                        inputText = original
-                                                    } label: {
-                                                        Label("Editar mensagem", systemImage: "pencil")
-                                                    }
-                                                }
-                                                Button(role: .destructive) {
-                                                    withAnimation {
-                                                        store.deleteChatMessage(username: friend.username, messageId: msg.id)
-                                                    }
-                                                } label: {
-                                                    Label("Excluir mensagem", systemImage: "trash")
+                                        SwipeToReplyContainer(
+                                            onReply: {
+                                                withAnimation(.easeInOut(duration: 0.16)) {
+                                                    replyingToMessage = msg
                                                 }
                                             }
+                                        ) {
+                                            chatBubble(msg)
+                                        }
+                                        .id(msg.id)
+                                        .onLongPressGesture(minimumDuration: 0.35) {
+                                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                            withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+                                                selectedMessageForMenu = msg
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -346,6 +337,43 @@ struct FriendChatScreen: View {
             .padding(.vertical, 10)
             .background(Color.white)
             .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.8), alignment: .top)
+            }
+
+            // Menu customizado ao segurar mensagem (visual do app estilo WhatsApp, sem cara nativa iOS)
+            if let menuMsg = selectedMessageForMenu {
+                let canEdit: Bool = {
+                    if menuMsg.isFromMe, case .text = menuMsg.kind { return true }
+                    return false
+                }()
+                CustomMessageMenuOverlay(
+                    previewText: menuMsg.previewText,
+                    authorName: menuMsg.isFromMe ? "Você" : currentFriend.name,
+                    canEdit: canEdit,
+                    onReply: {
+                        withAnimation(.easeInOut(duration: 0.16)) {
+                            replyingToMessage = menuMsg
+                            selectedMessageForMenu = nil
+                        }
+                    },
+                    onEdit: {
+                        if case .text(let original) = menuMsg.kind {
+                            editingMessageId = menuMsg.id
+                            replyingToMessage = nil
+                            inputText = original
+                        }
+                        withAnimation(.easeInOut(duration: 0.15)) { selectedMessageForMenu = nil }
+                    },
+                    onDelete: {
+                        withAnimation {
+                            store.deleteChatMessage(username: friend.username, messageId: menuMsg.id)
+                            selectedMessageForMenu = nil
+                        }
+                    },
+                    onDismiss: {
+                        withAnimation(.easeInOut(duration: 0.15)) { selectedMessageForMenu = nil }
+                    }
+                )
+            }
         }
         .onAppear {
             // Marca áudio como escutado (ondas ficam laranja) e toca o próximo áudio consecutivo automaticamente
@@ -853,6 +881,132 @@ struct ChatAttachmentMenuSheet: View {
                     .foregroundColor(JuntoColors.textMain)
             }
             .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+// MARK: - Gesto Arrastar para o Lado para Responder (estilo WhatsApp)
+struct SwipeToReplyContainer<Content: View>: View {
+    let onReply: () -> Void
+    @ViewBuilder let content: () -> Content
+
+    @State private var dragOffset: CGFloat = 0
+    @State private var didTriggerHaptic = false
+
+    var body: some View {
+        ZStack(alignment: .leading) {
+            // Ícone de resposta que aparece suavemente ao arrastar para a direita
+            if dragOffset > 8 {
+                Image(systemName: "arrowshape.turn.up.left.fill")
+                    .font(.system(size: 14, weight: .medium))
+                    .foregroundColor(dragOffset >= 42 ? .white : JuntoColors.primary)
+                    .frame(width: 30, height: 30)
+                    .background(dragOffset >= 42 ? JuntoColors.primary : JuntoColors.primaryLight)
+                    .clipShape(Circle())
+                    .scaleEffect(min(1.0, dragOffset / 40.0))
+                    .opacity(min(1.0, dragOffset / 30.0))
+                    .padding(.leading, 4)
+            }
+
+            content()
+                .offset(x: dragOffset)
+        }
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 16, coordinateSpace: .local)
+                .onChanged { value in
+                    let dx = value.translation.width
+                    let dy = value.translation.height
+                    guard dx > 0, abs(dx) > abs(dy) * 1.25 else { return }
+                    let damped = min(dx * 0.65, 58)
+                    dragOffset = damped
+                    if damped >= 42 && !didTriggerHaptic {
+                        didTriggerHaptic = true
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    }
+                }
+                .onEnded { _ in
+                    let shouldReply = dragOffset >= 42
+                    withAnimation(.spring(response: 0.28, dampingFraction: 0.78)) {
+                        dragOffset = 0
+                    }
+                    didTriggerHaptic = false
+                    if shouldReply {
+                        onReply()
+                    }
+                }
+        )
+    }
+}
+
+// MARK: - Menu Customizado ao Segurar Mensagem (visual do app estilo WhatsApp, sem cara nativa)
+struct CustomMessageMenuOverlay: View {
+    let previewText: String
+    let authorName: String
+    let canEdit: Bool
+    let onReply: () -> Void
+    let onEdit: () -> Void
+    let onDelete: () -> Void
+    let onDismiss: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color.black.opacity(0.32)
+                .ignoresSafeArea()
+                .onTapGesture { onDismiss() }
+
+            VStack(spacing: 12) {
+                // Prévia da mensagem selecionada
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(authorName)
+                        .font(.inter(12, weight: .medium))
+                        .foregroundColor(JuntoColors.primary)
+                    Text(previewText)
+                        .font(.inter(14, weight: .regular))
+                        .foregroundColor(JuntoColors.textMain)
+                        .lineLimit(3)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(14)
+                .background(Color.white)
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                // Card de ações do app (Responder · Editar · Apagar)
+                VStack(spacing: 0) {
+                    actionRow(icon: "arrowshape.turn.up.left", title: "Responder", color: JuntoColors.textMain, action: onReply)
+
+                    if canEdit {
+                        Divider().padding(.leading, 48)
+                        actionRow(icon: "pencil", title: "Editar", color: JuntoColors.textMain, action: onEdit)
+                    }
+
+                    Divider().padding(.leading, 48)
+                    actionRow(icon: "trash", title: "Apagar", color: JuntoColors.danger, action: onDelete)
+                }
+                .background(Color.white)
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .shadow(color: Color.black.opacity(0.14), radius: 18, y: 8)
+            }
+            .padding(.horizontal, 28)
+            .transition(.scale(scale: 0.94).combined(with: .opacity))
+        }
+    }
+
+    private func actionRow(icon: String, title: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundColor(color)
+                    .frame(width: 22)
+                Text(title)
+                    .font(.inter(15, weight: .medium))
+                    .foregroundColor(color)
+                Spacer()
+            }
+            .padding(.horizontal, 16)
+            .frame(height: 50)
         }
     }
 }

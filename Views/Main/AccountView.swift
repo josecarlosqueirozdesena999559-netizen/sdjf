@@ -7,7 +7,7 @@ struct AccountView: View {
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var showAccountSettings = false
     @State private var showSecurityPrivacy = false
-    @State private var showMyPixKey = false
+    @State private var showInviteQRCode = false
     @State private var showInviteFriends = false
     @State private var showPrivacyPolicy = false
 
@@ -93,9 +93,9 @@ struct AccountView: View {
                     .padding(.horizontal, 18)
                     .padding(.bottom, 20)
 
-                    // Menu limpo
-                    accountRow(icon: "qrcode", title: "Chave Pix") {
-                        showMyPixKey = true
+                    // Menu limpo (sem Pix no perfil — QR Code de convite para adicionar amigos!)
+                    accountRow(icon: "qrcode", title: "QR Code de convite") {
+                        showInviteQRCode = true
                     }
                     Divider().padding(.leading, 20)
 
@@ -135,14 +135,9 @@ struct AccountView: View {
             SecurityPrivacyScreen()
                 .environmentObject(store)
         }
-        .fullScreenCover(isPresented: $showMyPixKey) {
-            MyPixKeyScreen {
-                showMyPixKey = false
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    showAccountSettings = true
-                }
-            }
-            .environmentObject(store)
+        .fullScreenCover(isPresented: $showInviteQRCode) {
+            MyInviteQRCodeScreen()
+                .environmentObject(store)
         }
         .fullScreenCover(isPresented: $showInviteFriends) {
             InviteFriendsScreen()
@@ -864,22 +859,21 @@ struct JuntoProBadgeIcon: View {
     }
 }
 
-// MARK: - Tela "Chave Pix" (QR Code real + Copiar + Compartilhar + Editar)
-struct MyPixKeyScreen: View {
+// MARK: - Tela "QR Code de convite" (as pessoas leem e te adicionam no Juntô)
+struct MyInviteQRCodeScreen: View {
     @EnvironmentObject var store: JuntoStore
-    var onEditPixKey: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var copied = false
 
-    private var pixPayload: String {
-        "00020126420014br.gov.bcb.pix0120\(store.user.pixKey)5204000053039865802BR5914\(store.user.fullName.prefix(14).uppercased())6009SAO PAULO62070503***6304E1F9"
+    private var inviteLink: String {
+        "https://junto.app/convite/\(store.user.username)"
     }
 
     private func generateQRCodeImage(from string: String) -> UIImage? {
         let context = CIContext()
         let filter = CIFilter.qrCodeGenerator()
         filter.message = Data(string.utf8)
-        filter.correctionLevel = "M"
+        filter.correctionLevel = "H"
         guard let output = filter.outputImage else { return nil }
         let scaled = output.transformed(by: CGAffineTransform(scaleX: 9, y: 9))
         guard let cgImage = context.createCGImage(scaled, from: scaled.extent) else { return nil }
@@ -894,7 +888,7 @@ struct MyPixKeyScreen: View {
                 HStack {
                     CircleNavButton(icon: "chevron.left") { dismiss() }
                     Spacer()
-                    Text("Chave Pix")
+                    Text("QR Code de convite")
                         .font(.inter(17, weight: .medium))
                         .foregroundColor(JuntoColors.textMain)
                     Spacer()
@@ -906,8 +900,15 @@ struct MyPixKeyScreen: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 18) {
-                        // Cartão principal com QR Code Pix
+                        // Cartão com Avatar + QR Code real de convite + Logo oficial no centro
                         VStack(spacing: 16) {
+                            GeometricAvatarView(
+                                seed: store.user.username,
+                                displayName: store.user.fullName,
+                                avatarData: store.user.avatarData,
+                                size: 64
+                            )
+
                             VStack(spacing: 3) {
                                 Text(store.user.fullName)
                                     .font(.inter(18, weight: .medium))
@@ -917,23 +918,30 @@ struct MyPixKeyScreen: View {
                                     .foregroundColor(JuntoColors.textMuted)
                             }
 
-                            if let qrImg = generateQRCodeImage(from: pixPayload) {
-                                Image(uiImage: qrImg)
-                                    .interpolation(.none)
-                                    .resizable()
-                                    .scaledToFit()
-                                    .frame(width: 196, height: 196)
-                                    .padding(14)
-                                    .background(Color.white)
-                                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
-                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                            if let qrImg = generateQRCodeImage(from: inviteLink) {
+                                ZStack {
+                                    Image(uiImage: qrImg)
+                                        .interpolation(.none)
+                                        .resizable()
+                                        .scaledToFit()
+                                        .frame(width: 210, height: 210)
+                                        .padding(14)
+                                        .background(Color.white)
+                                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(JuntoColors.border, lineWidth: 1))
+                                        .clipShape(RoundedRectangle(cornerRadius: 16))
+
+                                    JuntoLogoMark(size: 40)
+                                        .padding(4)
+                                        .background(Color.white)
+                                        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                                }
                             }
 
-                            Text("Mostre este QR Code para receber pagamentos de amigos e grupos diretamente na sua conta.")
-                                .font(.inter(12, weight: .regular))
+                            Text("Mostre este QR Code para um amigo ler com a câmera e te adicionar automaticamente no Juntô.")
+                                .font(.inter(13, weight: .regular))
                                 .foregroundColor(JuntoColors.textMuted)
                                 .multilineTextAlignment(.center)
-                                .padding(.horizontal, 10)
+                                .padding(.horizontal, 12)
                         }
                         .frame(maxWidth: .infinity)
                         .padding(22)
@@ -941,62 +949,33 @@ struct MyPixKeyScreen: View {
                         .overlay(RoundedRectangle(cornerRadius: 16).stroke(JuntoColors.border, lineWidth: 1))
                         .clipShape(RoundedRectangle(cornerRadius: 16))
 
-                        // Bloco da Chave Pix cadastrada
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack {
-                                Text("SUA CHAVE PIX")
-                                    .font(.inter(11, weight: .medium))
-                                    .tracking(0.8)
-                                    .foregroundColor(JuntoColors.textMuted)
-                                Spacer()
-                                Button("Alterar") {
-                                    onEditPixKey()
-                                }
-                                .font(.inter(12, weight: .medium))
-                                .foregroundColor(JuntoColors.primary)
-                            }
-
-                            Text(store.user.pixKey)
-                                .font(.inter(16, weight: .medium))
-                                .foregroundColor(JuntoColors.textMain)
-                                .textSelection(.enabled)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(16)
-                        .background(Color.white)
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-
-                        // Ações: Copiar + Compartilhar
+                        // Ações: Compartilhar + Copiar link
                         VStack(spacing: 10) {
-                            JuntoPillButton(
-                                title: copied ? "Chave Pix copiada!" : "Copiar chave Pix",
-                                icon: copied ? "checkmark" : "doc.on.doc",
-                                color: JuntoColors.primary
-                            ) {
-                                UIPasteboard.general.string = store.user.pixKey
-                                copied = true
-                                store.showToast("Chave Pix copiada!", icon: "doc.on.doc")
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copied = false }
-                            }
-
                             ShareLink(
-                                item: "Minha chave Pix no Juntô (\(store.user.fullName)): \(store.user.pixKey)"
+                                item: "Escaneie meu QR Code ou abra este link para me adicionar no Juntô (@\(store.user.username)): \(inviteLink)"
                             ) {
                                 HStack(spacing: 8) {
                                     Image(systemName: "square.and.arrow.up")
                                         .font(.system(size: 16, weight: .regular))
-                                    Text("Compartilhar chave Pix")
+                                    Text("Compartilhar convite")
                                         .font(.inter(16, weight: .medium))
                                 }
-                                .foregroundColor(JuntoColors.primary)
+                                .foregroundColor(.white)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 52)
-                                .background(Color.white)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
-                                        .stroke(JuntoColors.primary, lineWidth: 1.2)
-                                )
+                                .background(JuntoColors.primary)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            }
+
+                            JuntoOutlineButton(
+                                title: copied ? "Link de convite copiado!" : "Copiar link de convite",
+                                icon: copied ? "checkmark" : "doc.on.doc",
+                                color: JuntoColors.primary
+                            ) {
+                                UIPasteboard.general.string = inviteLink
+                                copied = true
+                                store.showToast("Link de convite copiado!", icon: "link")
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copied = false }
                             }
                         }
                     }

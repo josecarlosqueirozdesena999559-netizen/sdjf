@@ -12,6 +12,7 @@ struct GroupChatScreen: View {
     @State private var inputText = ""
     @State private var editingMessageId: UUID? = nil
     @State private var replyingToMessage: ChatMessage? = nil
+    @State private var selectedMessageForMenu: ChatMessage? = nil
     @State private var showAttachmentMenu = false
     @State private var showPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
@@ -50,7 +51,8 @@ struct GroupChatScreen: View {
     }
 
     var body: some View {
-        VStack(spacing: 0) {
+        ZStack {
+            VStack(spacing: 0) {
             // Cabeçalho do Grupo: Voltar + Capa + Nome + Lista de participantes
             HStack(spacing: 12) {
                 Button {
@@ -118,35 +120,22 @@ struct GroupChatScreen: View {
                                         systemPill(infoText)
                                             .id(msg.id)
                                     } else {
-                                        groupMessageRow(msg)
-                                            .id(msg.id)
-                                            .contextMenu {
-                                                Button {
-                                                    withAnimation(.easeInOut(duration: 0.16)) {
-                                                        replyingToMessage = msg
-                                                    }
-                                                } label: {
-                                                    Label("Responder", systemImage: "arrowshape.turn.up.left")
-                                                }
-
-                                                if msg.isFromMe, case .text(let original) = msg.kind {
-                                                    Button {
-                                                        editingMessageId = msg.id
-                                                        replyingToMessage = nil
-                                                        inputText = original
-                                                    } label: {
-                                                        Label("Editar mensagem", systemImage: "pencil")
-                                                    }
-                                                }
-
-                                                Button(role: .destructive) {
-                                                    withAnimation {
-                                                        store.deleteGroupChatMessage(groupId: groupId, messageId: msg.id)
-                                                    }
-                                                } label: {
-                                                    Label("Excluir mensagem", systemImage: "trash")
+                                        SwipeToReplyContainer(
+                                            onReply: {
+                                                withAnimation(.easeInOut(duration: 0.16)) {
+                                                    replyingToMessage = msg
                                                 }
                                             }
+                                        ) {
+                                            groupMessageRow(msg)
+                                        }
+                                        .id(msg.id)
+                                        .onLongPressGesture(minimumDuration: 0.35) {
+                                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                            withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+                                                selectedMessageForMenu = msg
+                                            }
+                                        }
                                     }
                                 }
                             }
@@ -361,6 +350,43 @@ struct GroupChatScreen: View {
             .padding(.vertical, 10)
             .background(Color.white)
             .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.8), alignment: .top)
+            }
+
+            // Menu customizado ao segurar mensagem no grupo (visual do app estilo WhatsApp)
+            if let menuMsg = selectedMessageForMenu {
+                let canEdit: Bool = {
+                    if menuMsg.isFromMe, case .text = menuMsg.kind { return true }
+                    return false
+                }()
+                CustomMessageMenuOverlay(
+                    previewText: menuMsg.previewText,
+                    authorName: menuMsg.isFromMe ? "Você" : (menuMsg.senderName ?? "Participante"),
+                    canEdit: canEdit,
+                    onReply: {
+                        withAnimation(.easeInOut(duration: 0.16)) {
+                            replyingToMessage = menuMsg
+                            selectedMessageForMenu = nil
+                        }
+                    },
+                    onEdit: {
+                        if case .text(let original) = menuMsg.kind {
+                            editingMessageId = menuMsg.id
+                            replyingToMessage = nil
+                            inputText = original
+                        }
+                        withAnimation(.easeInOut(duration: 0.15)) { selectedMessageForMenu = nil }
+                    },
+                    onDelete: {
+                        withAnimation {
+                            store.deleteGroupChatMessage(groupId: groupId, messageId: menuMsg.id)
+                            selectedMessageForMenu = nil
+                        }
+                    },
+                    onDismiss: {
+                        withAnimation(.easeInOut(duration: 0.15)) { selectedMessageForMenu = nil }
+                    }
+                )
+            }
         }
         .onAppear {
             audioManager.onPlaybackFinished = { finishedId in

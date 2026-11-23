@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FriendsView: View {
     @EnvironmentObject var store: JuntoStore
+    @Binding var isButtonsCollapsed: Bool
     var onOpenNotifications: () -> Void
 
     @State private var showAddFriendScreen = false
@@ -267,6 +268,23 @@ struct FriendsView: View {
                 }
                 .listStyle(.plain)
                 .scrollContentBackground(.hidden)
+                .simultaneousGesture(
+                    DragGesture(minimumDistance: 10)
+                        .onChanged { value in
+                            let dy = value.translation.height
+                            let dx = value.translation.width
+                            guard abs(dy) > abs(dx) else { return }
+                            if dy < -14 && !isButtonsCollapsed {
+                                withAnimation(.spring(response: 0.30, dampingFraction: 0.82)) {
+                                    isButtonsCollapsed = true
+                                }
+                            } else if dy > 14 && isButtonsCollapsed {
+                                withAnimation(.spring(response: 0.30, dampingFraction: 0.82)) {
+                                    isButtonsCollapsed = false
+                                }
+                            }
+                        }
+                )
             }
         }
         .background(Color.white)

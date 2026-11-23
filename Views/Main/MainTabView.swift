@@ -3,6 +3,7 @@ import SwiftUI
 struct MainTabView: View {
     @EnvironmentObject var store: JuntoStore
     @State private var showNotifications = false
+    @State private var homeButtonsCollapsed = false
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -10,10 +11,13 @@ struct MainTabView: View {
             Group {
                 switch store.selectedTab {
                 case .friends:
-                    FriendsView(onOpenNotifications: {
-                        showNotifications = true
-                        store.markAllNotificationsRead()
-                    })
+                    FriendsView(
+                        isButtonsCollapsed: $homeButtonsCollapsed,
+                        onOpenNotifications: {
+                            showNotifications = true
+                            store.markAllNotificationsRead()
+                        }
+                    )
                 case .groups:
                     GroupsRoleView()
                 case .activities:
@@ -25,48 +29,57 @@ struct MainTabView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.white.ignoresSafeArea())
 
-            // Camada flutuante inferior: Adicionar despesa (em cima) + Minhas despesas (em baixo) SOMENTE na tela inicial
+            // Camada flutuante inferior: ao rolar para baixo encolhe para só ícone; ao subir abre com texto (estilo WhatsApp)
             VStack(alignment: .trailing, spacing: 12) {
                 if store.selectedTab == .friends {
                     VStack(alignment: .trailing, spacing: 8) {
                         Button {
                             store.showAddExpenseSheet = true
                         } label: {
-                            HStack(spacing: 7) {
+                            HStack(spacing: homeButtonsCollapsed ? 0 : 7) {
                                 Image(systemName: "plus")
-                                    .font(.system(size: 14, weight: .medium))
-                                Text("Adicionar despesa")
-                                    .font(.inter(14, weight: .medium))
+                                    .font(.system(size: homeButtonsCollapsed ? 18 : 14, weight: .medium))
+                                if !homeButtonsCollapsed {
+                                    Text("Adicionar despesa")
+                                        .font(.inter(14, weight: .medium))
+                                        .fixedSize()
+                                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+                                }
                             }
                             .foregroundColor(.white)
-                            .padding(.horizontal, 16)
-                            .frame(height: 44)
+                            .padding(.horizontal, homeButtonsCollapsed ? 0 : 16)
+                            .frame(width: homeButtonsCollapsed ? 46 : nil, height: 46)
                             .background(JuntoColors.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: homeButtonsCollapsed ? 14 : 10, style: .continuous))
                             .shadow(color: JuntoColors.primary.opacity(0.24), radius: 8, x: 0, y: 3)
                         }
 
                         Button {
                             store.showMyExpensesScreen = true
                         } label: {
-                            HStack(spacing: 7) {
+                            HStack(spacing: homeButtonsCollapsed ? 0 : 7) {
                                 Image(systemName: "chart.pie")
-                                    .font(.system(size: 14, weight: .regular))
-                                Text("Minhas despesas")
-                                    .font(.inter(14, weight: .medium))
+                                    .font(.system(size: homeButtonsCollapsed ? 18 : 14, weight: .regular))
+                                if !homeButtonsCollapsed {
+                                    Text("Minhas despesas")
+                                        .font(.inter(14, weight: .medium))
+                                        .fixedSize()
+                                        .transition(.opacity.combined(with: .move(edge: .trailing)))
+                                }
                             }
                             .foregroundColor(JuntoColors.primary)
-                            .padding(.horizontal, 16)
-                            .frame(height: 44)
+                            .padding(.horizontal, homeButtonsCollapsed ? 0 : 16)
+                            .frame(width: homeButtonsCollapsed ? 46 : nil, height: 46)
                             .background(Color.white)
                             .overlay(
-                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                RoundedRectangle(cornerRadius: homeButtonsCollapsed ? 14 : 10, style: .continuous)
                                     .stroke(JuntoColors.border, lineWidth: 1)
                             )
-                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: homeButtonsCollapsed ? 14 : 10, style: .continuous))
                             .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 3)
                         }
                     }
+                    .animation(.spring(response: 0.30, dampingFraction: 0.82), value: homeButtonsCollapsed)
                     .padding(.trailing, 20)
                 }
 
