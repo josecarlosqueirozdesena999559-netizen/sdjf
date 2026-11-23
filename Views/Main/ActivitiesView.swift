@@ -52,34 +52,37 @@ struct ActivitiesView: View {
                         ForEach(filteredActivities) { item in
                             let accent = iconAccentColor(for: item.icon)
                             HStack(spacing: 14) {
+                                // Ícone limpo sem fundo colorido pesado
                                 Image(systemName: item.icon)
-                                    .font(.system(size: 16, weight: .regular))
+                                    .font(.system(size: 20, weight: .light))
                                     .foregroundColor(accent)
-                                    .frame(width: 42, height: 42)
-                                    .background(accent.opacity(0.10))
-                                    .clipShape(Circle())
+                                    .frame(width: 30, alignment: .center)
 
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(item.title)
                                         .font(.inter(14, weight: .regular))
                                         .foregroundColor(JuntoColors.textMain)
+                                        .lineLimit(2)
                                     Text("\(item.subtitle) • \(item.timeAgo)")
                                         .font(.inter(12, weight: .regular))
                                         .foregroundColor(JuntoColors.textMuted)
+                                        .lineLimit(1)
                                 }
 
-                                Spacer()
+                                Spacer(minLength: 8)
 
                                 if let amt = item.amountText {
                                     Text(amt)
                                         .font(.inter(14, weight: .medium))
                                         .foregroundColor(item.isPositive ? JuntoColors.pixGreen : JuntoColors.orangeSave)
+                                        .lineLimit(1)
+                                        .minimumScaleFactor(0.85)
                                 }
                             }
                             .padding(.horizontal, 20)
                             .padding(.vertical, 14)
 
-                            Divider().padding(.leading, 76)
+                            Divider().padding(.leading, 64)
                         }
                     }
                     .padding(.bottom, 140)

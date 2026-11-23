@@ -9,6 +9,7 @@ struct FriendChatScreen: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var inputText = ""
+    @State private var editingMessageId: UUID? = nil
     @State private var showAttachmentMenu = false
     @State private var showPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
@@ -98,10 +99,31 @@ struct FriendChatScreen: View {
                         }
                         .frame(maxWidth: .infinity)
                     } else {
-                        LazyVStack(spacing: 10) {
-                            ForEach(messages) { msg in
-                                chatBubble(msg)
-                                    .id(msg.id)
+                        LazyVStack(spacing: 10, pinnedViews: [.sectionHeaders]) {
+                            ForEach(groupedMessagesByDate, id: \.date) { section in
+                                Section(header: datePillHeader(section.date)) {
+                                    ForEach(section.items) { msg in
+                                        chatBubble(msg)
+                                            .id(msg.id)
+                                            .contextMenu {
+                                                if msg.isFromMe, case .text(let original) = msg.kind {
+                                                    Button {
+                                                        editingMessageId = msg.id
+                                                        inputText = original
+                                                    } label: {
+                                                        Label("Editar mensagem", systemImage: "pencil")
+                                                    }
+                                                }
+                                                Button(role: .destructive) {
+                                                    withAnimation {
+                                                        store.deleteChatMessage(username: friend.username, messageId: msg.id)
+                                                    }
+                                                } label: {
+                                                    Label("Excluir mensagem", systemImage: "trash")
+                                                }
+                                            }
+                                    }
+                                }
                             }
 
                             if currentFriend.isTyping {
@@ -130,6 +152,30 @@ struct FriendChatScreen: View {
                         withAnimation { proxy.scrollTo(lastId, anchor: .bottom) }
                     }
                 }
+            }
+
+            // Banner discreto de edição de mensagem
+            if editingMessageId != nil {
+                HStack(spacing: 8) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 13))
+                        .foregroundColor(JuntoColors.primary)
+                    Text("Editando mensagem")
+                        .font(.inter(12, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                    Spacer()
+                    Button {
+                        editingMessageId = nil
+                        inputText = ""
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12))
+                            .foregroundColor(JuntoColors.textMuted)
+                    }
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 8)
+                .background(JuntoColors.primaryLight)
             }
 
             // Barra Inferior de Envio: ao gravar áudio, o botão "+" some, entra a LIXEIRA e ondas reais do microfone!
@@ -233,9 +279,14 @@ struct FriendChatScreen: View {
                             let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
                             guard !text.isEmpty else { return }
                             inputText = ""
-                            store.sendChatMessage(to: friend.username, kind: .text(text))
+                            if let editId = editingMessageId {
+                                store.editChatMessage(username: friend.username, messageId: editId, newText: text)
+                                editingMessageId = nil
+                            } else {
+                                store.sendChatMessage(to: friend.username, kind: .text(text))
+                            }
                         } label: {
-                            Image(systemName: "paperplane.fill")
+                            Image(systemName: editingMessageId != nil ? "checkmark" : "paperplane.fill")
                                 .font(.system(size: 16))
                                 .foregroundColor(.white)
                                 .frame(width: 42, height: 42)
@@ -381,6 +432,12 @@ struct FriendChatScreen: View {
                 }
 
                 HStack(spacing: 4) {
+                    if msg.isEdited {
+                        Text("editada")
+                            .font(.inter(10, weight: .regular))
+                            .italic()
+                            .foregroundColor(msg.isFromMe ? .white.opacity(0.65) : JuntoColors.textLight)
+                    }
                     Text(msg.timeText)
                         .font(.inter(10, weight: .regular))
                         .foregroundColor(msg.isFromMe ? .white.opacity(0.72) : JuntoColors.textLight)
@@ -400,6 +457,33 @@ struct FriendChatScreen: View {
 
             if !msg.isFromMe { Spacer(minLength: 48) }
         }
+    }
+
+    private var groupedMessagesByDate: [(date: String, items: [ChatMessage])] {
+        var order: [String] = []
+        var map: [String: [ChatMessage]] = [:]
+        for m in messages {
+            if map[m.dateLabel] == nil { order.append(m.dateLabel) }
+            map[m.dateLabel, default: []].append(m)
+        }
+        return order.map { ($0, map[$0] ?? []) }
+    }
+
+    private func datePillHeader(_ label: String) -> some View {
+        HStack {
+            Spacer()
+            Text(label)
+                .font(.inter(11, weight: .medium))
+                .foregroundColor(JuntoColors.textMuted)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 5)
+                .background(Color.white.opacity(0.95))
+                .overlay(Capsule().stroke(JuntoColors.border, lineWidth: 0.7))
+                .clipShape(Capsule())
+                .shadow(color: Color.black.opacity(0.04), radius: 4, y: 1)
+            Spacer()
+        }
+        .padding(.vertical, 6)
     }
 
     /// 1 traço (não entregue/enviado), 2 traços (entregue), 2 traços coloridos (lido)

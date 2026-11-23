@@ -104,8 +104,10 @@ enum ChatMessageKind: Hashable {
 struct ChatMessage: Identifiable, Hashable {
     let id = UUID()
     let isFromMe: Bool
-    let kind: ChatMessageKind
+    var kind: ChatMessageKind
     let timeText: String
+    var dateLabel: String = "Hoje" // ex: "Ontem", "Hoje", "18 de nov."
+    var isEdited: Bool = false
     var status: MessageDeliveryStatus = .sent
 }
 
@@ -191,6 +193,9 @@ struct AppNotification: Identifiable {
     let message: String
     let timeAgo: String
     var isUnread: Bool
+    var isFriendRequest: Bool = false
+    var requestUserName: String? = nil
+    var requestUsername: String? = nil
 }
 
 struct PixChargeSheetData: Identifiable {

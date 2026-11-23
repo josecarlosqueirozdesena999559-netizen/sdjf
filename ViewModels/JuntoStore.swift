@@ -52,25 +52,26 @@ final class JuntoStore: ObservableObject {
 
     @Published var showMyExpensesScreen: Bool = false
 
-    // Conversas de chat por @username
+    // Conversas de chat por @username (com separadores de data: Ontem, Hoje, etc.)
     @Published var chatMessages: [String: [ChatMessage]] = [
         "pedro.santos": [
-            ChatMessage(isFromMe: false, kind: .text("Fala! Já separei os R$ 100 da viagem de Ubatuba."), timeText: "19:12", status: .read),
-            ChatMessage(isFromMe: true, kind: .text("Show Pedro, pode mandar por Pix quando puder 👍"), timeText: "19:15", status: .read),
+            ChatMessage(isFromMe: false, kind: .text("Fala! Já separei os R$ 100 da viagem de Ubatuba."), timeText: "21:12", dateLabel: "Ontem", status: .read),
+            ChatMessage(isFromMe: true, kind: .text("Show Pedro, pode mandar por Pix quando puder 👍"), timeText: "21:15", dateLabel: "Ontem", status: .read),
             ChatMessage(
                 isFromMe: false,
                 kind: .audio(duration: 8, waveform: [0.25, 0.45, 0.72, 0.90, 0.55, 0.35, 0.68, 0.85, 0.95, 0.60, 0.42, 0.78, 0.50, 0.30, 0.64, 0.88, 0.74, 0.48, 0.35, 0.62, 0.80, 0.45, 0.28, 0.20], fileURL: nil),
                 timeText: "19:18",
+                dateLabel: "Hoje",
                 status: .read
             )
         ],
         "camila.rocha": [
-            ChatMessage(isFromMe: false, kind: .text("Oi! Te mando minha parte do churrasco ainda hoje."), timeText: "18:30", status: .read),
-            ChatMessage(isFromMe: true, kind: .text("Tranquilo, sem pressa!"), timeText: "18:34", status: .delivered)
+            ChatMessage(isFromMe: false, kind: .text("Oi! Te mando minha parte do churrasco ainda hoje."), timeText: "18:30", dateLabel: "Hoje", status: .read),
+            ChatMessage(isFromMe: true, kind: .text("Tranquilo, sem pressa!"), timeText: "18:34", dateLabel: "Hoje", status: .delivered)
         ],
         "matheus.alves": [
-            ChatMessage(isFromMe: false, kind: .document("Comanda_Churrasco.pdf", "248 KB"), timeText: "17:45", status: .read),
-            ChatMessage(isFromMe: false, kind: .text("Ficou R$ 35,36 a sua parte da carne e do gelo."), timeText: "17:46", status: .read)
+            ChatMessage(isFromMe: false, kind: .document("Comanda_Churrasco.pdf", "248 KB"), timeText: "17:45", dateLabel: "Ontem", status: .read),
+            ChatMessage(isFromMe: false, kind: .text("Ficou R$ 35,36 a sua parte da carne e do gelo."), timeText: "09:46", dateLabel: "Hoje", status: .read)
         ]
     ]
 
@@ -168,9 +169,28 @@ final class JuntoStore: ObservableObject {
     @Published var sentInviteUsernames: Set<String> = []
 
     @Published var notifications: [AppNotification] = [
-        AppNotification(icon: "bolt", title: "Pix recebido na hora", message: "Pedro Santos quitou R$ 100,00 com baixa automática.", timeAgo: "8 min", isUnread: true),
-        AppNotification(icon: "person.2", title: "Pote Coletivo atualizado", message: "Camila adicionou R$ 150,00 na Viagem Ubatuba.", timeAgo: "1h", isUnread: true),
-        AppNotification(icon: "doc.text.viewfinder", title: "Comanda pronta", message: "Toque para marcar o que você consumiu no Churrasco.", timeAgo: "3h", isUnread: false)
+        AppNotification(
+            icon: "person.badge.plus",
+            title: "Ana Paula Silva",
+            message: "quer ser seu amigo",
+            timeAgo: "Agora",
+            isUnread: true,
+            isFriendRequest: true,
+            requestUserName: "Ana Paula Silva",
+            requestUsername: "ana.paula"
+        ),
+        AppNotification(
+            icon: "person.badge.plus",
+            title: "Bruno Mendes",
+            message: "quer ser seu amigo",
+            timeAgo: "12 min",
+            isUnread: true,
+            isFriendRequest: true,
+            requestUserName: "Bruno Mendes",
+            requestUsername: "bruno.mendes"
+        ),
+        AppNotification(icon: "checkmark.circle", title: "Pix recebido na hora", message: "Pedro Santos quitou R$ 100,00 com baixa automática.", timeAgo: "25 min", isUnread: false),
+        AppNotification(icon: "person.2", title: "Pote Coletivo atualizado", message: "Camila adicionou R$ 150,00 na Viagem Ubatuba.", timeAgo: "1h", isUnread: false)
     ]
 
     @Published var blockedUsernames: [String] = []
@@ -330,6 +350,66 @@ final class JuntoStore: ObservableObject {
         withAnimation(.easeInOut(duration: 0.2)) {
             friends[idx].isTyping = typing
         }
+    }
+
+    /// Editar mensagem de texto enviada por você
+    func editChatMessage(username: String, messageId: UUID, newText: String) {
+        let clean = newText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return }
+        let key = username.lowercased()
+        guard let idx = chatMessages[key]?.firstIndex(where: { $0.id == messageId }) else { return }
+        chatMessages[key]?[idx].kind = .text(clean)
+        chatMessages[key]?[idx].isEdited = true
+    }
+
+    /// Excluir uma mensagem específica da conversa
+    func deleteChatMessage(username: String, messageId: UUID) {
+        let key = username.lowercased()
+        chatMessages[key]?.removeAll { $0.id == messageId }
+    }
+
+    /// Aceitar convite de amizade vindo do sino de notificações
+    func acceptFriendRequest(notificationId: UUID) {
+        guard let idx = notifications.firstIndex(where: { $0.id == notificationId }) else { return }
+        let notif = notifications[idx]
+        guard let reqUsername = notif.requestUsername, let reqName = notif.requestUserName else { return }
+
+        if !friends.contains(where: { $0.username.lowercased() == reqUsername.lowercased() }) {
+            let initials = reqName.split(separator: " ").prefix(2).map { String($0.prefix(1)) }.joined().uppercased()
+            friends.insert(
+                FriendItem(
+                    name: reqName,
+                    username: reqUsername,
+                    initials: initials.isEmpty ? "AM" : initials,
+                    balance: 0,
+                    isOnline: true,
+                    lastSeenText: "online",
+                    friendsSinceText: "Hoje"
+                ),
+                at: 0
+            )
+        }
+
+        notifications.remove(at: idx)
+        activities.insert(
+            ActivityEvent(
+                icon: "person.badge.plus",
+                title: "Você aceitou \(reqName)",
+                subtitle: "@\(reqUsername) agora é seu amigo",
+                timeAgo: "Agora",
+                amountText: nil,
+                isPositive: true
+            ),
+            at: 0
+        )
+        showToast("Você e \(reqName) agora são amigos!", icon: "checkmark.circle")
+    }
+
+    /// Recusar convite de amizade vindo do sino de notificações
+    func declineFriendRequest(notificationId: UUID) {
+        guard let idx = notifications.firstIndex(where: { $0.id == notificationId }) else { return }
+        notifications.remove(at: idx)
+        showToast("Convite recusado.", icon: "xmark.circle")
     }
 
     /// Apaga as mensagens da conversa. Se houver dívida (balance != 0), o amigo continua na lista inicial sem mensagens.

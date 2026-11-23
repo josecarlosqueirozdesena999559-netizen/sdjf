@@ -99,20 +99,40 @@ struct FriendsView: View {
             if activeDebtFriends.isEmpty {
                 Spacer()
                 VStack(spacing: 14) {
-                    Text(searchText.isEmpty ? "Nenhuma pendência com amigos no momento." : "Nenhum amigo encontrado.")
-                        .font(.inter(15, weight: .regular))
-                        .foregroundColor(JuntoColors.textMuted)
-
                     if searchText.isEmpty {
-                        JuntoPillButton(title: "Ver todos os amigos", icon: "person.2", color: JuntoColors.primary) {
-                            showAddFriendScreen = true
+                        Image(systemName: "bubble.left.and.bubble.right")
+                            .font(.system(size: 34, weight: .thin))
+                            .foregroundColor(JuntoColors.textLight)
+
+                        Text("Nenhuma conversa por aqui")
+                            .font(.inter(16, weight: .medium))
+                            .foregroundColor(JuntoColors.textMain)
+
+                        HStack(spacing: 6) {
+                            Text("Inicie uma conversa clicando no botão")
+                                .font(.inter(14, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                            Image(systemName: "plus")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 24, height: 24)
+                                .background(JuntoColors.primary)
+                                .clipShape(Circle())
+                            Text("acima")
+                                .font(.inter(14, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
                         }
-                        .padding(.horizontal, 40)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 28)
+                    } else {
+                        Text("Nenhum amigo encontrado.")
+                            .font(.inter(15, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
                     }
                 }
                 .frame(maxWidth: .infinity)
                 Spacer()
-                Spacer().frame(height: 100)
+                Spacer().frame(height: 110)
             } else {
                 // Lista estilo WhatsApp com swipe para "Apagar conversa"
                 List {
@@ -332,25 +352,27 @@ struct AddFriendScreen: View {
                     }
                 }
             } else {
-                // Busca letra por letra de novos amigos (botão toggle Instagram: Adicionar / Convite enviado)
+                // Busca letra por letra compacta e responsiva de novos amigos
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
                         ForEach(searchResults) { person in
                             let alreadySent = store.isInviteSent(for: person.username)
 
-                            HStack(spacing: 12) {
-                                GeometricAvatarView(seed: person.username, displayName: person.name, size: 46)
+                            HStack(spacing: 10) {
+                                GeometricAvatarView(seed: person.username, displayName: person.name, size: 38)
 
-                                VStack(alignment: .leading, spacing: 2) {
+                                VStack(alignment: .leading, spacing: 1) {
                                     Text(person.name)
-                                        .font(.inter(15, weight: .regular))
+                                        .font(.inter(14, weight: .regular))
                                         .foregroundColor(JuntoColors.textMain)
+                                        .lineLimit(1)
                                     Text("@\(person.username)")
                                         .font(.inter(12, weight: .regular))
                                         .foregroundColor(JuntoColors.textMuted)
+                                        .lineLimit(1)
                                 }
 
-                                Spacer()
+                                Spacer(minLength: 8)
 
                                 Button {
                                     if alreadySent {
@@ -360,22 +382,22 @@ struct AddFriendScreen: View {
                                     }
                                 } label: {
                                     Text(alreadySent ? "Convite enviado" : "Adicionar")
-                                        .font(.inter(13, weight: .medium))
+                                        .font(.inter(12, weight: .medium))
                                         .foregroundColor(alreadySent ? JuntoColors.textMain : .white)
-                                        .padding(.horizontal, 14)
-                                        .frame(height: 36)
+                                        .padding(.horizontal, 12)
+                                        .frame(height: 32)
                                         .background(alreadySent ? JuntoColors.surfaceSubtle : JuntoColors.primary)
                                         .overlay(
-                                            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                                            RoundedRectangle(cornerRadius: 7, style: .continuous)
                                                 .stroke(alreadySent ? JuntoColors.border : Color.clear, lineWidth: 1)
                                         )
-                                        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+                                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                                 }
                             }
                             .padding(.horizontal, 20)
-                            .padding(.vertical, 12)
+                            .padding(.vertical, 8)
 
-                            Divider().padding(.leading, 78)
+                            Divider().padding(.leading, 68)
                         }
                     }
                 }

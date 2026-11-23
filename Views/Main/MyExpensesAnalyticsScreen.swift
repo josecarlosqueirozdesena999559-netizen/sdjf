@@ -391,11 +391,15 @@ struct MyExpensesAnalyticsScreen: View {
 
     private func iconForCategory(_ category: String) -> String {
         switch category {
-        case "Viagem": return "airplane"
-        case "Churrasco": return "flame"
+        case "Viagem": return "airplane.departure"
+        case "Churrasco": return "fork.knife"
         case "Casa": return "house"
-        case "Bar & Drinks": return "wineglass"
-        default: return "list.bullet.rectangle.portrait"
+        case "Bar & Drinks": return "mug"
+        case "Festa": return "sparkles"
+        case "Esporte": return "sportscourt"
+        case "Presente": return "gift"
+        case "Trabalho": return "briefcase"
+        default: return "tag"
         }
     }
 }

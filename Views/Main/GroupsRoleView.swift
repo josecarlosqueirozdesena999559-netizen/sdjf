@@ -54,42 +54,59 @@ struct GroupsRoleView: View {
                         Button {
                             selectedGroupId = group.id
                         } label: {
-                            HStack(spacing: 14) {
+                            HStack(spacing: 12) {
                                 groupCoverImage(group)
-                                    .frame(width: 58, height: 58)
+                                    .frame(width: 54, height: 54)
                                     .clipShape(RoundedRectangle(cornerRadius: 10))
 
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(group.title)
-                                        .font(.inter(16, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMain)
+                                    HStack(spacing: 6) {
+                                        Text(group.title)
+                                            .font(.inter(15, weight: .medium))
+                                            .foregroundColor(JuntoColors.textMain)
+                                            .lineLimit(1)
+                                            .truncationMode(.tail)
+
+                                        if group.hasCollectivePot && group.potTarget > 0 {
+                                            let pct = Int(min((group.potBalance / group.potTarget) * 100, 100))
+                                            Text("\(pct)%")
+                                                .font(.inter(11, weight: .medium))
+                                                .foregroundColor(JuntoColors.pixGreen)
+                                                .padding(.horizontal, 6)
+                                                .padding(.vertical, 2)
+                                                .background(JuntoColors.pixGreenLight)
+                                                .clipShape(RoundedRectangle(cornerRadius: 5))
+                                        }
+                                    }
 
                                     if group.hasCollectivePot && group.potTarget > 0 {
-                                        let pct = Int(min((group.potBalance / group.potTarget) * 100, 100))
-                                        Text("Pote: \(pct)% · \(JuntoStore.formatBRL(group.potBalance)) de \(JuntoStore.formatBRL(group.potTarget))")
+                                        Text("\(JuntoStore.formatBRL(group.potBalance)) de \(JuntoStore.formatBRL(group.potTarget))")
                                             .font(.inter(13, weight: .regular))
-                                            .foregroundColor(JuntoColors.pixGreen)
+                                            .foregroundColor(JuntoColors.textMuted)
+                                            .lineLimit(1)
+                                            .minimumScaleFactor(0.85)
                                     } else {
                                         Text("\(group.category) · \(group.participants.count) pessoas")
                                             .font(.inter(13, weight: .regular))
                                             .foregroundColor(JuntoColors.textMuted)
+                                            .lineLimit(1)
                                     }
 
                                     if group.myShare > 0 {
-                                        Text("Sua parte extra: \(JuntoStore.formatBRL(group.myShare))")
+                                        Text("Sua parte: \(JuntoStore.formatBRL(group.myShare))")
                                             .font(.inter(12, weight: .regular))
                                             .foregroundColor(JuntoColors.orangeSave)
+                                            .lineLimit(1)
                                     }
                                 }
-
-                                Spacer()
+                                .frame(maxWidth: .infinity, alignment: .leading)
 
                                 Image(systemName: "chevron.right")
                                     .font(.system(size: 13, weight: .regular))
                                     .foregroundColor(JuntoColors.textLight)
                             }
                             .padding(.horizontal, 20)
-                            .padding(.vertical, 14)
+                            .padding(.vertical, 12)
                         }
 
                         Divider().padding(.leading, 92)
@@ -162,13 +179,13 @@ struct CreateGroupScreen: View {
     @State private var showSelectFriendsScreen: Bool = false
 
     private let builtInCategories: [(name: String, icon: String)] = [
-        ("Viagem", "airplane"),
-        ("Churrasco", "flame"),
-        ("Bar & Drinks", "wineglass"),
+        ("Viagem", "airplane.departure"),
+        ("Churrasco", "fork.knife"),
+        ("Bar & Drinks", "mug"),
         ("Casa", "house"),
         ("Casal", "heart"),
-        ("Festa", "party.popper"),
-        ("Esporte", "figure.run"),
+        ("Festa", "sparkles"),
+        ("Esporte", "sportscourt"),
         ("Presente", "gift"),
         ("Trabalho", "briefcase")
     ]

@@ -270,30 +270,82 @@ struct NotificationsSheetView: View {
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
                     ForEach(store.notifications) { item in
-                        HStack(alignment: .top, spacing: 12) {
-                            Image(systemName: item.icon)
-                                .font(.system(size: 16, weight: .regular))
-                                .foregroundColor(JuntoColors.primary)
-                                .frame(width: 34, height: 34)
-                                .background(JuntoColors.primaryLight)
-                                .clipShape(Circle())
+                        if item.isFriendRequest, let reqUser = item.requestUsername, let reqName = item.requestUserName {
+                            VStack(alignment: .leading, spacing: 10) {
+                                HStack(spacing: 12) {
+                                    GeometricAvatarView(seed: reqUser, size: 44)
 
-                            VStack(alignment: .leading, spacing: 3) {
-                                HStack {
-                                    Text(item.title)
-                                        .font(.inter(14, weight: .medium))
-                                        .foregroundColor(JuntoColors.textMain)
-                                    Spacer()
-                                    Text(item.timeAgo)
-                                        .font(.inter(12, weight: .regular))
-                                        .foregroundColor(JuntoColors.textLight)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        HStack {
+                                            Text(reqName)
+                                                .font(.inter(14, weight: .medium))
+                                                .foregroundColor(JuntoColors.textMain)
+                                                .lineLimit(1)
+                                            Spacer()
+                                            Text(item.timeAgo)
+                                                .font(.inter(11, weight: .regular))
+                                                .foregroundColor(JuntoColors.textLight)
+                                        }
+                                        Text("@\(reqUser) quer ser seu amigo")
+                                            .font(.inter(13, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                            .lineLimit(1)
+                                    }
                                 }
-                                Text(item.message)
-                                    .font(.inter(13, weight: .regular))
-                                    .foregroundColor(JuntoColors.textMuted)
+
+                                HStack(spacing: 10) {
+                                    Button {
+                                        withAnimation { store.acceptFriendRequest(notificationId: item.id) }
+                                    } label: {
+                                        Text("Aceitar")
+                                            .font(.inter(13, weight: .medium))
+                                            .foregroundColor(.white)
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 36)
+                                            .background(JuntoColors.primary)
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    }
+
+                                    Button {
+                                        withAnimation { store.declineFriendRequest(notificationId: item.id) }
+                                    } label: {
+                                        Text("Recusar")
+                                            .font(.inter(13, weight: .medium))
+                                            .foregroundColor(JuntoColors.textMain)
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 36)
+                                            .background(JuntoColors.surfaceSubtle)
+                                            .overlay(RoundedRectangle(cornerRadius: 8).stroke(JuntoColors.border, lineWidth: 1))
+                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    }
+                                }
+                                .padding(.leading, 56)
                             }
+                            .padding(.vertical, 12)
+                        } else {
+                            HStack(alignment: .top, spacing: 12) {
+                                Image(systemName: item.icon)
+                                    .font(.system(size: 18, weight: .regular))
+                                    .foregroundColor(JuntoColors.primary)
+                                    .frame(width: 32, height: 32)
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    HStack {
+                                        Text(item.title)
+                                            .font(.inter(14, weight: .medium))
+                                            .foregroundColor(JuntoColors.textMain)
+                                        Spacer()
+                                        Text(item.timeAgo)
+                                            .font(.inter(12, weight: .regular))
+                                            .foregroundColor(JuntoColors.textLight)
+                                    }
+                                    Text(item.message)
+                                        .font(.inter(13, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                }
+                            }
+                            .padding(.vertical, 12)
                         }
-                        .padding(.vertical, 12)
                         Divider()
                     }
                 }
