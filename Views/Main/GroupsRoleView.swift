@@ -5,6 +5,7 @@ import CoreImage.CIFilterBuiltins
 struct GroupsRoleView: View {
     @EnvironmentObject var store: JuntoStore
     @State private var showCreateGroup = false
+    @State private var showProPaywall = false
     @State private var selectedGroupId: UUID? = nil
     @State private var searchText = ""
 
@@ -22,7 +23,12 @@ struct GroupsRoleView: View {
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
                 Button {
-                    showCreateGroup = true
+                    if store.canCreateMoreGroups() {
+                        showCreateGroup = true
+                    } else {
+                        store.showToast("Plano gratuito permite 1 grupo. Assine o Juntô Pro para grupos ilimitados.", icon: "lock")
+                        showProPaywall = true
+                    }
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 18, weight: .medium))
@@ -122,9 +128,18 @@ struct GroupsRoleView: View {
                 store.openCreateGroupWithCategory = nil
             }
         }
+        .fullScreenCover(isPresented: $showProPaywall) {
+            JuntoProSubscriptionScreen()
+                .environmentObject(store)
+        }
         .onAppear {
             if store.openCreateGroupWithCategory != nil {
-                showCreateGroup = true
+                if store.canCreateMoreGroups() {
+                    showCreateGroup = true
+                } else {
+                    store.openCreateGroupWithCategory = nil
+                    showProPaywall = true
+                }
             }
         }
         .sheet(isPresented: Binding(

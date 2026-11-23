@@ -15,6 +15,7 @@ struct JuntoProSubscriptionScreen: View {
     @State private var showCancelConfirm = false
 
     private let proFeatures: [(title: String, subtitle: String)] = [
+        ("Grupos ilimitados", "No plano gratuito você pode ter apenas 1 grupo. No Pro, crie quantos grupos e viagens quiser."),
         ("Pagamentos Pix com baixa automática", "Integração Mercado Pago que confirma pagamentos na hora sem precisar de comprovante."),
         ("Lançamento de despesas via WhatsApp", "Envie áudio, texto ou foto da conta no WhatsApp oficial e divida no grupo automaticamente."),
         ("Leitura ilimitada de comandas e notas", "Escaneie contas de restaurantes e cupons fiscais item a item sem limite mensal."),

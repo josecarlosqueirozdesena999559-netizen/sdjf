@@ -89,23 +89,9 @@ final class JuntoStore: ObservableObject {
                 ChatMessage(isFromMe: false, kind: .text("Vou passar no mercado hoje pra pegar bebidas e gelo."), timeText: "09:30", dateLabel: "Hoje", status: .read, senderName: "Matheus Alves", senderUsername: "matheus.alves")
             ]
         }
-        if groups.indices.contains(1) {
-            let g1 = groups[1]
-            groupChatMessages[g1.id] = [
-                ChatMessage(isFromMe: false, kind: .system("Grupo criado por Você com \(g1.participants.count) participantes"), timeText: "14:00", dateLabel: "Ontem"),
-                ChatMessage(isFromMe: false, kind: .text("Fechei a picanha e o carvão, ficou R$ 75 por pessoa."), timeText: "14:15", dateLabel: "Ontem", status: .read, senderName: "Pedro Santos", senderUsername: "pedro.santos"),
-                ChatMessage(isFromMe: false, kind: .text("Perfeito! Já fiz o Pix agora há pouco."), timeText: "08:50", dateLabel: "Hoje", status: .read, senderName: "Camila Rocha", senderUsername: "camila.rocha")
-            ]
-        }
-        if groups.indices.contains(2) {
-            let g2 = groups[2]
-            groupChatMessages[g2.id] = [
-                ChatMessage(isFromMe: false, kind: .system("Grupo criado por Você com \(g2.participants.count) participantes"), timeText: "09:00", dateLabel: "Ontem"),
-                ChatMessage(isFromMe: false, kind: .text("A fatura da internet chegou, já lancei nas despesas do mês."), timeText: "09:15", dateLabel: "Hoje", status: .read, senderName: "Beatriz Lima", senderUsername: "bia.lima")
-            ]
-        }
     }
 
+    // No plano normal (gratuito) o usuário só pode ter 1 grupo; no Juntô Pro pode criar quantos quiser
     @Published var groups: [RoleGroup] = [
         RoleGroup(
             title: "Viagem Ubatuba",
@@ -127,48 +113,6 @@ final class JuntoStore: ObservableObject {
             comandaItems: [
                 ComandaItem(name: "Casa de Praia (Diária)", detail: "1/5 da reserva", price: 110.00, isSelected: true),
                 ComandaItem(name: "Gasolina + Pedágio", detail: "Carro do Pedro", price: 40.00, isSelected: true)
-            ]
-        ),
-        RoleGroup(
-            title: "Churrasco de Domingo",
-            category: "Churrasco",
-            coverImageName: "GroupChurrasco",
-            potBalance: 150.00,
-            potTarget: 300.00,
-            totalSpent: 420.00,
-            myShare: 35.36,
-            members: ["EU", "PS", "MA", "CR"],
-            participants: [
-                GroupParticipant(name: "Você", username: "lucas.andrade", quotaAmount: 75.00, hasPaid: false, role: .owner),
-                GroupParticipant(name: "Pedro Santos", username: "pedro.santos", quotaAmount: 75.00, hasPaid: true, role: .member),
-                GroupParticipant(name: "Camila Rocha", username: "camila.rocha", quotaAmount: 75.00, hasPaid: true, role: .member),
-                GroupParticipant(name: "Matheus Alves", username: "matheus.alves", quotaAmount: 75.00, hasPaid: false, role: .member)
-            ],
-            hasCollectivePot: true,
-            comandaItems: [
-                ComandaItem(name: "Picanha Premium (Rateio)", detail: "Dividido por 4", price: 24.00, isSelected: true),
-                ComandaItem(name: "Carvão, Gelo & Pão de Alho", detail: "Rateio geral", price: 11.36, isSelected: true),
-                ComandaItem(name: "Pack Cerveja Artesanal", detail: "Quem bebe álcool", price: 28.00, isSelected: false)
-            ]
-        ),
-        RoleGroup(
-            title: "Contas do Apê 402",
-            category: "Casa",
-            coverImageName: "GroupBar",
-            potBalance: 0.0,
-            potTarget: 0.0,
-            totalSpent: 980.00,
-            myShare: 145.00,
-            members: ["EU", "MA", "BL"],
-            participants: [
-                GroupParticipant(name: "Você", username: "lucas.andrade", quotaAmount: 0, hasPaid: false, role: .owner),
-                GroupParticipant(name: "Matheus Alves", username: "matheus.alves", quotaAmount: 0, hasPaid: false, role: .member),
-                GroupParticipant(name: "Beatriz Lima", username: "bia.lima", quotaAmount: 0, hasPaid: false, role: .member)
-            ],
-            hasCollectivePot: false,
-            comandaItems: [
-                ComandaItem(name: "Internet Fibra 500Mb", detail: "Dividido por 3", price: 45.00, isSelected: true),
-                ComandaItem(name: "Energia + Condomínio", detail: "Rateio mensal", price: 100.00, isSelected: true)
             ]
         )
     ]
@@ -978,6 +922,11 @@ final class JuntoStore: ObservableObject {
         showToast("@\(clean) adicionado e cotas recalculadas!", icon: "person.badge.plus")
     }
 
+    func canCreateMoreGroups() -> Bool {
+        if user.isPro { return true }
+        return groups.count < 1
+    }
+
     func createNewGroup(
         title: String,
         category: String,
@@ -988,6 +937,11 @@ final class JuntoStore: ObservableObject {
         startDate: Date = Date(),
         targetDate: Date = Calendar.current.date(byAdding: .day, value: 15, to: Date()) ?? Date()
     ) {
+        guard canCreateMoreGroups() else {
+            showToast("O plano gratuito permite apenas 1 grupo. Assine o Juntô Pro para grupos ilimitados.", icon: "lock")
+            return
+        }
+
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanTitle.isEmpty else {
             showToast("Informe o nome do grupo.", icon: "exclamationmark.circle")
