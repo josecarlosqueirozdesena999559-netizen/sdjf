@@ -1109,6 +1109,76 @@ final class JuntoStore: ObservableObject {
         showToast("Despesa \"\(cleanName)\" adicionada.", icon: "checkmark.circle")
     }
 
+    /// Adiciona múltiplos itens escaneados de um recibo / nota fiscal a um grupo
+    func addReceiptItemsToGroup(groupId: UUID, items: [ComandaItem], payFromPot: Bool = false) {
+        guard let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
+        guard canCurrentUserAddExpenses(in: groups[idx]) else {
+            showToast("Apenas o dono ou admins podem adicionar despesas.", icon: "lock")
+            return
+        }
+
+        let total = items.reduce(0) { $0 + $1.price }
+        groups[idx].totalSpent += total
+
+        if payFromPot && groups[idx].hasCollectivePot {
+            groups[idx].potBalance = max(0, groups[idx].potBalance - total)
+        }
+
+        for item in items {
+            groups[idx].comandaItems.insert(item, at: 0)
+        }
+
+        groupChatMessages[groupId, default: []].append(
+            ChatMessage(
+                isFromMe: false,
+                kind: .system("Recibo com \(items.count) item(ns) escaneado. Total: \(Self.formatBRL(total))."),
+                timeText: currentTimeString()
+            )
+        )
+
+        showToast("\(items.count) itens do recibo adicionados!", icon: "doc.text.viewfinder")
+    }
+
+    /// Alterna se um membro consumiu/divide um item específico da comanda
+    func toggleMemberAssignedToComandaItem(groupId: UUID, itemId: UUID, username: String) {
+        guard let gIdx = groups.firstIndex(where: { $0.id == groupId }),
+              let iIdx = groups[gIdx].comandaItems.firstIndex(where: { $0.id == itemId }) else { return }
+
+        let clean = username.lowercased()
+        if groups[gIdx].comandaItems[iIdx].assignedUsernames.contains(clean) {
+            groups[gIdx].comandaItems[iIdx].assignedUsernames.remove(clean)
+        } else {
+            groups[gIdx].comandaItems[iIdx].assignedUsernames.insert(clean)
+        }
+    }
+
+    /// Alterna se um item do checklist da comanda foi quitado/conferido
+    func toggleComandaItemPaid(groupId: UUID, itemId: UUID) {
+        guard let gIdx = groups.firstIndex(where: { $0.id == groupId }),
+              let iIdx = groups[gIdx].comandaItems.firstIndex(where: { $0.id == itemId }) else { return }
+
+        groups[gIdx].comandaItems[iIdx].isPaid.toggle()
+    }
+
+    /// Calcula o valor exato que um participante deve com base nos itens do checklist que ele consumiu
+    func userShareForComanda(in group: RoleGroup, username: String) -> Double {
+        let cleanUser = username.lowercased()
+        var share: Double = 0.0
+
+        for item in group.comandaItems where item.isSelected && !item.isPaid {
+            if item.assignedUsernames.isEmpty {
+                // Dividido igualmente entre todos os membros
+                let count = max(1, group.participants.count)
+                share += item.price / Double(count)
+            } else if item.assignedUsernames.contains(cleanUser) {
+                // Dividido apenas entre quem consumiu
+                let count = max(1, item.assignedUsernames.count)
+                share += item.price / Double(count)
+            }
+        }
+        return share
+    }
+
     /// Adiciona membro real ao grupo e recalcula as cotas do Pote automaticamente
     func addMemberToGroup(groupId: UUID, memberUsername: String) {
         let clean = memberUsername.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "@", with: "").lowercased()
@@ -1178,7 +1248,8 @@ final class JuntoStore: ObservableObject {
         targetDate: Date = Calendar.current.date(byAdding: .day, value: 15, to: Date()) ?? Date(),
         isPublic: Bool = false,
         maxParticipants: Int = 100,
-        publicUntilDate: Date = Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date()
+        publicUntilDate: Date = Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date(),
+        comandaItems: [ComandaItem] = []
     ) {
         guard canCreateMoreGroups() else {
             showToast("O plano gratuito permite apenas 1 grupo. Assine o Juntô Pro para grupos ilimitados.", icon: "lock")
@@ -1247,7 +1318,7 @@ final class JuntoStore: ObservableObject {
             members: memberInitials,
             participants: participantsList,
             hasCollectivePot: true,
-            comandaItems: [],
+            comandaItems: comandaItems,
             potMode: potMode,
             totalMonths: monthsCount,
             selectedMonthIndex: 0,
@@ -1629,14 +1700,14 @@ final class JuntoStore: ObservableObject {
             return
         }
 
-        addParticipantToGroup(groupId: groupId, username: user.username, displayName: user.fullName)
+        addMemberToGroup(groupId: groupId, memberUsername: user.username)
         showToast("Você entrou no grupo \"\(group.title)\"!", icon: "checkmark.circle")
     }
 
     func addNearbyUserAsFriend(userItem: NearbyUserItem) {
         guard let idx = nearbyUsers.firstIndex(where: { $0.id == userItem.id }) else { return }
         nearbyUsers[idx].isInvited = true
-        addFriend(username: userItem.username, name: userItem.name)
+        sendFriendInvite(username: userItem.username, displayName: userItem.name)
         showToast("Convite enviado para \(userItem.name)!", icon: "person.badge.plus")
     }
 

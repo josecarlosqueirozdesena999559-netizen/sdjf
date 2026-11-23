@@ -322,6 +322,8 @@ struct CreateGroupScreen: View {
     @State private var publicUntilDate: Date = Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date()
     @State private var selectedPeople: [SearchableUser] = []
     @State private var showSelectFriendsScreen: Bool = false
+    @State private var showReceiptScanner: Bool = false
+    @State private var scannedReceiptItems: [ComandaItem] = []
 
     private let builtInCategories: [(name: String, icon: String)] = [
         ("Viagem", "airplane.departure"),
@@ -549,13 +551,77 @@ struct CreateGroupScreen: View {
                         .background(JuntoColors.surfaceSubtle)
                         .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
 
-                        CleanOutlineInput(
-                            label: "Meta total do Pote (R$)",
-                            placeholder: "Ex: 3000",
-                            text: $potTotalText,
-                            keyboardType: .decimalPad,
-                            leadingPrefix: "R$"
-                        )
+                        HStack(alignment: .bottom, spacing: 10) {
+                            CleanOutlineInput(
+                                label: "Meta total do Pote (R$)",
+                                placeholder: "Ex: 3000",
+                                text: $potTotalText,
+                                keyboardType: .decimalPad,
+                                leadingPrefix: "R$"
+                            )
+
+                            Button {
+                                showReceiptScanner = true
+                            } label: {
+                                VStack(spacing: 4) {
+                                    Image(systemName: "doc.viewfinder")
+                                        .font(.system(size: 19, weight: .regular))
+                                        .foregroundColor(JuntoColors.primary)
+                                    Text("Escanear")
+                                        .font(.inter(11, weight: .medium))
+                                        .foregroundColor(JuntoColors.primary)
+                                }
+                                .frame(width: 74, height: 50)
+                                .background(JuntoColors.surfaceSubtle)
+                                .clipShape(RoundedRectangle(cornerRadius: 11))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 11)
+                                        .stroke(JuntoColors.primary.opacity(0.2), lineWidth: 1)
+                                )
+                            }
+                        }
+
+                        if !scannedReceiptItems.isEmpty {
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundColor(JuntoColors.pixGreen)
+                                        .font(.system(size: 13))
+                                    Text("\(scannedReceiptItems.count) itens importados da comanda")
+                                        .font(.inter(13, weight: .medium))
+                                        .foregroundColor(JuntoColors.textMain)
+                                    Spacer()
+                                    Button("Limpar") {
+                                        scannedReceiptItems = []
+                                        potTotalText = ""
+                                    }
+                                    .font(.inter(12, weight: .regular))
+                                    .foregroundColor(JuntoColors.danger)
+                                }
+
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(scannedReceiptItems) { itm in
+                                            HStack(spacing: 4) {
+                                                Text("\(itm.quantity)x \(itm.name)")
+                                                    .font(.inter(12, weight: .regular))
+                                                    .foregroundColor(JuntoColors.textMain)
+                                                Text("• \(JuntoStore.formatBRL(itm.price))")
+                                                    .font(.inter(12, weight: .medium))
+                                                    .foregroundColor(JuntoColors.primary)
+                                            }
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 5)
+                                            .background(JuntoColors.surfaceSubtle)
+                                            .clipShape(Capsule())
+                                        }
+                                    }
+                                }
+                            }
+                            .padding(12)
+                            .background(JuntoColors.surfaceSubtle.opacity(0.4))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
 
                         if potMode == .monthly {
                             HStack {
@@ -769,6 +835,12 @@ struct CreateGroupScreen: View {
             SelectFriendsForGroupScreen(selectedPeople: $selectedPeople)
                 .environmentObject(store)
         }
+        .sheet(isPresented: $showReceiptScanner) {
+            ReceiptScannerModal { items, total in
+                scannedReceiptItems = items
+                potTotalText = String(format: "%.2f", total).replacingOccurrences(of: ".", with: ",")
+            }
+        }
     }
 
     private func handleCreate() {
@@ -790,7 +862,8 @@ struct CreateGroupScreen: View {
             targetDate: targetDate,
             isPublic: isPublicGroup,
             maxParticipants: maxParticipants,
-            publicUntilDate: publicUntilDate
+            publicUntilDate: publicUntilDate,
+            comandaItems: scannedReceiptItems
         )
         let createdId = store.groups.first?.id
         dismiss()
@@ -928,6 +1001,8 @@ struct GroupDetailSheet: View {
     @State private var expenseName = ""
     @State private var expenseAmount = ""
     @State private var payFromPot = false
+    @State private var showGroupReceiptScanner = false
+    @State private var selectedItemForConsumers: ComandaItem? = nil
 
     @State private var showAddMemberScreen = false
     @State private var selectedParticipantForAction: GroupParticipant? = nil
@@ -1318,19 +1393,45 @@ struct GroupDetailSheet: View {
                     Divider()
 
                     // Despesas / Comanda do Grupo (somente Dono ou Admin)
-                    VStack(alignment: .leading, spacing: 12) {
+                    VStack(alignment: .leading, spacing: 14) {
                         HStack {
                             Text("Despesas do grupo")
                                 .font(.inter(16, weight: .medium))
                                 .foregroundColor(JuntoColors.textMain)
                             Spacer()
                             if canAddExpenses {
-                                Button {
-                                    withAnimation { showAddExpenseForm.toggle() }
-                                } label: {
-                                    Label(showAddExpenseForm ? "Cancelar" : "Nova despesa", systemImage: showAddExpenseForm ? "xmark" : "plus")
-                                        .font(.inter(13, weight: .medium))
+                                HStack(spacing: 8) {
+                                    Button {
+                                        showGroupReceiptScanner = true
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: "doc.viewfinder")
+                                                .font(.system(size: 12))
+                                            Text("Recibo")
+                                                .font(.inter(12, weight: .medium))
+                                        }
                                         .foregroundColor(JuntoColors.primary)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(JuntoColors.surfaceSubtle)
+                                        .clipShape(Capsule())
+                                    }
+
+                                    Button {
+                                        withAnimation { showAddExpenseForm.toggle() }
+                                    } label: {
+                                        HStack(spacing: 4) {
+                                            Image(systemName: showAddExpenseForm ? "xmark" : "plus")
+                                                .font(.system(size: 11))
+                                            Text(showAddExpenseForm ? "Fechar" : "Manual")
+                                                .font(.inter(12, weight: .medium))
+                                        }
+                                        .foregroundColor(JuntoColors.primary)
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 5)
+                                        .background(JuntoColors.surfaceSubtle)
+                                        .clipShape(Capsule())
+                                    }
                                 }
                             } else {
                                 Text("Somente dono/admins")
@@ -1368,42 +1469,123 @@ struct GroupDetailSheet: View {
                                 .foregroundColor(JuntoColors.textMuted)
                                 .padding(.vertical, 8)
                         } else {
+                            // Checklist interativo de itens da comanda / recibo
                             VStack(spacing: 0) {
                                 ForEach(store.groups[idx].comandaItems.indices, id: \.self) { itemIdx in
                                     let item = store.groups[idx].comandaItems[itemIdx]
-                                    Button {
-                                        store.groups[idx].comandaItems[itemIdx].isSelected.toggle()
-                                    } label: {
-                                        HStack {
-                                            Image(systemName: item.isSelected ? "checkmark.circle.fill" : "circle")
-                                                .font(.system(size: 19, weight: .regular))
-                                                .foregroundColor(item.isSelected ? JuntoColors.primary : JuntoColors.textLight)
-                                            VStack(alignment: .leading, spacing: 2) {
+                                    let isAssignedToMe = item.assignedUsernames.contains(store.user.username.lowercased())
+                                    let shareForThisItem = item.sharePerConsumer(totalMembersCount: group.participants.count)
+
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        HStack(alignment: .top, spacing: 10) {
+                                            Button {
+                                                store.groups[idx].comandaItems[itemIdx].isSelected.toggle()
+                                            } label: {
+                                                Image(systemName: item.isSelected ? "checkmark.circle.fill" : "circle")
+                                                    .font(.system(size: 20, weight: .regular))
+                                                    .foregroundColor(item.isSelected ? JuntoColors.primary : JuntoColors.textLight)
+                                            }
+
+                                            VStack(alignment: .leading, spacing: 3) {
                                                 Text(item.name)
-                                                    .font(.inter(14, weight: .regular))
+                                                    .font(.inter(15, weight: .medium))
+                                                    .foregroundColor(item.isSelected ? JuntoColors.textMain : JuntoColors.textMuted)
+
+                                                HStack(spacing: 6) {
+                                                    Text("\(item.quantity) un • \(JuntoStore.formatBRL(item.price))")
+                                                        .font(.inter(12, weight: .regular))
+                                                        .foregroundColor(JuntoColors.textMuted)
+
+                                                    if item.quantity > 1 {
+                                                        Text("(\(JuntoStore.formatBRL(item.unitPrice)) cada)")
+                                                            .font(.inter(11, weight: .regular))
+                                                            .foregroundColor(JuntoColors.textLight)
+                                                    }
+                                                }
+                                            }
+
+                                            Spacer()
+
+                                            VStack(alignment: .trailing, spacing: 2) {
+                                                Text(JuntoStore.formatBRL(item.price))
+                                                    .font(.inter(15, weight: .medium))
                                                     .foregroundColor(JuntoColors.textMain)
-                                                Text(item.detail)
-                                                    .font(.inter(12, weight: .regular))
+                                                Text("Cota: \(JuntoStore.formatBRL(shareForThisItem))")
+                                                    .font(.inter(11, weight: .regular))
                                                     .foregroundColor(JuntoColors.textMuted)
                                             }
-                                            Spacer()
-                                            Text(JuntoStore.formatBRL(item.price))
-                                                .font(.inter(14, weight: .medium))
-                                                .foregroundColor(JuntoColors.textMain)
                                         }
-                                        .padding(.vertical, 12)
+
+                                        // Linha de checklist por consumo
+                                        HStack(spacing: 8) {
+                                            Button {
+                                                store.toggleMemberAssignedToComandaItem(
+                                                    groupId: groupId,
+                                                    itemId: item.id,
+                                                    username: store.user.username
+                                                )
+                                            } label: {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: isAssignedToMe ? "checkmark.square.fill" : "square")
+                                                        .font(.system(size: 13))
+                                                    Text(isAssignedToMe ? "Eu consumi" : "Marcar que consumi")
+                                                        .font(.inter(11, weight: .medium))
+                                                }
+                                                .foregroundColor(isAssignedToMe ? JuntoColors.pixGreen : JuntoColors.textMuted)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(isAssignedToMe ? JuntoColors.pixGreenLight : JuntoColors.surfaceSubtle)
+                                                .clipShape(Capsule())
+                                            }
+
+                                            Spacer()
+
+                                            Button {
+                                                selectedItemForConsumers = item
+                                            } label: {
+                                                HStack(spacing: 4) {
+                                                    Image(systemName: "person.2")
+                                                        .font(.system(size: 11))
+                                                    Text(item.assignedUsernames.isEmpty ? "Todos (\(group.participants.count))" : "\(item.assignedUsernames.count) pessoa(s)")
+                                                        .font(.inter(11, weight: .regular))
+                                                }
+                                                .foregroundColor(JuntoColors.textMuted)
+                                                .padding(.horizontal, 8)
+                                                .padding(.vertical, 4)
+                                                .background(JuntoColors.surfaceSubtle)
+                                                .clipShape(Capsule())
+                                            }
+                                        }
+                                        .padding(.leading, 30)
                                     }
+                                    .padding(.vertical, 10)
                                     Divider()
                                 }
                             }
 
-                            if selectedTotal > 0 {
-                                JuntoPillButton(title: "Pagar \(JuntoStore.formatBRL(selectedTotal))", color: JuntoColors.primary) {
-                                    pendingPaymentSheet = GroupPaymentRequest(
-                                        title: "Despesas • \(group.title)",
-                                        amount: selectedTotal,
-                                        participantId: nil
-                                    )
+                            // Resumo de cálculo da comanda com base no checklist
+                            let myShare = store.userShareForComanda(in: group, username: store.user.username)
+                            if myShare > 0 {
+                                HStack(alignment: .center) {
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text("Sua parte na comanda")
+                                            .font(.inter(12, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                        Text(JuntoStore.formatBRL(myShare))
+                                            .font(.inter(18, weight: .medium))
+                                            .foregroundColor(JuntoColors.pixGreen)
+                                    }
+
+                                    Spacer()
+
+                                    JuntoPillButton(title: "Pagar \(JuntoStore.formatBRL(myShare))", color: JuntoColors.primary) {
+                                        pendingPaymentSheet = GroupPaymentRequest(
+                                            title: "Comanda • \(group.title)",
+                                            amount: myShare,
+                                            participantId: nil
+                                        )
+                                    }
+                                    .frame(width: 170)
                                 }
                                 .padding(.top, 8)
                             }
@@ -1484,6 +1666,21 @@ struct GroupDetailSheet: View {
                 }
                 .presentationDetents([.height(500)])
                 .presentationCornerRadius(20)
+            }
+            .sheet(isPresented: $showGroupReceiptScanner) {
+                ReceiptScannerModal { items, total in
+                    store.addReceiptItemsToGroup(groupId: groupId, items: items, payFromPot: payFromPot)
+                }
+            }
+            .sheet(item: $selectedItemForConsumers) { itm in
+                AssignItemConsumersSheet(group: group, item: itm) { updatedItem in
+                    if let gIdx = store.groups.firstIndex(where: { $0.id == groupId }),
+                       let iIdx = store.groups[gIdx].comandaItems.firstIndex(where: { $0.id == itm.id }) {
+                        store.groups[gIdx].comandaItems[iIdx] = updatedItem
+                    }
+                    selectedItemForConsumers = nil
+                }
+                .presentationDetents([.medium])
             }
         }
     }
@@ -2205,6 +2402,108 @@ struct PersonalPotDetailSheet: View {
                 .padding(.bottom, 30)
             }
             .background(Color.white.ignoresSafeArea())
+        }
+    }
+}
+
+// MARK: - Sheet para Definir Participantes de um Item da Comanda
+struct AssignItemConsumersSheet: View {
+    let group: RoleGroup
+    let item: ComandaItem
+    var onSave: (ComandaItem) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var currentAssigned: Set<String> = []
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 16) {
+                VStack(spacing: 4) {
+                    Text(item.name)
+                        .font(.inter(17, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                    Text("\(item.quantity) un • \(JuntoStore.formatBRL(item.price))")
+                        .font(.inter(13, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                }
+                .padding(.top, 14)
+
+                HStack {
+                    Button("Selecionar todos") {
+                        currentAssigned = Set(group.participants.map { $0.username.lowercased() })
+                    }
+                    .font(.inter(12, weight: .regular))
+                    .foregroundColor(JuntoColors.primary)
+
+                    Spacer()
+
+                    Button("Limpar (Dividir por todos)") {
+                        currentAssigned = []
+                    }
+                    .font(.inter(12, weight: .regular))
+                    .foregroundColor(JuntoColors.textMuted)
+                }
+                .padding(.horizontal, 20)
+
+                Divider()
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        ForEach(group.participants) { p in
+                            let isIncluded = currentAssigned.contains(p.username.lowercased())
+                            Button {
+                                let uname = p.username.lowercased()
+                                if currentAssigned.contains(uname) {
+                                    currentAssigned.remove(uname)
+                                } else {
+                                    currentAssigned.insert(uname)
+                                }
+                            } label: {
+                                HStack(spacing: 12) {
+                                    GeometricAvatarView(seed: p.username, size: 36)
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(p.name)
+                                            .font(.inter(14, weight: .medium))
+                                            .foregroundColor(JuntoColors.textMain)
+                                        Text("@\(p.username)")
+                                            .font(.inter(12, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                    }
+                                    Spacer()
+                                    Image(systemName: isIncluded ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 20))
+                                        .foregroundColor(isIncluded ? JuntoColors.primary : JuntoColors.textLight)
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 10)
+                            }
+                            Divider().padding(.leading, 68)
+                        }
+                    }
+                }
+
+                Divider()
+
+                JuntoPillButton(title: "Salvar divisão do item", color: JuntoColors.primary) {
+                    var updated = item
+                    updated.assignedUsernames = currentAssigned
+                    onSave(updated)
+                    dismiss()
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 16)
+            }
+            .navigationTitle("Quem consumiu?")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Fechar") { dismiss() }
+                        .foregroundColor(JuntoColors.textMain)
+                }
+            }
+            .onAppear {
+                currentAssigned = item.assignedUsernames
+            }
         }
     }
 }

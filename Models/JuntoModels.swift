@@ -206,12 +206,45 @@ struct PersonalExpenseRecord: Identifiable {
     var isPaid: Bool = false
 }
 
-struct ComandaItem: Identifiable {
-    let id = UUID()
-    let name: String
-    let detail: String
-    let price: Double
-    var isSelected: Bool
+struct ComandaItem: Identifiable, Hashable {
+    var id: UUID = UUID()
+    var name: String
+    var detail: String = ""
+    var price: Double               // Preço total do item
+    var isSelected: Bool = true     // Se está ativo no checklist de inclusão
+    var quantity: Int = 1           // Quantidade
+    var unitPrice: Double = 0.0     // Preço unitário
+    var isPaid: Bool = false        // Se já foi conferido/quitado
+    var assignedUsernames: Set<String> = [] // Quem consumiu (se vazio, divide por todos)
+
+    init(
+        id: UUID = UUID(),
+        name: String,
+        detail: String = "",
+        price: Double,
+        isSelected: Bool = true,
+        quantity: Int = 1,
+        unitPrice: Double? = nil,
+        isPaid: Bool = false,
+        assignedUsernames: Set<String> = []
+    ) {
+        self.id = id
+        self.name = name
+        self.detail = detail
+        self.price = price
+        self.isSelected = isSelected
+        let q = max(1, quantity)
+        self.quantity = q
+        self.unitPrice = unitPrice ?? (price / Double(q))
+        self.isPaid = isPaid
+        self.assignedUsernames = assignedUsernames
+    }
+
+    /// Valor por consumidor deste item
+    func sharePerConsumer(totalMembersCount: Int) -> Double {
+        let consumers = assignedUsernames.isEmpty ? max(1, totalMembersCount) : assignedUsernames.count
+        return price / Double(max(1, consumers))
+    }
 }
 
 enum GroupParticipantRole: String, Hashable {

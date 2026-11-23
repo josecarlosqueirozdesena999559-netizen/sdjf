@@ -150,7 +150,7 @@ struct PixOfficialIcon: View {
             let rect = CGRect(x: -r, y: -r, width: r * 2, height: r * 2)
             outer.addRoundedRect(in: rect, cornerSize: CGSize(width: s * 0.11, height: s * 0.11))
 
-            var transform = CGAffineTransform(translationX: w / 2, y: h / 2)
+            let transform = CGAffineTransform(translationX: w / 2, y: h / 2)
                 .rotated(by: .pi / 4)
             let diamond = outer.applying(transform)
             ctx.stroke(diamond, with: .color(color), style: StrokeStyle(lineWidth: s * 0.085, lineCap: .round, lineJoin: .round))
