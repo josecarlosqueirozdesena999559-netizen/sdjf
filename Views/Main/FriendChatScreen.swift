@@ -766,7 +766,7 @@ struct FriendProfileScreen: View {
                 onBlocked()
             }
         } message: {
-            Text("Ao bloquear, a amizade será desfeita automaticamente e essa pessoa não poderá mais falar com você.")
+            Text("Essa pessoa não poderá mais enviar mensagens para você.")
         }
     }
 }

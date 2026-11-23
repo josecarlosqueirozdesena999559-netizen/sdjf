@@ -220,8 +220,41 @@ final class JuntoStore: ObservableObject {
             requestUserName: "Bruno Mendes",
             requestUsername: "bruno.mendes"
         ),
-        AppNotification(icon: "checkmark.circle", title: "Pix recebido na hora", message: "Pedro Santos quitou R$ 100,00 com baixa automática.", timeAgo: "25 min", isUnread: false),
-        AppNotification(icon: "person.2", title: "Pote Coletivo atualizado", message: "Camila adicionou R$ 150,00 na Viagem Ubatuba.", timeAgo: "1h", isUnread: false)
+        AppNotification(
+            icon: "banknote",
+            title: "Você recebeu um novo pagamento",
+            message: "Matheus Alves informou R$ 75,00 em Churrasco de Domingo. Confira na sua conta.",
+            timeAgo: "18 min",
+            isUnread: true
+        ),
+        AppNotification(
+            icon: "person.2.badge.plus",
+            title: "Você foi adicionado em um grupo",
+            message: "Pedro Santos adicionou você ao grupo Viagem Ubatuba.",
+            timeAgo: "42 min",
+            isUnread: false
+        ),
+        AppNotification(
+            icon: "list.bullet.rectangle.portrait",
+            title: "Você adicionou uma nova despesa",
+            message: "Picanha + Bebidas (R$ 240,00) em Churrasco de Domingo.",
+            timeAgo: "1h",
+            isUnread: false
+        ),
+        AppNotification(
+            icon: "checkmark.circle",
+            title: "Você pagou a Pedro Santos",
+            message: "Pagamento de R$ 200,00 referente ao grupo Viagem Ubatuba.",
+            timeAgo: "3h",
+            isUnread: false
+        ),
+        AppNotification(
+            icon: "exclamationmark.triangle",
+            title: "Alerta de gastos",
+            message: "Seus gastos de novembro chegaram a R$ 1.535,00.",
+            timeAgo: "Ontem",
+            isUnread: false
+        )
     ]
 
     @Published var blockedUsers: [BlockedUserEntry] = [
@@ -619,6 +652,18 @@ final class JuntoStore: ObservableObject {
         groups[gIdx].participants[pIdx].markedPaidByMember = true
         let groupTitle = groups[gIdx].title
         let quota = groups[gIdx].participants[pIdx].quotaAmount
+        let organizer = organizerPixInfo(for: groups[gIdx])
+
+        notifications.insert(
+            AppNotification(
+                icon: "checkmark.circle",
+                title: "Você pagou a \(organizer.name)",
+                message: "Pagamento de \(Self.formatBRL(quota)) referente ao grupo \(groupTitle).",
+                timeAgo: "Agora",
+                isUnread: true
+            ),
+            at: 0
+        )
 
         activities.insert(
             ActivityEvent(
@@ -638,12 +683,23 @@ final class JuntoStore: ObservableObject {
     func memberMarkGroupExpensesAsPaid(groupId: UUID, amount: Double) {
         guard amount > 0, let gIdx = groups.firstIndex(where: { $0.id == groupId }) else { return }
         let groupTitle = groups[gIdx].title
+        let organizer = organizerPixInfo(for: groups[gIdx])
         groups[gIdx].myShare = max(0, groups[gIdx].myShare - amount)
         for i in groups[gIdx].comandaItems.indices {
             if groups[gIdx].comandaItems[i].isSelected {
                 groups[gIdx].comandaItems[i].isSelected = false
             }
         }
+        notifications.insert(
+            AppNotification(
+                icon: "checkmark.circle",
+                title: "Você pagou a \(organizer.name)",
+                message: "Pagamento de \(Self.formatBRL(amount)) referente ao grupo \(groupTitle).",
+                timeAgo: "Agora",
+                isUnread: true
+            ),
+            at: 0
+        )
         activities.insert(
             ActivityEvent(
                 icon: "checkmark.circle",
@@ -843,6 +899,17 @@ final class JuntoStore: ObservableObject {
                 detail: payFromPot ? "Pago com o Pote" : "Dividido por \(memberCount)",
                 price: perPerson,
                 isSelected: !payFromPot
+            ),
+            at: 0
+        )
+
+        notifications.insert(
+            AppNotification(
+                icon: "list.bullet.rectangle.portrait",
+                title: "Você adicionou uma nova despesa",
+                message: "\"\(cleanName)\" (\(Self.formatBRL(totalAmount))) em \(groups[idx].title).",
+                timeAgo: "Agora",
+                isUnread: true
             ),
             at: 0
         )
@@ -1066,6 +1133,31 @@ final class JuntoStore: ObservableObject {
             ),
             at: 0
         )
+
+        notifications.insert(
+            AppNotification(
+                icon: "list.bullet.rectangle.portrait",
+                title: "Você adicionou uma nova despesa",
+                message: "\"\(cleanDesc)\" (\(Self.formatBRL(amount))) em \(groupTitle.isEmpty ? category : groupTitle).",
+                timeAgo: "Agora",
+                isUnread: true
+            ),
+            at: 0
+        )
+
+        let monthTotal = personalExpenses.filter { $0.monthKey == "Novembro 2026" }.reduce(0) { $0 + $1.amount }
+        if monthTotal >= 1500 {
+            notifications.insert(
+                AppNotification(
+                    icon: "exclamationmark.triangle",
+                    title: "Alerta de gastos",
+                    message: "Seus gastos do mês chegaram a \(Self.formatBRL(monthTotal)).",
+                    timeAgo: "Agora",
+                    isUnread: true
+                ),
+                at: 0
+            )
+        }
 
         activities.insert(
             ActivityEvent(

@@ -386,7 +386,15 @@ struct AddFriendScreen: View {
                                 }
                             } label: {
                                 HStack(spacing: 12) {
-                                    GeometricAvatarView(seed: friend.username, displayName: friend.name, size: 46)
+                                    ZStack(alignment: .bottomTrailing) {
+                                        GeometricAvatarView(seed: friend.username, displayName: friend.name, size: 46)
+                                        if friend.isOnline {
+                                            Circle()
+                                                .fill(JuntoColors.pixGreen)
+                                                .frame(width: 12, height: 12)
+                                                .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                                        }
+                                    }
 
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(friend.name)
@@ -563,18 +571,13 @@ struct FriendOptionsSheet: View {
                         Image(systemName: "nosign")
                             .font(.system(size: 17))
                             .foregroundColor(JuntoColors.danger)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text("Bloquear usuário")
-                                .font(.inter(15, weight: .medium))
-                                .foregroundColor(JuntoColors.danger)
-                            Text("Desfaz a amizade automaticamente")
-                                .font(.inter(11, weight: .regular))
-                                .foregroundColor(JuntoColors.textMuted)
-                        }
+                        Text("Bloquear usuário")
+                            .font(.inter(15, weight: .medium))
+                            .foregroundColor(JuntoColors.danger)
                         Spacer()
                     }
                     .padding(.horizontal, 16)
-                    .frame(height: 54)
+                    .frame(height: 50)
                     .background(Color.white)
                     .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
                     .clipShape(RoundedRectangle(cornerRadius: 10))
