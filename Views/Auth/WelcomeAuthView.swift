@@ -196,13 +196,9 @@ struct TermsOfUsePopupSheet: View {
                     legalClause(
                         title: "Cláusula 4ª — Plano Gratuito, Assinatura Juntô Pro e Direito de Arrependimento (Art. 49 do CDC)",
                         content: """
-4.1. No Plano Gratuito (Normal), o usuário tem direito a manter 1 (um) grupo ativo simultaneamente, além de acesso irrestrito à lista de amigos, chat individual e em grupo, geração de QR Code Pix e conferência manual de cotas.
+4.1. Todas as funcionalidades de comunicação do Chat (mensagens de texto, gravação de áudio, fotos, documentos, respostas, enquetes interativas e chave Pix) e todas as modalidades de Pote (Meta Única e Pote Mensal para excursões) são 100% gratuitas. No Plano Gratuito (Normal), o usuário pode criar e manter 1 (um) grupo ativo simultaneamente.
 
-4.2. A assinatura “Juntô Pro” (modalidade Mensal por R$ 19,90/mês ou Anual por R$ 178,80/ano) desbloqueia funcionalidades avançadas, incluindo:
-a) Criação de grupos e viagens ilimitados;
-b) Potes Pessoais (Caixinhas) ilimitados para metas e ocasiões;
-c) Pote Mensal avançado para excursões com acompanhamento de ciclos mensais;
-d) Integração com baixa automática de Pix, assistente no WhatsApp oficial, leitura ilimitada de comandas e exportação de relatórios em PDF e Excel.
+4.2. A assinatura “Juntô Pro” (modalidade Mensal por R$ 19,90/mês ou Anual por R$ 178,80/ano) desbloqueia a criação ilimitada de grupos, viagens, rolês e excursões simultâneas, além de múltiplos administradores por grupo e alertas avançados de gestão.
 
 4.3. A renovação da assinatura ocorre de forma automática ao final de cada ciclo contratado, salvo se cancelada pelo usuário com antecedência mínima de 24 (vinte e quatro) horas do término do período vigente, diretamente na tela “Juntô Pro” ou nas configurações de assinaturas da Apple App Store.
 
@@ -401,11 +397,10 @@ Garantimos o exercício gratuito e facilitado de todos os direitos previstos no 
     }
 }
 
-// MARK: - 3. Popup Fale Conosco Limpo (Apenas canal de E-mail direto, sem retângulos nem formulários pesados)
+// MARK: - 3. Popup Fale Conosco Limpo (Texto institucional profissional + E-mail oficial sem botão de enviar contato)
 struct ContactUsPopupSheet: View {
     @EnvironmentObject var store: JuntoStore
     @Environment(\.dismiss) private var dismiss
-    @Environment(\.openURL) private var openURL
     @State private var copiedEmail: Bool = false
 
     var body: some View {
@@ -431,69 +426,64 @@ struct ContactUsPopupSheet: View {
 
             Divider()
 
-            VStack(alignment: .leading, spacing: 22) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Text("Atendimento por e-mail")
-                        .font(.inter(20, weight: .medium))
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 18) {
+                    Text("Canal Oficial de Atendimento, Suporte e Privacidade")
+                        .font(.inter(19, weight: .medium))
                         .foregroundColor(JuntoColors.textMain)
 
-                    Text("Para dúvidas, suporte técnico, assuntos sobre assinatura ou solicitações de privacidade (LGPD), entre em contato diretamente pelo nosso e-mail oficial.")
+                    Text("O Juntô disponibiliza seu canal oficial de comunicação por e-mail para atendimento aos usuários, esclarecimento de dúvidas sobre grupos, viagens e rolês, suporte técnico sobre assinaturas Juntô Pro e exercício de direitos previstos na Lei Geral de Proteção de Dados Pessoais (Lei Federal nº 13.709/2018 – LGPD).")
                         .font(.inter(14, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                         .lineSpacing(4)
-                }
 
-                Divider()
+                    Text("Para garantir a segurança e o registro formal da sua solicitação, envie sua mensagem a partir do mesmo endereço de e-mail vinculado à sua conta ou informe seu @usuário no corpo da mensagem. Nossa equipe realiza o atendimento todos os dias, com retorno em até 24 horas úteis.")
+                        .font(.inter(14, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                        .lineSpacing(4)
 
-                HStack(spacing: 14) {
-                    Image(systemName: "envelope")
-                        .font(.system(size: 20, weight: .regular))
-                        .foregroundColor(JuntoColors.primary)
-                        .frame(width: 28)
+                    Divider()
+                        .padding(.vertical, 4)
 
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("E-mail de suporte")
-                            .font(.inter(12, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
+                    HStack(spacing: 14) {
+                        Image(systemName: "envelope")
+                            .font(.system(size: 19, weight: .regular))
+                            .foregroundColor(JuntoColors.primary)
+                            .frame(width: 26)
 
-                        Text(store.supportEmail)
-                            .font(.inter(16, weight: .medium))
-                            .foregroundColor(JuntoColors.textMain)
-                            .textSelection(.enabled)
-                    }
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("E-mail oficial de contato")
+                                .font(.inter(12, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
 
-                    Spacer()
-
-                    Button {
-                        UIPasteboard.general.string = store.supportEmail
-                        copiedEmail = true
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        store.showToast("E-mail copiado!", icon: "doc.on.doc")
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedEmail = false }
-                    } label: {
-                        HStack(spacing: 5) {
-                            Image(systemName: copiedEmail ? "checkmark" : "doc.on.doc")
-                                .font(.system(size: 13, weight: .medium))
-                            Text(copiedEmail ? "Copiado" : "Copiar")
-                                .font(.inter(13, weight: .medium))
+                            Text(store.supportEmail)
+                                .font(.inter(16, weight: .medium))
+                                .foregroundColor(JuntoColors.textMain)
+                                .textSelection(.enabled)
                         }
-                        .foregroundColor(JuntoColors.primary)
+
+                        Spacer()
+
+                        Button {
+                            UIPasteboard.general.string = store.supportEmail
+                            copiedEmail = true
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            store.showToast("E-mail copiado!", icon: "doc.on.doc")
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedEmail = false }
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: copiedEmail ? "checkmark" : "doc.on.doc")
+                                    .font(.system(size: 13, weight: .medium))
+                                Text(copiedEmail ? "Copiado" : "Copiar")
+                                    .font(.inter(13, weight: .medium))
+                            }
+                            .foregroundColor(JuntoColors.primary)
+                        }
                     }
                 }
-                .padding(.vertical, 4)
-
-                Divider()
-
-                JuntoPillButton(title: "Enviar e-mail", icon: "envelope", color: JuntoColors.primary) {
-                    if let url = URL(string: "mailto:\(store.supportEmail)") {
-                        openURL(url)
-                    }
-                }
-
-                Spacer()
+                .padding(.horizontal, 22)
+                .padding(.vertical, 24)
             }
-            .padding(.horizontal, 22)
-            .padding(.top, 24)
         }
         .background(Color.white.ignoresSafeArea())
     }

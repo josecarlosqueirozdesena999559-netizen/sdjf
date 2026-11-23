@@ -45,9 +45,9 @@ struct GroupsRoleView: View {
             AnimatedSearchBar(
                 text: $searchText,
                 placeholders: [
-                    "Pesquisar Viagem Ubatuba",
-                    "Pesquisar Churrasco de Sábado",
-                    "Pesquisar Excursão Arraial"
+                    "Pesquisar Viagem",
+                    "Pesquisar Churrasco",
+                    "Pesquisar Rolê"
                 ]
             )
             .padding(.horizontal, 20)

@@ -9,6 +9,7 @@ struct FriendChatScreen: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var inputText = ""
+    @FocusState private var isInputFocused: Bool
     @State private var editingMessageId: UUID? = nil
     @State private var replyingToMessage: ChatMessage? = nil
     @State private var selectedMessageForMenu: ChatMessage? = nil
@@ -114,8 +115,9 @@ struct FriendChatScreen: View {
                                     ForEach(section.items) { msg in
                                         SwipeToReplyContainer(
                                             onReply: {
-                                                withAnimation(.easeInOut(duration: 0.16)) {
+                                                withAnimation(.spring(response: 0.24, dampingFraction: 0.82)) {
                                                     replyingToMessage = msg
+                                                    isInputFocused = true
                                                 }
                                             }
                                         ) {
@@ -147,9 +149,27 @@ struct FriendChatScreen: View {
                         }
                 )
                 .background(JuntoColors.warmBg)
+                .onAppear {
+                    if let lastId = messages.last?.id {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
+                            proxy.scrollTo(lastId, anchor: .bottom)
+                        }
+                    }
+                }
                 .onChange(of: messages.count) { _, _ in
                     if let lastId = messages.last?.id {
-                        withAnimation { proxy.scrollTo(lastId, anchor: .bottom) }
+                        withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+                            proxy.scrollTo(lastId, anchor: .bottom)
+                        }
+                    }
+                }
+                .onChange(of: isInputFocused) { _, focused in
+                    if focused, let lastId = messages.last?.id {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                            withAnimation(.easeOut(duration: 0.2)) {
+                                proxy.scrollTo(lastId, anchor: .bottom)
+                            }
+                        }
                     }
                 }
             }
@@ -277,18 +297,22 @@ struct FriendChatScreen: View {
                     }
                 } else {
                     Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         showAttachmentMenu = true
                     } label: {
                         Image(systemName: "plus")
                             .font(.system(size: 20, weight: .regular))
                             .foregroundColor(JuntoColors.textMain)
-                            .frame(width: 34, height: 34)
+                            .frame(width: 36, height: 36)
+                            .contentShape(Rectangle())
                     }
+                    .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.90))
 
                     TextField("Mensagem...", text: $inputText, axis: .vertical)
                         .font(.inter(15, weight: .regular))
                         .foregroundColor(JuntoColors.textMain)
-                        .lineLimit(1...4)
+                        .lineLimit(1...5)
+                        .focused($isInputFocused)
                         .padding(.horizontal, 14)
                         .padding(.vertical, 9)
                         .background(JuntoColors.surfaceSubtle)
@@ -367,6 +391,7 @@ struct FriendChatScreen: View {
                         Button {
                             let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
                             guard !text.isEmpty else { return }
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             inputText = ""
                             if let editId = editingMessageId {
                                 store.editChatMessage(username: friend.username, messageId: editId, newText: text)
@@ -390,6 +415,8 @@ struct FriendChatScreen: View {
                                 .background(JuntoColors.primary)
                                 .clipShape(Circle())
                         }
+                        .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.90))
+                        .transition(.scale.combined(with: .opacity))
                     }
                 }
             }
@@ -410,9 +437,10 @@ struct FriendChatScreen: View {
                     authorName: menuMsg.isFromMe ? "Você" : currentFriend.name,
                     canEdit: canEdit,
                     onReply: {
-                        withAnimation(.easeInOut(duration: 0.16)) {
+                        withAnimation(.spring(response: 0.24, dampingFraction: 0.82)) {
                             replyingToMessage = menuMsg
                             selectedMessageForMenu = nil
+                            isInputFocused = true
                         }
                     },
                     onEdit: {
@@ -420,6 +448,7 @@ struct FriendChatScreen: View {
                             editingMessageId = menuMsg.id
                             replyingToMessage = nil
                             inputText = original
+                            isInputFocused = true
                         }
                         withAnimation(.easeInOut(duration: 0.15)) { selectedMessageForMenu = nil }
                     },
@@ -555,6 +584,10 @@ struct FriendChatScreen: View {
                     Text(txt)
                         .font(.inter(14, weight: .regular))
                         .foregroundColor(msg.isFromMe ? .white : JuntoColors.textMain)
+                        .lineSpacing(2)
+                        .multilineTextAlignment(.leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .textSelection(.enabled)
 
                 case .photo(let data, let caption):
                     VStack(alignment: .leading, spacing: 6) {
@@ -562,7 +595,8 @@ struct FriendChatScreen: View {
                             Image(uiImage: img)
                                 .resizable()
                                 .scaledToFill()
-                                .frame(width: 200, height: 150)
+                                .frame(minWidth: 160, maxWidth: 235, minHeight: 130, maxHeight: 185)
+                                .clipped()
                                 .clipShape(RoundedRectangle(cornerRadius: 10))
                         } else {
                             RoundedRectangle(cornerRadius: 10)
@@ -574,16 +608,18 @@ struct FriendChatScreen: View {
                             Text(caption)
                                 .font(.inter(13, weight: .regular))
                                 .foregroundColor(msg.isFromMe ? .white : JuntoColors.textMain)
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                     }
 
                 case .audio(let seconds, let waveform, let fileURL):
                     let isPlaying = audioManager.playingMessageId == msg.id
                     let progress = isPlaying ? audioManager.playbackProgress : 0.0
-                    let bars = waveform.isEmpty ? Array(repeating: 0.4, count: 24) : waveform
+                    let bars = waveform.isEmpty ? Array(repeating: 0.4, count: 22) : Array(waveform.prefix(22))
 
                     HStack(spacing: 10) {
                         Button {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             audioManager.togglePlayback(messageId: msg.id, fileURL: fileURL, durationSeconds: seconds)
                         } label: {
                             Image(systemName: isPlaying ? "pause.fill" : "play.fill")
@@ -593,6 +629,7 @@ struct FriendChatScreen: View {
                                 .background(msg.isFromMe ? Color.white : JuntoColors.primary)
                                 .clipShape(Circle())
                         }
+                        .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.90))
 
                         // Ondas: AZUL enquanto escuta; LARANJA após escutado (sinaliza para ambos que foi ouvido)
                         HStack(spacing: 2.5) {
@@ -606,7 +643,7 @@ struct FriendChatScreen: View {
 
                                 Capsule()
                                     .fill(barColor)
-                                    .frame(width: 2.8, height: max(5, CGFloat(level) * 24))
+                                    .frame(width: 2.6, height: max(5, CGFloat(level) * 24))
                                     .animation(.easeOut(duration: 0.1), value: isActiveBar)
                             }
                         }
@@ -1146,7 +1183,7 @@ struct ChatPollBubbleView: View {
                 .font(.inter(11, weight: .regular))
                 .foregroundColor(isFromMe ? .white.opacity(0.7) : JuntoColors.textMuted)
         }
-        .frame(width: 235)
+        .frame(minWidth: 200, maxWidth: 265)
     }
 }
 

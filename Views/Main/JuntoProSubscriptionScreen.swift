@@ -15,13 +15,11 @@ struct JuntoProSubscriptionScreen: View {
     @State private var showCancelConfirm = false
 
     private let proFeatures: [(title: String, subtitle: String)] = [
-        ("Grupos, viagens e rolês ilimitados", "No plano gratuito você pode ter apenas 1 grupo ativo. No Pro, crie quantos grupos, viagens e rolês quiser com seus amigos."),
-        ("Pote Mensal para excursões e viagens", "Organize viagens parceladas mês a mês com controle da porcentagem de cada ciclo (só fecha em 100% quando todos pagam)."),
-        ("Enquetes ilimitadas no bate-papo", "Decida datas, destinos, passeios e cardápios do rolê com votação em tempo real dentro do chat do grupo."),
-        ("Múltiplos administradores no grupo", "Defina amigos como admins para ajudar a gerenciar participantes, lançar gastos do rolê e confirmar pagamentos."),
-        ("Comanda do rolê e desconto no Pote", "Lance despesas de churrasco, passeios ou hospedagem na comanda do grupo e desconte direto do saldo do Pote Coletivo."),
-        ("Compartilhamento completo no chat", "Envie fotos da viagem, comprovantes, roteiros, arquivos e mensagens de voz no bate-papo do grupo e com amigos."),
-        ("Alertas de meta e lembretes do rolê", "Avisos automáticos da data da meta do grupo e notificações instantâneas quando participantes informam pagamentos.")
+        ("Grupos, viagens e rolês ilimitados", "No plano gratuito você tem acesso completo ao chat e ao pote para 1 grupo ativo. No Pro, crie quantos grupos, viagens e excursões quiser."),
+        ("Múltiplos potes e excursões simultâneas", "Organize vários rolês, churrascos e viagens com Pote Coletivo ou Pote Mensal ao mesmo tempo sem limite de grupos."),
+        ("Múltiplos administradores por grupo", "Adicione amigos como co-organizadores em todas as suas viagens para ajudar a lançar gastos e confirmar pagamentos."),
+        ("Chat e enquetes liberados em todos os grupos", "Todas as funções de bate-papo, áudio, fotos, arquivos, enquetes e Pix funcionam gratuitamente em todos os seus grupos."),
+        ("Alertas e lembretes de viagens", "Notificações automáticas de prazos de metas e avisos instantâneos quando participantes informam pagamentos.")
     ]
 
     var body: some View {

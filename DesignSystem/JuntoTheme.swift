@@ -245,10 +245,9 @@ struct GeometricAvatarView: View {
 struct AnimatedSearchBar: View {
     @Binding var text: String
     var placeholders: [String] = [
+        "Pesquisar @ana123",
         "Pesquisar @lucas123",
-        "Pesquisar @ana.paula",
-        "Pesquisar @pedro.santos",
-        "Pesquisar @camila.rocha"
+        "Pesquisar @pedro123"
     ]
 
     @FocusState private var isFocused: Bool
@@ -346,6 +345,18 @@ struct AnimatedSearchBar: View {
     }
 }
 
+// MARK: - Estilo de Toque Fluido e Responsivo (efeito mola suave em qualquer botão)
+struct JuntoTapBounceStyle: ButtonStyle {
+    var scaleAmount: CGFloat = 0.96
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .scaleEffect(configuration.isPressed ? scaleAmount : 1.0)
+            .opacity(configuration.isPressed ? 0.92 : 1.0)
+            .animation(.interactiveSpring(response: 0.22, dampingFraction: 0.72), value: configuration.isPressed)
+    }
+}
+
 // MARK: - Botão Circular Flutuante
 struct CircleNavButton: View {
     let icon: String
@@ -367,6 +378,7 @@ struct CircleNavButton: View {
                         .stroke(bgColor == .white ? JuntoColors.border.opacity(0.6) : Color.clear, lineWidth: 0.6)
                 )
         }
+        .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.92))
     }
 }
 
@@ -476,7 +488,7 @@ struct CleanOutlineSecureInput: View {
     }
 }
 
-// MARK: - Botão Retangular Profissional (cantos suaves 10pt)
+// MARK: - Botão Retangular Profissional Responsivo (cantos suaves 10pt)
 struct JuntoPillButton: View {
     let title: String
     var icon: String? = nil
@@ -493,17 +505,21 @@ struct JuntoPillButton: View {
                 }
                 Text(title)
                     .font(.inter(16, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
             }
             .foregroundColor(textColor)
+            .padding(.horizontal, 14)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
             .background(color)
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
         }
+        .buttonStyle(JuntoTapBounceStyle())
     }
 }
 
-// MARK: - Botão Retangular Contornado (secundário)
+// MARK: - Botão Retangular Contornado Responsivo (secundário)
 struct JuntoOutlineButton: View {
     let title: String
     var icon: String? = nil
@@ -519,8 +535,11 @@ struct JuntoOutlineButton: View {
                 }
                 Text(title)
                     .font(.inter(16, weight: .medium))
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.82)
             }
             .foregroundColor(color)
+            .padding(.horizontal, 14)
             .frame(maxWidth: .infinity)
             .frame(height: 52)
             .background(Color.white)
@@ -529,6 +548,7 @@ struct JuntoOutlineButton: View {
                     .stroke(color, lineWidth: 1.2)
             )
         }
+        .buttonStyle(JuntoTapBounceStyle())
     }
 }
 

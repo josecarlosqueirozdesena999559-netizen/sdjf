@@ -81,10 +81,9 @@ struct FriendsView: View {
             AnimatedSearchBar(
                 text: $searchText,
                 placeholders: [
+                    "Pesquisar @ana123",
                     "Pesquisar @lucas123",
-                    "Pesquisar @ana.paula",
-                    "Pesquisar @pedro.santos",
-                    "Pesquisar @camila.rocha"
+                    "Pesquisar @pedro123"
                 ]
             )
             .padding(.horizontal, 20)

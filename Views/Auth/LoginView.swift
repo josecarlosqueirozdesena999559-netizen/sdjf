@@ -26,7 +26,7 @@ struct LoginView: View {
 
                     CleanOutlineInput(
                         label: "Endereço de e-mail ou @usuário",
-                        placeholder: "voce@email.com ou @usuario",
+                        placeholder: "email@provedor.com ou @ana123",
                         text: $identifier,
                         keyboardType: .emailAddress,
                         autocapitalization: .never
@@ -130,7 +130,7 @@ struct ForgotPasswordPopupSheet: View {
 
                         CleanOutlineInput(
                             label: "E-mail ou @usuário",
-                            placeholder: "ex: lucas.andrade@exemplo.com",
+                            placeholder: "email@provedor.com ou @ana123",
                             text: $accountIdentifier,
                             keyboardType: .emailAddress,
                             autocapitalization: .never
@@ -185,12 +185,12 @@ struct ForgotPasswordPopupSheet: View {
                         .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
                         .clipShape(RoundedRectangle(cornerRadius: 10))
 
-                        CleanOutlineInput(
-                            label: "Código de 6 dígitos",
-                            placeholder: "000000",
-                            text: $verificationCode,
-                            keyboardType: .numberPad
-                        )
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Código de 6 dígitos")
+                                .font(.inter(13, weight: .regular))
+                                .foregroundColor(JuntoColors.textMain)
+                            WhatsAppSixDigitOTPView(code: $verificationCode)
+                        }
 
                         CleanOutlineSecureInput(
                             label: "Nova senha",
