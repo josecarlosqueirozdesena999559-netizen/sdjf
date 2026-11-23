@@ -226,7 +226,7 @@ struct JuntoIcon: View {
                 p.move(to: CGPoint(x: w*0.17, y: h*0.52))
                 p.addLine(to: CGPoint(x: w*0.42, y: h*0.76))
                 p.addLine(to: CGPoint(x: w*0.83, y: h*0.26))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .close:
             c.stroke(Path { p in
@@ -234,21 +234,21 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.78, y: h*0.78))
                 p.move(to: CGPoint(x: w*0.78, y: h*0.22))
                 p.addLine(to: CGPoint(x: w*0.22, y: h*0.78))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round))
 
         case .chevronRight:
             c.stroke(Path { p in
                 p.move(to: CGPoint(x: w*0.33, y: h*0.22))
                 p.addLine(to: CGPoint(x: w*0.67, y: h*0.5))
                 p.addLine(to: CGPoint(x: w*0.33, y: h*0.78))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .chevronLeft:
             c.stroke(Path { p in
                 p.move(to: CGPoint(x: w*0.67, y: h*0.22))
                 p.addLine(to: CGPoint(x: w*0.33, y: h*0.5))
                 p.addLine(to: CGPoint(x: w*0.67, y: h*0.78))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .send:
             // Avião de papel moderno
@@ -259,7 +259,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.14, y: h*0.5))
                 p.move(to: CGPoint(x: w*0.14, y: h*0.5))
                 p.addLine(to: CGPoint(x: w*0.56, y: h*0.5))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .edit:
             // Lápis
@@ -271,7 +271,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.14, y: h*0.86))
                 p.addLine(to: CGPoint(x: w*0.14, y: h*0.76))
                 p.addLine(to: CGPoint(x: w*0.72, y: h*0.14))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .trash:
             // Lixeira moderna
@@ -294,7 +294,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.42, y: h*0.74))
                 p.move(to: CGPoint(x: w*0.58, y: h*0.40))
                 p.addLine(to: CGPoint(x: w*0.58, y: h*0.74))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .search:
             let sr = s * 0.30
@@ -306,7 +306,7 @@ struct JuntoIcon: View {
                 let angle = CGFloat.pi * 0.75
                 p.move(to: CGPoint(x: scx + sr * cos(angle), y: scy + sr * sin(angle)))
                 p.addLine(to: CGPoint(x: w*0.82, y: h*0.82))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round))
 
         case .share:
             c.stroke(Path { p in
@@ -321,7 +321,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.20, y: h*0.86))
                 p.addLine(to: CGPoint(x: w*0.80, y: h*0.86))
                 p.addLine(to: CGPoint(x: w*0.80, y: h*0.68))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .link:
             c.stroke(Path { p in
@@ -336,7 +336,7 @@ struct JuntoIcon: View {
                 // Linha central
                 p.move(to: CGPoint(x: w*0.38, y: h*0.62))
                 p.addLine(to: CGPoint(x: w*0.62, y: h*0.38))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round))
 
         case .mic:
             // Microfone
@@ -355,7 +355,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.5, y: h*0.86))
                 p.move(to: CGPoint(x: w*0.33, y: h*0.86))
                 p.addLine(to: CGPoint(x: w*0.67, y: h*0.86))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round))
 
         case .camera:
             c.stroke(Path { p in
@@ -369,7 +369,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.67, y: h*0.30))
                 // Lente
                 p.addEllipse(in: CGRect(x: w*0.36, y: h*0.37, width: s*0.28, height: s*0.28))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .photo:
             c.stroke(Path { p in
@@ -381,7 +381,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.56, y: h*0.60))
                 p.addLine(to: CGPoint(x: w*0.70, y: h*0.50))
                 p.addLine(to: CGPoint(x: w*0.86, y: h*0.68))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
             c.stroke(Path { p in
                 p.addEllipse(in: CGRect(x: w*0.56, y: h*0.26, width: s*0.16, height: s*0.16))
             }, with: .foreground, lineWidth: weight)
@@ -401,7 +401,7 @@ struct JuntoIcon: View {
                 p.move(to: CGPoint(x: w*0.40, y: h*0.70))
                 p.addArc(center: CGPoint(x: w*0.5, y: h*0.70), radius: s*0.10,
                          startAngle: .degrees(180), endAngle: .degrees(0), clockwise: true)
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .bellOff:
             c.stroke(Path { p in
@@ -412,7 +412,7 @@ struct JuntoIcon: View {
                            control2: CGPoint(x: w*0.22, y: h*0.42))
                 p.move(to: CGPoint(x: w*0.14, y: h*0.14))
                 p.addLine(to: CGPoint(x: w*0.86, y: h*0.86))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round))
 
         case .eye:
             c.stroke(Path { p in
@@ -438,7 +438,7 @@ struct JuntoIcon: View {
                 p.addCurve(to: CGPoint(x: w*0.10, y: h*0.5),
                            control1: CGPoint(x: w*0.72, y: h*0.76),
                            control2: CGPoint(x: w*0.30, y: h*0.78))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round))
 
         case .info:
             c.stroke(Path { p in
@@ -457,7 +457,7 @@ struct JuntoIcon: View {
                 p.move(to: CGPoint(x: w*0.5, y: h*0.40))
                 p.addLine(to: CGPoint(x: w*0.5, y: h*0.62))
                 p.addEllipse(in: CGRect(x: w*0.44, y: h*0.70, width: s*0.12, height: s*0.12))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .qrCode:
             // QR Code minimalista (3 cantos + linhas de dados)
@@ -491,7 +491,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.86, y: h*0.58))
                 p.addLine(to: CGPoint(x: w*0.86, y: h*0.70))
                 p.addLine(to: CGPoint(x: w*0.14, y: h*0.70))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .shield:
             c.stroke(Path { p in
@@ -510,7 +510,7 @@ struct JuntoIcon: View {
                 p.move(to: CGPoint(x: w*0.33, y: h*0.52))
                 p.addLine(to: CGPoint(x: w*0.46, y: h*0.65))
                 p.addLine(to: CGPoint(x: w*0.68, y: h*0.40))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .shieldOff:
             c.stroke(Path { p in
@@ -528,7 +528,7 @@ struct JuntoIcon: View {
                 // Slash
                 p.move(to: CGPoint(x: w*0.30, y: h*0.30))
                 p.addLine(to: CGPoint(x: w*0.70, y: h*0.70))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .block:
             c.stroke(Path { p in
@@ -543,7 +543,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.82, y: h*0.5))
                 p.addLine(to: CGPoint(x: w*0.26, y: h*0.82))
                 p.closeSubpath()
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .pause:
             c.stroke(Path { p in
@@ -551,7 +551,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.33, y: h*0.78))
                 p.move(to: CGPoint(x: w*0.67, y: h*0.22))
                 p.addLine(to: CGPoint(x: w*0.67, y: h*0.78))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round))
 
         case .sparkle:
             // Estrela 4 pontas + pontos satélite
@@ -565,7 +565,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.14, y: h*0.5))
                 p.addLine(to: CGPoint(x: w*0.44, y: h*0.44))
                 p.closeSubpath()
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .ellipsis:
             for cx in [w*0.26, w*0.5, w*0.74] {
@@ -586,7 +586,7 @@ struct JuntoIcon: View {
                 p.move(to: CGPoint(x: w*0.26, y: h*0.36))
                 p.addLine(to: CGPoint(x: w*0.26, y: h*0.5))
                 p.addLine(to: CGPoint(x: w*0.40, y: h*0.5))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         // ═══════════════════════════════════════════════
         // FINANCEIRO / DINHEIRO
@@ -628,7 +628,7 @@ struct JuntoIcon: View {
                                  cornerSize: CGSize(width: s*0.05, height: s*0.05))
                 // Ponto no bolso
                 p.addEllipse(in: CGRect(x: w*0.69, y: h*0.60, width: s*0.08, height: s*0.08))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .coin:
             // Moeda com cifrão
@@ -641,7 +641,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.62, y: h*0.26))
                 p.move(to: CGPoint(x: w*0.38, y: h*0.74))
                 p.addLine(to: CGPoint(x: w*0.62, y: h*0.74))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round))
 
         case .chartPie:
             // Fatia de torta / pizza
@@ -651,7 +651,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.5, y: h*0.14))
                 p.move(to: CGPoint(x: w*0.5, y: h*0.5))
                 p.addLine(to: CGPoint(x: w*0.86, y: h*0.5))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round))
 
         case .chartBar:
             // Barras de gráfico crescendo
@@ -665,7 +665,7 @@ struct JuntoIcon: View {
                     p.addRoundedRect(in: CGRect(x: bx, y: by, width: w*0.14, height: h*heightFrac),
                                      cornerSize: CGSize(width: s*0.03, height: s*0.03))
                 }
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .dollarSign:
             // Cifrão R$ em círculo
@@ -678,7 +678,7 @@ struct JuntoIcon: View {
                          startAngle: .degrees(180), endAngle: .degrees(0), clockwise: false)
                 p.addLine(to: CGPoint(x: w*0.38, y: h*0.50))
                 p.addLine(to: CGPoint(x: w*0.62, y: h*0.62))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .receipt:
             // Recibo / comprovante
@@ -701,7 +701,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.67, y: h*0.50))
                 p.move(to: CGPoint(x: w*0.33, y: h*0.63))
                 p.addLine(to: CGPoint(x: w*0.56, y: h*0.63))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .splitBill:
             // Conta dividida (retângulo + linha central + 2 meias pessoas)
@@ -724,7 +724,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.80, y: h*0.40))
                 p.move(to: CGPoint(x: w*0.68, y: h*0.66))
                 p.addLine(to: CGPoint(x: w*0.80, y: h*0.66))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round))
 
         case .checkPaid:
             // Círculo com check duplo (confirmado/pago)
@@ -733,7 +733,7 @@ struct JuntoIcon: View {
                 p.move(to: CGPoint(x: w*0.26, y: h*0.52))
                 p.addLine(to: CGPoint(x: w*0.44, y: h*0.68))
                 p.addLine(to: CGPoint(x: w*0.74, y: h*0.36))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .alertSpend:
             // Raio (lightning bolt) = alerta de gasto
@@ -745,7 +745,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.70, y: h*0.46))
                 p.addLine(to: CGPoint(x: w*0.46, y: h*0.46))
                 p.closeSubpath()
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         // ═══════════════════════════════════════════════
         // CATEGORIAS
@@ -765,7 +765,7 @@ struct JuntoIcon: View {
                 // Estabilizadores traseiros
                 p.move(to: CGPoint(x: w*0.30, y: h*0.76))
                 p.addLine(to: CGPoint(x: w*0.70, y: h*0.76))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round))
 
         case .catBBQ:
             // Espeto de churrasco
@@ -779,7 +779,7 @@ struct JuntoIcon: View {
                     let cy = h*0.78 + (h*0.22 - h*0.78)*t
                     p.addEllipse(in: CGRect(x: cx - s*0.09, y: cy - s*0.09, width: s*0.18, height: s*0.18))
                 }
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round))
 
         case .catBar:
             // Caneca de chopp
@@ -800,7 +800,7 @@ struct JuntoIcon: View {
                 p.addCurve(to: CGPoint(x: w*0.66, y: h*0.22),
                            control1: CGPoint(x: w*0.56, y: h*0.14),
                            control2: CGPoint(x: w*0.62, y: h*0.14))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .catHome:
             // Casa com telhado triangular
@@ -817,7 +817,7 @@ struct JuntoIcon: View {
                 // Porta
                 p.addRoundedRect(in: CGRect(x: w*0.40, y: h*0.62, width: w*0.20, height: h*0.24),
                                  cornerSize: CGSize(width: s*0.04, height: s*0.04))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .catCouple:
             // Coração duplo estilizado
@@ -832,7 +832,7 @@ struct JuntoIcon: View {
                     p.addArc(center: CGPoint(x: w*0.5+ox + s*0.07, y: h*0.36), radius: s*0.14,
                              startAngle: .degrees(180), endAngle: .degrees(0), clockwise: true)
                 }
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round))
 
         case .catParty:
             // Balão de festa
@@ -849,7 +849,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.58, y: h*0.58))
                 p.addLine(to: CGPoint(x: w*0.5, y: h*0.68))
                 p.closeSubpath()
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .catSport:
             // Troféu
@@ -877,7 +877,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.70, y: h*0.84))
                 p.addLine(to: CGPoint(x: w*0.30, y: h*0.84))
                 p.closeSubpath()
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .catGift:
             // Caixinha de presente com laço
@@ -900,7 +900,7 @@ struct JuntoIcon: View {
                 p.addCurve(to: CGPoint(x: w*0.5, y: h*0.36),
                            control1: CGPoint(x: w*0.74, y: h*0.14),
                            control2: CGPoint(x: w*0.74, y: h*0.36))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .catWork:
             // Maleta / briefcase
@@ -916,7 +916,7 @@ struct JuntoIcon: View {
                 // Divisor central
                 p.move(to: CGPoint(x: w*0.10, y: h*0.58))
                 p.addLine(to: CGPoint(x: w*0.90, y: h*0.58))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         // ═══════════════════════════════════════════════
         // CONTA / PERFIL
@@ -935,7 +935,7 @@ struct JuntoIcon: View {
                 p.addCurve(to: CGPoint(x: w/2+bW/2, y: bY+bH),
                            control1: CGPoint(x: w/2-bW/2, y: bY),
                            control2: CGPoint(x: w/2+bW/2, y: bY))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round))
 
         case .personGroup:
             // Igual ao tabGroups mas com tamanho normal
@@ -952,7 +952,7 @@ struct JuntoIcon: View {
                     p.addCurve(to: CGPoint(x: cx+bW/2, y: bY+bH),
                                control1: CGPoint(x: cx-bW/2, y: bY),
                                control2: CGPoint(x: cx+bW/2, y: bY))
-                }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round))
+                }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round))
             }
 
         case .lock:
@@ -964,7 +964,7 @@ struct JuntoIcon: View {
                          startAngle: .degrees(180), endAngle: .degrees(0), clockwise: true)
                 p.addLine(to: CGPoint(x: w*0.66, y: h*0.44))
                 p.addEllipse(in: CGRect(x: w*0.44, y: h*0.58, width: s*0.12, height: s*0.12))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .docText:
             c.stroke(Path { p in
@@ -985,7 +985,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.67, y: h*0.56))
                 p.move(to: CGPoint(x: w*0.33, y: h*0.68))
                 p.addLine(to: CGPoint(x: w*0.56, y: h*0.68))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .logout:
             // Seta saindo de porta
@@ -1001,7 +1001,7 @@ struct JuntoIcon: View {
                 p.move(to: CGPoint(x: w*0.66, y: h*0.36))
                 p.addLine(to: CGPoint(x: w*0.82, y: h*0.5))
                 p.addLine(to: CGPoint(x: w*0.66, y: h*0.64))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
 
         case .inviteQR:
             // QR + seta compartilhamento
@@ -1024,7 +1024,7 @@ struct JuntoIcon: View {
                 p.move(to: CGPoint(x: w*0.63, y: h*0.65))
                 p.addLine(to: CGPoint(x: w*0.71, y: h*0.57))
                 p.addLine(to: CGPoint(x: w*0.79, y: h*0.65))
-            }, with: .foreground, lineWidth: weight - 0.4, style: StrokeStyle(lineWidth: weight - 0.4, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight - 0.4, lineCap: .round, lineJoin: .round))
 
         case .inviteFriends:
             // Pessoa + seta apontando para ela
@@ -1040,7 +1040,7 @@ struct JuntoIcon: View {
                 p.addCurve(to: CGPoint(x: w*0.38+bW/2, y: bY+bH),
                            control1: CGPoint(x: w*0.38-bW/2, y: bY),
                            control2: CGPoint(x: w*0.38+bW/2, y: bY))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round))
             // Seta de convite
             c.stroke(Path { p in
                 p.move(to: CGPoint(x: w*0.72, y: h*0.36))
@@ -1048,7 +1048,7 @@ struct JuntoIcon: View {
                 p.addLine(to: CGPoint(x: w*0.72, y: h*0.64))
                 p.move(to: CGPoint(x: w*0.56, y: h*0.50))
                 p.addLine(to: CGPoint(x: w*0.86, y: h*0.50))
-            }, with: .foreground, lineWidth: weight, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
+            }, with: .foreground, style: StrokeStyle(lineWidth: weight, lineCap: .round, lineJoin: .round))
         }
     }
 }

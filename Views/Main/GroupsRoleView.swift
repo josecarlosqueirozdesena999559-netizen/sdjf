@@ -1181,6 +1181,14 @@ struct OrganizerPixPaymentSheet: View {
     @State private var selectedTab: PixTab = .qrCode
     @State private var copiedKey = false
     @State private var copiedPayload = false
+    @State private var timeRemaining = 300 // 5 minutos = 300 segundos
+    @State private var timer: Timer? = nil
+
+    private var formattedTime: String {
+        let mins = timeRemaining / 60
+        let secs = timeRemaining % 60
+        return String(format: "%02d:%02d", mins, secs)
+    }
 
     private var pixPayload: String {
         let formattedValue = String(format: "%.2f", amount)
@@ -1199,29 +1207,65 @@ struct OrganizerPixPaymentSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 14) {
             // Cabeçalho
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Pagar via Pix")
-                        .font(.inter(18, weight: .medium))
-                        .foregroundColor(JuntoColors.textMain)
-                    Text("\(title) · Organizador: \(organizerName)")
+                    HStack(spacing: 6) {
+                        Text("Pagar via Pix")
+                            .font(.inter(18, weight: .medium))
+                            .foregroundColor(JuntoColors.textMain)
+                        Text("Manual")
+                            .font(.inter(10, weight: .semibold))
+                            .foregroundColor(JuntoColors.primary)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(JuntoColors.primaryLight)
+                            .clipShape(Capsule())
+                    }
+                    Text("\(title) · Destinatário: \(organizerName)")
                         .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                         .lineLimit(1)
                 }
                 Spacer()
                 Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(JuntoColors.textMuted)
+                    JuntoIcon(kind: .close, size: 12, color: JuntoColors.textMuted, weight: 2.0)
                         .frame(width: 32, height: 32)
                         .background(JuntoColors.surfaceSubtle)
                         .clipShape(Circle())
                 }
             }
-            .padding(.top, 20)
+            .padding(.top, 18)
+
+            // Banner de validade de 5 minutos
+            HStack(spacing: 8) {
+                Circle()
+                    .fill(timeRemaining > 60 ? JuntoColors.pixGreen : JuntoColors.danger)
+                    .frame(width: 8, height: 8)
+
+                if timeRemaining > 0 {
+                    Text("Pix válido por 5 minutos • Expira em")
+                        .font(.inter(12, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+
+                    Text(formattedTime)
+                        .font(.inter(12, weight: .bold))
+                        .foregroundColor(timeRemaining > 60 ? JuntoColors.textMain : JuntoColors.danger)
+                        .monospacedDigit()
+                } else {
+                    Text("Tempo de 5 minutos expirado. Gere novamente se necessário.")
+                        .font(.inter(12, weight: .medium))
+                        .foregroundColor(JuntoColors.danger)
+                }
+
+                Spacer()
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color.white)
+            .overlay(RoundedRectangle(cornerRadius: 8).stroke(JuntoColors.border, lineWidth: 0.8))
+            .clipShape(RoundedRectangle(cornerRadius: 8))
 
             // Valor em destaque
             HStack {
@@ -1263,7 +1307,11 @@ struct OrganizerPixPaymentSheet: View {
 
             // Conteúdo da aba selecionada
             if selectedTab == .qrCode {
-                VStack(spacing: 12) {
+                VStack(spacing: 10) {
+                    Text("Aponte a câmera do celular ou leitor Pix do seu banco")
+                        .font(.inter(12, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+
                     if let qrImg = generateQRCodeImage(from: pixPayload) {
                         Image(uiImage: qrImg)
                             .interpolation(.none)
@@ -1279,11 +1327,11 @@ struct OrganizerPixPaymentSheet: View {
                     Button {
                         UIPasteboard.general.string = pixPayload
                         copiedPayload = true
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedPayload = false }
                     } label: {
                         HStack(spacing: 6) {
-                            Image(systemName: copiedPayload ? "checkmark" : "doc.on.doc")
-                                .font(.system(size: 13))
+                            JuntoIcon(kind: copiedPayload ? .checkmark : .receipt, size: 14, color: JuntoColors.primary, weight: 2.0)
                             Text(copiedPayload ? "Código Pix copiado!" : "Copiar código Pix Copia e Cola")
                                 .font(.inter(13, weight: .medium))
                         }
@@ -1291,11 +1339,11 @@ struct OrganizerPixPaymentSheet: View {
                     }
                 }
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, 6)
+                .padding(.vertical, 4)
             } else {
-                VStack(alignment: .leading, spacing: 12) {
+                VStack(alignment: .leading, spacing: 10) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Chave Pix do organizador (\(organizerName))")
+                        Text("Chave Pix de \(organizerName)")
                             .font(.inter(12, weight: .regular))
                             .foregroundColor(JuntoColors.textMuted)
                         Text(organizerPixKey)
@@ -1316,19 +1364,20 @@ struct OrganizerPixPaymentSheet: View {
                     ) {
                         UIPasteboard.general.string = organizerPixKey
                         copiedKey = true
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedKey = false }
                     }
 
-                    Text("Faça o Pix pelo app do seu banco e depois toque em \"Marcar como pago\" abaixo para o dono do grupo conferir.")
+                    Text("Abra o app do seu banco, transfira o valor exato e depois toque em \"Marcar como pago\" abaixo para notificar o destinatário.")
                         .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                 }
-                .padding(.vertical, 6)
+                .padding(.vertical, 4)
             }
 
             Spacer(minLength: 4)
 
-            // Botão final: Marcar como pago (o dono do grupo confere e confirma)
+            // Botão final: Marcar como pago (confirmação manual de envio do Pix)
             JuntoPillButton(
                 title: "Marcar como pago",
                 icon: "checkmark.circle",
@@ -1341,6 +1390,20 @@ struct OrganizerPixPaymentSheet: View {
         }
         .padding(.horizontal, 20)
         .background(JuntoColors.warmBg.ignoresSafeArea())
+        .onAppear {
+            timeRemaining = 300
+            timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in
+                if timeRemaining > 0 {
+                    timeRemaining -= 1
+                } else {
+                    timer?.invalidate()
+                }
+            }
+        }
+        .onDisappear {
+            timer?.invalidate()
+        }
+    }
     }
 }
 
