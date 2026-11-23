@@ -114,6 +114,7 @@ enum ChatMessageKind: Hashable {
     case photo(Data?, String)
     case audio(duration: Int, waveform: [Double], fileURL: URL?)
     case document(String, String)
+    case system(String)
 }
 
 struct ChatMessage: Identifiable, Hashable {
@@ -125,6 +126,20 @@ struct ChatMessage: Identifiable, Hashable {
     var isEdited: Bool = false
     var isListened: Bool = false
     var status: MessageDeliveryStatus = .sent
+    var senderName: String? = nil
+    var senderUsername: String? = nil
+    var replyToAuthor: String? = nil
+    var replyToPreview: String? = nil
+
+    var previewText: String {
+        switch kind {
+        case .text(let txt): return txt
+        case .photo(_, let caption): return caption.isEmpty ? "Foto" : "Foto: \(caption)"
+        case .audio(let secs, _, _): return "Áudio (0:\(String(format: "%02d", secs)))"
+        case .document(let name, _): return "Documento: \(name)"
+        case .system(let info): return info
+        }
+    }
 }
 
 struct FriendItem: Identifiable {

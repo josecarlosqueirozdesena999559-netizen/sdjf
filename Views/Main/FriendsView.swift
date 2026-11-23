@@ -6,6 +6,7 @@ struct FriendsView: View {
 
     @State private var showAddFriendScreen = false
     @State private var selectedChatFriend: FriendItem? = nil
+    @State private var selectedGroupChatId: UUID? = nil
     @State private var searchText = ""
 
     /// Na tela inicial aparecem SOMENTE amigos que te devem ou a quem você deve (balance != 0)
@@ -15,6 +16,15 @@ struct FriendsView: View {
         return withDebt.filter {
             $0.name.localizedCaseInsensitiveContains(searchText) ||
             $0.username.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    /// Conversas automáticas de todos os grupos criados (desaparecem automaticamente ao excluir o grupo)
+    private var activeGroupChats: [RoleGroup] {
+        if searchText.isEmpty { return store.groups }
+        return store.groups.filter {
+            $0.title.localizedCaseInsensitiveContains(searchText) ||
+            $0.category.localizedCaseInsensitiveContains(searchText)
         }
     }
 
@@ -101,7 +111,7 @@ struct FriendsView: View {
 
             Divider().opacity(0.6)
 
-            if activeDebtFriends.isEmpty {
+            if activeDebtFriends.isEmpty && activeGroupChats.isEmpty {
                 Spacer()
                 VStack(spacing: 14) {
                     if searchText.isEmpty {
@@ -139,8 +149,52 @@ struct FriendsView: View {
                 Spacer()
                 Spacer().frame(height: 110)
             } else {
-                // Lista estilo WhatsApp com swipe para "Apagar conversa"
+                // Lista estilo WhatsApp: Conversas de Grupos (automáticas) + Amigos com saldo ativo
                 List {
+                    ForEach(activeGroupChats) { group in
+                        Button {
+                            selectedGroupChatId = group.id
+                        } label: {
+                            HStack(spacing: 14) {
+                                Group {
+                                    if let data = group.coverImageData, let uiImg = UIImage(data: data) {
+                                        Image(uiImage: uiImg).resizable().scaledToFill()
+                                    } else {
+                                        Image(group.coverImageName).resizable().scaledToFill()
+                                    }
+                                }
+                                .frame(width: 50, height: 50)
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    HStack(spacing: 5) {
+                                        Text(group.title)
+                                            .font(.inter(15, weight: .medium))
+                                            .foregroundColor(JuntoColors.textMain)
+                                            .lineLimit(1)
+                                        Text("· \(group.participants.count)")
+                                            .font(.inter(12, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                    }
+
+                                    Text(store.lastGroupMessagePreview(for: group.id))
+                                        .font(.inter(13, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                        .lineLimit(1)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "person.2")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(JuntoColors.textLight)
+                            }
+                            .padding(.vertical, 6)
+                        }
+                        .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+                        .listRowBackground(Color.white)
+                    }
+
                     ForEach(activeDebtFriends) { friend in
                         Button {
                             selectedChatFriend = friend
@@ -225,6 +279,15 @@ struct FriendsView: View {
         .fullScreenCover(item: $selectedChatFriend) { friend in
             FriendChatScreen(friend: friend)
                 .environmentObject(store)
+        }
+        .fullScreenCover(isPresented: Binding(
+            get: { selectedGroupChatId != nil },
+            set: { if !$0 { selectedGroupChatId = nil } }
+        )) {
+            if let gid = selectedGroupChatId {
+                GroupChatScreen(groupId: gid)
+                    .environmentObject(store)
+            }
         }
     }
 }

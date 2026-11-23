@@ -75,6 +75,37 @@ final class JuntoStore: ObservableObject {
         ]
     ]
 
+    /// Conversas automáticas de cada grupo (todo o histórico fica disponível para novos membros e é apagado ao excluir o grupo)
+    @Published var groupChatMessages: [UUID: [ChatMessage]] = [:]
+
+    init() {
+        if groups.indices.contains(0) {
+            let g0 = groups[0]
+            groupChatMessages[g0.id] = [
+                ChatMessage(isFromMe: false, kind: .system("Grupo criado por Você com \(g0.participants.count) participantes"), timeText: "10:00", dateLabel: "Ontem"),
+                ChatMessage(isFromMe: false, kind: .text("Pessoal, já reservei a casa em Ubatuba! Quem puder já vai mandando a cota no Pix."), timeText: "10:12", dateLabel: "Ontem", status: .read, senderName: "Pedro Santos", senderUsername: "pedro.santos"),
+                ChatMessage(isFromMe: false, kind: .text("Acabei de mandar a minha parte! Mal posso esperar 🙌"), timeText: "11:05", dateLabel: "Ontem", status: .read, senderName: "Camila Rocha", senderUsername: "camila.rocha"),
+                ChatMessage(isFromMe: true, kind: .text("Recebido Camila! Já confirmei lá no Pote."), timeText: "11:18", dateLabel: "Ontem", status: .read, replyToAuthor: "Camila Rocha", replyToPreview: "Acabei de mandar a minha parte! Mal posso esperar 🙌"),
+                ChatMessage(isFromMe: false, kind: .text("Vou passar no mercado hoje pra pegar bebidas e gelo."), timeText: "09:30", dateLabel: "Hoje", status: .read, senderName: "Matheus Alves", senderUsername: "matheus.alves")
+            ]
+        }
+        if groups.indices.contains(1) {
+            let g1 = groups[1]
+            groupChatMessages[g1.id] = [
+                ChatMessage(isFromMe: false, kind: .system("Grupo criado por Você com \(g1.participants.count) participantes"), timeText: "14:00", dateLabel: "Ontem"),
+                ChatMessage(isFromMe: false, kind: .text("Fechei a picanha e o carvão, ficou R$ 75 por pessoa."), timeText: "14:15", dateLabel: "Ontem", status: .read, senderName: "Pedro Santos", senderUsername: "pedro.santos"),
+                ChatMessage(isFromMe: false, kind: .text("Perfeito! Já fiz o Pix agora há pouco."), timeText: "08:50", dateLabel: "Hoje", status: .read, senderName: "Camila Rocha", senderUsername: "camila.rocha")
+            ]
+        }
+        if groups.indices.contains(2) {
+            let g2 = groups[2]
+            groupChatMessages[g2.id] = [
+                ChatMessage(isFromMe: false, kind: .system("Grupo criado por Você com \(g2.participants.count) participantes"), timeText: "09:00", dateLabel: "Ontem"),
+                ChatMessage(isFromMe: false, kind: .text("A fatura da internet chegou, já lancei nas despesas do mês."), timeText: "09:15", dateLabel: "Hoje", status: .read, senderName: "Beatriz Lima", senderUsername: "bia.lima")
+            ]
+        }
+    }
+
     @Published var groups: [RoleGroup] = [
         RoleGroup(
             title: "Viagem Ubatuba",
@@ -325,12 +356,57 @@ final class JuntoStore: ObservableObject {
         guard let last = messages(for: username).last else {
             return "Sem mensagens"
         }
-        switch last.kind {
-        case .text(let txt): return txt
-        case .photo(_, let caption): return caption.isEmpty ? "Foto" : "Foto: \(caption)"
-        case .audio(let secs, _, _): return "Áudio (0:\(String(format: "%02d", secs)))"
-        case .document(let name, _): return "Documento: \(name)"
+        return last.previewText
+    }
+
+    // MARK: - Chat de Grupo (histórico completo para todos os membros + respostas)
+    func groupMessages(for groupId: UUID) -> [ChatMessage] {
+        groupChatMessages[groupId] ?? []
+    }
+
+    func lastGroupMessagePreview(for groupId: UUID) -> String {
+        guard let last = groupMessages(for: groupId).last else {
+            return "Conversa do grupo criada"
         }
+        if case .system(let txt) = last.kind { return txt }
+        let prefix = last.isFromMe ? "Você: " : ((last.senderName?.split(separator: " ").first.map(String.init) ?? "") + ": ")
+        return "\(prefix)\(last.previewText)"
+    }
+
+    func sendGroupChatMessage(
+        groupId: UUID,
+        kind: ChatMessageKind,
+        replyToAuthor: String? = nil,
+        replyToPreview: String? = nil
+    ) {
+        let msg = ChatMessage(
+            isFromMe: true,
+            kind: kind,
+            timeText: currentTimeString(),
+            status: .read,
+            senderName: user.fullName,
+            senderUsername: user.username,
+            replyToAuthor: replyToAuthor,
+            replyToPreview: replyToPreview
+        )
+        groupChatMessages[groupId, default: []].append(msg)
+    }
+
+    func editGroupChatMessage(groupId: UUID, messageId: UUID, newText: String) {
+        let clean = newText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !clean.isEmpty else { return }
+        guard let idx = groupChatMessages[groupId]?.firstIndex(where: { $0.id == messageId }) else { return }
+        groupChatMessages[groupId]?[idx].kind = .text(clean)
+        groupChatMessages[groupId]?[idx].isEdited = true
+    }
+
+    func deleteGroupChatMessage(groupId: UUID, messageId: UUID) {
+        groupChatMessages[groupId]?.removeAll { $0.id == messageId }
+    }
+
+    func markGroupAudioListened(groupId: UUID, messageId: UUID) {
+        guard let idx = groupChatMessages[groupId]?.firstIndex(where: { $0.id == messageId }) else { return }
+        groupChatMessages[groupId]?[idx].isListened = true
     }
 
     private func currentTimeString() -> String {
@@ -339,9 +415,21 @@ final class JuntoStore: ObservableObject {
         return f.string(from: Date())
     }
 
-    func sendChatMessage(to username: String, kind: ChatMessageKind) {
+    func sendChatMessage(
+        to username: String,
+        kind: ChatMessageKind,
+        replyToAuthor: String? = nil,
+        replyToPreview: String? = nil
+    ) {
         let key = username.lowercased()
-        let msg = ChatMessage(isFromMe: true, kind: kind, timeText: currentTimeString(), status: .sent)
+        let msg = ChatMessage(
+            isFromMe: true,
+            kind: kind,
+            timeText: currentTimeString(),
+            status: .sent,
+            replyToAuthor: replyToAuthor,
+            replyToPreview: replyToPreview
+        )
         let msgId = msg.id
         chatMessages[key, default: []].append(msg)
 
@@ -800,6 +888,15 @@ final class JuntoStore: ObservableObject {
             }
         }
 
+        // Registra entrada no chat do grupo (novo membro puxa automaticamente todo o histórico)
+        groupChatMessages[groupId, default: []].append(
+            ChatMessage(
+                isFromMe: false,
+                kind: .system("\(displayName) entrou no grupo"),
+                timeText: currentTimeString()
+            )
+        )
+
         activities.insert(
             ActivityEvent(
                 icon: "person.badge.plus",
@@ -872,6 +969,15 @@ final class JuntoStore: ObservableObject {
 
         groups.insert(newGroup, at: 0)
 
+        // Cria automaticamente a conversa em grupo com todos os membros
+        groupChatMessages[newGroup.id] = [
+            ChatMessage(
+                isFromMe: false,
+                kind: .system("Grupo \"\(cleanTitle)\" criado com \(totalPeopleCount) participante(s)."),
+                timeText: currentTimeString()
+            )
+        ]
+
         let subtitleText = (hasPot && quotaPerPerson > 0)
             ? "\(category) • \(Self.formatBRL(quotaPerPerson)) p/ cada (\(totalPeopleCount) pessoas)"
             : "\(category) • \(totalPeopleCount) participante(s)"
@@ -888,6 +994,26 @@ final class JuntoStore: ObservableObject {
             at: 0
         )
         showToast("Grupo \"\(cleanTitle)\" criado e cotas distribuídas!", icon: "checkmark.circle")
+    }
+
+    /// Exclui o grupo e apaga automaticamente toda a conversa em grupo
+    func deleteGroup(groupId: UUID) {
+        guard let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
+        let title = groups[idx].title
+        groups.remove(at: idx)
+        groupChatMessages.removeValue(forKey: groupId)
+        activities.insert(
+            ActivityEvent(
+                icon: "trash",
+                title: "Grupo \"\(title)\" excluído",
+                subtitle: "Conversa e histórico apagados",
+                timeAgo: "Agora",
+                amountText: nil,
+                isPositive: false
+            ),
+            at: 0
+        )
+        showToast("Grupo \"\(title)\" e sua conversa foram excluídos.", icon: "trash")
     }
 
     /// Paga a cota de um participante no Pote Coletivo (atualiza saldo e status automaticamente)

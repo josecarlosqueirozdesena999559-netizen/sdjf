@@ -667,6 +667,8 @@ struct GroupDetailSheet: View {
     @State private var showAddMemberScreen = false
     @State private var selectedParticipantForAction: GroupParticipant? = nil
     @State private var pendingPaymentSheet: GroupPaymentRequest? = nil
+    @State private var showGroupChat = false
+    @State private var showDeleteGroupConfirm = false
 
     struct GroupPaymentRequest: Identifiable {
         let id = UUID()
@@ -695,7 +697,7 @@ struct GroupDetailSheet: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
-                    // Topo
+                    // Topo (Fechar | Nome do Grupo | Chat do Grupo)
                     HStack {
                         CircleNavButton(icon: "xmark") { dismiss() }
                         Spacer()
@@ -704,7 +706,9 @@ struct GroupDetailSheet: View {
                             .foregroundColor(JuntoColors.textMain)
                             .lineLimit(1)
                         Spacer()
-                        Spacer().frame(width: 44)
+                        CircleNavButton(icon: "bubble.left.and.bubble.right", bgColor: JuntoColors.primary, fgColor: .white) {
+                            showGroupChat = true
+                        }
                     }
                     .padding(.top, 16)
 
@@ -1075,11 +1079,46 @@ struct GroupDetailSheet: View {
                             }
                         }
                     }
+                    // Botão Excluir Grupo (exclusivo para o dono; apaga o grupo e a conversa automaticamente)
+                    if store.isCurrentUserOwner(in: group) {
+                        Button {
+                            showDeleteGroupConfirm = true
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "trash")
+                                    .font(.system(size: 16, weight: .regular))
+                                Text("Excluir grupo")
+                                    .font(.inter(15, weight: .medium))
+                            }
+                            .foregroundColor(JuntoColors.danger)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 48)
+                            .background(Color.white)
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                        .padding(.top, 6)
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 30)
             }
             .background(Color.white)
+            .fullScreenCover(isPresented: $showGroupChat) {
+                GroupChatScreen(groupId: groupId)
+                    .environmentObject(store)
+            }
+            .alert("Excluir \"\(group.title)\"?", isPresented: $showDeleteGroupConfirm) {
+                Button("Cancelar", role: .cancel) {}
+                Button("Excluir grupo", role: .destructive) {
+                    dismiss()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
+                        store.deleteGroup(groupId: groupId)
+                    }
+                }
+            } message: {
+                Text("Ao excluir este grupo, todas as cotas e toda a conversa em grupo serão apagadas permanentemente.")
+            }
             .fullScreenCover(isPresented: $showAddMemberScreen) {
                 AddGroupMemberScreen(groupId: groupId)
                     .environmentObject(store)

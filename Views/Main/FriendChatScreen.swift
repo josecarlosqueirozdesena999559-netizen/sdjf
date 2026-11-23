@@ -10,6 +10,7 @@ struct FriendChatScreen: View {
 
     @State private var inputText = ""
     @State private var editingMessageId: UUID? = nil
+    @State private var replyingToMessage: ChatMessage? = nil
     @State private var showAttachmentMenu = false
     @State private var showPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
@@ -101,9 +102,17 @@ struct FriendChatScreen: View {
                                         chatBubble(msg)
                                             .id(msg.id)
                                             .contextMenu {
+                                                Button {
+                                                    withAnimation(.easeInOut(duration: 0.16)) {
+                                                        replyingToMessage = msg
+                                                    }
+                                                } label: {
+                                                    Label("Responder", systemImage: "arrowshape.turn.up.left")
+                                                }
                                                 if msg.isFromMe, case .text(let original) = msg.kind {
                                                     Button {
                                                         editingMessageId = msg.id
+                                                        replyingToMessage = nil
                                                         inputText = original
                                                     } label: {
                                                         Label("Editar mensagem", systemImage: "pencil")
@@ -141,8 +150,39 @@ struct FriendChatScreen: View {
                 }
             }
 
-            // Banner discreto de edição de mensagem
-            if editingMessageId != nil {
+            // Banner de Resposta (Reply) ou Edição de mensagem
+            if let replyMsg = replyingToMessage {
+                let author = replyMsg.isFromMe ? "Você" : currentFriend.name
+                HStack(spacing: 10) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(JuntoColors.primary)
+                        .frame(width: 3.5, height: 34)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Respondendo a \(author)")
+                            .font(.inter(12, weight: .medium))
+                            .foregroundColor(JuntoColors.primary)
+                        Text(replyMsg.previewText)
+                            .font(.inter(12, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .lineLimit(1)
+                    }
+
+                    Spacer()
+
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.15)) { replyingToMessage = nil }
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(JuntoColors.textMuted)
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Color.white)
+                .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.7), alignment: .top)
+            } else if editingMessageId != nil {
                 HStack(spacing: 8) {
                     Image(systemName: "pencil")
                         .font(.system(size: 13))
@@ -281,7 +321,15 @@ struct FriendChatScreen: View {
                                 store.editChatMessage(username: friend.username, messageId: editId, newText: text)
                                 editingMessageId = nil
                             } else {
-                                store.sendChatMessage(to: friend.username, kind: .text(text))
+                                let rAuthor = replyingToMessage.map { $0.isFromMe ? "Você" : currentFriend.name }
+                                let rPreview = replyingToMessage?.previewText
+                                replyingToMessage = nil
+                                store.sendChatMessage(
+                                    to: friend.username,
+                                    kind: .text(text),
+                                    replyToAuthor: rAuthor,
+                                    replyToPreview: rPreview
+                                )
                             }
                         } label: {
                             Image(systemName: editingMessageId != nil ? "checkmark" : "paperplane.fill")
@@ -377,6 +425,30 @@ struct FriendChatScreen: View {
             if msg.isFromMe { Spacer(minLength: 48) }
 
             VStack(alignment: .trailing, spacing: 4) {
+                // Citação da mensagem respondida (Reply)
+                if let replyAuthor = msg.replyToAuthor, let replyPreview = msg.replyToPreview {
+                    HStack(spacing: 8) {
+                        RoundedRectangle(cornerRadius: 1.5)
+                            .fill(msg.isFromMe ? JuntoColors.accent : JuntoColors.primary)
+                            .frame(width: 3)
+
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(replyAuthor)
+                                .font(.inter(11, weight: .medium))
+                                .foregroundColor(msg.isFromMe ? JuntoColors.accent : JuntoColors.primary)
+                            Text(replyPreview)
+                                .font(.inter(11, weight: .regular))
+                                .foregroundColor(msg.isFromMe ? .white.opacity(0.78) : JuntoColors.textMuted)
+                                .lineLimit(2)
+                        }
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 6)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(msg.isFromMe ? Color.white.opacity(0.10) : JuntoColors.surfaceSubtle)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                }
+
                 switch msg.kind {
                 case .text(let txt):
                     Text(txt)
@@ -463,6 +535,11 @@ struct FriendChatScreen: View {
                                 .foregroundColor(msg.isFromMe ? .white.opacity(0.75) : JuntoColors.textMuted)
                         }
                     }
+
+                case .system(let info):
+                    Text(info)
+                        .font(.inter(12, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
                 }
 
                 HStack(spacing: 4) {
