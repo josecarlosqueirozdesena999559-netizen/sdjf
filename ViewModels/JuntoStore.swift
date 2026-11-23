@@ -193,7 +193,34 @@ final class JuntoStore: ObservableObject {
         AppNotification(icon: "person.2", title: "Pote Coletivo atualizado", message: "Camila adicionou R$ 150,00 na Viagem Ubatuba.", timeAgo: "1h", isUnread: false)
     ]
 
-    @Published var blockedUsernames: [String] = []
+    @Published var blockedUsers: [BlockedUserEntry] = [
+        BlockedUserEntry(name: "Diego Ferreira", username: "diego.ferreira")
+    ]
+
+    @Published var connectedDevices: [ConnectedDeviceSession] = [
+        ConnectedDeviceSession(
+            deviceName: UIDevice.current.name,
+            systemInfo: "\(UIDevice.current.systemName) \(UIDevice.current.systemVersion)",
+            locationText: "Brasil",
+            lastActiveText: "Ativo agora",
+            isCurrentDevice: true
+        ),
+        ConnectedDeviceSession(
+            deviceName: "iPhone 15 Pro",
+            systemInfo: "iOS 18.2",
+            locationText: "São Paulo, BR",
+            lastActiveText: "Ativo há 14 min",
+            isCurrentDevice: false
+        ),
+        ConnectedDeviceSession(
+            deviceName: "iPad Air",
+            systemInfo: "iPadOS 18.1",
+            locationText: "Natal, BR",
+            lastActiveText: "Ativo ontem às 21:30",
+            isCurrentDevice: false
+        )
+    ]
+
     @Published var activePixSheet: PixChargeSheetData? = nil
     @Published var showAddExpenseSheet: Bool = false
 
@@ -430,13 +457,17 @@ final class JuntoStore: ObservableObject {
     /// Bloqueia o usuário e automaticamente desfaz a amizade
     func blockAndUnfriend(username raw: String) {
         let clean = raw.lowercased().replacingOccurrences(of: "@", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        let knownName = friends.first(where: { $0.username.lowercased() == clean })?.name
+            ?? directoryUsers.first(where: { $0.username.lowercased() == clean })?.name
+            ?? clean.split(separator: ".").map { $0.capitalized }.joined(separator: " ")
+
         friends.removeAll { $0.username.lowercased() == clean }
         sentInviteUsernames.remove(clean)
         chatMessages[clean] = nil
-        if !blockedUsernames.contains(clean) {
-            blockedUsernames.insert(clean, at: 0)
+        if !blockedUsers.contains(where: { $0.username.lowercased() == clean }) {
+            blockedUsers.insert(BlockedUserEntry(name: knownName, username: clean), at: 0)
         }
-        showToast("@\(clean) bloqueado e amizade desfeita.", icon: "hand.raised")
+        showToast("\(knownName) bloqueado e amizade desfeita.", icon: "nosign")
     }
 
     /// Silencia ou ativa notificações de um amigo
@@ -503,8 +534,8 @@ final class JuntoStore: ObservableObject {
             return
         }
 
-        if blockedUsernames.contains(clean) {
-            showToast("Este usuário está bloqueado.", icon: "hand.raised")
+        if blockedUsers.contains(where: { $0.username.lowercased() == clean }) {
+            showToast("Este usuário está bloqueado.", icon: "nosign")
             return
         }
 
@@ -877,22 +908,21 @@ final class JuntoStore: ObservableObject {
         for i in notifications.indices { notifications[i].isUnread = false }
     }
 
-    func blockUser(_ raw: String) {
-        let clean = raw.lowercased().replacingOccurrences(of: "@", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
-        guard clean.count >= 2 else { return }
-        if !blockedUsernames.contains(clean) {
-            blockedUsernames.insert(clean, at: 0)
-            showToast("@\(clean) adicionado à lista de bloqueios.", icon: "hand.raised")
-        }
+    func unblockUser(_ username: String) {
+        let clean = username.lowercased()
+        blockedUsers.removeAll { $0.username.lowercased() == clean }
+        showToast("@\(clean) desbloqueado.", icon: "checkmark.circle")
     }
 
-    func unblockUser(_ username: String) {
-        blockedUsernames.removeAll { $0 == username }
-        showToast("@\(username) removido dos bloqueios.", icon: "checkmark.circle")
+    func disconnectDevice(_ sessionId: UUID) {
+        guard let item = connectedDevices.first(where: { $0.id == sessionId }), !item.isCurrentDevice else { return }
+        connectedDevices.removeAll { $0.id == sessionId }
+        showToast("\(item.deviceName) desconectado.", icon: "lock.shield")
     }
 
     func disconnectAllDevices() {
-        showToast("Todas as outras sessões foram desconectadas.", icon: "lock.shield")
+        connectedDevices.removeAll { !$0.isCurrentDevice }
+        showToast("Todos os outros dispositivos foram desconectados.", icon: "lock.shield")
     }
 
     func deleteAccountPermanently() {

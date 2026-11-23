@@ -5,8 +5,7 @@ struct AccountView: View {
     @EnvironmentObject var store: JuntoStore
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var showAccountSettings = false
-    @State private var showBlockedSheet = false
-    @State private var showDisconnectAlert = false
+    @State private var showSecurityPrivacy = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -19,7 +18,7 @@ struct AccountView: View {
                         .padding(.top, 16)
                         .padding(.bottom, 18)
 
-                    // Perfil: Avatar circular geométrico + Câmera + Nome/Email + "Editar" esmeralda
+                    // Perfil: Avatar + Câmera + Nome/Email + "Editar"
                     HStack(spacing: 14) {
                         ZStack(alignment: .bottomTrailing) {
                             GeometricAvatarView(seed: store.user.username, displayName: store.user.fullName, avatarData: store.user.avatarData, size: 64)
@@ -48,7 +47,7 @@ struct AccountView: View {
                                 .font(.inter(16, weight: .regular))
                                 .foregroundColor(JuntoColors.textMain)
                                 .lineLimit(1)
-                            Text(store.user.email)
+                            Text("@\(store.user.username)")
                                 .font(.inter(13, weight: .regular))
                                 .foregroundColor(JuntoColors.textMuted)
                                 .lineLimit(1)
@@ -65,12 +64,12 @@ struct AccountView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 22)
 
-                    // Card Juntô Pro (estilo índigo-lavanda autoral do Juntô)
+                    // Card Juntô Pro
                     VStack(spacing: 16) {
                         Image(systemName: "diamond.fill")
-                            .font(.system(size: 38, weight: .light))
+                            .font(.system(size: 36, weight: .light))
                             .foregroundColor(JuntoColors.proIndigo)
-                            .padding(.top, 8)
+                            .padding(.top, 6)
 
                         Text("Faça mais com o Juntô Pro.")
                             .font(.inter(16, weight: .regular))
@@ -82,56 +81,32 @@ struct AccountView: View {
                     }
                     .padding(20)
                     .background(JuntoColors.proBgLight)
-                    .cornerRadius(18)
+                    .cornerRadius(16)
                     .padding(.horizontal, 18)
                     .padding(.bottom, 20)
 
-                    // Lista limpa com ícones finos
-                    accountRow(icon: "qrcode", title: "Digitalizar código") {
+                    // Menu limpo (Segurança e privacidade em menu exclusivo!)
+                    accountRow(icon: "qrcode", title: "Meu código Pix") {
                         store.openPixPayment(title: "Meu QR Code Pix", recipient: store.user.fullName, amount: 25.00)
                     }
                     Divider().padding(.leading, 20)
 
-                    accountRow(icon: "diamond.fill", iconColor: JuntoColors.proIndigo, title: "Juntô Pro") {
-                        store.showToast("Você já tem acesso aos recursos do Juntô.", icon: "sparkles")
-                    }
-
-                    // Preferências
-                    Text("Preferências")
-                        .font(.inter(13, weight: .medium))
-                        .foregroundColor(JuntoColors.textMain)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 22)
-                        .padding(.bottom, 8)
-
-                    accountRow(icon: nil, title: "Configurações de conta") {
+                    accountRow(icon: "person", title: "Editar perfil") {
                         showAccountSettings = true
                     }
                     Divider().padding(.leading, 20)
 
-                    accountRow(icon: nil, title: "Gerenciar lista de bloqueados") {
-                        showBlockedSheet = true
+                    accountRow(icon: "lock.shield", title: "Segurança e privacidade") {
+                        showSecurityPrivacy = true
                     }
                     Divider().padding(.leading, 20)
 
-                    accountRow(icon: nil, title: "Segurança & Dispositivos") {
-                        showDisconnectAlert = true
-                    }
-
-                    // Ajuda & Suporte
-                    Text("Ajuda & Suporte")
-                        .font(.inter(13, weight: .medium))
-                        .foregroundColor(JuntoColors.textMain)
-                        .padding(.horizontal, 20)
-                        .padding(.top, 22)
-                        .padding(.bottom, 8)
-
-                    accountRow(icon: nil, title: "Política de Privacidade (LGPD)") {
+                    accountRow(icon: "doc.text", title: "Política de Privacidade (LGPD)") {
                         store.showToast("Dados protegidos com AES-256 e retenção LGPD de 90 dias.", icon: "lock.shield")
                     }
                     Divider().padding(.leading, 20)
 
-                    accountRow(icon: nil, title: "Sair da conta", textColor: JuntoColors.danger) {
+                    accountRow(icon: "rectangle.portrait.and.arrow.right", iconColor: JuntoColors.danger, title: "Sair da conta", textColor: JuntoColors.danger) {
                         store.logout()
                     }
                 }
@@ -143,18 +118,9 @@ struct AccountView: View {
             AccountSettingsScreen()
                 .environmentObject(store)
         }
-        .sheet(isPresented: $showBlockedSheet) {
-            BlockedUsersSheetView()
+        .fullScreenCover(isPresented: $showSecurityPrivacy) {
+            SecurityPrivacyScreen()
                 .environmentObject(store)
-                .presentationDetents([.medium])
-        }
-        .alert("Desconectar de todos os dispositivos?", isPresented: $showDisconnectAlert) {
-            Button("Cancelar", role: .cancel) {}
-            Button("Desconectar todos", role: .destructive) {
-                store.disconnectAllDevices()
-            }
-        } message: {
-            Text("Todas as sessões abertas em outros aparelhos serão encerradas imediatamente.")
         }
     }
 
@@ -169,7 +135,7 @@ struct AccountView: View {
             HStack(spacing: 14) {
                 if let icon = icon {
                     Image(systemName: icon)
-                        .font(.system(size: 19, weight: .regular))
+                        .font(.system(size: 18, weight: .regular))
                         .foregroundColor(iconColor)
                         .frame(width: 26)
                 }
@@ -190,16 +156,21 @@ struct AccountView: View {
     }
 }
 
-// MARK: - Tela "Editar perfil" com a identidade própria do Juntô (sem Fuso Horário / Idioma — apenas Brasil)
+// MARK: - Tela "Editar perfil" (botão Salvar aparece SOMENTE quando houver alterações, sem texto de contato)
 struct AccountSettingsScreen: View {
     @EnvironmentObject var store: JuntoStore
     @Environment(\.dismiss) private var dismiss
 
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var editField: EditableField? = nil
-    @State private var showBlockedSheet = false
-    @State private var showDisconnectAlert = false
-    @State private var showDeleteAlert = false
+
+    // Rascunho local para detectar se houve alteração real
+    @State private var draftName: String = ""
+    @State private var draftEmail: String = ""
+    @State private var draftPhone: String = ""
+    @State private var draftPixKey: String = ""
+    @State private var draftAvatarData: Data? = nil
+    @State private var passwordChanged: Bool = false
 
     enum EditableField: Identifiable {
         case name, email, phone, pixKey, password
@@ -215,12 +186,20 @@ struct AccountSettingsScreen: View {
         }
     }
 
+    private var hasChanges: Bool {
+        draftName != store.user.fullName ||
+        draftEmail != store.user.email ||
+        draftPhone != store.user.phone ||
+        draftPixKey != store.user.pixKey ||
+        draftAvatarData != store.user.avatarData ||
+        passwordChanged
+    }
+
     var body: some View {
         ZStack {
             JuntoColors.warmBg.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Topo limpo
                 HStack {
                     CircleNavButton(icon: "chevron.left") { dismiss() }
                     Spacer()
@@ -236,13 +215,13 @@ struct AccountSettingsScreen: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 20) {
-                        // Cartão de foto / avatar
+                        // Foto / Avatar
                         VStack(spacing: 12) {
                             ZStack(alignment: .bottomTrailing) {
                                 GeometricAvatarView(
                                     seed: store.user.username,
-                                    displayName: store.user.fullName,
-                                    avatarData: store.user.avatarData,
+                                    displayName: draftName,
+                                    avatarData: draftAvatarData,
                                     size: 84
                                 )
 
@@ -259,14 +238,13 @@ struct AccountSettingsScreen: View {
                             .onChange(of: selectedPhotoItem) { _, newItem in
                                 Task {
                                     if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                                        store.user.avatarData = data
-                                        store.showToast("Foto atualizada.", icon: "camera")
+                                        draftAvatarData = data
                                     }
                                 }
                             }
 
                             VStack(spacing: 2) {
-                                Text(store.user.fullName)
+                                Text(draftName)
                                     .font(.inter(17, weight: .medium))
                                     .foregroundColor(JuntoColors.textMain)
                                 Text("@\(store.user.username) · 🇧🇷 Brasil")
@@ -280,31 +258,37 @@ struct AccountSettingsScreen: View {
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
                         .clipShape(RoundedRectangle(cornerRadius: 14))
 
-                        // Cartão de Dados Pessoais
+                        // Dados da conta
                         VStack(alignment: .leading, spacing: 0) {
-                            sectionTitle("Dados da conta")
+                            Text("DADOS DA CONTA")
+                                .font(.inter(11, weight: .medium))
+                                .tracking(0.8)
+                                .foregroundColor(JuntoColors.textMuted)
+                                .padding(.horizontal, 16)
+                                .padding(.top, 14)
+                                .padding(.bottom, 6)
 
-                            profileFieldRow(icon: "person", label: "Nome completo", value: store.user.fullName) {
+                            profileFieldRow(icon: "person", label: "Nome completo", value: draftName) {
                                 editField = .name
                             }
                             Divider().padding(.leading, 54)
 
-                            profileFieldRow(icon: "envelope", label: "E-mail", value: store.user.email) {
+                            profileFieldRow(icon: "envelope", label: "E-mail", value: draftEmail) {
                                 editField = .email
                             }
                             Divider().padding(.leading, 54)
 
-                            profileFieldRow(icon: "phone", label: "Telefone (Brasil)", value: "+55 \(store.user.phone)") {
+                            profileFieldRow(icon: "phone", label: "Telefone (Brasil)", value: "+55 \(draftPhone)") {
                                 editField = .phone
                             }
                             Divider().padding(.leading, 54)
 
-                            profileFieldRow(icon: "qrcode", label: "Chave Pix", value: store.user.pixKey) {
+                            profileFieldRow(icon: "qrcode", label: "Chave Pix", value: draftPixKey) {
                                 editField = .pixKey
                             }
                             Divider().padding(.leading, 54)
 
-                            profileFieldRow(icon: "lock", label: "Senha", value: "••••••••") {
+                            profileFieldRow(icon: "lock", label: "Senha", value: passwordChanged ? "Nova senha definida" : "••••••••") {
                                 editField = .password
                             }
                         }
@@ -312,106 +296,67 @@ struct AccountSettingsScreen: View {
                         .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
                         .clipShape(RoundedRectangle(cornerRadius: 14))
 
-                        // Cartão de Privacidade
-                        VStack(alignment: .leading, spacing: 12) {
-                            Toggle(isOn: $store.user.allowRecommendations) {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Permitir ser encontrado por amigos")
-                                        .font(.inter(14, weight: .medium))
-                                        .foregroundColor(JuntoColors.textMain)
-                                    Text("Outros usuários podem te encontrar pelo @usuário ou contato.")
-                                        .font(.inter(12, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMuted)
-                                }
+                        // Botão Salvar aparece SOMENTE quando houver alterações!
+                        if hasChanges {
+                            JuntoPillButton(title: "Salvar alterações", color: JuntoColors.primary) {
+                                store.user.fullName = draftName
+                                store.user.email = draftEmail
+                                store.user.phone = draftPhone
+                                store.user.pixKey = draftPixKey
+                                store.user.avatarData = draftAvatarData
+                                passwordChanged = false
+                                store.showToast("Alterações salvas.", icon: "checkmark.circle")
+                                dismiss()
                             }
-                            .tint(JuntoColors.primary)
+                            .transition(.opacity.combined(with: .move(edge: .bottom)))
                         }
-                        .padding(16)
-                        .background(Color.white)
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-
-                        // Botão Salvar no estilo Juntô
-                        JuntoPillButton(title: "Salvar alterações", color: JuntoColors.primary) {
-                            store.showToast("Perfil atualizado.", icon: "checkmark.circle")
-                            dismiss()
-                        }
-
-                        // Cartão de Segurança & LGPD
-                        VStack(alignment: .leading, spacing: 0) {
-                            sectionTitle("Segurança e privacidade")
-
-                            securityRow(icon: "hand.raised", title: "Gerenciar lista de bloqueios", tint: JuntoColors.textMain) {
-                                showBlockedSheet = true
-                            }
-                            Divider().padding(.leading, 54)
-
-                            securityRow(icon: "iphone.and.arrow.forward", title: "Desconectar de todos os dispositivos", tint: JuntoColors.textMain) {
-                                showDisconnectAlert = true
-                            }
-                            Divider().padding(.leading, 54)
-
-                            securityRow(icon: "trash", title: "Excluir conta", tint: JuntoColors.danger) {
-                                showDeleteAlert = true
-                            }
-                        }
-                        .background(Color.white)
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
                     .padding(.horizontal, 20)
                     .padding(.bottom, 40)
                 }
             }
         }
+        .onAppear {
+            draftName = store.user.fullName
+            draftEmail = store.user.email
+            draftPhone = store.user.phone
+            draftPixKey = store.user.pixKey
+            draftAvatarData = store.user.avatarData
+        }
         .sheet(item: $editField) { field in
-            EditFieldSimpleSheet(field: field)
-                .environmentObject(store)
-                .presentationDetents([.height(250)])
-        }
-        .sheet(isPresented: $showBlockedSheet) {
-            BlockedUsersSheetView()
-                .environmentObject(store)
-                .presentationDetents([.medium])
-        }
-        .alert("Desconectar de todos os dispositivos?", isPresented: $showDisconnectAlert) {
-            Button("Cancelar", role: .cancel) {}
-            Button("Desconectar todos", role: .destructive) {
-                store.disconnectAllDevices()
+            EditDraftFieldSheet(
+                field: field,
+                initialValue: currentDraftValue(for: field)
+            ) { newValue in
+                switch field {
+                case .name: draftName = newValue
+                case .email: draftEmail = newValue
+                case .phone: draftPhone = newValue
+                case .pixKey: draftPixKey = newValue
+                case .password: passwordChanged = true
+                }
             }
-        } message: {
-            Text("Todas as outras sessões serão encerradas imediatamente.")
-        }
-        .alert("Excluir conta?", isPresented: $showDeleteAlert) {
-            Button("Cancelar", role: .cancel) {}
-            Button("Excluir conta", role: .destructive) {
-                dismiss()
-                store.deleteAccountPermanently()
-            }
-        } message: {
-            Text("Sua conta será desativada imediatamente e os dados ficarão em retenção segura LGPD por 90 dias antes da anonimização definitiva.")
+            .presentationDetents([.height(240)])
         }
     }
 
-    private func sectionTitle(_ title: String) -> some View {
-        Text(title.uppercased())
-            .font(.inter(11, weight: .medium))
-            .tracking(0.8)
-            .foregroundColor(JuntoColors.textMuted)
-            .padding(.horizontal, 16)
-            .padding(.top, 14)
-            .padding(.bottom, 6)
+    private func currentDraftValue(for field: EditableField) -> String {
+        switch field {
+        case .name: return draftName
+        case .email: return draftEmail
+        case .phone: return draftPhone
+        case .pixKey: return draftPixKey
+        case .password: return ""
+        }
     }
 
     private func profileFieldRow(icon: String, label: String, value: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 12) {
                 Image(systemName: icon)
-                    .font(.system(size: 15, weight: .regular))
+                    .font(.system(size: 16, weight: .regular))
                     .foregroundColor(JuntoColors.primary)
-                    .frame(width: 30, height: 30)
-                    .background(JuntoColors.primaryLight)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .frame(width: 26)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(label)
@@ -429,24 +374,153 @@ struct AccountSettingsScreen: View {
                     .font(.system(size: 12, weight: .regular))
                     .foregroundColor(JuntoColors.textLight)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 13)
+        }
+    }
+}
+
+struct EditDraftFieldSheet: View {
+    let field: AccountSettingsScreen.EditableField
+    let initialValue: String
+    let onSave: (String) -> Void
+    @State private var text: String = ""
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            Text(field.label)
+                .font(.inter(18, weight: .medium))
+                .foregroundColor(JuntoColors.textMain)
+                .padding(.top, 20)
+
+            CleanOutlineInput(label: "", placeholder: "Digite o novo valor", text: $text)
+
+            JuntoPillButton(title: "Aplicar", color: JuntoColors.primary) {
+                let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !clean.isEmpty else { return }
+                onSave(clean)
+                dismiss()
+            }
+            Spacer()
+        }
+        .padding(.horizontal, 22)
+        .background(Color.white)
+        .onAppear { text = initialValue }
+    }
+}
+
+// MARK: - Menu Exclusivo: Segurança e Privacidade (abre 3 telas próprias!)
+struct SecurityPrivacyScreen: View {
+    @EnvironmentObject var store: JuntoStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var showBlockedScreen = false
+    @State private var showDevicesScreen = false
+    @State private var showDeleteScreen = false
+
+    var body: some View {
+        ZStack {
+            JuntoColors.warmBg.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                HStack {
+                    CircleNavButton(icon: "chevron.left") { dismiss() }
+                    Spacer()
+                    Text("Segurança e privacidade")
+                        .font(.inter(17, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                    Spacer()
+                    Spacer().frame(width: 44)
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 10)
+                .padding(.bottom, 16)
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 14) {
+                        VStack(spacing: 0) {
+                            menuCardRow(
+                                icon: "nosign",
+                                iconColor: JuntoColors.primary,
+                                title: "Lista de bloqueados",
+                                subtitle: "\(store.blockedUsers.count) usuário(s) bloqueado(s)"
+                            ) {
+                                showBlockedScreen = true
+                            }
+
+                            Divider().padding(.leading, 58)
+
+                            menuCardRow(
+                                icon: "iphone.and.arrow.forward",
+                                iconColor: JuntoColors.primary,
+                                title: "Dispositivos conectados",
+                                subtitle: "\(store.connectedDevices.count) aparelho(s) ativo(s)"
+                            ) {
+                                showDevicesScreen = true
+                            }
+
+                            Divider().padding(.leading, 58)
+
+                            menuCardRow(
+                                icon: "trash",
+                                iconColor: JuntoColors.danger,
+                                title: "Excluir conta",
+                                subtitle: "Encerrar acesso e iniciar retenção LGPD",
+                                isDestructive: true
+                            ) {
+                                showDeleteScreen = true
+                            }
+                        }
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                    }
+                    .padding(.horizontal, 20)
+                }
+            }
+        }
+        .fullScreenCover(isPresented: $showBlockedScreen) {
+            BlockedUsersScreen()
+                .environmentObject(store)
+        }
+        .fullScreenCover(isPresented: $showDevicesScreen) {
+            ConnectedDevicesScreen()
+                .environmentObject(store)
+        }
+        .fullScreenCover(isPresented: $showDeleteScreen) {
+            DeleteAccountScreen {
+                dismiss()
+            }
+            .environmentObject(store)
         }
     }
 
-    private func securityRow(icon: String, title: String, tint: Color, action: @escaping () -> Void) -> some View {
+    private func menuCardRow(
+        icon: String,
+        iconColor: Color,
+        title: String,
+        subtitle: String,
+        isDestructive: Bool = false,
+        action: @escaping () -> Void
+    ) -> some View {
         Button(action: action) {
-            HStack(spacing: 12) {
+            HStack(spacing: 14) {
                 Image(systemName: icon)
-                    .font(.system(size: 15, weight: .regular))
-                    .foregroundColor(tint)
-                    .frame(width: 30, height: 30)
-                    .background(tint == JuntoColors.danger ? JuntoColors.dangerLight : JuntoColors.surfaceSubtle)
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundColor(iconColor)
+                    .frame(width: 34, height: 34)
+                    .background(isDestructive ? JuntoColors.dangerLight : JuntoColors.primaryLight)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
 
-                Text(title)
-                    .font(.inter(14, weight: .regular))
-                    .foregroundColor(tint)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.inter(15, weight: .medium))
+                        .foregroundColor(isDestructive ? JuntoColors.danger : JuntoColors.textMain)
+                    Text(subtitle)
+                        .font(.inter(12, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                }
 
                 Spacer()
 
@@ -454,117 +528,278 @@ struct AccountSettingsScreen: View {
                     .font(.system(size: 12, weight: .regular))
                     .foregroundColor(JuntoColors.textLight)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 13)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
         }
     }
 }
 
-struct EditFieldSimpleSheet: View {
+// MARK: - Tela Própria 1: Lista de Bloqueados (foto + nome + @usuário + botão Desbloquear)
+struct BlockedUsersScreen: View {
     @EnvironmentObject var store: JuntoStore
-    let field: AccountSettingsScreen.EditableField
-    @State private var text: String = ""
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            Text(field.label)
-                .font(.inter(18, weight: .regular))
-                .foregroundColor(JuntoColors.textMain)
-                .padding(.top, 20)
-
-            CleanOutlineInput(label: "", placeholder: "Digite o novo valor", text: $text)
-
-            JuntoPillButton(title: "Salvar", color: JuntoColors.primary) {
-                let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !clean.isEmpty else { return }
-                switch field {
-                case .name: store.user.fullName = clean
-                case .email: store.user.email = clean
-                case .phone: store.user.phone = clean
-                case .pixKey: store.user.pixKey = clean
-                case .password: break
-                }
-                store.showToast("Atualizado.", icon: "checkmark.circle")
-                dismiss()
-            }
-            Spacer()
-        }
-        .padding(.horizontal, 22)
-        .background(Color.white)
-        .onAppear {
-            switch field {
-            case .name: text = store.user.fullName
-            case .email: text = store.user.email
-            case .phone: text = store.user.phone
-            case .pixKey: text = store.user.pixKey
-            case .password: text = ""
-            }
-        }
-    }
-}
-
-struct BlockedUsersSheetView: View {
-    @EnvironmentObject var store: JuntoStore
-    @State private var newHandle: String = ""
-    @Environment(\.dismiss) private var dismiss
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack {
-                Text("Lista de bloqueios")
-                    .font(.inter(18, weight: .regular))
+                CircleNavButton(icon: "chevron.left") { dismiss() }
+                Spacer()
+                Text("Lista de bloqueados")
+                    .font(.inter(17, weight: .medium))
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
-                Button("Fechar") { dismiss() }
-                    .font(.inter(14, weight: .regular))
-                    .foregroundColor(JuntoColors.primary)
+                Spacer().frame(width: 44)
             }
-            .padding(.top, 20)
+            .padding(.horizontal, 18)
+            .padding(.top, 10)
+            .padding(.bottom, 16)
 
-            HStack(spacing: 8) {
-                CleanOutlineInput(label: "", placeholder: "usuario", text: $newHandle, autocapitalization: .never, leadingPrefix: "@")
-                Button("Bloquear") {
-                    store.blockUser(newHandle)
-                    newHandle = ""
+            Divider().opacity(0.6)
+
+            if store.blockedUsers.isEmpty {
+                Spacer()
+                VStack(spacing: 10) {
+                    Image(systemName: "checkmark.shield")
+                        .font(.system(size: 34, weight: .thin))
+                        .foregroundColor(JuntoColors.textLight)
+                    Text("Nenhum usuário bloqueado.")
+                        .font(.inter(15, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
                 }
-                .font(.inter(14, weight: .medium))
-                .foregroundColor(.white)
-                .padding(.horizontal, 16)
-                .frame(height: 50)
-                .background(JuntoColors.danger)
-                .cornerRadius(10)
-            }
-
-            if store.blockedUsernames.isEmpty {
-                Text("Nenhum usuário bloqueado.")
-                    .font(.inter(14, weight: .regular))
-                    .foregroundColor(JuntoColors.textMuted)
-                    .padding(.top, 8)
+                .frame(maxWidth: .infinity)
+                Spacer()
             } else {
-                ScrollView {
+                ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
-                        ForEach(store.blockedUsernames, id: \.self) { handle in
-                            HStack {
-                                Text("@\(handle)")
-                                    .font(.inter(15, weight: .regular))
-                                    .foregroundColor(JuntoColors.textMain)
-                                Spacer()
-                                Button("Desbloquear") {
-                                    store.unblockUser(handle)
+                        ForEach(store.blockedUsers) { entry in
+                            HStack(spacing: 12) {
+                                GeometricAvatarView(seed: entry.username, size: 44)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(entry.name)
+                                        .font(.inter(15, weight: .medium))
+                                        .foregroundColor(JuntoColors.textMain)
+                                    Text("@\(entry.username)")
+                                        .font(.inter(12, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
                                 }
-                                .font(.inter(13, weight: .regular))
-                                .foregroundColor(JuntoColors.linkBlue)
+
+                                Spacer()
+
+                                Button {
+                                    withAnimation { store.unblockUser(entry.username) }
+                                } label: {
+                                    Text("Desbloquear")
+                                        .font(.inter(13, weight: .medium))
+                                        .foregroundColor(JuntoColors.primary)
+                                        .padding(.horizontal, 14)
+                                        .frame(height: 34)
+                                        .background(JuntoColors.primaryLight)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                }
                             }
+                            .padding(.horizontal, 20)
                             .padding(.vertical, 12)
-                            Divider()
+
+                            Divider().padding(.leading, 76)
                         }
                     }
                 }
             }
-            Spacer()
         }
-        .padding(.horizontal, 22)
-        .background(Color.white)
+        .background(Color.white.ignoresSafeArea())
+    }
+}
+
+// MARK: - Tela Própria 2: Dispositivos Conectados (reais + desconectar individualmente ou todos)
+struct ConnectedDevicesScreen: View {
+    @EnvironmentObject var store: JuntoStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var selectedDevice: ConnectedDeviceSession? = nil
+
+    var body: some View {
+        ZStack {
+            JuntoColors.warmBg.ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    CircleNavButton(icon: "chevron.left") { dismiss() }
+                    Spacer()
+                    Text("Dispositivos conectados")
+                        .font(.inter(17, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                    Spacer()
+                    Spacer().frame(width: 44)
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 10)
+                .padding(.bottom, 16)
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 16) {
+                        VStack(spacing: 0) {
+                            ForEach(store.connectedDevices) { device in
+                                Button {
+                                    if !device.isCurrentDevice {
+                                        selectedDevice = device
+                                    }
+                                } label: {
+                                    HStack(spacing: 14) {
+                                        Image(systemName: device.deviceName.lowercased().contains("ipad") ? "ipad" : "iphone")
+                                            .font(.system(size: 20, weight: .light))
+                                            .foregroundColor(device.isCurrentDevice ? JuntoColors.pixGreen : JuntoColors.primary)
+                                            .frame(width: 30)
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            HStack(spacing: 6) {
+                                                Text(device.deviceName)
+                                                    .font(.inter(15, weight: .medium))
+                                                    .foregroundColor(JuntoColors.textMain)
+                                                if device.isCurrentDevice {
+                                                    Text("Este aparelho")
+                                                        .font(.inter(10, weight: .medium))
+                                                        .foregroundColor(JuntoColors.pixGreen)
+                                                        .padding(.horizontal, 6)
+                                                        .padding(.vertical, 2)
+                                                        .background(JuntoColors.pixGreenLight)
+                                                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                                                }
+                                            }
+                                            Text("\(device.systemInfo) · \(device.locationText)")
+                                                .font(.inter(12, weight: .regular))
+                                                .foregroundColor(JuntoColors.textMuted)
+                                            Text(device.lastActiveText)
+                                                .font(.inter(11, weight: .regular))
+                                                .foregroundColor(device.isCurrentDevice ? JuntoColors.pixGreen : JuntoColors.textLight)
+                                        }
+
+                                        Spacer()
+
+                                        if !device.isCurrentDevice {
+                                            Text("Desconectar")
+                                                .font(.inter(12, weight: .medium))
+                                                .foregroundColor(JuntoColors.danger)
+                                        }
+                                    }
+                                    .padding(.horizontal, 16)
+                                    .padding(.vertical, 14)
+                                }
+                                Divider().padding(.leading, 60)
+                            }
+                        }
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                        if store.connectedDevices.count > 1 {
+                            JuntoOutlineButton(title: "Desconectar todos os outros aparelhos", color: JuntoColors.danger) {
+                                withAnimation { store.disconnectAllDevices() }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                }
+            }
+        }
+        .sheet(item: $selectedDevice) { device in
+            VStack(alignment: .leading, spacing: 18) {
+                Text("Desconectar \(device.deviceName)?")
+                    .font(.inter(18, weight: .medium))
+                    .foregroundColor(JuntoColors.textMain)
+                    .padding(.top, 20)
+
+                Text("\(device.systemInfo) · \(device.locationText) · \(device.lastActiveText)")
+                    .font(.inter(13, weight: .regular))
+                    .foregroundColor(JuntoColors.textMuted)
+
+                JuntoPillButton(title: "Desconectar este aparelho", color: JuntoColors.danger) {
+                    withAnimation { store.disconnectDevice(device.id) }
+                    selectedDevice = nil
+                }
+                Spacer()
+            }
+            .padding(.horizontal, 20)
+            .background(JuntoColors.warmBg.ignoresSafeArea())
+            .presentationDetents([.height(220)])
+            .presentationCornerRadius(20)
+        }
+    }
+}
+
+// MARK: - Tela Própria 3: Excluir Conta (confirmação clara + LGPD)
+struct DeleteAccountScreen: View {
+    @EnvironmentObject var store: JuntoStore
+    var onDeleted: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var confirmed: Bool = false
+
+    var body: some View {
+        ZStack {
+            JuntoColors.warmBg.ignoresSafeArea()
+
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    CircleNavButton(icon: "chevron.left") { dismiss() }
+                    Spacer()
+                    Text("Excluir conta")
+                        .font(.inter(17, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                    Spacer()
+                    Spacer().frame(width: 44)
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 10)
+                .padding(.bottom, 20)
+
+                VStack(alignment: .leading, spacing: 18) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Image(systemName: "exclamationmark.triangle")
+                            .font(.system(size: 26, weight: .light))
+                            .foregroundColor(JuntoColors.danger)
+
+                        Text("Tem certeza que deseja excluir sua conta?")
+                            .font(.inter(20, weight: .medium))
+                            .foregroundColor(JuntoColors.textMain)
+
+                        Text("• Seu acesso e todas as sessões serão encerrados imediatamente.\n• Seus dados ficarão em retenção segura por 90 dias conforme a LGPD antes da anonimização definitiva.\n• Seu @usuário ficará indisponível durante esse período.")
+                            .font(.inter(14, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .lineSpacing(4)
+                    }
+                    .padding(18)
+                    .background(Color.white)
+                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                    Button {
+                        confirmed.toggle()
+                    } label: {
+                        HStack(spacing: 10) {
+                            Image(systemName: confirmed ? "checkmark.square.fill" : "square")
+                                .font(.system(size: 20))
+                                .foregroundColor(confirmed ? JuntoColors.danger : JuntoColors.textMuted)
+                            Text("Entendo e quero excluir minha conta")
+                                .font(.inter(14, weight: .regular))
+                                .foregroundColor(JuntoColors.textMain)
+                        }
+                    }
+
+                    JuntoPillButton(
+                        title: "Confirmar e excluir conta",
+                        color: confirmed ? JuntoColors.danger : JuntoColors.border,
+                        textColor: confirmed ? .white : JuntoColors.textMuted
+                    ) {
+                        guard confirmed else { return }
+                        dismiss()
+                        onDeleted()
+                        store.deleteAccountPermanently()
+                    }
+                    .disabled(!confirmed)
+                }
+                .padding(.horizontal, 20)
+
+                Spacer()
+            }
+        }
     }
 }

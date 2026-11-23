@@ -73,7 +73,7 @@ struct MyExpensesAnalyticsScreen: View {
             JuntoColors.warmBg.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Topo
+                // Topo limpo sem botão "+" (botão "+" fica somente na tela inicial)
                 HStack {
                     CircleNavButton(icon: "chevron.left") { dismiss() }
                     Spacer()
@@ -81,19 +81,7 @@ struct MyExpensesAnalyticsScreen: View {
                         .font(.inter(17, weight: .medium))
                         .foregroundColor(JuntoColors.textMain)
                     Spacer()
-                    Button {
-                        dismiss()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                            store.showAddExpenseSheet = true
-                        }
-                    } label: {
-                        Image(systemName: "plus")
-                            .font(.system(size: 16, weight: .medium))
-                            .foregroundColor(.white)
-                            .frame(width: 40, height: 40)
-                            .background(JuntoColors.primary)
-                            .clipShape(Circle())
-                    }
+                    Spacer().frame(width: 44)
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 10)

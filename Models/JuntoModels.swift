@@ -82,6 +82,21 @@ struct UserProfile {
     }
 }
 
+struct BlockedUserEntry: Identifiable, Hashable {
+    let id = UUID()
+    let name: String
+    let username: String
+}
+
+struct ConnectedDeviceSession: Identifiable, Hashable {
+    let id = UUID()
+    let deviceName: String
+    let systemInfo: String
+    let locationText: String
+    let lastActiveText: String
+    let isCurrentDevice: Bool
+}
+
 struct SearchableUser: Identifiable, Hashable {
     let id = UUID()
     let name: String
