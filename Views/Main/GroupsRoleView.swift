@@ -1030,7 +1030,6 @@ struct GroupDetailSheet: View {
     var body: some View {
         if let idx = groupIndex {
             let group = store.groups[idx]
-            let selectedTotal = group.comandaItems.filter { $0.isSelected }.reduce(0) { $0 + $1.price }
             let canAddExpenses = store.canCurrentUserAddExpenses(in: group)
             let activeMonthIdx = min(max(0, group.selectedMonthIndex), max(0, group.monthlyCycles.count - 1))
             let monthPercent = group.monthCompletionPercent(at: activeMonthIdx)

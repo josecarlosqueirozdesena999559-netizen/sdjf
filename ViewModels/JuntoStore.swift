@@ -101,7 +101,7 @@ final class JuntoStore: ObservableObject {
         friends.reduce(0) { $0 + $1.balance }
     }
 
-    static func formatBRL(_ value: Double) -> String {
+    nonisolated static func formatBRL(_ value: Double) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.locale = Locale(identifier: "pt_BR")

@@ -140,7 +140,7 @@ final class ReceiptOCRService {
         }
 
         let unitPrice = priceValue / Double(max(1, quantity))
-        let detailText = quantity > 1 ? "\(quantity)x \(JuntoStore.formatBRL(unitPrice))" : ""
+        let detailText = quantity > 1 ? "\(quantity)x \(formatBRL(unitPrice))" : ""
 
         return ComandaItem(
             name: itemDesc.capitalized,
@@ -188,6 +188,14 @@ final class ReceiptOCRService {
                 unitPrice: 7.00
             )
         ]
+    }
+
+    private static func formatBRL(_ value: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.locale = Locale(identifier: "pt_BR")
+        formatter.currencyCode = "BRL"
+        return formatter.string(from: NSNumber(value: value)) ?? String(format: "R$ %.2f", value)
     }
 }
 
