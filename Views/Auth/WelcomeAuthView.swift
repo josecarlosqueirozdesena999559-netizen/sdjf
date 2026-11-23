@@ -139,24 +139,22 @@ struct TermsOfUsePopupSheet: View {
             Divider()
 
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 22) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Termos e Condições Gerais de Uso da Plataforma Juntô")
                             .font(.inter(19, weight: .medium))
                             .foregroundColor(JuntoColors.textMain)
-                        Text("Vigência: 23 de novembro de 2026 • Versão 1.2 Oficial")
+                        Text("Vigência: 23 de novembro de 2026 · Versão 1.2 Oficial")
                             .font(.inter(12, weight: .regular))
                             .foregroundColor(JuntoColors.textMuted)
                         Text("Instrumento regido pela Lei Federal nº 10.406/2002 (Código Civil Brasileiro), Lei Federal nº 8.078/1990 (Código de Defesa do Consumidor – CDC), Lei Federal nº 12.965/2014 (Marco Civil da Internet) e Lei Federal nº 13.709/2018 (Lei Geral de Proteção de Dados Pessoais – LGPD).")
-                            .font(.inter(12, weight: .regular))
-                            .foregroundColor(JuntoColors.primary)
+                            .font(.inter(13, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .lineSpacing(3)
                             .padding(.top, 2)
                     }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(JuntoColors.warmBg)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                    Divider()
 
                     legalClause(
                         title: "Cláusula 1ª — Objeto e Natureza Tecnológica da Plataforma",
@@ -242,41 +240,36 @@ c) Tentar violar mecanismos de autenticação, realizar engenharia reversa ou so
 """
                     )
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 18)
+                .padding(.horizontal, 22)
+                .padding(.vertical, 20)
             }
         }
         .background(Color.white.ignoresSafeArea())
     }
 
     private func legalClause(title: String, content: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.inter(15, weight: .medium))
-                .foregroundColor(JuntoColors.primary)
+                .foregroundColor(JuntoColors.textMain)
 
             Text(content)
-                .font(.inter(13, weight: .regular))
-                .foregroundColor(JuntoColors.textMain)
+                .font(.inter(13.5, weight: .regular))
+                .foregroundColor(JuntoColors.textMuted)
                 .lineSpacing(4)
         }
-        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
-// MARK: - 2. Popup Política de Privacidade Completa (LGPD & Marco Civil — Com botão X no topo para sair)
+// MARK: - 2. Popup Política de Privacidade Completa (Texto corrido limpo nativo iOS — sem retângulos)
 struct PrivacyPolicyPopupSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(spacing: 0) {
-            // Barra Superior Fixa com Botão X para sair
             HStack {
-                Text("Política de Privacidade (LGPD)")
+                Text("Política de Privacidade")
                     .font(.inter(17, weight: .medium))
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
@@ -297,24 +290,22 @@ struct PrivacyPolicyPopupSheet: View {
             Divider()
 
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 18) {
+                VStack(alignment: .leading, spacing: 22) {
                     VStack(alignment: .leading, spacing: 6) {
                         Text("Política de Privacidade e Proteção de Dados Pessoais")
                             .font(.inter(19, weight: .medium))
                             .foregroundColor(JuntoColors.textMain)
-                        Text("Aplicativo Juntô • Versão 1.2 • Atualizada em 23 de novembro de 2026")
+                        Text("Aplicativo Juntô · Versão 1.2 · Atualizada em 23 de novembro de 2026")
                             .font(.inter(12, weight: .regular))
                             .foregroundColor(JuntoColors.textMuted)
                         Text("Elaborada em estrita conformidade com a Lei Federal nº 13.709/2018 (Lei Geral de Proteção de Dados Pessoais – LGPD), a Lei Federal nº 12.965/2014 (Marco Civil da Internet), o Decreto Federal nº 8.771/2016 e as Resoluções da Autoridade Nacional de Proteção de Dados (ANPD).")
-                            .font(.inter(12, weight: .regular))
-                            .foregroundColor(JuntoColors.primary)
+                            .font(.inter(13, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .lineSpacing(3)
                             .padding(.top, 2)
                     }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(JuntoColors.warmBg)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                    Divider()
 
                     privacySection(
                         title: "1. Identificação do Controlador e Princípios Norteadores (Art. 6º da LGPD)",
@@ -388,55 +379,37 @@ Garantimos o exercício gratuito e facilitado de todos os direitos previstos no 
 """
                     )
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 18)
+                .padding(.horizontal, 22)
+                .padding(.vertical, 20)
             }
         }
         .background(Color.white.ignoresSafeArea())
     }
 
     private func privacySection(title: String, content: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(title)
                 .font(.inter(15, weight: .medium))
-                .foregroundColor(JuntoColors.primary)
+                .foregroundColor(JuntoColors.textMain)
 
             Text(content)
-                .font(.inter(13, weight: .regular))
-                .foregroundColor(JuntoColors.textMain)
+                .font(.inter(13.5, weight: .regular))
+                .foregroundColor(JuntoColors.textMuted)
                 .lineSpacing(4)
         }
-        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 12))
     }
 }
 
-// MARK: - 3. Popup Fale Conosco Real (Com botão X no topo, envio de mensagem, cópia de e-mail e abertura do Mail)
+// MARK: - 3. Popup Fale Conosco Limpo (Apenas canal de E-mail direto, sem retângulos nem formulários pesados)
 struct ContactUsPopupSheet: View {
     @EnvironmentObject var store: JuntoStore
     @Environment(\.dismiss) private var dismiss
     @Environment(\.openURL) private var openURL
-
-    @State private var senderName: String = ""
-    @State private var senderEmail: String = ""
-    @State private var selectedSubject: String = "Dúvida ou Suporte Técnico"
-    @State private var messageBody: String = ""
     @State private var copiedEmail: Bool = false
-    @State private var ticketProtocol: String? = nil
-
-    private let subjects = [
-        "Dúvida ou Suporte Técnico",
-        "Assinatura Juntô Pro / Pagamentos",
-        "Privacidade e Direitos LGPD (DPO)",
-        "Sugestão ou Parceria"
-    ]
 
     var body: some View {
-        VStack(spacing: 0) {
-            // Barra Superior Fixa com Botão X para sair
+        VStack(alignment: .leading, spacing: 0) {
             HStack {
                 Text("Fale conosco")
                     .font(.inter(17, weight: .medium))
@@ -458,213 +431,71 @@ struct ContactUsPopupSheet: View {
 
             Divider()
 
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 18) {
-                    // Card com Canal de E-mail Oficial e Horário de Atendimento
-                    VStack(alignment: .leading, spacing: 12) {
-                        Text("Canal Oficial de Atendimento e Ouvidoria")
+            VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Atendimento por e-mail")
+                        .font(.inter(20, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+
+                    Text("Para dúvidas, suporte técnico, assuntos sobre assinatura ou solicitações de privacidade (LGPD), entre em contato diretamente pelo nosso e-mail oficial.")
+                        .font(.inter(14, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                        .lineSpacing(4)
+                }
+
+                Divider()
+
+                HStack(spacing: 14) {
+                    Image(systemName: "envelope")
+                        .font(.system(size: 20, weight: .regular))
+                        .foregroundColor(JuntoColors.primary)
+                        .frame(width: 28)
+
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("E-mail de suporte")
+                            .font(.inter(12, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+
+                        Text(store.supportEmail)
                             .font(.inter(16, weight: .medium))
                             .foregroundColor(JuntoColors.textMain)
-
-                        Text("Nossa equipe de suporte ao usuário e o Encarregado de Proteção de Dados (LGPD) atendem solicitações todos os dias, com resposta em até 24 horas úteis.")
-                            .font(.inter(13, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
-                            .lineSpacing(3)
-
-                        HStack(spacing: 10) {
-                            Image(systemName: "envelope")
-                                .font(.system(size: 16, weight: .regular))
-                                .foregroundColor(JuntoColors.primary)
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("E-mail oficial de suporte")
-                                    .font(.inter(11, weight: .regular))
-                                    .foregroundColor(JuntoColors.textMuted)
-                                Text(store.supportEmail)
-                                    .font(.inter(15, weight: .medium))
-                                    .foregroundColor(JuntoColors.textMain)
-                                    .textSelection(.enabled)
-                            }
-
-                            Spacer()
-
-                            Button {
-                                UIPasteboard.general.string = store.supportEmail
-                                copiedEmail = true
-                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                store.showToast("E-mail de suporte copiado!", icon: "doc.on.doc")
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedEmail = false }
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: copiedEmail ? "checkmark" : "doc.on.doc")
-                                        .font(.system(size: 12, weight: .medium))
-                                    Text(copiedEmail ? "Copiado" : "Copiar")
-                                        .font(.inter(12, weight: .medium))
-                                }
-                                .foregroundColor(JuntoColors.primary)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 6)
-                                .background(JuntoColors.primaryLight)
-                                .clipShape(RoundedRectangle(cornerRadius: 6))
-                            }
-                        }
-                        .padding(12)
-                        .background(Color.white)
-                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                            .textSelection(.enabled)
                     }
-                    .padding(16)
-                    .background(JuntoColors.warmBg)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                    if let proto = ticketProtocol {
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack(spacing: 8) {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.system(size: 18))
-                                    .foregroundColor(JuntoColors.pixGreen)
-                                Text("Mensagem registrada com sucesso")
-                                    .font(.inter(15, weight: .medium))
-                                    .foregroundColor(JuntoColors.textMain)
-                            }
+                    Spacer()
 
-                            Text("Protocolo de atendimento: #\(proto)")
+                    Button {
+                        UIPasteboard.general.string = store.supportEmail
+                        copiedEmail = true
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        store.showToast("E-mail copiado!", icon: "doc.on.doc")
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedEmail = false }
+                    } label: {
+                        HStack(spacing: 5) {
+                            Image(systemName: copiedEmail ? "checkmark" : "doc.on.doc")
+                                .font(.system(size: 13, weight: .medium))
+                            Text(copiedEmail ? "Copiado" : "Copiar")
                                 .font(.inter(13, weight: .medium))
-                                .foregroundColor(JuntoColors.primary)
-
-                            Text("Recebemos sua solicitação em nosso servidor e enviaremos o retorno diretamente para o e-mail informado.")
-                                .font(.inter(13, weight: .regular))
-                                .foregroundColor(JuntoColors.textMuted)
-
-                            JuntoOutlineButton(title: "Enviar nova mensagem", color: JuntoColors.primary) {
-                                ticketProtocol = nil
-                                messageBody = ""
-                            }
-                            .padding(.top, 4)
                         }
-                        .padding(16)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.white)
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
-                    } else {
-                        // Formulário real de envio de mensagem
-                        VStack(alignment: .leading, spacing: 14) {
-                            Text("Envie sua mensagem diretamente pelo app")
-                                .font(.inter(15, weight: .medium))
-                                .foregroundColor(JuntoColors.textMain)
-
-                            CleanOutlineInput(
-                                label: "Seu nome",
-                                placeholder: "Como podemos te chamar?",
-                                text: $senderName
-                            )
-
-                            CleanOutlineInput(
-                                label: "Seu e-mail para resposta",
-                                placeholder: "voce@email.com",
-                                text: $senderEmail,
-                                keyboardType: .emailAddress,
-                                autocapitalization: .never
-                            )
-
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Assunto")
-                                    .font(.inter(13, weight: .regular))
-                                    .foregroundColor(JuntoColors.textMain)
-
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 8) {
-                                        ForEach(subjects, id: \.self) { subj in
-                                            let active = selectedSubject == subj
-                                            Button {
-                                                selectedSubject = subj
-                                            } label: {
-                                                Text(subj)
-                                                    .font(.inter(12, weight: .medium))
-                                                    .foregroundColor(active ? .white : JuntoColors.textMain)
-                                                    .padding(.horizontal, 12)
-                                                    .frame(height: 36)
-                                                    .background(active ? JuntoColors.primary : Color.white)
-                                                    .overlay(
-                                                        RoundedRectangle(cornerRadius: 8)
-                                                            .stroke(active ? JuntoColors.primary : JuntoColors.border, lineWidth: 1)
-                                                    )
-                                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-
-                            VStack(alignment: .leading, spacing: 7) {
-                                Text("Mensagem detalhada")
-                                    .font(.inter(13, weight: .regular))
-                                    .foregroundColor(JuntoColors.textMain)
-
-                                TextField("Descreva sua dúvida, solicitação ou sugestão...", text: $messageBody, axis: .vertical)
-                                    .font(.inter(14, weight: .regular))
-                                    .foregroundColor(JuntoColors.textMain)
-                                    .lineLimit(4...8)
-                                    .padding(14)
-                                    .background(Color.white)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 11)
-                                            .stroke(JuntoColors.inputBorder, lineWidth: 1)
-                                    )
-                            }
-
-                            JuntoPillButton(title: "Enviar mensagem ao suporte", icon: "paperplane", color: JuntoColors.primary) {
-                                submitSupportTicket()
-                            }
-
-                            Button {
-                                openMailClient()
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Image(systemName: "envelope")
-                                        .font(.system(size: 14, weight: .regular))
-                                    Text("Abrir no aplicativo de E-mail do iPhone")
-                                        .font(.inter(13, weight: .medium))
-                                }
-                                .foregroundColor(JuntoColors.primary)
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 8)
-                            }
-                        }
+                        .foregroundColor(JuntoColors.primary)
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 18)
+                .padding(.vertical, 4)
+
+                Divider()
+
+                JuntoPillButton(title: "Enviar e-mail", icon: "envelope", color: JuntoColors.primary) {
+                    if let url = URL(string: "mailto:\(store.supportEmail)") {
+                        openURL(url)
+                    }
+                }
+
+                Spacer()
             }
+            .padding(.horizontal, 22)
+            .padding(.top, 24)
         }
         .background(Color.white.ignoresSafeArea())
-    }
-
-    private func submitSupportTicket() {
-        let cleanName = senderName.trimmingCharacters(in: .whitespacesAndNewlines)
-        let cleanEmail = senderEmail.trimmingCharacters(in: .whitespacesAndNewlines)
-        let cleanMsg = messageBody.trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard !cleanName.isEmpty, cleanEmail.contains("@"), cleanMsg.count >= 5 else {
-            store.showToast("Preencha seu nome, e-mail válido e a mensagem.", icon: "exclamationmark.circle")
-            return
-        }
-
-        let proto = "JNT-\(Int.random(in: 100000...999999))"
-        store.submitContactTicket(name: cleanName, email: cleanEmail, subject: selectedSubject, message: cleanMsg, protocolCode: proto)
-        withAnimation(.easeInOut(duration: 0.2)) {
-            ticketProtocol = proto
-        }
-    }
-
-    private func openMailClient() {
-        let subjectEncoded = selectedSubject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "Suporte"
-        let bodyEncoded = messageBody.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
-        if let url = URL(string: "mailto:\(store.supportEmail)?subject=\(subjectEncoded)&body=\(bodyEncoded)") {
-            openURL(url)
-        }
     }
 }
 

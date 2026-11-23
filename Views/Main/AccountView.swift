@@ -1132,61 +1132,57 @@ struct InviteFriendsScreen: View {
     }
 }
 
-// MARK: - Política de Privacidade Completa (Textos Jurídicos LGPD & Marco Civil + Práticas Reais do Juntô)
+// MARK: - Política de Privacidade Completa (Texto corrido limpo nativo iOS — sem retângulos)
 struct PrivacyPolicyScreen: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        ZStack {
-            JuntoColors.warmBg.ignoresSafeArea()
+        VStack(spacing: 0) {
+            HStack {
+                CircleNavButton(icon: "chevron.left") { dismiss() }
+                Spacer()
+                Text("Política de Privacidade")
+                    .font(.inter(17, weight: .medium))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                Spacer().frame(width: 44)
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 10)
+            .padding(.bottom, 14)
 
-            VStack(spacing: 0) {
-                HStack {
-                    CircleNavButton(icon: "chevron.left") { dismiss() }
-                    Spacer()
-                    Text("Política de Privacidade")
-                        .font(.inter(17, weight: .medium))
-                        .foregroundColor(JuntoColors.textMain)
-                    Spacer()
-                    Spacer().frame(width: 44)
-                }
-                .padding(.horizontal, 18)
-                .padding(.top, 10)
-                .padding(.bottom, 14)
+            Divider()
 
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 18) {
-                        // Cabeçalho jurídico
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Política de Privacidade e Proteção de Dados Pessoais")
-                                .font(.inter(20, weight: .medium))
-                                .foregroundColor(JuntoColors.textMain)
-                            Text("Aplicativo Juntô • Versão 1.0 • Atualizada em 22 de novembro de 2026")
-                                .font(.inter(12, weight: .regular))
-                                .foregroundColor(JuntoColors.textMuted)
-                            Text("Elaborada em conformidade com a Lei Federal nº 13.709/2018 (Lei Geral de Proteção de Dados Pessoais – LGPD), a Lei nº 12.965/2014 (Marco Civil da Internet) e o Decreto nº 8.771/2016.")
-                                .font(.inter(12, weight: .regular))
-                                .foregroundColor(JuntoColors.primary)
-                                .padding(.top, 4)
-                        }
-                        .padding(18)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(Color.white)
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 22) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Política de Privacidade e Proteção de Dados Pessoais")
+                            .font(.inter(19, weight: .medium))
+                            .foregroundColor(JuntoColors.textMain)
+                        Text("Aplicativo Juntô · Versão 1.2 · Atualizada em 23 de novembro de 2026")
+                            .font(.inter(12, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                        Text("Elaborada em conformidade com a Lei Federal nº 13.709/2018 (Lei Geral de Proteção de Dados Pessoais – LGPD), a Lei nº 12.965/2014 (Marco Civil da Internet) e o Decreto nº 8.771/2016.")
+                            .font(.inter(13, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .lineSpacing(3)
+                            .padding(.top, 2)
+                    }
 
-                        policySection(
-                            number: "1. Controlador e Escopo de Aplicação",
-                            body: """
+                    Divider()
+
+                    policySection(
+                        number: "1. Controlador e Escopo de Aplicação",
+                        body: """
 Esta Política de Privacidade descreve, de maneira clara, transparente e acessível (art. 6º, VI, e art. 9º da Lei nº 13.709/2018 – LGPD), como o aplicativo Juntô (“Plataforma” ou “Controlador”) coleta, utiliza, armazena, protege e elimina dados pessoais dos seus usuários (“Titulares”).
 
 Ao criar uma conta ou utilizar quaisquer funcionalidades do Juntô — incluindo divisão de despesas em grupos, gestão de cotas de potes coletivos, chats individuais e registros financeiros pessoais — o Titular declara ciência integral das práticas descritas neste instrumento.
 """
-                        )
+                    )
 
-                        policySection(
-                            number: "2. Dados Pessoais Coletados e Finalidades Específicas",
-                            body: """
+                    policySection(
+                        number: "2. Dados Pessoais Coletados e Finalidades Específicas",
+                        body: """
 Em observância ao princípio da necessidade e minimização de dados (art. 6º, III, da LGPD), coletamos exclusivamente os dados indispensáveis ao funcionamento da Plataforma:
 
 • Dados de Identificação e Cadastro: nome completo, endereço de e-mail, nome de usuário exclusivo (@usuário) e número de telefone brasileiro (+55). Finalidade: criação da conta, autenticação, descoberta exclusiva por @usuário e comunicação de segurança.
@@ -1196,21 +1192,21 @@ Em observância ao princípio da necessidade e minimização de dados (art. 6º,
 
 O Juntô NÃO coleta dados pessoais sensíveis previstos no art. 5º, II, da LGPD (como origem racial, convicção religiosa, dados biométricos ou de saúde) e NÃO acessa sua lista de contatos telefônicos sem autorização expressa.
 """
-                        )
+                    )
 
-                        policySection(
-                            number: "3. Natureza P2P e Ausência de Intermediação Financeira",
-                            body: """
+                    policySection(
+                        number: "3. Natureza P2P e Ausência de Intermediação Financeira",
+                        body: """
 O Juntô atua estritamente como ferramenta tecnológica de organização, cálculo, rateio e comunicação entre amigos e participantes de grupos.
 
 • O aplicativo NÃO realiza custódia de valores, NÃO mantém saldo bancário de terceiros, NÃO executa débitos automáticos em contas bancárias e NÃO atua como Instituição de Pagamento (Lei nº 12.865/2013).
 • Toda transferência financeira via Pix é realizada diretamente entre o pagador e o organizador do grupo, por meio do aplicativo bancário de escolha de cada usuário. O Juntô apenas facilita a exibição da chave Pix / QR Code do organizador e registra a marcação manual de pagamento e sua conferência pelo responsável do grupo.
 """
-                        )
+                    )
 
-                        policySection(
-                            number: "4. Bases Legais para o Tratamento (Art. 7º da LGPD)",
-                            body: """
+                    policySection(
+                        number: "4. Bases Legais para o Tratamento (Art. 7º da LGPD)",
+                        body: """
 Todo tratamento de dados pessoais realizado pelo Juntô fundamenta-se nas hipóteses legais do art. 7º da Lei nº 13.709/2018:
 
 • Execução de contrato ou procedimentos preliminares (art. 7º, V): operacionalização do cadastro, grupos, cálculos de rateio e mensagens em tempo real.
@@ -1218,11 +1214,11 @@ Todo tratamento de dados pessoais realizado pelo Juntô fundamenta-se nas hipót
 • Cumprimento de obrigação legal ou regulatória (art. 7º, II): guarda de registros de acesso conforme o art. 15 do Marco Civil da Internet e atendimento a requisições judiciais.
 • Exercício regular de direitos e prevenção a fraudes (art. 7º, VI e IX): proteção da integridade das sessões, bloqueio de usuários abusivos e auditoria de segurança.
 """
-                        )
+                    )
 
-                        policySection(
-                            number: "5. Medidas Técnicas e Administrativas de Segurança (Art. 46 da LGPD)",
-                            body: """
+                    policySection(
+                        number: "5. Medidas Técnicas e Administrativas de Segurança (Art. 46 da LGPD)",
+                        body: """
 Adotamos medidas técnicas e organizacionais compatíveis com as melhores práticas de segurança da informação para proteger os dados contra acessos não autorizados, perda, alteração ou vazamento:
 
 • Criptografia em Trânsito: todas as comunicações entre o aplicativo iOS, APIs REST e conexões em tempo real (Socket.IO) trafegam sobre TLS 1.3 com certificados válidos.
@@ -1230,22 +1226,22 @@ Adotamos medidas técnicas e organizacionais compatíveis com as melhores práti
 • Proteção de Credenciais e Sessões: senhas são armazenadas exclusivamente por meio de hash criptográfico irreversível com sal aleatório; sessões utilizam tokens JWT assinados com expiração controlada e revogação individual por aparelho na tela “Dispositivos conectados”.
 • Comunicação de Incidentes: na hipótese de incidente de segurança que possa acarretar risco ou dano relevante aos Titulares, o Juntô comunicará a Autoridade Nacional de Proteção de Dados (ANPD) e os usuários afetados nos prazos e termos do art. 48 da LGPD e da Resolução CD/ANPD nº 15/2024.
 """
-                        )
+                    )
 
-                        policySection(
-                            number: "6. Retenção de 90 Dias Pós-Exclusão e Anonimização Definitiva (Arts. 15 e 16 da LGPD)",
-                            body: """
+                    policySection(
+                        number: "6. Retenção de 90 Dias Pós-Exclusão e Anonimização Definitiva (Arts. 15 e 16 da LGPD)",
+                        body: """
 O Titular pode solicitar a exclusão da sua conta a qualquer momento em Conta → Segurança e privacidade → Excluir conta.
 
 • Encerramento Imediato: ao confirmar a exclusão, o acesso à conta e todas as sessões ativas em todos os dispositivos são revogados imediatamente, e o @usuário fica bloqueado contra reutilização imediata.
 • Período de Retenção Segura (90 dias): com respaldo no art. 16, I e IV, da LGPD, os registros essenciais de auditoria são mantidos de forma isolada e cifrada por 90 (noventa) dias corridos, exclusivamente para cumprimento de obrigações legais, prevenção a fraudes e resguardo de direitos em eventual disputa entre participantes de grupos.
 • Anonimização Irreversível Automatizada: decorrido o prazo de 90 dias, nossa rotina automatizada de expurgo realiza a eliminação definitiva e anonimização irreversível dos identificadores pessoais (art. 5º, XI, e art. 12 da LGPD), impossibilitando a reidentificação do Titular.
 """
-                        )
+                    )
 
-                        policySection(
-                            number: "7. Direitos do Titular de Dados (Art. 18 da LGPD)",
-                            body: """
+                    policySection(
+                        number: "7. Direitos do Titular de Dados (Art. 18 da LGPD)",
+                        body: """
 Nos termos do art. 18 da Lei nº 13.709/2018, você tem direito a obter do Juntô, a qualquer momento e mediante requisição gratuita:
 
 I. Confirmação da existência de tratamento de seus dados pessoais;
@@ -1257,11 +1253,11 @@ VI. Eliminação dos dados pessoais tratados com base no consentimento;
 VII. Informação sobre a possibilidade de não fornecer consentimento e as consequências da negativa;
 VIII. Revogação do consentimento, nos termos do art. 8º, § 5º, da LGPD.
 """
-                        )
+                    )
 
-                        policySection(
-                            number: "8. Encarregado pelo Tratamento de Dados Pessoais (DPO) e Contato",
-                            body: """
+                    policySection(
+                        number: "8. Encarregado pelo Tratamento de Dados Pessoais (DPO) e Contato",
+                        body: """
 Para exercer qualquer direito previsto no art. 18 da LGPD, esclarecer dúvidas sobre esta Política ou reportar questões de privacidade e segurança, entre em contato diretamente com o nosso Encarregado pelo Tratamento de Dados Pessoais (art. 41 da LGPD):
 
 • Canal Oficial de Privacidade (DPO): privacidade@junto.app
@@ -1269,30 +1265,26 @@ Para exercer qualquer direito previsto no art. 18 da LGPD, esclarecer dúvidas s
 
 Fica eleito o foro da legislação brasileira, com aplicação integral das normas da República Federativa do Brasil, para dirimir quaisquer controvérsias oriundas deste documento.
 """
-                        )
-                    }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 40)
+                    )
                 }
+                .padding(.horizontal, 22)
+                .padding(.vertical, 20)
             }
         }
+        .background(Color.white.ignoresSafeArea())
     }
 
     private func policySection(number: String, body: String) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
+        VStack(alignment: .leading, spacing: 6) {
             Text(number)
                 .font(.inter(15, weight: .medium))
-                .foregroundColor(JuntoColors.primary)
+                .foregroundColor(JuntoColors.textMain)
 
             Text(body)
-                .font(.inter(13, weight: .regular))
-                .foregroundColor(JuntoColors.textMain)
+                .font(.inter(13.5, weight: .regular))
+                .foregroundColor(JuntoColors.textMuted)
                 .lineSpacing(4)
         }
-        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(Color.white)
-        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }

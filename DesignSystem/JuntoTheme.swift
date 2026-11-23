@@ -98,23 +98,15 @@ struct JuntoLogoMark: View {
     }
 }
 
-// MARK: - Ícone Vetorial (SVG) do Pote Coletivo com moedas
+// MARK: - Ícone Nativo iOS do Pote Coletivo (Padronizado com o sistema, sem moedas nem fundos pesados)
 struct JuntoPotIcon: View {
-    var size: CGFloat = 40
-    @State private var floatUp = false
+    var size: CGFloat = 22
+    var color: Color = JuntoColors.primary
 
     var body: some View {
-        Image("PotCoinsIcon")
-            .resizable()
-            .renderingMode(.original)
-            .scaledToFit()
-            .frame(width: size, height: size)
-            .offset(y: floatUp ? -1.5 : 1.0)
-            .onAppear {
-                withAnimation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true)) {
-                    floatUp = true
-                }
-            }
+        Image(systemName: "chart.pie")
+            .font(.system(size: min(size, 22), weight: .regular))
+            .foregroundColor(color)
     }
 }
 
