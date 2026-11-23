@@ -238,10 +238,10 @@ struct MyExpensesAnalyticsScreen: View {
                             ForEach(categorySlices) { slice in
                                 VStack(spacing: 6) {
                                     HStack(spacing: 10) {
-                                        JuntoIcon(kind: JuntoIconKind.category(slice.category), size: 16, color: slice.color, weight: 1.8)
-                                            .frame(width: 32, height: 32)
-                                            .background(slice.color.opacity(0.12))
-                                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                                        Image(systemName: slice.icon)
+                                            .font(.system(size: 16, weight: .regular))
+                                            .foregroundColor(slice.color)
+                                            .frame(width: 26)
 
                                         VStack(alignment: .leading, spacing: 1) {
                                             Text(slice.category)
@@ -301,10 +301,10 @@ struct MyExpensesAnalyticsScreen: View {
                                 ForEach(filteredList) { item in
                                     let catColor = colorForCategory(item.category)
                                     HStack(spacing: 12) {
-                                        JuntoIcon(kind: JuntoIconKind.category(item.category), size: 16, color: catColor, weight: 1.8)
-                                            .frame(width: 34, height: 34)
-                                            .background(catColor.opacity(0.12))
-                                            .clipShape(Circle())
+                                        Image(systemName: iconForCategory(item.category))
+                                            .font(.system(size: 16, weight: .regular))
+                                            .foregroundColor(catColor)
+                                            .frame(width: 28)
 
                                         VStack(alignment: .leading, spacing: 2) {
                                             Text(item.title)

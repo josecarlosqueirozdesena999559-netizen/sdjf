@@ -313,12 +313,9 @@ struct CreateGroupScreen: View {
                                         selectedType = item.name
                                     } label: {
                                         VStack(spacing: 6) {
-                                            JuntoIcon(
-                                                kind: JuntoIconKind.category(item.name),
-                                                size: 24,
-                                                color: isSelected ? JuntoColors.primary : JuntoColors.textMain,
-                                                weight: isSelected ? 2.0 : 1.6
-                                            )
+                                            Image(systemName: item.icon)
+                                                .font(.system(size: 20, weight: .light))
+                                                .foregroundColor(isSelected ? JuntoColors.primary : JuntoColors.textMain)
                                             Text(item.name)
                                                 .font(.inter(12, weight: .regular))
                                                 .foregroundColor(isSelected ? JuntoColors.primary : JuntoColors.textMain)
@@ -1208,29 +1205,22 @@ struct OrganizerPixPaymentSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            // Cabeçalho
+            // Cabeçalho limpo sem tags coloridas
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text("Pagar via Pix")
-                            .font(.inter(18, weight: .medium))
-                            .foregroundColor(JuntoColors.textMain)
-                        Text("Manual")
-                            .font(.inter(10, weight: .semibold))
-                            .foregroundColor(JuntoColors.primary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(JuntoColors.primaryLight)
-                            .clipShape(Capsule())
-                    }
-                    Text("\(title) · Destinatário: \(organizerName)")
+                    Text("Pagar via Pix")
+                        .font(.inter(18, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                    Text("\(title) · Para: \(organizerName)")
                         .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                         .lineLimit(1)
                 }
                 Spacer()
                 Button { dismiss() } label: {
-                    JuntoIcon(kind: .close, size: 12, color: JuntoColors.textMuted, weight: 2.0)
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(JuntoColors.textMuted)
                         .frame(width: 32, height: 32)
                         .background(JuntoColors.surfaceSubtle)
                         .clipShape(Circle())
@@ -1238,47 +1228,26 @@ struct OrganizerPixPaymentSheet: View {
             }
             .padding(.top, 18)
 
-            // Banner de validade de 5 minutos
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(timeRemaining > 60 ? JuntoColors.pixGreen : JuntoColors.danger)
-                    .frame(width: 8, height: 8)
-
-                if timeRemaining > 0 {
-                    Text("Pix válido por 5 minutos • Expira em")
+            // Valor a transferir e tempo (sem bolinha verde)
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Valor a transferir")
                         .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
-
-                    Text(formattedTime)
-                        .font(.inter(12, weight: .bold))
-                        .foregroundColor(timeRemaining > 60 ? JuntoColors.textMain : JuntoColors.danger)
-                        .monospacedDigit()
-                } else {
-                    Text("Tempo de 5 minutos expirado. Gere novamente se necessário.")
-                        .font(.inter(12, weight: .medium))
-                        .foregroundColor(JuntoColors.danger)
+                    if timeRemaining > 0 {
+                        Text("Expira em \(formattedTime)")
+                            .font(.inter(11, weight: .regular))
+                            .foregroundColor(JuntoColors.textLight)
+                            .monospacedDigit()
+                    }
                 }
-
-                Spacer()
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color.white)
-            .overlay(RoundedRectangle(cornerRadius: 8).stroke(JuntoColors.border, lineWidth: 0.8))
-            .clipShape(RoundedRectangle(cornerRadius: 8))
-
-            // Valor em destaque
-            HStack {
-                Text("Valor a transferir")
-                    .font(.inter(13, weight: .regular))
-                    .foregroundColor(JuntoColors.textMuted)
                 Spacer()
                 Text(JuntoStore.formatBRL(amount))
                     .font(.inter(20, weight: .medium))
-                    .foregroundColor(JuntoColors.primary)
+                    .foregroundColor(JuntoColors.textMain)
             }
             .padding(.horizontal, 14)
-            .padding(.vertical, 10)
+            .padding(.vertical, 12)
             .background(Color.white)
             .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
             .clipShape(RoundedRectangle(cornerRadius: 10))
@@ -1331,8 +1300,9 @@ struct OrganizerPixPaymentSheet: View {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedPayload = false }
                     } label: {
                         HStack(spacing: 6) {
-                            JuntoIcon(kind: copiedPayload ? .checkmark : .receipt, size: 14, color: JuntoColors.primary, weight: 2.0)
-                            Text(copiedPayload ? "Código Pix copiado!" : "Copiar código Pix Copia e Cola")
+                            Image(systemName: copiedPayload ? "checkmark" : "doc.on.doc")
+                                .font(.system(size: 13, weight: .medium))
+                            Text(copiedPayload ? "Código Pix copiado" : "Copiar código Pix Copia e Cola")
                                 .font(.inter(13, weight: .medium))
                         }
                         .foregroundColor(JuntoColors.primary)
@@ -1358,7 +1328,7 @@ struct OrganizerPixPaymentSheet: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10))
 
                     JuntoOutlineButton(
-                        title: copiedKey ? "Chave Pix copiada!" : "Copiar chave Pix",
+                        title: copiedKey ? "Chave Pix copiada" : "Copiar chave Pix",
                         icon: copiedKey ? "checkmark" : "doc.on.doc",
                         color: JuntoColors.primary
                     ) {
@@ -1368,7 +1338,7 @@ struct OrganizerPixPaymentSheet: View {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedKey = false }
                     }
 
-                    Text("Abra o app do seu banco, transfira o valor exato e depois toque em \"Marcar como pago\" abaixo para notificar o destinatário.")
+                    Text("Transfira o valor no seu banco e depois toque em \"Marcar como pago\" abaixo.")
                         .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                 }
@@ -1377,10 +1347,10 @@ struct OrganizerPixPaymentSheet: View {
 
             Spacer(minLength: 4)
 
-            // Botão final: Marcar como pago (confirmação manual de envio do Pix)
+            // Botão final: Marcar como pago
             JuntoPillButton(
                 title: "Marcar como pago",
-                icon: "checkmark.circle",
+                icon: "checkmark",
                 color: JuntoColors.primary
             ) {
                 onMarkAsPaid()
@@ -1389,7 +1359,7 @@ struct OrganizerPixPaymentSheet: View {
             .padding(.bottom, 10)
         }
         .padding(.horizontal, 20)
-        .background(JuntoColors.warmBg.ignoresSafeArea())
+        .background(Color.white.ignoresSafeArea())
         .onAppear {
             timeRemaining = 300
             timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in

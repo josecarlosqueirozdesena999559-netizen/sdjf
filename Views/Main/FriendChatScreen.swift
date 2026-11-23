@@ -74,9 +74,9 @@ struct FriendChatScreen: View {
                                 }
                             }
 
-                            Text(currentFriend.isOnline ? "online" : currentFriend.lastSeenText)
+                            Text(currentFriend.isTyping ? "digitando..." : (currentFriend.isOnline ? "online" : currentFriend.lastSeenText))
                                 .font(.inter(12, weight: .regular))
-                                .foregroundColor(currentFriend.isOnline ? JuntoColors.pixGreen : JuntoColors.textMuted)
+                                .foregroundColor((currentFriend.isOnline || currentFriend.isTyping) ? JuntoColors.pixGreen : JuntoColors.textMuted)
                                 .lineLimit(1)
                         }
                     }
@@ -131,13 +131,6 @@ struct FriendChatScreen: View {
                                 }
                             }
 
-                            if currentFriend.isTyping {
-                                HStack {
-                                    TypingDotsBubble()
-                                    Spacer()
-                                }
-                                .transition(.opacity.combined(with: .move(edge: .bottom)))
-                            }
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 16)
@@ -179,7 +172,9 @@ struct FriendChatScreen: View {
 
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 6) {
-                            JuntoIcon(kind: .swipeReply, size: 12, color: authorColor, weight: 2.0)
+                            Image(systemName: "arrowshape.turn.up.left")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(authorColor)
                             Text(author)
                                 .font(.inter(13, weight: .semibold))
                                 .foregroundColor(authorColor)
@@ -201,7 +196,9 @@ struct FriendChatScreen: View {
                             replyingToMessage = nil
                         }
                     } label: {
-                        JuntoIcon(kind: .close, size: 12, color: JuntoColors.textMuted, weight: 2.0)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(JuntoColors.textMuted)
                             .frame(width: 28, height: 28)
                             .background(JuntoColors.surfaceSubtle)
                             .clipShape(Circle())
@@ -213,7 +210,9 @@ struct FriendChatScreen: View {
                 .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.8), alignment: .top)
             } else if editingMessageId != nil {
                 HStack(spacing: 8) {
-                    JuntoIcon(kind: .edit, size: 14, color: JuntoColors.primary, weight: 1.8)
+                    Image(systemName: "pencil")
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundColor(JuntoColors.primary)
                     Text("Editando mensagem")
                         .font(.inter(12, weight: .medium))
                         .foregroundColor(JuntoColors.textMain)
@@ -222,7 +221,9 @@ struct FriendChatScreen: View {
                         editingMessageId = nil
                         inputText = ""
                     } label: {
-                        JuntoIcon(kind: .close, size: 12, color: JuntoColors.textMuted, weight: 2.0)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(JuntoColors.textMuted)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -230,7 +231,7 @@ struct FriendChatScreen: View {
                 .background(JuntoColors.primaryLight)
             }
 
-            // Barra Inferior de Envio: estilo WhatsApp com suporte a trava arrastando para cima
+            // Barra Inferior de Envio: estilo nativo iOS com ícones limpos
             HStack(alignment: .center, spacing: 10) {
                 if audioManager.isRecording {
                     // Lixeira para cancelar o áudio
@@ -241,7 +242,9 @@ struct FriendChatScreen: View {
                             audioManager.cancelRecording()
                         }
                     } label: {
-                        JuntoIcon(kind: .trash, size: 20, color: JuntoColors.danger, weight: 1.8)
+                        Image(systemName: "trash")
+                            .font(.system(size: 18, weight: .regular))
+                            .foregroundColor(JuntoColors.danger)
                             .frame(width: 36, height: 36)
                     }
 
@@ -285,7 +288,7 @@ struct FriendChatScreen: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 12)
-                    .frame(height: 42)
+                    .frame(height: 40)
                     .background(JuntoColors.surfaceSubtle)
                     .clipShape(Capsule())
 
@@ -293,8 +296,10 @@ struct FriendChatScreen: View {
                     Button {
                         sendRecordedAudio()
                     } label: {
-                        JuntoIcon(kind: .send, size: 16, color: .white, weight: 2.0)
-                            .frame(width: 42, height: 42)
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 38, height: 38)
                             .background(JuntoColors.primary)
                             .clipShape(Circle())
                     }
@@ -302,10 +307,10 @@ struct FriendChatScreen: View {
                     Button {
                         showAttachmentMenu = true
                     } label: {
-                        JuntoIcon(kind: .plus, size: 18, color: JuntoColors.primary, weight: 2.0)
-                            .frame(width: 40, height: 40)
-                            .background(JuntoColors.surfaceSubtle)
-                            .clipShape(Circle())
+                        Image(systemName: "plus")
+                            .font(.system(size: 20, weight: .regular))
+                            .foregroundColor(JuntoColors.textMain)
+                            .frame(width: 34, height: 34)
                     }
 
                     TextField("Mensagem...", text: $inputText, axis: .vertical)
@@ -313,16 +318,18 @@ struct FriendChatScreen: View {
                         .foregroundColor(JuntoColors.textMain)
                         .lineLimit(1...4)
                         .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 9)
                         .background(JuntoColors.surfaceSubtle)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
                     if inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        // Microfone estilo WhatsApp: segure e arraste para cima para travar gravação
+                        // Microfone nativo iOS limpo
                         ZStack(alignment: .bottom) {
                             if audioManager.isRecording && !isMicLocked {
                                 VStack(spacing: 5) {
-                                    JuntoIcon(kind: .lock, size: 14, color: JuntoColors.primary, weight: 2.0)
+                                    Image(systemName: "lock.fill")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(JuntoColors.primary)
                                         .scaleEffect(micDragOffsetY < -30 ? 1.25 : 1.0)
                                     Image(systemName: "chevron.up")
                                         .font(.system(size: 10, weight: .bold))
@@ -344,10 +351,10 @@ struct FriendChatScreen: View {
                                     }
                                 }
                             } label: {
-                                JuntoIcon(kind: .mic, size: 18, color: .white, weight: 2.0)
-                                    .frame(width: 42, height: 42)
-                                    .background(JuntoColors.primary)
-                                    .clipShape(Circle())
+                                Image(systemName: "mic")
+                                    .font(.system(size: 20, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMain)
+                                    .frame(width: 36, height: 36)
                             }
                             .simultaneousGesture(
                                 DragGesture(minimumDistance: 4, coordinateSpace: .local)
@@ -358,13 +365,11 @@ struct FriendChatScreen: View {
                                         }
                                         micDragOffsetY = value.translation.height
 
-                                        // Arrasto para cima trava a gravação (hands-free!)
                                         if value.translation.height < -36 && !isMicLocked {
                                             isMicLocked = true
                                             micDragOffsetY = 0
                                             UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
                                         }
-                                        // Arrasto para a esquerda cancela gravação
                                         if value.translation.width < -50 {
                                             audioManager.cancelRecording()
                                             isMicLocked = false
@@ -406,15 +411,12 @@ struct FriendChatScreen: View {
                                 )
                             }
                         } label: {
-                            JuntoIcon(
-                                kind: editingMessageId != nil ? .checkmark : .send,
-                                size: 18,
-                                color: .white,
-                                weight: 2.0
-                            )
-                            .frame(width: 42, height: 42)
-                            .background(JuntoColors.primary)
-                            .clipShape(Circle())
+                            Image(systemName: editingMessageId != nil ? "checkmark" : "arrow.up")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 36, height: 36)
+                                .background(JuntoColors.primary)
+                                .clipShape(Circle())
                         }
                     }
                 }
@@ -753,11 +755,17 @@ struct FriendChatScreen: View {
     private func replyIconForKind(_ kind: ChatMessageKind) -> some View {
         switch kind {
         case .audio:
-            JuntoIcon(kind: .mic, size: 12, color: JuntoColors.accent, weight: 1.8)
+            Image(systemName: "mic.fill")
+                .font(.system(size: 11))
+                .foregroundColor(JuntoColors.accent)
         case .photo:
-            JuntoIcon(kind: .photo, size: 12, color: Color(hex: "#2563EB"), weight: 1.8)
+            Image(systemName: "photo")
+                .font(.system(size: 11))
+                .foregroundColor(Color(hex: "#2563EB"))
         case .document:
-            JuntoIcon(kind: .docText, size: 12, color: Color(hex: "#7C3AED"), weight: 1.8)
+            Image(systemName: "doc.text")
+                .font(.system(size: 11))
+                .foregroundColor(Color(hex: "#7C3AED"))
         default:
             EmptyView()
         }
@@ -997,7 +1005,9 @@ struct ChatAttachmentMenuSheet: View {
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
                 Button { dismiss() } label: {
-                    JuntoIcon(kind: .close, size: 12, color: JuntoColors.textMuted, weight: 2.0)
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(JuntoColors.textMuted)
                         .frame(width: 30, height: 30)
                         .background(JuntoColors.surfaceSubtle)
                         .clipShape(Circle())
@@ -1006,26 +1016,27 @@ struct ChatAttachmentMenuSheet: View {
             .padding(.top, 18)
 
             HStack(spacing: 18) {
-                attachmentOption(icon: .photo, label: "Imagens", color: Color(hex: "#2563EB"), action: onSelectPhoto)
-                attachmentOption(icon: .docText, label: "Documentos", color: Color(hex: "#7C3AED"), action: onSelectDocument)
-                attachmentOption(icon: .pix, label: "Pix", color: JuntoColors.pixGreen, action: onSelectPix)
+                attachmentOption(icon: "photo.on.rectangle.angled", label: "Imagens", color: JuntoColors.primary, action: onSelectPhoto)
+                attachmentOption(icon: "doc.text", label: "Documentos", color: JuntoColors.primary, action: onSelectDocument)
+                attachmentOption(icon: "qrcode", label: "Pix", color: JuntoColors.primary, action: onSelectPix)
             }
 
             Spacer()
         }
         .padding(.horizontal, 22)
-        .background(JuntoColors.warmBg.ignoresSafeArea())
+        .background(Color.white.ignoresSafeArea())
     }
 
-    private func attachmentOption(icon: JuntoIconKind, label: String, color: Color, action: @escaping () -> Void) -> some View {
+    private func attachmentOption(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 8) {
-                JuntoIcon(kind: icon, size: 24, color: color, weight: 1.8)
-                    .frame(width: 58, height: 58)
+                Image(systemName: icon)
+                    .font(.system(size: 22, weight: .regular))
+                    .foregroundColor(color)
+                    .frame(width: 56, height: 56)
                     .background(Color.white)
                     .overlay(Circle().stroke(JuntoColors.border, lineWidth: 1))
                     .clipShape(Circle())
-                    .shadow(color: Color.black.opacity(0.04), radius: 5, y: 2)
 
                 Text(label)
                     .font(.inter(12, weight: .medium))
@@ -1043,7 +1054,9 @@ struct UndoDeleteSnackbar: View {
 
     var body: some View {
         HStack(spacing: 12) {
-            JuntoIcon(kind: .trash, size: 16, color: .white, weight: 1.8)
+            Image(systemName: "trash")
+                .font(.system(size: 14, weight: .regular))
+                .foregroundColor(.white)
 
             Text("Mensagem apagada para todos")
                 .font(.inter(13, weight: .regular))
@@ -1101,12 +1114,9 @@ struct SwipeToReplyContainer<Content: View>: View {
                         .fill(isTriggered ? JuntoColors.primary : JuntoColors.primaryLight)
                         .frame(width: 32, height: 32)
 
-                    JuntoIcon(
-                        kind: .swipeReply,
-                        size: 14,
-                        color: isTriggered ? .white : JuntoColors.primary,
-                        weight: 2.0
-                    )
+                    Image(systemName: "arrowshape.turn.up.left")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(isTriggered ? .white : JuntoColors.primary)
                 }
                 .scaleEffect(isTriggered ? 1.08 : max(0.5, progress))
                 .opacity(min(1.0, progress * 1.3))
@@ -1183,15 +1193,15 @@ struct CustomMessageMenuOverlay: View {
 
                 // Card de ações do app (Responder · Editar · Apagar)
                 VStack(spacing: 0) {
-                    actionRow(icon: .swipeReply, title: "Responder", color: JuntoColors.textMain, action: onReply)
+                    actionRow(icon: "arrowshape.turn.up.left", title: "Responder", color: JuntoColors.textMain, action: onReply)
 
                     if canEdit {
                         Divider().padding(.leading, 48)
-                        actionRow(icon: .edit, title: "Editar", color: JuntoColors.textMain, action: onEdit)
+                        actionRow(icon: "pencil", title: "Editar", color: JuntoColors.textMain, action: onEdit)
                     }
 
                     Divider().padding(.leading, 48)
-                    actionRow(icon: .trash, title: "Apagar", color: JuntoColors.danger, action: onDelete)
+                    actionRow(icon: "trash", title: "Apagar", color: JuntoColors.danger, action: onDelete)
                 }
                 .background(Color.white)
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
@@ -1203,10 +1213,12 @@ struct CustomMessageMenuOverlay: View {
         }
     }
 
-    private func actionRow(icon: JuntoIconKind, title: String, color: Color, action: @escaping () -> Void) -> some View {
+    private func actionRow(icon: String, title: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 14) {
-                JuntoIcon(kind: icon, size: 18, color: color, weight: 1.8)
+                Image(systemName: icon)
+                    .font(.system(size: 16, weight: .regular))
+                    .foregroundColor(color)
                     .frame(width: 22)
                 Text(title)
                     .font(.inter(15, weight: .medium))

@@ -190,7 +190,9 @@ struct GroupChatScreen: View {
 
                     VStack(alignment: .leading, spacing: 3) {
                         HStack(spacing: 6) {
-                            JuntoIcon(kind: .swipeReply, size: 12, color: authorColor, weight: 2.0)
+                            Image(systemName: "arrowshape.turn.up.left")
+                                .font(.system(size: 11, weight: .medium))
+                                .foregroundColor(authorColor)
                             Text(author)
                                 .font(.inter(13, weight: .semibold))
                                 .foregroundColor(authorColor)
@@ -212,7 +214,9 @@ struct GroupChatScreen: View {
                             replyingToMessage = nil
                         }
                     } label: {
-                        JuntoIcon(kind: .close, size: 12, color: JuntoColors.textMuted, weight: 2.0)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(JuntoColors.textMuted)
                             .frame(width: 28, height: 28)
                             .background(JuntoColors.surfaceSubtle)
                             .clipShape(Circle())
@@ -224,7 +228,9 @@ struct GroupChatScreen: View {
                 .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.8), alignment: .top)
             } else if editingMessageId != nil {
                 HStack(spacing: 8) {
-                    JuntoIcon(kind: .edit, size: 14, color: JuntoColors.primary, weight: 1.8)
+                    Image(systemName: "pencil")
+                        .font(.system(size: 13, weight: .regular))
+                        .foregroundColor(JuntoColors.primary)
                     Text("Editando mensagem")
                         .font(.inter(12, weight: .medium))
                         .foregroundColor(JuntoColors.textMain)
@@ -233,7 +239,9 @@ struct GroupChatScreen: View {
                         editingMessageId = nil
                         inputText = ""
                     } label: {
-                        JuntoIcon(kind: .close, size: 12, color: JuntoColors.textMuted, weight: 2.0)
+                        Image(systemName: "xmark")
+                            .font(.system(size: 12, weight: .medium))
+                            .foregroundColor(JuntoColors.textMuted)
                     }
                 }
                 .padding(.horizontal, 16)
@@ -241,7 +249,7 @@ struct GroupChatScreen: View {
                 .background(JuntoColors.primaryLight)
             }
 
-            // Barra Inferior (estilo WhatsApp com suporte a trava arrastando para cima)
+            // Barra Inferior com ícones nativos iOS limpos
             HStack(alignment: .center, spacing: 10) {
                 if audioManager.isRecording {
                     // Lixeira para cancelar o áudio
@@ -252,7 +260,9 @@ struct GroupChatScreen: View {
                             audioManager.cancelRecording()
                         }
                     } label: {
-                        JuntoIcon(kind: .trash, size: 20, color: JuntoColors.danger, weight: 1.8)
+                        Image(systemName: "trash")
+                            .font(.system(size: 18, weight: .regular))
+                            .foregroundColor(JuntoColors.danger)
                             .frame(width: 36, height: 36)
                     }
 
@@ -294,7 +304,7 @@ struct GroupChatScreen: View {
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, 12)
-                    .frame(height: 42)
+                    .frame(height: 40)
                     .background(JuntoColors.surfaceSubtle)
                     .clipShape(Capsule())
 
@@ -302,8 +312,10 @@ struct GroupChatScreen: View {
                     Button {
                         sendRecordedAudio()
                     } label: {
-                        JuntoIcon(kind: .send, size: 16, color: .white, weight: 2.0)
-                            .frame(width: 42, height: 42)
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.white)
+                            .frame(width: 38, height: 38)
                             .background(JuntoColors.primary)
                             .clipShape(Circle())
                     }
@@ -311,10 +323,10 @@ struct GroupChatScreen: View {
                     Button {
                         showAttachmentMenu = true
                     } label: {
-                        JuntoIcon(kind: .plus, size: 18, color: JuntoColors.primary, weight: 2.0)
-                            .frame(width: 40, height: 40)
-                            .background(JuntoColors.surfaceSubtle)
-                            .clipShape(Circle())
+                        Image(systemName: "plus")
+                            .font(.system(size: 20, weight: .regular))
+                            .foregroundColor(JuntoColors.textMain)
+                            .frame(width: 34, height: 34)
                     }
 
                     TextField("Mensagem no grupo...", text: $inputText, axis: .vertical)
@@ -322,16 +334,18 @@ struct GroupChatScreen: View {
                         .foregroundColor(JuntoColors.textMain)
                         .lineLimit(1...4)
                         .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
+                        .padding(.vertical, 9)
                         .background(JuntoColors.surfaceSubtle)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                        .clipShape(RoundedRectangle(cornerRadius: 18, style: .continuous))
 
                     if inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                        // Microfone estilo WhatsApp: segure e arraste para cima para travar gravação
+                        // Microfone nativo iOS limpo
                         ZStack(alignment: .bottom) {
                             if audioManager.isRecording && !isMicLocked {
                                 VStack(spacing: 5) {
-                                    JuntoIcon(kind: .lock, size: 14, color: JuntoColors.primary, weight: 2.0)
+                                    Image(systemName: "lock.fill")
+                                        .font(.system(size: 13))
+                                        .foregroundColor(JuntoColors.primary)
                                         .scaleEffect(micDragOffsetY < -30 ? 1.25 : 1.0)
                                     Image(systemName: "chevron.up")
                                         .font(.system(size: 10, weight: .bold))
@@ -353,10 +367,10 @@ struct GroupChatScreen: View {
                                     }
                                 }
                             } label: {
-                                JuntoIcon(kind: .mic, size: 18, color: .white, weight: 2.0)
-                                    .frame(width: 42, height: 42)
-                                    .background(JuntoColors.primary)
-                                    .clipShape(Circle())
+                                Image(systemName: "mic")
+                                    .font(.system(size: 20, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMain)
+                                    .frame(width: 36, height: 36)
                             }
                             .simultaneousGesture(
                                 DragGesture(minimumDistance: 4, coordinateSpace: .local)
@@ -367,13 +381,11 @@ struct GroupChatScreen: View {
                                         }
                                         micDragOffsetY = value.translation.height
 
-                                        // Arrasto para cima trava a gravação (hands-free!)
                                         if value.translation.height < -36 && !isMicLocked {
                                             isMicLocked = true
                                             micDragOffsetY = 0
                                             UIImpactFeedbackGenerator(style: .heavy).impactOccurred()
                                         }
-                                        // Arrasto para a esquerda cancela gravação
                                         if value.translation.width < -50 {
                                             audioManager.cancelRecording()
                                             isMicLocked = false
@@ -415,15 +427,12 @@ struct GroupChatScreen: View {
                                 )
                             }
                         } label: {
-                            JuntoIcon(
-                                kind: editingMessageId != nil ? .checkmark : .send,
-                                size: 18,
-                                color: .white,
-                                weight: 2.0
-                            )
-                            .frame(width: 42, height: 42)
-                            .background(JuntoColors.primary)
-                            .clipShape(Circle())
+                            Image(systemName: editingMessageId != nil ? "checkmark" : "arrow.up")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.white)
+                                .frame(width: 36, height: 36)
+                                .background(JuntoColors.primary)
+                                .clipShape(Circle())
                         }
                     }
                 }
@@ -776,11 +785,17 @@ struct GroupChatScreen: View {
     private func replyIconForKind(_ kind: ChatMessageKind) -> some View {
         switch kind {
         case .audio:
-            JuntoIcon(kind: .mic, size: 12, color: JuntoColors.accent, weight: 1.8)
+            Image(systemName: "mic.fill")
+                .font(.system(size: 11))
+                .foregroundColor(JuntoColors.accent)
         case .photo:
-            JuntoIcon(kind: .photo, size: 12, color: Color(hex: "#2563EB"), weight: 1.8)
+            Image(systemName: "photo")
+                .font(.system(size: 11))
+                .foregroundColor(Color(hex: "#2563EB"))
         case .document:
-            JuntoIcon(kind: .docText, size: 12, color: Color(hex: "#7C3AED"), weight: 1.8)
+            Image(systemName: "doc.text")
+                .font(.system(size: 11))
+                .foregroundColor(Color(hex: "#7C3AED"))
         default:
             EmptyView()
         }

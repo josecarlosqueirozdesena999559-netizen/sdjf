@@ -55,23 +55,13 @@ struct AccountView: View {
                                     .lineLimit(1)
 
                                 if store.user.isPro {
-                                    HStack(spacing: 3) {
-                                        JuntoIcon(kind: .crown, size: 10, color: JuntoColors.accent)
-                                        Text("PRO")
-                                            .font(.inter(9, weight: .bold))
-                                            .foregroundColor(.white)
-                                    }
-                                    .padding(.horizontal, 6)
-                                    .padding(.vertical, 2)
-                                    .background(
-                                        LinearGradient(
-                                            colors: [JuntoColors.primary, JuntoColors.proIndigo],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        )
-                                    )
-                                    .clipShape(Capsule())
-                                    .shadow(color: JuntoColors.accent.opacity(0.3), radius: 3)
+                                    Text("PRO")
+                                        .font(.inter(10, weight: .medium))
+                                        .foregroundColor(.white)
+                                        .padding(.horizontal, 6)
+                                        .padding(.vertical, 2)
+                                        .background(JuntoColors.primary)
+                                        .clipShape(Capsule())
                                 }
                             }
 
@@ -92,61 +82,63 @@ struct AccountView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 18)
 
-                    // Card Juntô Pro (R$ 19,90/mês: Mercado Pago, Bot WhatsApp, Alertas e IA)
-                    VStack(spacing: 14) {
-                        JuntoProBadgeIcon(size: 52)
-                            .padding(.top, 4)
-
-                        VStack(spacing: 4) {
-                            Text(store.user.isPro ? "Você é Juntô Pro ativo 👑" : "Juntô Pro • R$ 19,90/mês")
-                                .font(.inter(16, weight: .semibold))
+                    // Card Juntô Pro limpo
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text(store.user.isPro ? "Juntô Pro ativo" : "Juntô Pro")
+                                .font(.inter(16, weight: .medium))
                                 .foregroundColor(JuntoColors.textMain)
-                            Text(store.user.isPro ? "Mercado Pago automático, Bot WhatsApp oficial e IA liberados." : "Pagamentos Mercado Pago, API WhatsApp oficial, alertas inteligentes e planos de economia com IA.")
-                                .font(.inter(12, weight: .regular))
-                                .foregroundColor(JuntoColors.textMuted)
-                                .multilineTextAlignment(.center)
+                            Spacer()
+                            Text("R$ 19,90/mês")
+                                .font(.inter(13, weight: .medium))
+                                .foregroundColor(JuntoColors.primary)
                         }
 
+                        Text("Baixa automática de Pix, despesas via WhatsApp, leitura ilimitada de comandas e relatórios.")
+                            .font(.inter(13, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+
                         JuntoPillButton(
-                            title: store.user.isPro ? "Gerenciar assinatura Pro" : "Conhecer o Juntô Pro (R$ 19,90)",
-                            color: JuntoColors.proIndigo
+                            title: store.user.isPro ? "Gerenciar assinatura" : "Ver recursos do Juntô Pro",
+                            color: JuntoColors.primary
                         ) {
                             showProSubscription = true
                         }
                     }
-                    .padding(20)
-                    .background(JuntoColors.proBgLight)
-                    .cornerRadius(16)
-                    .padding(.horizontal, 18)
+                    .padding(16)
+                    .background(Color.white)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                    .padding(.horizontal, 20)
                     .padding(.bottom, 20)
 
                     // Menu limpo (sem Pix no perfil — QR Code de convite para adicionar amigos!)
-                    accountRow(icon: .inviteQR, title: "QR Code de convite") {
+                    accountRow(icon: "qrcode", title: "QR Code de convite") {
                         showInviteQRCode = true
                     }
                     Divider().padding(.leading, 20)
 
-                    accountRow(icon: .inviteFriends, title: "Convidar amigos") {
+                    accountRow(icon: "person.badge.plus", title: "Convidar amigos") {
                         showInviteFriends = true
                     }
                     Divider().padding(.leading, 20)
 
-                    accountRow(icon: .person, title: "Editar perfil") {
+                    accountRow(icon: "person", title: "Editar perfil") {
                         showAccountSettings = true
                     }
                     Divider().padding(.leading, 20)
 
-                    accountRow(icon: .lock, title: "Segurança e privacidade") {
+                    accountRow(icon: "lock.shield", title: "Segurança e privacidade") {
                         showSecurityPrivacy = true
                     }
                     Divider().padding(.leading, 20)
 
-                    accountRow(icon: .docText, title: "Política de Privacidade (LGPD)") {
+                    accountRow(icon: "doc.text", title: "Política de Privacidade (LGPD)") {
                         showPrivacyPolicy = true
                     }
                     Divider().padding(.leading, 20)
 
-                    accountRow(icon: .logout, iconColor: JuntoColors.danger, title: "Sair da conta", textColor: JuntoColors.danger) {
+                    accountRow(icon: "rectangle.portrait.and.arrow.right", iconColor: JuntoColors.danger, title: "Sair da conta", textColor: JuntoColors.danger) {
                         store.logout()
                     }
                 }
@@ -180,7 +172,7 @@ struct AccountView: View {
     }
 
     private func accountRow(
-        icon: JuntoIconKind?,
+        icon: String?,
         iconColor: Color = JuntoColors.textMain,
         title: String,
         textColor: Color = JuntoColors.textMain,
@@ -189,7 +181,9 @@ struct AccountView: View {
         Button(action: action) {
             HStack(spacing: 14) {
                 if let icon = icon {
-                    JuntoIcon(kind: icon, size: 20, color: iconColor, weight: 1.6)
+                    Image(systemName: icon)
+                        .font(.system(size: 18, weight: .regular))
+                        .foregroundColor(iconColor)
                         .frame(width: 26)
                 }
 
@@ -199,7 +193,9 @@ struct AccountView: View {
 
                 Spacer()
 
-                JuntoIcon(kind: .chevronRight, size: 16, color: JuntoColors.textLight, weight: 1.6)
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 13, weight: .regular))
+                    .foregroundColor(JuntoColors.textLight)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)

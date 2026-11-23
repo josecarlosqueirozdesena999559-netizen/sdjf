@@ -29,70 +29,54 @@ struct PixSheetView: View {
         VStack(spacing: 14) {
             Capsule()
                 .fill(JuntoColors.border)
-                .frame(width: 40, height: 4)
+                .frame(width: 36, height: 4)
                 .padding(.top, 10)
 
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    HStack(spacing: 6) {
-                        Text("Pagar com Pix")
-                            .font(.inter(18, weight: .medium))
-                            .foregroundColor(JuntoColors.textMain)
-                        Text("Manual")
-                            .font(.inter(10, weight: .semibold))
-                            .foregroundColor(JuntoColors.primary)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(JuntoColors.primaryLight)
-                            .clipShape(Capsule())
-                    }
+                    Text("Pagar com Pix")
+                        .font(.inter(18, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
                     Text("\(data.title) • Para: \(data.recipientName)")
                         .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                 }
                 Spacer()
                 Button { dismiss() } label: {
-                    JuntoIcon(kind: .close, size: 12, color: JuntoColors.textMuted, weight: 2.0)
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(JuntoColors.textMuted)
                         .frame(width: 30, height: 30)
                         .background(JuntoColors.surfaceSubtle)
                         .clipShape(Circle())
                 }
             }
 
-            // Banner de validade de 5 minutos
-            HStack(spacing: 8) {
-                Circle()
-                    .fill(timeRemaining > 60 ? JuntoColors.pixGreen : JuntoColors.danger)
-                    .frame(width: 8, height: 8)
+            // Valor e validade limpíssimos (sem bolinha verde e sem caixas coloridas)
+            VStack(spacing: 4) {
+                Text(JuntoStore.formatBRL(data.amount))
+                    .font(.inter(28, weight: .medium))
+                    .foregroundColor(JuntoColors.textMain)
 
                 if timeRemaining > 0 {
-                    Text("Pix válido por 5 minutos • Expira em")
-                        .font(.inter(12, weight: .regular))
-                        .foregroundColor(JuntoColors.textMuted)
-
-                    Text(formattedTime)
-                        .font(.inter(12, weight: .bold))
-                        .foregroundColor(timeRemaining > 60 ? JuntoColors.textMain : JuntoColors.danger)
-                        .monospacedDigit()
+                    HStack(spacing: 4) {
+                        Image(systemName: "clock")
+                            .font(.system(size: 11, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                        Text("Expira em \(formattedTime)")
+                            .font(.inter(12, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .monospacedDigit()
+                    }
                 } else {
-                    Text("Tempo de 5 minutos expirado. Gere novamente.")
-                        .font(.inter(12, weight: .medium))
+                    Text("Código expirado. Abra novamente para gerar outro.")
+                        .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.danger)
                 }
-
-                Spacer()
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(JuntoColors.surfaceSubtle)
-            .clipShape(RoundedRectangle(cornerRadius: 8))
+            .padding(.vertical, 4)
 
-            // Valor em destaque
-            Text(JuntoStore.formatBRL(data.amount))
-                .font(.inter(26, weight: .medium))
-                .foregroundColor(JuntoColors.primary)
-
-            // Seletor de abas
+            // Seletor de abas limpo
             HStack(spacing: 8) {
                 ForEach(PixTab.allCases, id: \.self) { tab in
                     let active = selectedTab == tab
@@ -130,8 +114,8 @@ struct PixSheetView: View {
                         )
                 }
             } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    Text("Código Pix Copia e Cola:")
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("Código Pix Copia e Cola")
                         .font(.inter(12, weight: .medium))
                         .foregroundColor(JuntoColors.textMain)
 
@@ -141,14 +125,15 @@ struct PixSheetView: View {
                         .lineLimit(3)
                         .padding(12)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background(JuntoColors.surfaceSubtle)
-                        .cornerRadius(8)
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 8).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
-                .padding(.vertical, 8)
+                .padding(.vertical, 6)
             }
 
             JuntoPillButton(
-                title: copiedPayload ? "Código Pix copiado!" : "Copiar código Pix",
+                title: copiedPayload ? "Código Pix copiado" : "Copiar código Pix",
                 icon: copiedPayload ? "checkmark" : "doc.on.doc"
             ) {
                 UIPasteboard.general.string = data.pixPayload

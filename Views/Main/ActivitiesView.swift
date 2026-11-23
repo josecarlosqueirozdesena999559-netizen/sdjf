@@ -52,14 +52,11 @@ struct ActivitiesView: View {
                         ForEach(filteredActivities) { item in
                             let accent = iconAccentColor(for: item.icon)
                             HStack(spacing: 14) {
-                                // Ícone customizado profissional
-                                JuntoIcon(
-                                    kind: JuntoIconKind.activity(item.icon),
-                                    size: 22,
-                                    color: accent,
-                                    weight: 1.7
-                                )
-                                .frame(width: 30, alignment: .center)
+                                // Ícone nativo limpo sem fundo colorido pesado
+                                Image(systemName: item.icon)
+                                    .font(.system(size: 20, weight: .light))
+                                    .foregroundColor(accent)
+                                    .frame(width: 30, alignment: .center)
 
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text(item.title)
