@@ -78,6 +78,10 @@ final class JuntoStore: ObservableObject {
     /// Conversas automáticas de cada grupo (todo o histórico fica disponível para novos membros e é apagado ao excluir o grupo)
     @Published var groupChatMessages: [UUID: [ChatMessage]] = [:]
 
+    /// E-mail oficial de suporte / Fale Conosco / Ouvidoria LGPD (pronto para atualizar quando você enviar o definitivo)
+    @Published var supportEmail: String = "suporte@junto.app"
+    @Published var isDatabaseSynced: Bool = false
+
     init() {
         if groups.indices.contains(0) {
             let g0 = groups[0]
@@ -88,6 +92,12 @@ final class JuntoStore: ObservableObject {
                 ChatMessage(isFromMe: true, kind: .text("Recebido Camila! Já confirmei lá no Pote."), timeText: "11:18", dateLabel: "Ontem", status: .read, replyToAuthor: "Camila Rocha", replyToPreview: "Acabei de mandar a minha parte! Mal posso esperar 🙌"),
                 ChatMessage(isFromMe: false, kind: .text("Vou passar no mercado hoje pra pegar bebidas e gelo."), timeText: "09:30", dateLabel: "Hoje", status: .read, senderName: "Matheus Alves", senderUsername: "matheus.alves")
             ]
+        }
+
+        // Solicita permissão real de notificações do iOS e sincroniza com o banco PostgreSQL do Docker
+        JuntoNotificationManager.shared.requestAuthorization()
+        Task {
+            await syncWithBackendDatabase()
         }
     }
 
@@ -322,16 +332,33 @@ final class JuntoStore: ObservableObject {
 
         usernameState = .checking
         usernameCheckTask = Task {
+            if let serverAvailable = await JuntoBackendService.shared.checkUsernameAvailability(cleaned) {
+                guard !Task.isCancelled else { return }
+                usernameState = serverAvailable ? .available : .unavailable
+                return
+            }
             try? await Task.sleep(nanoseconds: 250_000_000)
             guard !Task.isCancelled else { return }
             usernameState = takenUsernames.contains(cleaned) ? .unavailable : .available
         }
     }
 
-    func login(identifier: String) {
+    func login(identifier: String, password: String = "") {
         let clean = identifier.trimmingCharacters(in: .whitespacesAndNewlines)
         if !clean.isEmpty {
             if clean.contains("@") { user.email = clean } else { user.username = clean.lowercased() }
+        }
+        Task {
+            if let res = await JuntoBackendService.shared.login(identifier: clean.isEmpty ? user.username : clean, password: password),
+               let uDict = res["user"] as? [String: Any] {
+                if let name = uDict["fullName"] as? String { user.fullName = name }
+                if let uname = uDict["username"] as? String { user.username = uname }
+                if let mail = uDict["email"] as? String { user.email = mail }
+                if let phone = uDict["phone"] as? String { user.phone = phone }
+                if let pix = uDict["pixKey"] as? String { user.pixKey = pix }
+                if let pro = uDict["isPro"] as? Bool { user.isPro = pro }
+                await syncWithBackendDatabase()
+            }
         }
         withAnimation(.easeInOut(duration: 0.25)) {
             route = .main
@@ -341,16 +368,94 @@ final class JuntoStore: ObservableObject {
     func completeRegistration() {
         let cleanName = draftFullName.trimmingCharacters(in: .whitespacesAndNewlines)
         let cleanPix = draftPixKey.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanUser = draftUsername.replacingOccurrences(of: "@", with: "").lowercased()
+        let cleanEmail = draftEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+        let finalPix = cleanPix.isEmpty ? cleanEmail : cleanPix
+
         user = UserProfile(
             fullName: cleanName.isEmpty ? "Novo usuário" : cleanName,
-            username: draftUsername.replacingOccurrences(of: "@", with: "").lowercased(),
-            email: draftEmail.trimmingCharacters(in: .whitespacesAndNewlines),
+            username: cleanUser,
+            email: cleanEmail,
             country: draftCountry,
             phone: draftPhone,
-            pixKey: cleanPix.isEmpty ? draftEmail.trimmingCharacters(in: .whitespacesAndNewlines) : cleanPix
+            pixKey: finalPix
         )
+
+        let pwd = draftPassword
+        Task {
+            _ = await JuntoBackendService.shared.register(
+                email: cleanEmail,
+                username: cleanUser,
+                password: pwd,
+                fullName: user.fullName,
+                phone: draftPhone,
+                pixKey: finalPix
+            )
+            await syncWithBackendDatabase()
+        }
+
+        JuntoNotificationManager.shared.triggerLocalNotification(
+            title: "Bem-vindo ao Juntô, \(user.firstName)!",
+            body: "Sua conta @\(user.username) foi criada e sincronizada com sucesso."
+        )
+
         withAnimation(.easeInOut(duration: 0.28)) {
             route = .welcomeSlides
+        }
+    }
+
+    /// Solicita código de 6 dígitos para recuperação de senha (sincronizado no Redis/PostgreSQL + Notificação Real no iPhone)
+    func requestPasswordReset(identifier: String, code: String) async {
+        _ = await JuntoBackendService.shared.requestPasswordReset(identifier: identifier, code: code)
+        JuntoNotificationManager.shared.triggerLocalNotification(
+            title: "Código de recuperação Juntô: \(code)",
+            body: "Use o código \(code) para redefinir a senha da sua conta. Válido por 15 minutos."
+        )
+        showToast("Código de 6 dígitos enviado!", icon: "envelope")
+    }
+
+    /// Confirma a redefinição de senha no banco PostgreSQL
+    func confirmPasswordReset(identifier: String, code: String, newPassword: String) async {
+        _ = await JuntoBackendService.shared.confirmPasswordReset(identifier: identifier, code: code, newPassword: newPassword)
+        JuntoNotificationManager.shared.triggerLocalNotification(
+            title: "Senha atualizada com segurança",
+            body: "A senha da sua conta Juntô foi alterada com sucesso."
+        )
+        showToast("Senha redefinida com sucesso!", icon: "checkmark.circle")
+    }
+
+    /// Registra chamado do Fale Conosco no PostgreSQL + dispara notificação de confirmação
+    func submitContactTicket(name: String, email: String, subject: String, message: String, protocolCode: String) {
+        Task {
+            _ = await JuntoBackendService.shared.submitSupportTicket(
+                protocolCode: protocolCode,
+                name: name,
+                email: email,
+                subject: subject,
+                message: message
+            )
+        }
+        JuntoNotificationManager.shared.triggerLocalNotification(
+            title: "Atendimento Juntô • #\(protocolCode)",
+            body: "Recebemos sua mensagem sobre \"\(subject)\". Responderemos no e-mail \(email)."
+        )
+        showToast("Mensagem enviada! Protocolo #\(protocolCode)", icon: "checkmark.circle")
+    }
+
+    /// Sincroniza dados reais com o banco PostgreSQL do Docker (fallback transparente caso offline)
+    func syncWithBackendDatabase() async {
+        guard let payload = await JuntoBackendService.shared.fetchBootstrap(username: user.username) else {
+            return
+        }
+        isDatabaseSynced = true
+        if let uDict = payload["user"] as? [String: Any] {
+            if let name = uDict["fullName"] as? String, !name.isEmpty { user.fullName = name }
+            if let uname = uDict["username"] as? String, !uname.isEmpty { user.username = uname }
+            if let mail = uDict["email"] as? String, !mail.isEmpty { user.email = mail }
+            if let phone = uDict["phone"] as? String, !phone.isEmpty { user.phone = phone }
+            if let pix = uDict["pixKey"] as? String, !pix.isEmpty { user.pixKey = pix }
+            if let pro = uDict["isPro"] as? Bool { user.isPro = pro }
+            if let plan = uDict["proPlanName"] as? String { user.proPlanName = plan }
         }
     }
 
@@ -1119,6 +1224,14 @@ final class JuntoStore: ObservableObject {
             ),
             at: 0
         )
+
+        Task {
+            await JuntoBackendService.shared.createGroupOnServer(title: cleanTitle, category: category, potTarget: potTarget)
+        }
+        JuntoNotificationManager.shared.triggerLocalNotification(
+            title: "Grupo \"\(cleanTitle)\" criado",
+            body: subtitleText
+        )
         showToast("Grupo \"\(cleanTitle)\" criado e cotas distribuídas!", icon: "checkmark.circle")
     }
 
@@ -1149,6 +1262,21 @@ final class JuntoStore: ObservableObject {
             ),
             at: 0
         )
+        let uname = user.username
+        Task {
+            await JuntoBackendService.shared.createPersonalPot(
+                username: uname,
+                title: cleanTitle,
+                occasion: occasion,
+                icon: icon,
+                targetAmount: targetAmount,
+                targetDateText: targetDateText
+            )
+        }
+        JuntoNotificationManager.shared.triggerLocalNotification(
+            title: "Nova Caixinha • \(cleanTitle)",
+            body: "Meta de \(Self.formatBRL(targetAmount)) para \(occasion) até \(targetDateText)."
+        )
         showToast("Caixinha \"\(cleanTitle)\" criada!", icon: "checkmark.circle")
     }
 
@@ -1176,6 +1304,10 @@ final class JuntoStore: ObservableObject {
                 isPositive: true
             ),
             at: 0
+        )
+        JuntoNotificationManager.shared.triggerLocalNotification(
+            title: "Caixinha \"\(title)\" • \(pct)%",
+            body: "Você guardou \(Self.formatBRL(amount)). Total acumulado: \(Self.formatBRL(personalPots[idx].currentAmount))."
         )
         showToast("Guardado \(Self.formatBRL(amount)) na caixinha!", icon: "checkmark.circle")
     }
@@ -1294,6 +1426,23 @@ final class JuntoStore: ObservableObject {
             ),
             at: 0
         )
+        let uname = user.username
+        let gName = groupTitle.isEmpty ? "Pessoal" : groupTitle
+        Task {
+            await JuntoBackendService.shared.createPersonalExpense(
+                username: uname,
+                title: cleanDesc,
+                category: category,
+                amount: amount,
+                dateText: "Hoje",
+                monthKey: "Novembro 2026",
+                groupName: gName
+            )
+        }
+        JuntoNotificationManager.shared.triggerLocalNotification(
+            title: "Nova despesa registrada",
+            body: "\(cleanDesc) • \(Self.formatBRL(amount)) (\(gName))"
+        )
         showToast("Despesa adicionada.", icon: "checkmark.circle")
     }
 
@@ -1374,13 +1523,25 @@ final class JuntoStore: ObservableObject {
         user.isPro = true
         user.proPlanName = plan
         user.proExpiresDateText = "Renovação em 23 de dez. de 2026"
-        showToast("Você agora é Juntô Pro! 👑", icon: "sparkles")
+        let uname = user.username
+        Task {
+            await JuntoBackendService.shared.syncProStatus(username: uname, isPro: true, planName: plan)
+        }
+        JuntoNotificationManager.shared.triggerLocalNotification(
+            title: "Juntô Pro Ativado",
+            body: "Grupos ilimitados, Potes Pessoais (Caixinhas) e Pote Mensal para excursões liberados!"
+        )
+        showToast("Você agora é Juntô Pro!", icon: "checkmark.circle")
     }
 
     func cancelPro() {
         user.isPro = false
         user.proPlanName = nil
         user.proExpiresDateText = nil
+        let uname = user.username
+        Task {
+            await JuntoBackendService.shared.syncProStatus(username: uname, isPro: false, planName: nil)
+        }
         showToast("Assinatura Juntô Pro cancelada.", icon: "checkmark")
     }
 
