@@ -18,6 +18,7 @@ targets:
       - path: Views
       - path: Components
       - path: DesignSystem
+      - path: Services
       - path: Resources
         excludes:
           - "Info.plist"
@@ -42,6 +43,7 @@ targets:
           - UIInterfaceOrientationLandscapeRight
         NSCameraUsageDescription: "O Juntô utiliza a câmera para escanear comandas de bar e notas fiscais com Inteligência Artificial."
         NSPhotoLibraryUsageDescription: "O Juntô acessa sua biblioteca de fotos para escolher a foto do perfil e capas dos seus rolês."
+        NSMicrophoneUsageDescription: "O Juntô utiliza o microfone para gravar e enviar mensagens de áudio no chat com seus amigos."
         UIAppFonts:
           - Inter-Regular.ttf
           - Inter-Medium.ttf

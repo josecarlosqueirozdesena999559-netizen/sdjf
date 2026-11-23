@@ -23,6 +23,7 @@ final class JuntoStore: ObservableObject {
     @Published var draftFullName: String = ""
     @Published var draftCountry: CountryOption = CountryOption.all[0]
     @Published var draftPhone: String = ""
+    @Published var draftPixKey: String = ""
     @Published var usernameState: UsernameCheckState = .idle
 
     // Mocks realistas e completos para testar imediatamente
@@ -54,17 +55,22 @@ final class JuntoStore: ObservableObject {
     // Conversas de chat por @username
     @Published var chatMessages: [String: [ChatMessage]] = [
         "pedro.santos": [
-            ChatMessage(isFromMe: false, kind: .text("Fala! Já separei os R$ 100 da viagem de Ubatuba."), timeText: "19:12"),
-            ChatMessage(isFromMe: true, kind: .text("Show Pedro, pode mandar por Pix quando puder 👍"), timeText: "19:15"),
-            ChatMessage(isFromMe: false, kind: .audio(12), timeText: "19:18")
+            ChatMessage(isFromMe: false, kind: .text("Fala! Já separei os R$ 100 da viagem de Ubatuba."), timeText: "19:12", status: .read),
+            ChatMessage(isFromMe: true, kind: .text("Show Pedro, pode mandar por Pix quando puder 👍"), timeText: "19:15", status: .read),
+            ChatMessage(
+                isFromMe: false,
+                kind: .audio(duration: 8, waveform: [0.25, 0.45, 0.72, 0.90, 0.55, 0.35, 0.68, 0.85, 0.95, 0.60, 0.42, 0.78, 0.50, 0.30, 0.64, 0.88, 0.74, 0.48, 0.35, 0.62, 0.80, 0.45, 0.28, 0.20], fileURL: nil),
+                timeText: "19:18",
+                status: .read
+            )
         ],
         "camila.rocha": [
-            ChatMessage(isFromMe: false, kind: .text("Oi! Te mando minha parte do churrasco ainda hoje."), timeText: "18:30"),
-            ChatMessage(isFromMe: true, kind: .text("Tranquilo, sem pressa!"), timeText: "18:34")
+            ChatMessage(isFromMe: false, kind: .text("Oi! Te mando minha parte do churrasco ainda hoje."), timeText: "18:30", status: .read),
+            ChatMessage(isFromMe: true, kind: .text("Tranquilo, sem pressa!"), timeText: "18:34", status: .delivered)
         ],
         "matheus.alves": [
-            ChatMessage(isFromMe: false, kind: .document("Comanda_Churrasco.pdf", "248 KB"), timeText: "17:45"),
-            ChatMessage(isFromMe: false, kind: .text("Ficou R$ 35,36 a sua parte da carne e do gelo."), timeText: "17:46")
+            ChatMessage(isFromMe: false, kind: .document("Comanda_Churrasco.pdf", "248 KB"), timeText: "17:45", status: .read),
+            ChatMessage(isFromMe: false, kind: .text("Ficou R$ 35,36 a sua parte da carne e do gelo."), timeText: "17:46", status: .read)
         ]
     ]
 
@@ -231,13 +237,14 @@ final class JuntoStore: ObservableObject {
 
     func completeRegistration() {
         let cleanName = draftFullName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanPix = draftPixKey.trimmingCharacters(in: .whitespacesAndNewlines)
         user = UserProfile(
             fullName: cleanName.isEmpty ? "Novo usuário" : cleanName,
             username: draftUsername.replacingOccurrences(of: "@", with: "").lowercased(),
             email: draftEmail.trimmingCharacters(in: .whitespacesAndNewlines),
             country: draftCountry,
             phone: draftPhone,
-            pixKey: draftEmail.trimmingCharacters(in: .whitespacesAndNewlines)
+            pixKey: cleanPix.isEmpty ? draftEmail.trimmingCharacters(in: .whitespacesAndNewlines) : cleanPix
         )
         withAnimation(.easeInOut(duration: 0.28)) {
             route = .welcomeSlides
@@ -274,7 +281,7 @@ final class JuntoStore: ObservableObject {
         switch last.kind {
         case .text(let txt): return txt
         case .photo(_, let caption): return caption.isEmpty ? "Foto" : "Foto: \(caption)"
-        case .audio(let secs): return "Áudio (0:\(String(format: "%02d", secs)))"
+        case .audio(let secs, _, _): return "Áudio (0:\(String(format: "%02d", secs)))"
         case .document(let name, _): return "Documento: \(name)"
         }
     }
@@ -287,8 +294,42 @@ final class JuntoStore: ObservableObject {
 
     func sendChatMessage(to username: String, kind: ChatMessageKind) {
         let key = username.lowercased()
-        let msg = ChatMessage(isFromMe: true, kind: kind, timeText: currentTimeString())
+        let msg = ChatMessage(isFromMe: true, kind: kind, timeText: currentTimeString(), status: .sent)
+        let msgId = msg.id
         chatMessages[key, default: []].append(msg)
+
+        // Simulação em tempo real do ciclo de entrega/leitura (no servidor via Socket.IO chat:status)
+        let isFriendOnline = friends.first(where: { $0.username.lowercased() == key })?.isOnline ?? false
+        if isFriendOnline {
+            Task {
+                // 1 traço (sent) -> 2 traços (delivered) em 0.6s
+                try? await Task.sleep(nanoseconds: 600_000_000)
+                updateMessageStatus(username: key, messageId: msgId, status: .delivered)
+
+                // 2 traços (delivered) -> 2 traços coloridos (read) em +1.2s
+                try? await Task.sleep(nanoseconds: 1_200_000_000)
+                updateMessageStatus(username: key, messageId: msgId, status: .read)
+
+                // Indicador "digitando..." em tempo real por 2s
+                setFriendTyping(username: key, typing: true)
+                try? await Task.sleep(nanoseconds: 2_000_000_000)
+                setFriendTyping(username: key, typing: false)
+            }
+        }
+    }
+
+    func updateMessageStatus(username: String, messageId: UUID, status: MessageDeliveryStatus) {
+        let key = username.lowercased()
+        guard let idx = chatMessages[key]?.firstIndex(where: { $0.id == messageId }) else { return }
+        chatMessages[key]?[idx].status = status
+    }
+
+    func setFriendTyping(username: String, typing: Bool) {
+        let key = username.lowercased()
+        guard let idx = friends.firstIndex(where: { $0.username.lowercased() == key }) else { return }
+        withAnimation(.easeInOut(duration: 0.2)) {
+            friends[idx].isTyping = typing
+        }
     }
 
     /// Apaga as mensagens da conversa. Se houver dívida (balance != 0), o amigo continua na lista inicial sem mensagens.

@@ -1,10 +1,13 @@
 import SwiftUI
 
-/// Cadastro moderno: 1 campo por tela (5 passos limpos e rápidos, sem campo de moeda BRL)
+/// Cadastro moderno: 1 campo por tela (6 passos incluindo conferência obrigatória da Chave Pix)
 struct RegisterFlowView: View {
     @EnvironmentObject var store: JuntoStore
     @State private var step: Int = 1
-    private let totalSteps = 5
+    @State private var pixKeyType: String = "CPF"
+    @State private var pixConfirmed: Bool = false
+    private let totalSteps = 6
+    private let pixTypes = ["CPF", "Celular", "E-mail", "Aleatória"]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -102,7 +105,7 @@ struct RegisterFlowView: View {
                         text: $store.draftFullName
                     )
 
-                default:
+                case 5:
                     stepTitle("Qual é o seu telefone?", subtitle: "Facilita encontrar amigos e receber alertas de Pix.")
                     VStack(alignment: .leading, spacing: 7) {
                         Text("Telefone")
@@ -142,6 +145,78 @@ struct RegisterFlowView: View {
                                     store.draftPhone = formatPhone(newValue)
                                 }
                         }
+                    }
+
+                default:
+                    stepTitle(
+                        "Cadastre sua chave Pix",
+                        subtitle: "Confira com atenção: é por essa chave que você receberá os pagamentos e saques automáticos."
+                    )
+
+                    // Tipo da chave Pix
+                    HStack(spacing: 8) {
+                        ForEach(pixTypes, id: \.self) { type in
+                            let active = pixKeyType == type
+                            Button {
+                                pixKeyType = type
+                                if type == "E-mail" && store.draftPixKey.isEmpty {
+                                    store.draftPixKey = store.draftEmail
+                                } else if type == "Celular" && store.draftPixKey.isEmpty {
+                                    store.draftPixKey = "+55 \(store.draftPhone)"
+                                }
+                            } label: {
+                                Text(type)
+                                    .font(.inter(12, weight: .medium))
+                                    .foregroundColor(active ? .white : JuntoColors.textMain)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 36)
+                                    .background(active ? JuntoColors.primary : JuntoColors.surfaceSubtle)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                        }
+                    }
+
+                    CleanOutlineInput(
+                        label: "Sua chave Pix (\(pixKeyType))",
+                        placeholder: pixPlaceholder,
+                        text: $store.draftPixKey,
+                        keyboardType: pixKeyType == "E-mail" ? .emailAddress : .default,
+                        autocapitalization: .never
+                    )
+
+                    // Aviso visual para conferir a chave Pix
+                    if !store.draftPixKey.trimmingCharacters(in: .whitespaces).isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 8) {
+                                Image(systemName: "exclamationmark.triangle.fill")
+                                    .foregroundColor(JuntoColors.accent)
+                                Text("Confira sua chave antes de concluir:")
+                                    .font(.inter(12, weight: .medium))
+                                    .foregroundColor(JuntoColors.textMain)
+                            }
+
+                            Text(store.draftPixKey)
+                                .font(.inter(15, weight: .medium))
+                                .foregroundColor(JuntoColors.primary)
+
+                            Button {
+                                pixConfirmed.toggle()
+                            } label: {
+                                HStack(spacing: 8) {
+                                    Image(systemName: pixConfirmed ? "checkmark.square.fill" : "square")
+                                        .font(.system(size: 18))
+                                        .foregroundColor(pixConfirmed ? JuntoColors.pixGreen : JuntoColors.textMuted)
+                                    Text("Conferi minha chave Pix e ela está correta")
+                                        .font(.inter(13, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMain)
+                                }
+                            }
+                        }
+                        .padding(14)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(JuntoColors.warmBg)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
                 }
 
@@ -200,12 +275,33 @@ struct RegisterFlowView: View {
             }
             withAnimation(.easeInOut(duration: 0.2)) { step = 5 }
 
-        default:
+        case 5:
             guard store.draftPhone.filter({ $0.isNumber }).count >= 10 else {
                 store.showToast("Digite um telefone válido com DDD.", icon: "phone")
                 return
             }
+            withAnimation(.easeInOut(duration: 0.2)) { step = 6 }
+
+        default:
+            let cleanPix = store.draftPixKey.trimmingCharacters(in: .whitespacesAndNewlines)
+            guard cleanPix.count >= 5 else {
+                store.showToast("Informe sua chave Pix para receber pagamentos.", icon: "qrcode")
+                return
+            }
+            guard pixConfirmed else {
+                store.showToast("Confirme que sua chave Pix está correta.", icon: "checkmark.square")
+                return
+            }
             store.completeRegistration()
+        }
+    }
+
+    private var pixPlaceholder: String {
+        switch pixKeyType {
+        case "CPF": return "000.000.000-00"
+        case "Celular": return "+55 (11) 91234-5678"
+        case "E-mail": return "voce@email.com"
+        default: return "Cole sua chave aleatória"
         }
     }
 

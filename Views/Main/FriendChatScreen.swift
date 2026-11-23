@@ -15,12 +15,7 @@ struct FriendChatScreen: View {
     @State private var showDocumentImporter = false
     @State private var showProfileScreen = false
 
-    // Gravação e reprodução de áudio
-    @State private var isRecordingAudio = false
-    @State private var recordingSeconds = 0
-    @State private var playingMessageId: UUID? = nil
-
-    private let recordTimer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
+    @StateObject private var audioManager = AudioChatManager()
 
     private var currentFriend: FriendItem {
         store.friends.first(where: { $0.username == friend.username }) ?? friend
@@ -34,7 +29,11 @@ struct FriendChatScreen: View {
         VStack(spacing: 0) {
             // Topo limpo estilo WhatsApp (SEM saldo e SEM bolinha online no avatar — toque no perfil abre FriendProfileScreen!)
             HStack(spacing: 12) {
-                Button { dismiss() } label: {
+                Button {
+                    audioManager.stopPlayback()
+                    audioManager.cancelRecording()
+                    dismiss()
+                } label: {
                     Image(systemName: "chevron.left")
                         .font(.system(size: 18, weight: .medium))
                         .foregroundColor(JuntoColors.textMain)
@@ -60,10 +59,16 @@ struct FriendChatScreen: View {
                                 }
                             }
 
-                            Text(currentFriend.isOnline ? "online" : currentFriend.lastSeenText)
-                                .font(.inter(12, weight: .regular))
-                                .foregroundColor(currentFriend.isOnline ? JuntoColors.pixGreen : JuntoColors.textMuted)
-                                .lineLimit(1)
+                            if currentFriend.isTyping {
+                                Text("digitando...")
+                                    .font(.inter(12, weight: .medium))
+                                    .foregroundColor(JuntoColors.pixGreen)
+                            } else {
+                                Text(currentFriend.isOnline ? "online" : currentFriend.lastSeenText)
+                                    .font(.inter(12, weight: .regular))
+                                    .foregroundColor(currentFriend.isOnline ? JuntoColors.pixGreen : JuntoColors.textMuted)
+                                    .lineLimit(1)
+                            }
                         }
                     }
                 }
@@ -98,6 +103,22 @@ struct FriendChatScreen: View {
                                 chatBubble(msg)
                                     .id(msg.id)
                             }
+
+                            if currentFriend.isTyping {
+                                HStack {
+                                    HStack(spacing: 4) {
+                                        Text("digitando...")
+                                            .font(.inter(12, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                    }
+                                    .padding(.horizontal, 12)
+                                    .padding(.vertical, 8)
+                                    .background(Color.white)
+                                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 0.8))
+                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    Spacer()
+                                }
+                            }
                         }
                         .padding(.horizontal, 14)
                         .padding(.vertical, 16)
@@ -111,14 +132,13 @@ struct FriendChatScreen: View {
                 }
             }
 
-            // Barra Inferior de Envio: ao gravar áudio, o botão "+" some e entra a LIXEIRA para cancelar!
+            // Barra Inferior de Envio: ao gravar áudio, o botão "+" some, entra a LIXEIRA e ondas reais do microfone!
             HStack(alignment: .bottom, spacing: 8) {
-                if isRecordingAudio {
+                if audioManager.isRecording {
                     // Lixeira para cancelar o áudio (substitui o "+")
                     Button {
                         withAnimation(.easeInOut(duration: 0.18)) {
-                            isRecordingAudio = false
-                            recordingSeconds = 0
+                            audioManager.cancelRecording()
                         }
                     } label: {
                         Image(systemName: "trash")
@@ -129,29 +149,43 @@ struct FriendChatScreen: View {
                             .clipShape(Circle())
                     }
 
-                    // Indicador de gravação ao vivo
-                    HStack(spacing: 10) {
+                    // Ondas de volume real capturadas ao vivo pelo microfone + timer
+                    HStack(spacing: 8) {
                         Circle()
                             .fill(JuntoColors.danger)
-                            .frame(width: 9, height: 9)
-                        Text("Gravando áudio  0:\(String(format: "%02d", recordingSeconds))")
-                            .font(.inter(14, weight: .regular))
+                            .frame(width: 8, height: 8)
+
+                        Text("0:\(String(format: "%02d", audioManager.recordingSeconds))")
+                            .font(.inter(13, weight: .medium))
                             .foregroundColor(JuntoColors.textMain)
-                        Spacer()
+                            .monospacedDigit()
+
+                        HStack(spacing: 2.5) {
+                            let bars = Array(audioManager.liveLevels.suffix(22))
+                            ForEach(Array(bars.enumerated()), id: \.offset) { _, lvl in
+                                Capsule()
+                                    .fill(JuntoColors.primary)
+                                    .frame(width: 2.5, height: max(4, lvl * 24))
+                            }
+                        }
+                        .frame(maxWidth: .infinity, alignment: .trailing)
                     }
-                    .padding(.horizontal, 14)
+                    .padding(.horizontal, 12)
                     .frame(height: 42)
                     .background(JuntoColors.surfaceSubtle)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
 
-                    // Enviar áudio
+                    // Enviar áudio real gravado com suas ondas
                     Button {
-                        let secs = max(recordingSeconds, 1)
-                        withAnimation(.easeInOut(duration: 0.18)) {
-                            isRecordingAudio = false
-                            recordingSeconds = 0
-                        }
-                        store.sendChatMessage(to: friend.username, kind: .audio(secs))
+                        let recorded = audioManager.finishRecording()
+                        store.sendChatMessage(
+                            to: friend.username,
+                            kind: .audio(
+                                duration: recorded.duration,
+                                waveform: recorded.waveform.map { Double($0) },
+                                fileURL: recorded.fileURL
+                            )
+                        )
                     } label: {
                         Image(systemName: "paperplane.fill")
                             .font(.system(size: 16))
@@ -183,9 +217,8 @@ struct FriendChatScreen: View {
 
                     if inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
                         Button {
-                            recordingSeconds = 0
                             withAnimation(.easeInOut(duration: 0.18)) {
-                                isRecordingAudio = true
+                                audioManager.startRecording()
                             }
                         } label: {
                             Image(systemName: "mic.fill")
@@ -217,8 +250,9 @@ struct FriendChatScreen: View {
             .background(Color.white)
             .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.8), alignment: .top)
         }
-        .onReceive(recordTimer) { _ in
-            if isRecordingAudio { recordingSeconds += 1 }
+        .onDisappear {
+            audioManager.stopPlayback()
+            audioManager.cancelRecording()
         }
         .fullScreenCover(isPresented: $showProfileScreen) {
             FriendProfileScreen(friend: currentFriend) {
@@ -288,30 +322,40 @@ struct FriendChatScreen: View {
                         }
                     }
 
-                case .audio(let seconds):
-                    let isPlaying = playingMessageId == msg.id
+                case .audio(let seconds, let waveform, let fileURL):
+                    let isPlaying = audioManager.playingMessageId == msg.id
+                    let progress = isPlaying ? audioManager.playbackProgress : 0.0
+                    let bars = waveform.isEmpty ? Array(repeating: 0.4, count: 24) : waveform
+
                     HStack(spacing: 10) {
                         Button {
-                            playingMessageId = isPlaying ? nil : msg.id
+                            audioManager.togglePlayback(messageId: msg.id, fileURL: fileURL, durationSeconds: seconds)
                         } label: {
                             Image(systemName: isPlaying ? "pause.fill" : "play.fill")
                                 .font(.system(size: 14))
                                 .foregroundColor(msg.isFromMe ? JuntoColors.primary : .white)
-                                .frame(width: 32, height: 32)
+                                .frame(width: 34, height: 34)
                                 .background(msg.isFromMe ? Color.white : JuntoColors.primary)
                                 .clipShape(Circle())
                         }
 
-                        HStack(spacing: 3) {
-                            ForEach(0..<14, id: \.self) { i in
+                        // Ondas gravadas sincronizadas com o progresso da reprodução
+                        HStack(spacing: 2.5) {
+                            ForEach(Array(bars.enumerated()), id: \.offset) { idx, level in
+                                let barFraction = Double(idx + 1) / Double(max(bars.count, 1))
+                                let isActiveBar = isPlaying && barFraction <= progress
+                                let activeColor: Color = msg.isFromMe ? JuntoColors.accent : JuntoColors.primary
+                                let inactiveColor: Color = msg.isFromMe ? Color.white.opacity(0.42) : JuntoColors.primary.opacity(0.28)
+
                                 Capsule()
-                                    .fill(msg.isFromMe ? Color.white.opacity(0.75) : JuntoColors.primary.opacity(0.55))
-                                    .frame(width: 3, height: CGFloat([8, 14, 18, 10, 20, 14, 9, 17, 12, 19, 11, 15, 9, 12][i]))
+                                    .fill(isActiveBar ? activeColor : inactiveColor)
+                                    .frame(width: 2.8, height: max(5, CGFloat(level) * 24))
                             }
                         }
 
-                        Text("0:\(String(format: "%02d", seconds))")
-                            .font(.inter(12, weight: .regular))
+                        Text("0:\(String(format: "%02d", isPlaying ? audioManager.playbackCurrentSeconds : seconds))")
+                            .font(.inter(11, weight: .regular))
+                            .monospacedDigit()
                             .foregroundColor(msg.isFromMe ? .white.opacity(0.85) : JuntoColors.textMuted)
                     }
 
@@ -336,14 +380,12 @@ struct FriendChatScreen: View {
                     }
                 }
 
-                HStack(spacing: 3) {
+                HStack(spacing: 4) {
                     Text(msg.timeText)
                         .font(.inter(10, weight: .regular))
                         .foregroundColor(msg.isFromMe ? .white.opacity(0.72) : JuntoColors.textLight)
                     if msg.isFromMe {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 9, weight: .semibold))
-                            .foregroundColor(JuntoColors.accent)
+                        messageStatusTicks(msg.status)
                     }
                 }
             }
@@ -357,6 +399,31 @@ struct FriendChatScreen: View {
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
             if !msg.isFromMe { Spacer(minLength: 48) }
+        }
+    }
+
+    /// 1 traço (não entregue/enviado), 2 traços (entregue), 2 traços coloridos (lido)
+    @ViewBuilder
+    private func messageStatusTicks(_ status: MessageDeliveryStatus) -> some View {
+        switch status {
+        case .sent:
+            Image(systemName: "checkmark")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundColor(Color.white.opacity(0.65))
+        case .delivered:
+            HStack(spacing: -5) {
+                Image(systemName: "checkmark")
+                Image(systemName: "checkmark")
+            }
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundColor(Color.white.opacity(0.70))
+        case .read:
+            HStack(spacing: -5) {
+                Image(systemName: "checkmark")
+                Image(systemName: "checkmark")
+            }
+            .font(.system(size: 9, weight: .bold))
+            .foregroundColor(Color(hex: "#38BDF8")) // Dois traços azuis de lido!
         }
     }
 }

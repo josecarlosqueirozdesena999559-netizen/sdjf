@@ -125,22 +125,26 @@ struct JuntoPotIcon: View {
     }
 }
 
-// MARK: - Avatar Premium Minimalista (Estilo Apple/Revolut — gradiente suave + silhueta limpa sem gênero)
+// MARK: - Avatar Premium com Cores Misturadas Únicas (mais de 130 combinações diferentes)
 struct GeometricAvatarView: View {
     var seed: String = "junto"
     var displayName: String? = nil
     var avatarData: Data? = nil
     var size: CGFloat = 56
 
-    private static let gradients: [(Color, Color)] = [
-        (Color(hex: "#1E3A5F"), Color(hex: "#14213D")), // Azul-noite
-        (Color(hex: "#F59E0B"), Color(hex: "#D97706")), // Manga dourada
-        (Color(hex: "#10B981"), Color(hex: "#059669")), // Esmeralda
-        (Color(hex: "#3B82F6"), Color(hex: "#1D4ED8")), // Royal suave
-        (Color(hex: "#F97316"), Color(hex: "#EA580C")), // Coral
-        (Color(hex: "#8B5CF6"), Color(hex: "#6D28D9")), // Violeta
-        (Color(hex: "#14B8A6"), Color(hex: "#0F766E")), // Turquesa
-        (Color(hex: "#EC4899"), Color(hex: "#BE185D"))  // Framboesa
+    private static let baseColors: [Color] = [
+        Color(hex: "#14213D"), // Azul-noite
+        Color(hex: "#FCA311"), // Manga
+        Color(hex: "#16A34A"), // Esmeralda
+        Color(hex: "#2563EB"), // Cobalto
+        Color(hex: "#E2711D"), // Terracota
+        Color(hex: "#7C3AED"), // Violeta
+        Color(hex: "#0D9488"), // Turquesa
+        Color(hex: "#DB2777"), // Magenta
+        Color(hex: "#0284C7"), // Oceano
+        Color(hex: "#D97706"), // Âmbar
+        Color(hex: "#4F46E5"), // Índigo
+        Color(hex: "#059669")  // Jade
     ]
 
     private var hashValueStable: Int {
@@ -151,8 +155,22 @@ struct GeometricAvatarView: View {
         return abs(hash)
     }
 
-    private var pair: (Color, Color) {
-        Self.gradients[hashValueStable % Self.gradients.count]
+    private var color1: Color {
+        Self.baseColors[hashValueStable % Self.baseColors.count]
+    }
+
+    private var color2: Color {
+        let count = Self.baseColors.count
+        let idx1 = hashValueStable % count
+        let offset = 1 + ((hashValueStable / count) % (count - 1))
+        return Self.baseColors[(idx1 + offset) % count]
+    }
+
+    private var color3: Color {
+        let count = Self.baseColors.count
+        let idx1 = hashValueStable % count
+        let offset = 2 + ((hashValueStable / (count * 2)) % (count - 2))
+        return Self.baseColors[(idx1 + offset) % count]
     }
 
     var body: some View {
@@ -165,21 +183,27 @@ struct GeometricAvatarView: View {
                     .clipShape(Circle())
             } else {
                 ZStack {
+                    // Gradiente misturado de 3 cores únicas por usuário
                     LinearGradient(
-                        colors: [pair.0, pair.1],
+                        colors: [color1, color2],
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )
 
-                    // Brilho sutil no topo (acabamento premium)
                     Circle()
-                        .fill(Color.white.opacity(0.14))
+                        .fill(color3.opacity(0.45))
                         .frame(width: size * 0.85, height: size * 0.85)
-                        .offset(x: -size * 0.25, y: -size * 0.32)
+                        .offset(x: size * 0.30, y: size * 0.30)
+                        .blur(radius: size * 0.14)
+
+                    Circle()
+                        .fill(Color.white.opacity(0.16))
+                        .frame(width: size * 0.80, height: size * 0.80)
+                        .offset(x: -size * 0.28, y: -size * 0.32)
 
                     Image(systemName: "person.fill")
                         .font(.system(size: size * 0.44, weight: .regular))
-                        .foregroundColor(.white.opacity(0.92))
+                        .foregroundColor(.white.opacity(0.94))
                 }
                 .frame(width: size, height: size)
                 .clipShape(Circle())
