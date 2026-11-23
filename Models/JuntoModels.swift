@@ -141,6 +141,7 @@ struct RoleGroup: Identifiable {
     var title: String
     var category: String
     var coverImageName: String
+    var coverImageData: Data? = nil
     var potBalance: Double
     var potTarget: Double
     var totalSpent: Double

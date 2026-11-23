@@ -499,9 +499,10 @@ final class JuntoStore: ObservableObject {
     func createNewGroup(
         title: String,
         category: String,
-        hasPot: Bool,
+        hasPot: Bool = true,
         potTarget: Double = 0,
-        invitedPeople: [SearchableUser] = []
+        invitedPeople: [SearchableUser] = [],
+        coverImageData: Data? = nil
     ) {
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanTitle.isEmpty else {
@@ -517,7 +518,7 @@ final class JuntoStore: ObservableObject {
         }
 
         let totalPeopleCount = 1 + invitedPeople.count
-        let quotaPerPerson = (hasPot && potTarget > 0) ? (potTarget / Double(totalPeopleCount)) : 0
+        let quotaPerPerson = potTarget > 0 ? (potTarget / Double(totalPeopleCount)) : 0
 
         var participantsList: [GroupParticipant] = [
             GroupParticipant(name: "Você", username: user.username, quotaAmount: quotaPerPerson, hasPaid: false, role: .owner)
@@ -526,7 +527,7 @@ final class JuntoStore: ObservableObject {
 
         for person in invitedPeople {
             participantsList.append(
-                GroupParticipant(name: person.name, username: person.username, quotaAmount: quotaPerPerson, hasPaid: false)
+                GroupParticipant(name: person.name, username: person.username, quotaAmount: quotaPerPerson, hasPaid: false, role: .member)
             )
             let initStr = person.name.split(separator: " ").prefix(2).map { String($0.prefix(1)) }.joined().uppercased()
             memberInitials.append(initStr.isEmpty ? String(person.username.prefix(2)).uppercased() : initStr)
@@ -536,13 +537,14 @@ final class JuntoStore: ObservableObject {
             title: cleanTitle,
             category: category,
             coverImageName: cover,
+            coverImageData: coverImageData,
             potBalance: 0,
-            potTarget: hasPot ? potTarget : 0,
+            potTarget: potTarget,
             totalSpent: 0,
             myShare: 0,
             members: memberInitials,
             participants: participantsList,
-            hasCollectivePot: hasPot,
+            hasCollectivePot: true,
             comandaItems: []
         )
 

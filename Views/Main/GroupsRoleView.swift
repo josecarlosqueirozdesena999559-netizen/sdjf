@@ -1,4 +1,5 @@
 import SwiftUI
+import PhotosUI
 
 struct GroupsRoleView: View {
     @EnvironmentObject var store: JuntoStore
@@ -54,9 +55,7 @@ struct GroupsRoleView: View {
                             selectedGroupId = group.id
                         } label: {
                             HStack(spacing: 14) {
-                                Image(group.coverImageName)
-                                    .resizable()
-                                    .scaledToFill()
+                                groupCoverImage(group)
                                     .frame(width: 58, height: 58)
                                     .clipShape(RoundedRectangle(cornerRadius: 10))
 
@@ -66,7 +65,8 @@ struct GroupsRoleView: View {
                                         .foregroundColor(JuntoColors.textMain)
 
                                     if group.hasCollectivePot && group.potTarget > 0 {
-                                        Text("Pote: \(JuntoStore.formatBRL(group.potBalance)) de \(JuntoStore.formatBRL(group.potTarget))")
+                                        let pct = Int(min((group.potBalance / group.potTarget) * 100, 100))
+                                        Text("Pote: \(pct)% · \(JuntoStore.formatBRL(group.potBalance)) de \(JuntoStore.formatBRL(group.potTarget))")
                                             .font(.inter(13, weight: .regular))
                                             .foregroundColor(JuntoColors.pixGreen)
                                     } else {
@@ -124,9 +124,22 @@ struct GroupsRoleView: View {
             }
         }
     }
+
+    @ViewBuilder
+    private func groupCoverImage(_ group: RoleGroup) -> some View {
+        if let data = group.coverImageData, let uiImg = UIImage(data: data) {
+            Image(uiImage: uiImg)
+                .resizable()
+                .scaledToFill()
+        } else {
+            Image(group.coverImageName)
+                .resizable()
+                .scaledToFill()
+        }
+    }
 }
 
-// MARK: - Tela "Criar um grupo" com Pote Coletivo Automático + Mais Categorias + Categoria Personalizada
+// MARK: - Tela "Criar um grupo" (Imagem real via PhotosPicker + Pote sempre automático + Tela de amigos)
 struct CreateGroupScreen: View {
     @EnvironmentObject var store: JuntoStore
     @Environment(\.dismiss) private var dismiss
@@ -139,10 +152,12 @@ struct CreateGroupScreen: View {
     @State private var showCustomCategoryInput: Bool = false
     @State private var customCategoryText: String = ""
 
-    @State private var enableCollectivePot: Bool = true
+    @State private var selectedPhotoItem: PhotosPickerItem? = nil
+    @State private var coverImageData: Data? = nil
+
     @State private var potTotalText: String = "300"
     @State private var selectedPeople: [SearchableUser] = []
-    @State private var quickAddHandle: String = ""
+    @State private var showSelectFriendsScreen: Bool = false
 
     private let builtInCategories: [(name: String, icon: String)] = [
         ("Viagem", "airplane"),
@@ -166,7 +181,7 @@ struct CreateGroupScreen: View {
     }
 
     private var totalPeopleCount: Int {
-        1 + selectedPeople.count // Você + pessoas adicionadas
+        1 + selectedPeople.count
     }
 
     private var quotaPerPerson: Double {
@@ -202,21 +217,55 @@ struct CreateGroupScreen: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 22) {
-                    // Foto + Nome do grupo
+                    // Foto do grupo (PhotosPicker real!) + Nome do grupo
                     HStack(alignment: .center, spacing: 16) {
-                        RoundedRectangle(cornerRadius: 10)
-                            .fill(JuntoColors.surfaceSubtle)
-                            .frame(width: 60, height: 60)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 10)
-                                    .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
-                                    .foregroundColor(JuntoColors.textLight)
-                            )
-                            .overlay(
-                                Image(systemName: "camera")
-                                    .font(.system(size: 19, weight: .regular))
-                                    .foregroundColor(JuntoColors.textMain)
-                            )
+                        PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                            Group {
+                                if let data = coverImageData, let uiImg = UIImage(data: data) {
+                                    Image(uiImage: uiImg)
+                                        .resizable()
+                                        .scaledToFill()
+                                        .frame(width: 64, height: 64)
+                                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                                        .overlay(
+                                            Image(systemName: "camera.fill")
+                                                .font(.system(size: 11))
+                                                .foregroundColor(.white)
+                                                .padding(5)
+                                                .background(JuntoColors.primary)
+                                                .clipShape(Circle())
+                                                .offset(x: 4, y: 4),
+                                            alignment: .bottomTrailing
+                                        )
+                                } else {
+                                    RoundedRectangle(cornerRadius: 12)
+                                        .fill(JuntoColors.surfaceSubtle)
+                                        .frame(width: 64, height: 64)
+                                        .overlay(
+                                            RoundedRectangle(cornerRadius: 12)
+                                                .stroke(style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                                                .foregroundColor(JuntoColors.textLight)
+                                        )
+                                        .overlay(
+                                            VStack(spacing: 3) {
+                                                Image(systemName: "photo.badge.plus")
+                                                    .font(.system(size: 18, weight: .regular))
+                                                    .foregroundColor(JuntoColors.primary)
+                                                Text("Foto")
+                                                    .font(.inter(10, weight: .regular))
+                                                    .foregroundColor(JuntoColors.textMuted)
+                                            }
+                                        )
+                                }
+                            }
+                        }
+                        .onChange(of: selectedPhotoItem) { _, newItem in
+                            Task {
+                                if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                                    coverImageData = data
+                                }
+                            }
+                        }
 
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Nome do grupo")
@@ -233,7 +282,7 @@ struct CreateGroupScreen: View {
                         }
                     }
 
-                    // Categorias (9 prontas + botão "+ Sua categoria")
+                    // Categorias (9 prontas + botão "+ Nova")
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Categoria")
                             .font(.inter(14, weight: .medium))
@@ -266,7 +315,6 @@ struct CreateGroupScreen: View {
                                     }
                                 }
 
-                                // Botão para o usuário criar a própria categoria
                                 Button {
                                     withAnimation { showCustomCategoryInput.toggle() }
                                 } label: {
@@ -299,90 +347,77 @@ struct CreateGroupScreen: View {
                         }
                     }
 
-                    // Pote Coletivo: Valor + Pessoas + Cálculo Automático!
+                    // Pote Coletivo SEMPRE AUTOMÁTICO (sem toggle)
                     VStack(alignment: .leading, spacing: 14) {
-                        Toggle(isOn: $enableCollectivePot) {
+                        HStack(spacing: 10) {
+                            JuntoPotIcon(size: 34)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("Ativar Pote Coletivo")
+                                Text("Pote Coletivo")
                                     .font(.inter(15, weight: .medium))
                                     .foregroundColor(JuntoColors.textMain)
-                                Text("Coloque o valor e o sistema divide automaticamente entre todos.")
+                                Text("O sistema divide o valor automaticamente entre os membros.")
                                     .font(.inter(12, weight: .regular))
                                     .foregroundColor(JuntoColors.textMuted)
                             }
                         }
-                        .tint(JuntoColors.primary)
 
-                        if enableCollectivePot {
-                            CleanOutlineInput(
-                                label: "Valor total do Pote (R$)",
-                                placeholder: "Ex: 400",
-                                text: $potTotalText,
-                                keyboardType: .decimalPad,
-                                leadingPrefix: "R$"
-                            )
-                        }
+                        CleanOutlineInput(
+                            label: "Valor total do Pote (R$)",
+                            placeholder: "Ex: 400",
+                            text: $potTotalText,
+                            keyboardType: .decimalPad,
+                            leadingPrefix: "R$"
+                        )
 
-                        // Adicionar pessoas ao grupo
+                        // Botão "Adicionar membros" -> abre tela com a lista de amigos!
                         VStack(alignment: .leading, spacing: 10) {
-                            Text("Adicionar pessoas (\(totalPeopleCount) no total)")
-                                .font(.inter(14, weight: .medium))
-                                .foregroundColor(JuntoColors.textMain)
+                            HStack {
+                                Text("Membros (\(totalPeopleCount))")
+                                    .font(.inter(14, weight: .medium))
+                                    .foregroundColor(JuntoColors.textMain)
+                                Spacer()
+                                Button {
+                                    showSelectFriendsScreen = true
+                                } label: {
+                                    Label("Adicionar membros", systemImage: "person.badge.plus")
+                                        .font(.inter(13, weight: .medium))
+                                        .foregroundColor(JuntoColors.primary)
+                                        .padding(.horizontal, 12)
+                                        .padding(.vertical, 7)
+                                        .background(JuntoColors.primaryLight)
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                }
+                            }
 
-                            // Seus amigos para selecionar com 1 toque
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: 8) {
-                                    ForEach(store.friends) { friend in
-                                        let isIncluded = selectedPeople.contains(where: { $0.username == friend.username })
-                                        Button {
-                                            togglePerson(SearchableUser(name: friend.name, username: friend.username))
-                                        } label: {
+                            if !selectedPeople.isEmpty {
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 10) {
+                                        ForEach(selectedPeople) { person in
                                             HStack(spacing: 6) {
-                                                GeometricAvatarView(seed: friend.username, size: 26)
-                                                Text(friend.name.split(separator: " ").first.map(String.init) ?? friend.name)
+                                                GeometricAvatarView(seed: person.username, size: 24)
+                                                Text(person.name.split(separator: " ").first.map(String.init) ?? person.name)
                                                     .font(.inter(13, weight: .regular))
-                                                    .foregroundColor(isIncluded ? .white : JuntoColors.textMain)
-                                                Image(systemName: isIncluded ? "checkmark" : "plus")
-                                                    .font(.system(size: 11, weight: .medium))
-                                                    .foregroundColor(isIncluded ? .white : JuntoColors.textMuted)
+                                                    .foregroundColor(JuntoColors.textMain)
+                                                Button {
+                                                    selectedPeople.removeAll { $0.username == person.username }
+                                                } label: {
+                                                    Image(systemName: "xmark")
+                                                        .font(.system(size: 10, weight: .medium))
+                                                        .foregroundColor(JuntoColors.textMuted)
+                                                }
                                             }
                                             .padding(.horizontal, 10)
-                                            .padding(.vertical, 7)
-                                            .background(isIncluded ? JuntoColors.primary : JuntoColors.surfaceSubtle)
+                                            .padding(.vertical, 6)
+                                            .background(JuntoColors.surfaceSubtle)
                                             .clipShape(RoundedRectangle(cornerRadius: 8))
                                         }
                                     }
                                 }
                             }
-
-                            // Ou adicionar qualquer @usuário digitando
-                            HStack(spacing: 8) {
-                                CleanOutlineInput(
-                                    label: "",
-                                    placeholder: "Adicionar outro @usuário",
-                                    text: $quickAddHandle,
-                                    autocapitalization: .never,
-                                    leadingPrefix: "@"
-                                )
-                                Button("Incluir") {
-                                    let clean = quickAddHandle.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "@", with: "").lowercased()
-                                    guard clean.count >= 2 else { return }
-                                    let display = store.directoryUsers.first(where: { $0.username == clean })?.name
-                                        ?? clean.split(separator: ".").map { $0.capitalized }.joined(separator: " ")
-                                    togglePerson(SearchableUser(name: display, username: clean), forceAdd: true)
-                                    quickAddHandle = ""
-                                }
-                                .font(.inter(13, weight: .medium))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 16)
-                                .frame(height: 50)
-                                .background(JuntoColors.primary)
-                                .clipShape(RoundedRectangle(cornerRadius: 10))
-                            }
                         }
 
-                        // Prévia do Cálculo Automático do Pote!
-                        if enableCollectivePot && potTotalValue > 0 {
+                        // Cálculo automático ao vivo
+                        if potTotalValue > 0 {
                             HStack {
                                 VStack(alignment: .leading, spacing: 3) {
                                     Text("Divisão automática do Pote")
@@ -422,13 +457,9 @@ struct CreateGroupScreen: View {
         .onAppear {
             selectedType = initialType
         }
-    }
-
-    private func togglePerson(_ person: SearchableUser, forceAdd: Bool = false) {
-        if let idx = selectedPeople.firstIndex(where: { $0.username == person.username }) {
-            if !forceAdd { selectedPeople.remove(at: idx) }
-        } else {
-            selectedPeople.append(person)
+        .fullScreenCover(isPresented: $showSelectFriendsScreen) {
+            SelectFriendsForGroupScreen(selectedPeople: $selectedPeople)
+                .environmentObject(store)
         }
     }
 
@@ -441,9 +472,10 @@ struct CreateGroupScreen: View {
         store.createNewGroup(
             title: clean,
             category: finalCategory,
-            hasPot: enableCollectivePot,
-            potTarget: enableCollectivePot ? potTotalValue : 0,
-            invitedPeople: selectedPeople
+            hasPot: true,
+            potTarget: potTotalValue,
+            invitedPeople: selectedPeople,
+            coverImageData: coverImageData
         )
         let createdId = store.groups.first?.id
         dismiss()
@@ -455,7 +487,101 @@ struct CreateGroupScreen: View {
     }
 }
 
-// MARK: - Detalhe do Grupo 100% Funcional (Cotas Automáticas do Pote + Despesas + Membros + Pix)
+// MARK: - Tela de Seleção de Amigos ao Criar Grupo
+struct SelectFriendsForGroupScreen: View {
+    @EnvironmentObject var store: JuntoStore
+    @Binding var selectedPeople: [SearchableUser]
+    @Environment(\.dismiss) private var dismiss
+    @State private var searchText = ""
+
+    private var filteredFriends: [FriendItem] {
+        if searchText.trimmingCharacters(in: .whitespaces).isEmpty { return store.friends }
+        return store.friends.filter {
+            $0.name.localizedCaseInsensitiveContains(searchText) ||
+            $0.username.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                CircleNavButton(icon: "chevron.left") { dismiss() }
+                Spacer()
+                Text("Adicionar membros")
+                    .font(.inter(17, weight: .medium))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                Button("Pronto") { dismiss() }
+                    .font(.inter(15, weight: .medium))
+                    .foregroundColor(JuntoColors.primary)
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 12)
+            .padding(.bottom, 16)
+
+            CleanOutlineInput(
+                label: "",
+                placeholder: "Buscar entre seus amigos...",
+                text: $searchText,
+                autocapitalization: .never
+            )
+            .padding(.horizontal, 20)
+            .padding(.bottom, 14)
+
+            Divider().opacity(0.6)
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    ForEach(filteredFriends) { friend in
+                        let isAdded = selectedPeople.contains(where: { $0.username == friend.username })
+
+                        HStack(spacing: 12) {
+                            GeometricAvatarView(seed: friend.username, size: 46)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(friend.name)
+                                    .font(.inter(15, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMain)
+                                Text("@\(friend.username)")
+                                    .font(.inter(12, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                            }
+
+                            Spacer()
+
+                            Button {
+                                if isAdded {
+                                    selectedPeople.removeAll { $0.username == friend.username }
+                                } else {
+                                    selectedPeople.append(SearchableUser(name: friend.name, username: friend.username))
+                                }
+                            } label: {
+                                Text(isAdded ? "Adicionado" : "Adicionar")
+                                    .font(.inter(13, weight: .medium))
+                                    .foregroundColor(isAdded ? JuntoColors.textMain : .white)
+                                    .padding(.horizontal, 14)
+                                    .frame(height: 36)
+                                    .background(isAdded ? JuntoColors.surfaceSubtle : JuntoColors.primary)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(isAdded ? JuntoColors.border : Color.clear, lineWidth: 1)
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 12)
+
+                        Divider().padding(.leading, 78)
+                    }
+                }
+            }
+        }
+        .background(Color.white.ignoresSafeArea())
+    }
+}
+
+// MARK: - Detalhe do Grupo 100% Funcional (Porcentagem aprimorada + Sheet customizado claro de Admin/Remover)
 struct GroupDetailSheet: View {
     @EnvironmentObject var store: JuntoStore
     let groupId: UUID
@@ -478,6 +604,8 @@ struct GroupDetailSheet: View {
             let group = store.groups[idx]
             let selectedTotal = group.comandaItems.filter { $0.isSelected }.reduce(0) { $0 + $1.price }
             let canAddExpenses = store.canCurrentUserAddExpenses(in: group)
+            let potPercent = group.potTarget > 0 ? min(Int((group.potBalance / group.potTarget) * 100), 100) : 0
+            let paidCount = group.participants.filter { $0.hasPaid }.count
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
@@ -494,13 +622,21 @@ struct GroupDetailSheet: View {
                     }
                     .padding(.top, 16)
 
-                    // Capa do grupo
+                    // Capa do grupo (suporta foto escolhida da galeria!)
                     ZStack(alignment: .bottomLeading) {
-                        Image(group.coverImageName)
-                            .resizable()
-                            .scaledToFill()
-                            .frame(height: 140)
-                            .clipped()
+                        if let data = group.coverImageData, let uiImg = UIImage(data: data) {
+                            Image(uiImage: uiImg)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(height: 145)
+                                .clipped()
+                        } else {
+                            Image(group.coverImageName)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(height: 145)
+                                .clipped()
+                        }
 
                         LinearGradient(
                             colors: [Color.clear, Color.black.opacity(0.65)],
@@ -524,10 +660,10 @@ struct GroupDetailSheet: View {
                         }
                         .padding(14)
                     }
-                    .frame(height: 140)
+                    .frame(height: 145)
                     .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    // Lista de participantes rolável para o lado (ao clicar: Tornar admin / Remover)
+                    // Lista de participantes rolável para o lado (toque abre Sheet claro customizado!)
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
                             Text("Participantes (\(group.participants.count))")
@@ -583,39 +719,66 @@ struct GroupDetailSheet: View {
                             .padding(.vertical, 2)
                         }
 
-                        Text("Toque em um participante para tornar admin ou remover.")
+                        Text("Toque em um participante para gerenciar admin ou remover.")
                             .font(.inter(11, weight: .regular))
                             .foregroundColor(JuntoColors.textMuted)
                     }
 
-                    // POTE COLETIVO + COTAS DISTRIBUÍDAS POR PARTICIPANTE
+                    // POTE COLETIVO COM PORCENTAGEM APRIMORADA
                     if group.hasCollectivePot {
                         VStack(alignment: .leading, spacing: 14) {
-                            HStack(spacing: 8) {
-                                JuntoPotIcon(size: 22)
-                                Text("Pote Coletivo")
-                                    .font(.inter(15, weight: .medium))
-                                    .foregroundColor(JuntoColors.textMain)
+                            HStack(spacing: 10) {
+                                JuntoPotIcon(size: 36)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Pote Coletivo")
+                                        .font(.inter(15, weight: .medium))
+                                        .foregroundColor(JuntoColors.textMain)
+                                    Text("\(paidCount) de \(group.participants.count) pagaram")
+                                        .font(.inter(12, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                }
                                 Spacer()
-                                Text("\(JuntoStore.formatBRL(group.potBalance)) / \(JuntoStore.formatBRL(group.potTarget))")
+                                Text("\(potPercent)%")
                                     .font(.inter(14, weight: .medium))
                                     .foregroundColor(JuntoColors.pixGreen)
+                                    .padding(.horizontal, 10)
+                                    .padding(.vertical, 5)
+                                    .background(JuntoColors.pixGreenLight)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
                             }
 
                             if group.potTarget > 0 {
-                                GeometryReader { geo in
-                                    let ratio = min(group.potBalance / group.potTarget, 1.0)
-                                    ZStack(alignment: .leading) {
-                                        RoundedRectangle(cornerRadius: 4).fill(JuntoColors.border)
-                                        RoundedRectangle(cornerRadius: 4)
-                                            .fill(JuntoColors.pixGreen)
-                                            .frame(width: geo.size.width * ratio)
+                                VStack(spacing: 6) {
+                                    GeometryReader { geo in
+                                        let ratio = min(group.potBalance / group.potTarget, 1.0)
+                                        ZStack(alignment: .leading) {
+                                            RoundedRectangle(cornerRadius: 6).fill(JuntoColors.border.opacity(0.7))
+                                            RoundedRectangle(cornerRadius: 6)
+                                                .fill(
+                                                    LinearGradient(
+                                                        colors: [JuntoColors.pixGreen, Color(hex: "#10B981")],
+                                                        startPoint: .leading,
+                                                        endPoint: .trailing
+                                                    )
+                                                )
+                                                .frame(width: max(geo.size.width * ratio, ratio > 0 ? 12 : 0))
+                                        }
+                                    }
+                                    .frame(height: 10)
+
+                                    HStack {
+                                        Text("Arrecadado: \(JuntoStore.formatBRL(group.potBalance))")
+                                            .font(.inter(12, weight: .medium))
+                                            .foregroundColor(JuntoColors.textMain)
+                                        Spacer()
+                                        Text("Meta: \(JuntoStore.formatBRL(group.potTarget))")
+                                            .font(.inter(12, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
                                     }
                                 }
-                                .frame(height: 7)
                             }
 
-                            // Lista automática de quanto cada participante precisa pagar no Pote
+                            // Lista automática de cotas
                             VStack(spacing: 0) {
                                 ForEach(group.participants) { participant in
                                     HStack(spacing: 10) {
@@ -680,7 +843,7 @@ struct GroupDetailSheet: View {
                         .clipShape(RoundedRectangle(cornerRadius: 14))
                     }
 
-                    // Despesas / Comanda do Grupo (somente Dono ou Admin podem adicionar novas despesas)
+                    // Despesas / Comanda do Grupo (somente Dono ou Admin)
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
                             Text("Despesas do grupo")
@@ -729,7 +892,7 @@ struct GroupDetailSheet: View {
                         }
 
                         if group.comandaItems.isEmpty {
-                            Text("Nenhuma despesa lançada ainda. Toque em \"Nova despesa\" para começar.")
+                            Text("Nenhuma despesa lançada ainda.")
                                 .font(.inter(13, weight: .regular))
                                 .foregroundColor(JuntoColors.textMuted)
                                 .padding(.vertical, 12)
@@ -781,25 +944,97 @@ struct GroupDetailSheet: View {
                 AddGroupMemberScreen(groupId: groupId)
                     .environmentObject(store)
             }
-            .confirmationDialog(
-                selectedParticipantForAction?.name ?? "Participante",
-                isPresented: Binding(
-                    get: { selectedParticipantForAction != nil },
-                    set: { if !$0 { selectedParticipantForAction = nil } }
-                ),
-                titleVisibility: .visible
-            ) {
-                if let p = selectedParticipantForAction {
-                    Button(p.role == .admin ? "Remover permissão de admin" : "Tornar admin") {
-                        store.toggleParticipantAdmin(groupId: groupId, participantId: p.id)
+            // Sheet customizado claro na paleta do sistema (sem popup padrão do iOS!)
+            .sheet(item: $selectedParticipantForAction) { participant in
+                ParticipantActionSheet(
+                    participant: participant,
+                    onToggleAdmin: {
+                        store.toggleParticipantAdmin(groupId: groupId, participantId: participant.id)
+                        selectedParticipantForAction = nil
+                    },
+                    onRemove: {
+                        store.removeParticipantFromGroup(groupId: groupId, participantId: participant.id)
+                        selectedParticipantForAction = nil
                     }
-                    Button("Remover do grupo", role: .destructive) {
-                        store.removeParticipantFromGroup(groupId: groupId, participantId: p.id)
-                    }
-                    Button("Cancelar", role: .cancel) {}
-                }
+                )
+                .presentationDetents([.height(270)])
+                .presentationCornerRadius(20)
             }
         }
+    }
+}
+
+// MARK: - Sheet Customizado Claro (Gerenciar Participante: Tornar Admin / Remover)
+struct ParticipantActionSheet: View {
+    let participant: GroupParticipant
+    let onToggleAdmin: () -> Void
+    let onRemove: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 12) {
+                GeometricAvatarView(seed: participant.username, size: 48)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(participant.name)
+                        .font(.inter(16, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                    Text("@\(participant.username) · \(participant.role.rawValue)")
+                        .font(.inter(13, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                }
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(JuntoColors.textMuted)
+                        .frame(width: 32, height: 32)
+                        .background(JuntoColors.surfaceSubtle)
+                        .clipShape(Circle())
+                }
+            }
+            .padding(.top, 20)
+
+            VStack(spacing: 10) {
+                Button(action: onToggleAdmin) {
+                    HStack(spacing: 12) {
+                        Image(systemName: participant.role == .admin ? "shield.slash" : "checkmark.shield")
+                            .font(.system(size: 17, weight: .regular))
+                            .foregroundColor(JuntoColors.primary)
+                        Text(participant.role == .admin ? "Remover permissão de admin" : "Tornar admin do grupo")
+                            .font(.inter(15, weight: .medium))
+                            .foregroundColor(JuntoColors.textMain)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(height: 50)
+                    .background(Color.white)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+
+                Button(action: onRemove) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "person.badge.minus")
+                            .font(.system(size: 17, weight: .regular))
+                            .foregroundColor(JuntoColors.danger)
+                        Text("Remover do grupo")
+                            .font(.inter(15, weight: .medium))
+                            .foregroundColor(JuntoColors.danger)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(height: 50)
+                    .background(JuntoColors.dangerLight)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.danger.opacity(0.25), lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .background(JuntoColors.warmBg.ignoresSafeArea())
     }
 }
 

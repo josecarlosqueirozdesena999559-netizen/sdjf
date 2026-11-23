@@ -110,33 +110,22 @@ struct RegisterFlowView: View {
                             .foregroundColor(JuntoColors.textMain)
 
                         HStack(spacing: 10) {
-                            Menu {
-                                ForEach(CountryOption.all) { country in
-                                    Button {
-                                        store.draftCountry = country
-                                    } label: {
-                                        Text("\(country.flag) \(country.name) (\(country.dialCode))")
-                                    }
-                                }
-                            } label: {
-                                HStack(spacing: 6) {
-                                    Text(store.draftCountry.flag)
-                                        .font(.system(size: 19))
-                                    Text(store.draftCountry.dialCode)
-                                        .font(.inter(15, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMain)
-                                    Image(systemName: "chevron.up.chevron.down")
-                                        .font(.system(size: 11))
-                                        .foregroundColor(JuntoColors.textMuted)
-                                }
-                                .padding(.horizontal, 12)
-                                .frame(height: 50)
-                                .background(Color.white)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 11)
-                                        .stroke(JuntoColors.inputBorder, lineWidth: 1)
-                                )
+                            // Somente Brasil (+55 fixo, sem seletor de outros países)
+                            HStack(spacing: 6) {
+                                Text("🇧🇷")
+                                    .font(.system(size: 19))
+                                Text("+55")
+                                    .font(.inter(15, weight: .medium))
+                                    .foregroundColor(JuntoColors.textMain)
                             }
+                            .padding(.horizontal, 14)
+                            .frame(height: 50)
+                            .background(JuntoColors.surfaceSubtle)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 11)
+                                    .stroke(JuntoColors.border, lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 11))
 
                             TextField("(11) 91234-5678", text: $store.draftPhone)
                                 .font(.inter(15, weight: .regular))

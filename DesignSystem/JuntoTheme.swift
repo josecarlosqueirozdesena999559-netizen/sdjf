@@ -107,35 +107,19 @@ struct JuntoLogoMark: View {
     }
 }
 
-// MARK: - Ícone Customizado do Pote Coletivo (minimalista e único do Juntô)
+// MARK: - Ícone Limpo e Profissional do Pote Coletivo
 struct JuntoPotIcon: View {
-    var size: CGFloat = 22
+    var size: CGFloat = 34
 
     var body: some View {
         ZStack {
-            // Moedinha manga entrando no pote
-            Circle()
-                .fill(JuntoColors.accent)
-                .frame(width: size * 0.34, height: size * 0.34)
-                .offset(y: -size * 0.36)
+            RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+                .fill(JuntoColors.accentLight)
+                .frame(width: size, height: size)
 
-            // Tampa do pote
-            RoundedRectangle(cornerRadius: size * 0.08)
-                .fill(JuntoColors.primary)
-                .frame(width: size * 0.62, height: size * 0.14)
-                .offset(y: -size * 0.10)
-
-            // Corpo arredondado do pote
-            RoundedRectangle(cornerRadius: size * 0.24, style: .continuous)
-                .fill(JuntoColors.primary)
-                .frame(width: size * 0.78, height: size * 0.56)
-                .offset(y: size * 0.22)
-
-            // Detalhe luminoso interno
-            RoundedRectangle(cornerRadius: size * 0.06)
-                .fill(Color.white.opacity(0.28))
-                .frame(width: size * 0.10, height: size * 0.26)
-                .offset(x: -size * 0.20, y: size * 0.22)
+            Image(systemName: "wallet.pass.fill")
+                .font(.system(size: size * 0.48, weight: .regular))
+                .foregroundColor(JuntoColors.primary)
         }
         .frame(width: size, height: size)
     }
