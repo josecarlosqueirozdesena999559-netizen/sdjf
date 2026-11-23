@@ -51,7 +51,44 @@ final class JuntoStore: ObservableObject {
     ]
 
     @Published var showMyExpensesScreen: Bool = false
-    @Published var walletBalance: Double = 120.00
+
+    // Carteira Open Finance (Pix em 1 toque sem saldo parado)
+    struct OpenFinanceBankOption: Identifiable, Hashable {
+        let id: String
+        let name: String
+        let shortCode: String
+        let colorHex: String
+    }
+
+    struct ConnectedBankAccount: Equatable {
+        let bankId: String
+        let bankName: String
+        let shortCode: String
+        let maskedAccount: String
+        let colorHex: String
+        let statusText: String
+    }
+
+    let availableOpenFinanceBanks: [OpenFinanceBankOption] = [
+        OpenFinanceBankOption(id: "nubank", name: "Nubank", shortCode: "NU", colorHex: "#820AD1"),
+        OpenFinanceBankOption(id: "itau", name: "Itaú", shortCode: "IT", colorHex: "#EC7000"),
+        OpenFinanceBankOption(id: "inter", name: "Banco Inter", shortCode: "IN", colorHex: "#FF7A00"),
+        OpenFinanceBankOption(id: "bradesco", name: "Bradesco", shortCode: "BR", colorHex: "#CC092F"),
+        OpenFinanceBankOption(id: "santander", name: "Santander", shortCode: "SA", colorHex: "#EC0000"),
+        OpenFinanceBankOption(id: "bb", name: "Banco do Brasil", shortCode: "BB", colorHex: "#003DA5"),
+        OpenFinanceBankOption(id: "caixa", name: "Caixa", shortCode: "CX", colorHex: "#005CA9"),
+        OpenFinanceBankOption(id: "c6", name: "C6 Bank", shortCode: "C6", colorHex: "#1F2937"),
+        OpenFinanceBankOption(id: "btg", name: "BTG Pactual", shortCode: "BTG", colorHex: "#0F172A")
+    ]
+
+    @Published var connectedBank: ConnectedBankAccount? = ConnectedBankAccount(
+        bankId: "nubank",
+        bankName: "Nubank",
+        shortCode: "NU",
+        maskedAccount: "Ag 0001 • Conta •••• 4821",
+        colorHex: "#820AD1",
+        statusText: "Pix em 1 toque ativo"
+    )
 
     // Conversas de chat por @username (com separadores de data: Ontem, Hoje, etc.)
     @Published var chatMessages: [String: [ChatMessage]] = [
@@ -487,65 +524,77 @@ final class JuntoStore: ObservableObject {
         group.participants.first(where: { $0.name == "Você" || $0.username == user.username })?.role == .owner
     }
 
-    /// Adiciona saldo na Carteira do usuário (via Pix)
-    func addWalletBalance(_ amount: Double) {
-        guard amount > 0 else { return }
-        walletBalance += amount
+    /// Conecta banco via Open Finance (Pix em 1 toque sem saldo parado)
+    func connectOpenFinanceBank(_ bank: OpenFinanceBankOption) {
+        let last4 = String(format: "%04d", Int.random(in: 1000...9999))
+        connectedBank = ConnectedBankAccount(
+            bankId: bank.id,
+            bankName: bank.name,
+            shortCode: bank.shortCode,
+            maskedAccount: "Ag 0001 • Conta •••• \(last4)",
+            colorHex: bank.colorHex,
+            statusText: "Pix em 1 toque ativo"
+        )
         activities.insert(
             ActivityEvent(
-                icon: "wallet.pass",
-                title: "Saldo adicionado à Carteira",
-                subtitle: "Via Pix • Saldo atual \(Self.formatBRL(walletBalance))",
+                icon: "building.columns",
+                title: "\(bank.name) conectado",
+                subtitle: "Open Finance • Pix em 1 toque ativado",
                 timeAgo: "Agora",
-                amountText: "+ \(Self.formatBRL(amount))",
+                amountText: nil,
                 isPositive: true
             ),
             at: 0
         )
-        showToast("\(Self.formatBRL(amount)) adicionados à sua Carteira!", icon: "checkmark.circle")
+        showToast("\(bank.name) conectado para Pix em 1 toque!", icon: "checkmark.circle")
     }
 
-    /// Paga a cota do Pote Coletivo usando o saldo da Carteira do usuário
-    func payParticipantPotQuotaWithWallet(groupId: UUID, participantId: UUID) -> Bool {
+    /// Desconecta banco do Open Finance
+    func disconnectOpenFinanceBank() {
+        let previousName = connectedBank?.bankName ?? "Banco"
+        connectedBank = nil
+        showToast("\(previousName) desconectado.", icon: "building.columns")
+    }
+
+    /// Paga a cota do Pote Coletivo direto do banco conectado (Open Finance Pix em 1 toque)
+    func payParticipantPotQuotaWithOneTap(groupId: UUID, participantId: UUID) -> Bool {
+        guard let bank = connectedBank else {
+            showToast("Conecte um banco na aba Conta para pagar em 1 toque.", icon: "building.columns")
+            return false
+        }
         guard let gIdx = groups.firstIndex(where: { $0.id == groupId }),
               let pIdx = groups[gIdx].participants.firstIndex(where: { $0.id == participantId }) else { return false }
 
         let quota = groups[gIdx].participants[pIdx].quotaAmount
         guard !groups[gIdx].participants[pIdx].hasPaid else { return false }
-        guard walletBalance >= quota else {
-            showToast("Saldo insuficiente na carteira. Adicione saldo para continuar.", icon: "exclamationmark.circle")
-            return false
-        }
 
-        walletBalance -= quota
         groups[gIdx].participants[pIdx].hasPaid = true
         groups[gIdx].potBalance += quota
         let groupTitle = groups[gIdx].title
 
         activities.insert(
             ActivityEvent(
-                icon: "wallet.pass",
-                title: "Cota paga com Carteira",
-                subtitle: "\(groupTitle) • Saldo carteira \(Self.formatBRL(walletBalance))",
+                icon: "bolt.circle",
+                title: "Cota paga em 1 toque (\(bank.bankName))",
+                subtitle: "\(groupTitle) • Pix direto via Open Finance",
                 timeAgo: "Agora",
                 amountText: "- \(Self.formatBRL(quota))",
                 isPositive: false
             ),
             at: 0
         )
-        showToast("Cota de \(Self.formatBRL(quota)) paga com sua Carteira!", icon: "checkmark.circle")
+        showToast("Pix de \(Self.formatBRL(quota)) confirmado via \(bank.bankName)!", icon: "checkmark.circle")
         return true
     }
 
-    /// Paga despesas selecionadas do grupo usando o saldo da Carteira
-    func payGroupExpensesWithWallet(groupId: UUID, amount: Double) -> Bool {
-        guard amount > 0, let gIdx = groups.firstIndex(where: { $0.id == groupId }) else { return false }
-        guard walletBalance >= amount else {
-            showToast("Saldo insuficiente na carteira.", icon: "exclamationmark.circle")
+    /// Paga despesas selecionadas do grupo direto do banco conectado (Open Finance Pix em 1 toque)
+    func payGroupExpensesWithOneTap(groupId: UUID, amount: Double) -> Bool {
+        guard let bank = connectedBank else {
+            showToast("Conecte um banco na aba Conta para pagar em 1 toque.", icon: "building.columns")
             return false
         }
+        guard amount > 0, let gIdx = groups.firstIndex(where: { $0.id == groupId }) else { return false }
 
-        walletBalance -= amount
         let groupTitle = groups[gIdx].title
         groups[gIdx].myShare = max(0, groups[gIdx].myShare - amount)
         for i in groups[gIdx].comandaItems.indices {
@@ -556,16 +605,16 @@ final class JuntoStore: ObservableObject {
 
         activities.insert(
             ActivityEvent(
-                icon: "wallet.pass",
-                title: "Despesa paga com Carteira",
-                subtitle: "\(groupTitle) • Saldo carteira \(Self.formatBRL(walletBalance))",
+                icon: "bolt.circle",
+                title: "Despesa paga em 1 toque (\(bank.bankName))",
+                subtitle: "\(groupTitle) • Pix direto via Open Finance",
                 timeAgo: "Agora",
                 amountText: "- \(Self.formatBRL(amount))",
                 isPositive: false
             ),
             at: 0
         )
-        showToast("\(Self.formatBRL(amount)) pago com saldo da Carteira!", icon: "checkmark.circle")
+        showToast("Pix de \(Self.formatBRL(amount)) confirmado via \(bank.bankName)!", icon: "checkmark.circle")
         return true
     }
 

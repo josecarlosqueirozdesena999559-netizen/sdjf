@@ -1094,12 +1094,12 @@ struct GroupDetailSheet: View {
                 GroupPaymentMethodSheet(
                     title: request.title,
                     amount: request.amount,
-                    walletBalance: store.walletBalance,
-                    onPayWithWallet: {
+                    connectedBank: store.connectedBank,
+                    onPayWithOneTap: {
                         if let pid = request.participantId {
-                            _ = store.payParticipantPotQuotaWithWallet(groupId: groupId, participantId: pid)
+                            _ = store.payParticipantPotQuotaWithOneTap(groupId: groupId, participantId: pid)
                         } else {
-                            _ = store.payGroupExpensesWithWallet(groupId: groupId, amount: request.amount)
+                            _ = store.payGroupExpensesWithOneTap(groupId: groupId, amount: request.amount)
                         }
                         pendingPaymentSheet = nil
                     },
@@ -1120,18 +1120,15 @@ struct GroupDetailSheet: View {
     }
 }
 
-// MARK: - Sheet de Escolha de Pagamento do Grupo (Saldo da Carteira OU Pix)
+// MARK: - Sheet de Escolha de Pagamento do Grupo (Pix em 1 toque Open Finance OU QR Code Pix)
 struct GroupPaymentMethodSheet: View {
     let title: String
     let amount: Double
-    let walletBalance: Double
-    let onPayWithWallet: () -> Void
+    let connectedBank: JuntoStore.ConnectedBankAccount?
+    let onPayWithOneTap: () -> Void
     let onPayWithPix: () -> Void
     @Environment(\.dismiss) private var dismiss
-
-    private var hasEnoughBalance: Bool {
-        walletBalance >= amount
-    }
+    @State private var isConfirmingBiometric = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -1158,32 +1155,42 @@ struct GroupPaymentMethodSheet: View {
             .padding(.top, 20)
 
             VStack(spacing: 10) {
-                // Opção 1: Carteira Juntô
-                Button(action: onPayWithWallet) {
+                // Opção 1: Pix em 1 toque via Open Finance (direto do banco conectado, sem saldo parado)
+                Button {
+                    guard connectedBank != nil, !isConfirmingBiometric else { return }
+                    isConfirmingBiometric = true
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
+                        isConfirmingBiometric = false
+                        onPayWithOneTap()
+                    }
+                } label: {
                     HStack(spacing: 12) {
-                        Image(systemName: "wallet.pass.fill")
-                            .font(.system(size: 18))
-                            .foregroundColor(hasEnoughBalance ? JuntoColors.primary : JuntoColors.textLight)
-                            .frame(width: 36, height: 36)
-                            .background(hasEnoughBalance ? JuntoColors.primaryLight : JuntoColors.surfaceSubtle)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        Image(systemName: "faceid")
+                            .font(.system(size: 22, weight: .regular))
+                            .foregroundColor(connectedBank != nil ? JuntoColors.primary : JuntoColors.textLight)
+                            .frame(width: 28)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Saldo da Carteira")
+                            Text("Pix em 1 toque")
                                 .font(.inter(15, weight: .medium))
-                                .foregroundColor(hasEnoughBalance ? JuntoColors.textMain : JuntoColors.textMuted)
-                            Text(
-                                hasEnoughBalance
-                                    ? "Disponível: \(JuntoStore.formatBRL(walletBalance))"
-                                    : "Saldo insuficiente (\(JuntoStore.formatBRL(walletBalance)))"
-                            )
-                            .font(.inter(12, weight: .regular))
-                            .foregroundColor(hasEnoughBalance ? JuntoColors.pixGreen : JuntoColors.danger)
+                                .foregroundColor(connectedBank != nil ? JuntoColors.textMain : JuntoColors.textMuted)
+                            if let bank = connectedBank {
+                                Text("Direto do seu \(bank.bankName) • Open Finance")
+                                    .font(.inter(12, weight: .regular))
+                                    .foregroundColor(JuntoColors.pixGreen)
+                            } else {
+                                Text("Conecte um banco na aba Conta para ativar")
+                                    .font(.inter(12, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                            }
                         }
 
                         Spacer()
 
-                        if hasEnoughBalance {
+                        if isConfirmingBiometric {
+                            ProgressView()
+                                .scaleEffect(0.8)
+                        } else if connectedBank != nil {
                             Text("Pagar")
                                 .font(.inter(13, weight: .medium))
                                 .foregroundColor(.white)
@@ -1195,26 +1202,24 @@ struct GroupPaymentMethodSheet: View {
                     }
                     .padding(14)
                     .background(Color.white)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(hasEnoughBalance ? JuntoColors.primary.opacity(0.35) : JuntoColors.border, lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(connectedBank != nil ? JuntoColors.primary.opacity(0.35) : JuntoColors.border, lineWidth: 1))
                     .clipShape(RoundedRectangle(cornerRadius: 12))
                 }
-                .disabled(!hasEnoughBalance)
+                .disabled(connectedBank == nil || isConfirmingBiometric)
 
-                // Opção 2: Pix
+                // Opção 2: Pix QR Code / Copia e Cola
                 Button(action: onPayWithPix) {
                     HStack(spacing: 12) {
                         Image(systemName: "qrcode")
-                            .font(.system(size: 18))
+                            .font(.system(size: 20, weight: .regular))
                             .foregroundColor(JuntoColors.pixGreen)
-                            .frame(width: 36, height: 36)
-                            .background(JuntoColors.pixGreenLight)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .frame(width: 28)
 
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("Pagar via Pix")
+                            Text("Pagar via QR Code Pix")
                                 .font(.inter(15, weight: .medium))
                                 .foregroundColor(JuntoColors.textMain)
-                            Text("QR Code ou Pix Copia e Cola")
+                            Text("Copiar código e pagar no app do seu banco")
                                 .font(.inter(12, weight: .regular))
                                 .foregroundColor(JuntoColors.textMuted)
                         }

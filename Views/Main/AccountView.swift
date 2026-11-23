@@ -6,8 +6,7 @@ struct AccountView: View {
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var showAccountSettings = false
     @State private var showSecurityPrivacy = false
-    @State private var showAddBalanceSheet = false
-    @State private var hideWalletBalance = false
+    @State private var showConnectBankSheet = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -66,43 +65,79 @@ struct AccountView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 18)
 
-                    // Cartão Carteira do Usuário (Saldo + Botão Adicionar Saldo)
+                    // Carteira Open Finance (Pix em 1 toque sem saldo parado)
                     VStack(alignment: .leading, spacing: 14) {
                         HStack {
                             HStack(spacing: 8) {
-                                Image(systemName: "wallet.pass.fill")
-                                    .font(.system(size: 16))
+                                Image(systemName: "bolt.circle")
+                                    .font(.system(size: 16, weight: .regular))
                                     .foregroundColor(JuntoColors.accent)
-                                Text("Carteira Juntô")
+                                Text("Pix em 1 toque · Open Finance")
                                     .font(.inter(13, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.85))
+                                    .foregroundColor(.white.opacity(0.9))
                             }
                             Spacer()
-                            Button {
-                                hideWalletBalance.toggle()
-                            } label: {
-                                Image(systemName: hideWalletBalance ? "eye.slash" : "eye")
-                                    .font(.system(size: 15))
-                                    .foregroundColor(.white.opacity(0.75))
+                            if store.connectedBank != nil {
+                                Text("Ativo")
+                                    .font(.inter(11, weight: .medium))
+                                    .foregroundColor(JuntoColors.pixGreen)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 3)
+                                    .background(Color.white.opacity(0.14))
+                                    .clipShape(Capsule())
                             }
                         }
 
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("Saldo disponível")
-                                .font(.inter(11, weight: .regular))
-                                .foregroundColor(.white.opacity(0.65))
-                            Text(hideWalletBalance ? "R$ •••••" : JuntoStore.formatBRL(store.walletBalance))
-                                .font(.inter(26, weight: .medium))
-                                .foregroundColor(.white)
+                        if let bank = store.connectedBank {
+                            HStack(spacing: 12) {
+                                Text(bank.shortCode)
+                                    .font(.inter(13, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .frame(width: 40, height: 40)
+                                    .background(Color(hex: bank.colorHex))
+                                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(bank.bankName)
+                                        .font(.inter(16, weight: .medium))
+                                        .foregroundColor(.white)
+                                    Text(bank.maskedAccount)
+                                        .font(.inter(12, weight: .regular))
+                                        .foregroundColor(.white.opacity(0.72))
+                                }
+
+                                Spacer()
+                            }
+                        } else {
+                            VStack(alignment: .leading, spacing: 3) {
+                                Text("Nenhum banco conectado")
+                                    .font(.inter(16, weight: .medium))
+                                    .foregroundColor(.white)
+                                Text("Conecte sua conta para pagar grupos direto do seu banco em 1 toque, sem saldo parado.")
+                                    .font(.inter(12, weight: .regular))
+                                    .foregroundColor(.white.opacity(0.75))
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+
+                        // Chave Pix de recebimento
+                        HStack(spacing: 6) {
+                            Image(systemName: "arrow.down.left.circle")
+                                .font(.system(size: 12))
+                                .foregroundColor(.white.opacity(0.7))
+                            Text("Recebimento: \(store.user.pixKey)")
+                                .font(.inter(12, weight: .regular))
+                                .foregroundColor(.white.opacity(0.8))
+                                .lineLimit(1)
                         }
 
                         Button {
-                            showAddBalanceSheet = true
+                            showConnectBankSheet = true
                         } label: {
                             HStack(spacing: 6) {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 13, weight: .semibold))
-                                Text("Adicionar saldo")
+                                Image(systemName: store.connectedBank == nil ? "building.columns" : "arrow.triangle.2.circlepath")
+                                    .font(.system(size: 13, weight: .medium))
+                                Text(store.connectedBank == nil ? "Conectar banco" : "Trocar banco conectado")
                                     .font(.inter(14, weight: .medium))
                             }
                             .foregroundColor(JuntoColors.primary)
@@ -176,10 +211,10 @@ struct AccountView: View {
             SecurityPrivacyScreen()
                 .environmentObject(store)
         }
-        .sheet(isPresented: $showAddBalanceSheet) {
-            AddWalletBalanceSheet()
+        .sheet(isPresented: $showConnectBankSheet) {
+            ConnectBankOpenFinanceSheet()
                 .environmentObject(store)
-                .presentationDetents([.height(340)])
+                .presentationDetents([.large])
                 .presentationCornerRadius(20)
         }
     }
@@ -862,31 +897,31 @@ struct DeleteAccountScreen: View {
     }
 }
 
-// MARK: - Sheet para Adicionar Saldo à Carteira via Pix
-struct AddWalletBalanceSheet: View {
+// MARK: - Sheet para Conectar Banco via Open Finance (Pix em 1 toque, sem saldo parado)
+struct ConnectBankOpenFinanceSheet: View {
     @EnvironmentObject var store: JuntoStore
     @Environment(\.dismiss) private var dismiss
 
-    @State private var amountText: String = "100"
-    private let presets: [Double] = [50, 100, 200]
+    @State private var searchText: String = ""
+    @State private var connectingBankId: String? = nil
 
-    private var numericAmount: Double {
-        let cleaned = amountText
-            .replacingOccurrences(of: "R$", with: "")
-            .replacingOccurrences(of: ".", with: "")
-            .replacingOccurrences(of: ",", with: ".")
-            .trimmingCharacters(in: .whitespaces)
-        return Double(cleaned) ?? 0
+    private var filteredBanks: [JuntoStore.OpenFinanceBankOption] {
+        if searchText.trimmingCharacters(in: .whitespaces).isEmpty {
+            return store.availableOpenFinanceBanks
+        }
+        return store.availableOpenFinanceBanks.filter {
+            $0.name.localizedCaseInsensitiveContains(searchText)
+        }
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Adicionar saldo")
+                    Text("Conectar banco")
                         .font(.inter(18, weight: .medium))
                         .foregroundColor(JuntoColors.textMain)
-                    Text("Use o saldo para pagar cotas e despesas dos grupos")
+                    Text("Open Finance • Pix direto em 1 toque, sem saldo parado")
                         .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                 }
@@ -902,49 +937,110 @@ struct AddWalletBalanceSheet: View {
             }
             .padding(.top, 20)
 
+            // Busca compacta de bancos
             HStack(spacing: 8) {
-                ForEach(presets, id: \.self) { val in
-                    let active = numericAmount == val
-                    Button {
-                        amountText = "\(Int(val))"
-                    } label: {
-                        Text("+ \(JuntoStore.formatBRL(val))")
-                            .font(.inter(13, weight: .medium))
-                            .foregroundColor(active ? .white : JuntoColors.textMain)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 38)
-                            .background(active ? JuntoColors.primary : Color.white)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(active ? JuntoColors.primary : JuntoColors.border, lineWidth: 1)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 14))
+                    .foregroundColor(JuntoColors.textMuted)
+                TextField("Buscar instituição...", text: $searchText)
+                    .font(.inter(14, weight: .regular))
+                    .foregroundColor(JuntoColors.textMain)
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 38)
+            .background(Color.white)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            // Selo de segurança Open Finance
+            HStack(spacing: 10) {
+                Image(systemName: "lock.shield")
+                    .font(.system(size: 16))
+                    .foregroundColor(JuntoColors.pixGreen)
+                Text("Conexão regulada pelo Banco Central. Seus dados bancários nunca ficam salvos no app.")
+                    .font(.inter(12, weight: .regular))
+                    .foregroundColor(JuntoColors.textMuted)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color.white)
+            .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 0.8))
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    ForEach(filteredBanks) { bank in
+                        let isConnected = store.connectedBank?.bankId == bank.id
+                        let isLoading = connectingBankId == bank.id
+
+                        Button {
+                            guard !isLoading else { return }
+                            connectingBankId = bank.id
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                                store.connectOpenFinanceBank(bank)
+                                connectingBankId = nil
+                                dismiss()
+                            }
+                        } label: {
+                            HStack(spacing: 12) {
+                                Text(bank.shortCode)
+                                    .font(.inter(12, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .frame(width: 34, height: 34)
+                                    .background(Color(hex: bank.colorHex))
+                                    .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+
+                                Text(bank.name)
+                                    .font(.inter(15, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMain)
+
+                                Spacer()
+
+                                if isLoading {
+                                    ProgressView()
+                                        .scaleEffect(0.8)
+                                } else if isConnected {
+                                    Text("Conectado")
+                                        .font(.inter(12, weight: .medium))
+                                        .foregroundColor(JuntoColors.pixGreen)
+                                } else {
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 12))
+                                        .foregroundColor(JuntoColors.textLight)
+                                }
+                            }
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 11)
+                        }
+
+                        Divider().padding(.leading, 60)
                     }
                 }
-            }
+                .background(Color.white)
+                .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
+                .clipShape(RoundedRectangle(cornerRadius: 14))
 
-            CleanOutlineInput(
-                label: "Valor do depósito (R$)",
-                placeholder: "0,00",
-                text: $amountText,
-                keyboardType: .decimalPad,
-                leadingPrefix: "R$"
-            )
-
-            JuntoPillButton(
-                title: "Adicionar \(JuntoStore.formatBRL(max(numericAmount, 0))) via Pix",
-                icon: "plus.circle",
-                color: JuntoColors.pixGreen
-            ) {
-                guard numericAmount > 0 else {
-                    store.showToast("Informe um valor válido.", icon: "exclamationmark.circle")
-                    return
+                if store.connectedBank != nil {
+                    Button {
+                        store.disconnectOpenFinanceBank()
+                        dismiss()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "link.badge.minus")
+                                .font(.system(size: 15))
+                            Text("Desconectar banco atual")
+                                .font(.inter(14, weight: .medium))
+                        }
+                        .foregroundColor(JuntoColors.danger)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 46)
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                    }
+                    .padding(.top, 14)
                 }
-                store.addWalletBalance(numericAmount)
-                dismiss()
             }
-
-            Spacer()
         }
         .padding(.horizontal, 20)
         .background(JuntoColors.warmBg.ignoresSafeArea())
