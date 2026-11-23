@@ -190,7 +190,7 @@ final class ReceiptOCRService {
         ]
     }
 
-    private static func formatBRL(_ value: Double) -> String {
+    private func formatBRL(_ value: Double) -> String {
         let formatter = NumberFormatter()
         formatter.numberStyle = .currency
         formatter.locale = Locale(identifier: "pt_BR")
