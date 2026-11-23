@@ -313,9 +313,12 @@ struct CreateGroupScreen: View {
                                         selectedType = item.name
                                     } label: {
                                         VStack(spacing: 6) {
-                                            Image(systemName: item.icon)
-                                                .font(.system(size: 20, weight: .light))
-                                                .foregroundColor(isSelected ? JuntoColors.primary : JuntoColors.textMain)
+                                            JuntoIcon(
+                                                kind: JuntoIconKind.category(item.name),
+                                                size: 24,
+                                                color: isSelected ? JuntoColors.primary : JuntoColors.textMain,
+                                                weight: isSelected ? 2.0 : 1.6
+                                            )
                                             Text(item.name)
                                                 .font(.inter(12, weight: .regular))
                                                 .foregroundColor(isSelected ? JuntoColors.primary : JuntoColors.textMain)

@@ -842,9 +842,7 @@ struct ChatAttachmentMenuSheet: View {
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
                 Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(JuntoColors.textMuted)
+                    JuntoIcon(kind: .close, size: 12, color: JuntoColors.textMuted, weight: 2.0)
                         .frame(width: 30, height: 30)
                         .background(JuntoColors.surfaceSubtle)
                         .clipShape(Circle())
@@ -853,9 +851,9 @@ struct ChatAttachmentMenuSheet: View {
             .padding(.top, 18)
 
             HStack(spacing: 18) {
-                attachmentOption(icon: "photo.on.rectangle.angled", label: "Imagens", color: Color(hex: "#2563EB"), action: onSelectPhoto)
-                attachmentOption(icon: "doc.text", label: "Documentos", color: Color(hex: "#7C3AED"), action: onSelectDocument)
-                attachmentOption(icon: "qrcode", label: "Pix", color: JuntoColors.pixGreen, action: onSelectPix)
+                attachmentOption(icon: .photo, label: "Imagens", color: Color(hex: "#2563EB"), action: onSelectPhoto)
+                attachmentOption(icon: .docText, label: "Documentos", color: Color(hex: "#7C3AED"), action: onSelectDocument)
+                attachmentOption(icon: .pix, label: "Pix", color: JuntoColors.pixGreen, action: onSelectPix)
             }
 
             Spacer()
@@ -864,12 +862,10 @@ struct ChatAttachmentMenuSheet: View {
         .background(JuntoColors.warmBg.ignoresSafeArea())
     }
 
-    private func attachmentOption(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
+    private func attachmentOption(icon: JuntoIconKind, label: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 22, weight: .regular))
-                    .foregroundColor(color)
+                JuntoIcon(kind: icon, size: 24, color: color, weight: 1.8)
                     .frame(width: 58, height: 58)
                     .background(Color.white)
                     .overlay(Circle().stroke(JuntoColors.border, lineWidth: 1))
@@ -973,15 +969,15 @@ struct CustomMessageMenuOverlay: View {
 
                 // Card de ações do app (Responder · Editar · Apagar)
                 VStack(spacing: 0) {
-                    actionRow(icon: "arrowshape.turn.up.left", title: "Responder", color: JuntoColors.textMain, action: onReply)
+                    actionRow(icon: .swipeReply, title: "Responder", color: JuntoColors.textMain, action: onReply)
 
                     if canEdit {
                         Divider().padding(.leading, 48)
-                        actionRow(icon: "pencil", title: "Editar", color: JuntoColors.textMain, action: onEdit)
+                        actionRow(icon: .edit, title: "Editar", color: JuntoColors.textMain, action: onEdit)
                     }
 
                     Divider().padding(.leading, 48)
-                    actionRow(icon: "trash", title: "Apagar", color: JuntoColors.danger, action: onDelete)
+                    actionRow(icon: .trash, title: "Apagar", color: JuntoColors.danger, action: onDelete)
                 }
                 .background(Color.white)
                 .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
@@ -993,12 +989,10 @@ struct CustomMessageMenuOverlay: View {
         }
     }
 
-    private func actionRow(icon: String, title: String, color: Color, action: @escaping () -> Void) -> some View {
+    private func actionRow(icon: JuntoIconKind, title: String, color: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 14) {
-                Image(systemName: icon)
-                    .font(.system(size: 16, weight: .regular))
-                    .foregroundColor(color)
+                JuntoIcon(kind: icon, size: 18, color: color, weight: 1.8)
                     .frame(width: 22)
                 Text(title)
                     .font(.inter(15, weight: .medium))

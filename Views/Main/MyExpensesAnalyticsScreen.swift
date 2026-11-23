@@ -238,9 +238,7 @@ struct MyExpensesAnalyticsScreen: View {
                             ForEach(categorySlices) { slice in
                                 VStack(spacing: 6) {
                                     HStack(spacing: 10) {
-                                        Image(systemName: slice.icon)
-                                            .font(.system(size: 14, weight: .regular))
-                                            .foregroundColor(slice.color)
+                                        JuntoIcon(kind: JuntoIconKind.category(slice.category), size: 16, color: slice.color, weight: 1.8)
                                             .frame(width: 32, height: 32)
                                             .background(slice.color.opacity(0.12))
                                             .clipShape(RoundedRectangle(cornerRadius: 8))
@@ -303,9 +301,7 @@ struct MyExpensesAnalyticsScreen: View {
                                 ForEach(filteredList) { item in
                                     let catColor = colorForCategory(item.category)
                                     HStack(spacing: 12) {
-                                        Image(systemName: iconForCategory(item.category))
-                                            .font(.system(size: 14))
-                                            .foregroundColor(catColor)
+                                        JuntoIcon(kind: JuntoIconKind.category(item.category), size: 16, color: catColor, weight: 1.8)
                                             .frame(width: 34, height: 34)
                                             .background(catColor.opacity(0.12))
                                             .clipShape(Circle())

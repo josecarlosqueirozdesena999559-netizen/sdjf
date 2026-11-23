@@ -94,32 +94,32 @@ struct AccountView: View {
                     .padding(.bottom, 20)
 
                     // Menu limpo (sem Pix no perfil — QR Code de convite para adicionar amigos!)
-                    accountRow(icon: "qrcode", title: "QR Code de convite") {
+                    accountRow(icon: .inviteQR, title: "QR Code de convite") {
                         showInviteQRCode = true
                     }
                     Divider().padding(.leading, 20)
 
-                    accountRow(icon: "person.badge.plus", title: "Convidar amigos") {
+                    accountRow(icon: .inviteFriends, title: "Convidar amigos") {
                         showInviteFriends = true
                     }
                     Divider().padding(.leading, 20)
 
-                    accountRow(icon: "person", title: "Editar perfil") {
+                    accountRow(icon: .person, title: "Editar perfil") {
                         showAccountSettings = true
                     }
                     Divider().padding(.leading, 20)
 
-                    accountRow(icon: "lock.shield", title: "Segurança e privacidade") {
+                    accountRow(icon: .lock, title: "Segurança e privacidade") {
                         showSecurityPrivacy = true
                     }
                     Divider().padding(.leading, 20)
 
-                    accountRow(icon: "doc.text", title: "Política de Privacidade (LGPD)") {
+                    accountRow(icon: .docText, title: "Política de Privacidade (LGPD)") {
                         showPrivacyPolicy = true
                     }
                     Divider().padding(.leading, 20)
 
-                    accountRow(icon: "rectangle.portrait.and.arrow.right", iconColor: JuntoColors.danger, title: "Sair da conta", textColor: JuntoColors.danger) {
+                    accountRow(icon: .logout, iconColor: JuntoColors.danger, title: "Sair da conta", textColor: JuntoColors.danger) {
                         store.logout()
                     }
                 }
@@ -149,7 +149,7 @@ struct AccountView: View {
     }
 
     private func accountRow(
-        icon: String?,
+        icon: JuntoIconKind?,
         iconColor: Color = JuntoColors.textMain,
         title: String,
         textColor: Color = JuntoColors.textMain,
@@ -158,9 +158,7 @@ struct AccountView: View {
         Button(action: action) {
             HStack(spacing: 14) {
                 if let icon = icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 18, weight: .regular))
-                        .foregroundColor(iconColor)
+                    JuntoIcon(kind: icon, size: 20, color: iconColor, weight: 1.6)
                         .frame(width: 26)
                 }
 
@@ -170,9 +168,7 @@ struct AccountView: View {
 
                 Spacer()
 
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .regular))
-                    .foregroundColor(JuntoColors.textLight)
+                JuntoIcon(kind: .chevronRight, size: 16, color: JuntoColors.textLight, weight: 1.6)
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 16)

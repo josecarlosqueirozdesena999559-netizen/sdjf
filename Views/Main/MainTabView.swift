@@ -37,8 +37,7 @@ struct MainTabView: View {
                             store.showAddExpenseSheet = true
                         } label: {
                             HStack(spacing: homeButtonsCollapsed ? 0 : 7) {
-                                Image(systemName: "plus")
-                                    .font(.system(size: homeButtonsCollapsed ? 18 : 14, weight: .medium))
+                                JuntoIcon(kind: .plus, size: homeButtonsCollapsed ? 18 : 14, color: .white, weight: 2.0)
                                 if !homeButtonsCollapsed {
                                     Text("Adicionar despesa")
                                         .font(.inter(14, weight: .medium))
@@ -58,8 +57,7 @@ struct MainTabView: View {
                             store.showMyExpensesScreen = true
                         } label: {
                             HStack(spacing: homeButtonsCollapsed ? 0 : 7) {
-                                Image(systemName: "chart.pie")
-                                    .font(.system(size: homeButtonsCollapsed ? 18 : 14, weight: .regular))
+                                JuntoIcon(kind: .chartPie, size: homeButtonsCollapsed ? 18 : 14, color: JuntoColors.primary, weight: 1.8)
                                 if !homeButtonsCollapsed {
                                     Text("Minhas despesas")
                                         .font(.inter(14, weight: .medium))
@@ -101,9 +99,12 @@ struct MainTabView: View {
                                                 .padding(-2)
                                         )
                                 } else {
-                                    Image(systemName: tabIconName(tab, selected: isSelected))
-                                        .font(.system(size: 19, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMain)
+                                    JuntoIcon(
+                                        kind: tabIconKind(tab),
+                                        size: 22,
+                                        color: JuntoColors.textMain,
+                                        weight: isSelected ? 2.2 : 1.6
+                                    )
                                 }
 
                                 Text(tab.title)
@@ -151,6 +152,15 @@ struct MainTabView: View {
                 store.showToast("Código Pix copiado.", icon: "doc.on.doc")
             }
             .presentationDetents([.medium, .large])
+        }
+    }
+
+    private func tabIconKind(_ tab: MainTab) -> JuntoIconKind {
+        switch tab {
+        case .friends:    return .tabFriends
+        case .groups:     return .tabGroups
+        case .activities: return .tabActivity
+        case .account:    return .person
         }
     }
 
@@ -340,9 +350,7 @@ struct NotificationsSheetView: View {
                                 if let acceptedUser = item.requestUsername {
                                     GeometricAvatarView(seed: acceptedUser, size: 40)
                                 } else {
-                                    Image(systemName: item.icon)
-                                        .font(.system(size: 18, weight: .regular))
-                                        .foregroundColor(JuntoColors.primary)
+                                    JuntoIcon(kind: JuntoIconKind.activity(item.icon), size: 20, color: JuntoColors.primary, weight: 1.8)
                                         .frame(width: 32, height: 32)
                                 }
 

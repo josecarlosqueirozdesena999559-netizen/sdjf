@@ -319,9 +319,7 @@ struct CircleNavButton: View {
 
     var body: some View {
         Button(action: action) {
-            Image(systemName: icon)
-                .font(.system(size: 16, weight: .regular))
-                .foregroundColor(fgColor)
+            renderedIcon
                 .frame(width: 44, height: 44)
                 .background(bgColor)
                 .clipShape(Circle())
@@ -330,6 +328,18 @@ struct CircleNavButton: View {
                     Circle()
                         .stroke(bgColor == .white ? JuntoColors.border.opacity(0.6) : Color.clear, lineWidth: 0.6)
                 )
+        }
+    }
+
+    @ViewBuilder
+    private var renderedIcon: some View {
+        switch icon {
+        case "xmark": JuntoIcon(kind: .close, size: 13, color: fgColor, weight: 2.0)
+        case "checkmark": JuntoIcon(kind: .checkmark, size: 15, color: fgColor, weight: 2.0)
+        case "chevron.left": JuntoIcon(kind: .chevronLeft, size: 16, color: fgColor, weight: 1.8)
+        case "plus": JuntoIcon(kind: .plus, size: 16, color: fgColor, weight: 2.0)
+        case "trash": JuntoIcon(kind: .trash, size: 16, color: fgColor, weight: 1.8)
+        default: Image(systemName: icon).font(.system(size: 16, weight: .regular)).foregroundColor(fgColor)
         }
     }
 }
@@ -452,8 +462,7 @@ struct JuntoPillButton: View {
         Button(action: action) {
             HStack(spacing: 8) {
                 if let icon = icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 16, weight: .regular))
+                    renderedButtonIcon(icon, color: textColor)
                 }
                 Text(title)
                     .font(.inter(16, weight: .medium))
@@ -463,6 +472,20 @@ struct JuntoPillButton: View {
             .frame(height: 52)
             .background(color)
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+        }
+    }
+
+    @ViewBuilder
+    private func renderedButtonIcon(_ name: String, color: Color) -> some View {
+        switch name {
+        case "checkmark": JuntoIcon(kind: .checkmark, size: 14, color: color, weight: 2.0)
+        case "checkmark.circle", "checkmark.circle.fill": JuntoIcon(kind: .checkPaid, size: 18, color: color, weight: 1.8)
+        case "plus": JuntoIcon(kind: .plus, size: 14, color: color, weight: 2.0)
+        case "doc.on.doc": JuntoIcon(kind: .receipt, size: 16, color: color, weight: 1.8)
+        case "sparkles", "sparkle": JuntoIcon(kind: .sparkle, size: 16, color: color, weight: 1.8)
+        case "camera": JuntoIcon(kind: .camera, size: 16, color: color, weight: 1.8)
+        case "paperplane.fill", "paperplane": JuntoIcon(kind: .send, size: 16, color: color, weight: 1.8)
+        default: Image(systemName: name).font(.system(size: 16, weight: .regular))
         }
     }
 }
@@ -478,8 +501,7 @@ struct JuntoOutlineButton: View {
         Button(action: action) {
             HStack(spacing: 8) {
                 if let icon = icon {
-                    Image(systemName: icon)
-                        .font(.system(size: 16, weight: .regular))
+                    renderedButtonIcon(icon, color: color)
                 }
                 Text(title)
                     .font(.inter(16, weight: .medium))
@@ -492,6 +514,19 @@ struct JuntoOutlineButton: View {
                 RoundedRectangle(cornerRadius: 10, style: .continuous)
                     .stroke(color, lineWidth: 1.2)
             )
+        }
+    }
+
+    @ViewBuilder
+    private func renderedButtonIcon(_ name: String, color: Color) -> some View {
+        switch name {
+        case "checkmark": JuntoIcon(kind: .checkmark, size: 14, color: color, weight: 2.0)
+        case "checkmark.circle", "checkmark.circle.fill": JuntoIcon(kind: .checkPaid, size: 18, color: color, weight: 1.8)
+        case "plus": JuntoIcon(kind: .plus, size: 14, color: color, weight: 2.0)
+        case "doc.on.doc": JuntoIcon(kind: .receipt, size: 16, color: color, weight: 1.8)
+        case "sparkles", "sparkle": JuntoIcon(kind: .sparkle, size: 16, color: color, weight: 1.8)
+        case "camera": JuntoIcon(kind: .camera, size: 16, color: color, weight: 1.8)
+        default: Image(systemName: name).font(.system(size: 16, weight: .regular))
         }
     }
 }
