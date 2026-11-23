@@ -1,0 +1,42 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128" fill="none">
+  <!-- Floating coins above the pot -->
+  <!-- Left small coin -->
+  <circle cx="40" cy="25" r="8.5" fill="#F59E0B" stroke="#14213D" stroke-width="2.6"/>
+  <circle cx="40" cy="25" r="5" fill="#FDE68A"/>
+
+  <!-- Right small coin -->
+  <circle cx="88" cy="22" r="7.5" fill="#FCA311" stroke="#14213D" stroke-width="2.6"/>
+  <circle cx="88" cy="22" r="4.2" fill="#FEF3C7"/>
+
+  <!-- Center main rising coin -->
+  <circle cx="64" cy="16" r="12" fill="#FCA311" stroke="#14213D" stroke-width="3"/>
+  <circle cx="64" cy="16" r="8" fill="#FCD34D"/>
+  <path d="M64 11V21M61.5 13.5C61.5 12.4 62.6 11.8 64 11.8C65.4 11.8 66.5 12.4 66.5 13.5C66.5 14.8 65.2 15.2 64 15.6C62.8 16 61.5 16.5 61.5 17.8C61.5 19 62.6 19.6 64 19.6C65.4 19.6 66.5 19 66.5 17.8" stroke="#14213D" stroke-width="1.8" stroke-linecap="round"/>
+
+  <!-- Subtle sparkles -->
+  <path d="M24 32L25.5 28L27 32L31 33.5L27 35L25.5 39L24 35L20 33.5L24 32Z" fill="#FCA311"/>
+  <path d="M101 34L102 31L103 34L106 35L103 36L102 39L101 36L98 35L101 34Z" fill="#FCA311"/>
+
+  <!-- Jar body (soft glass tint) -->
+  <path d="M43 44H85C92 47 99 54 99 65L96 99C95.2 110 86.8 117 75.5 117H52.5C41.2 117 32.8 110 32 99L29 65C29 54 36 47 43 44Z" fill="#F0F4FA"/>
+
+  <!-- Coins piled inside the jar -->
+  <ellipse cx="64" cy="107" rx="26" ry="7" fill="#D97706"/>
+  <ellipse cx="52" cy="99" rx="14" ry="5.5" fill="#F59E0B" stroke="#14213D" stroke-width="2.2"/>
+  <ellipse cx="75" cy="98" rx="14" ry="5.5" fill="#FCA311" stroke="#14213D" stroke-width="2.2"/>
+  <ellipse cx="64" cy="91" rx="15" ry="5.5" fill="#FCD34D" stroke="#14213D" stroke-width="2.2"/>
+  <ellipse cx="54" cy="83" rx="12" ry="4.8" fill="#FCA311" stroke="#14213D" stroke-width="2.2"/>
+  <ellipse cx="73" cy="84" rx="12" ry="4.8" fill="#F59E0B" stroke="#14213D" stroke-width="2.2"/>
+  <ellipse cx="64" cy="77" rx="13" ry="4.8" fill="#FDE68A" stroke="#14213D" stroke-width="2.2"/>
+
+  <!-- Jar outline -->
+  <path d="M43 44H85C92 47 99 54 99 65L96 99C95.2 110 86.8 117 75.5 117H52.5C41.2 117 32.8 110 32 99L29 65C29 54 36 47 43 44Z" stroke="#14213D" stroke-width="3.4" stroke-linejoin="round"/>
+
+  <!-- Glass shine reflection -->
+  <path d="M38 64C38 58 41 53 46 51" stroke="#FFFFFF" stroke-width="3.6" stroke-linecap="round"/>
+  <path d="M39 74L40 86" stroke="#FFFFFF" stroke-width="3.2" stroke-linecap="round" opacity="0.85"/>
+
+  <!-- Jar neck & navy rim -->
+  <rect x="38" y="34" width="52" height="11" rx="5.5" fill="#14213D"/>
+  <rect x="44" y="37.5" width="22" height="3" rx="1.5" fill="#FFFFFF" opacity="0.35"/>
+</svg>

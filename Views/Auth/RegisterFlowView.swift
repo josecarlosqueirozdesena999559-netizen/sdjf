@@ -153,16 +153,15 @@ struct RegisterFlowView: View {
                         subtitle: "Confira com atenção: é por essa chave que você receberá os pagamentos e saques automáticos."
                     )
 
-                    // Tipo da chave Pix
+                    // Tipo da chave Pix (nunca preenche automaticamente; o usuário digita)
                     HStack(spacing: 8) {
                         ForEach(pixTypes, id: \.self) { type in
                             let active = pixKeyType == type
                             Button {
-                                pixKeyType = type
-                                if type == "E-mail" && store.draftPixKey.isEmpty {
-                                    store.draftPixKey = store.draftEmail
-                                } else if type == "Celular" && store.draftPixKey.isEmpty {
-                                    store.draftPixKey = "+55 \(store.draftPhone)"
+                                if pixKeyType != type {
+                                    pixKeyType = type
+                                    store.draftPixKey = ""
+                                    pixConfirmed = false
                                 }
                             } label: {
                                 Text(type)
@@ -183,6 +182,9 @@ struct RegisterFlowView: View {
                         keyboardType: pixKeyType == "E-mail" ? .emailAddress : .default,
                         autocapitalization: .never
                     )
+                    .onChange(of: store.draftPixKey) { _, _ in
+                        pixConfirmed = false
+                    }
 
                     // Aviso visual para conferir a chave Pix
                     if !store.draftPixKey.trimmingCharacters(in: .whitespaces).isEmpty {

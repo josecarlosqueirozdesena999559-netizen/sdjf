@@ -15,6 +15,7 @@ struct FriendChatScreen: View {
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var showDocumentImporter = false
     @State private var showProfileScreen = false
+    @State private var recMicPulse = false
 
     @StateObject private var audioManager = AudioChatManager()
 
@@ -178,28 +179,37 @@ struct FriendChatScreen: View {
                 .background(JuntoColors.primaryLight)
             }
 
-            // Barra Inferior de Envio: ao gravar áudio, o botão "+" some, entra a LIXEIRA e ondas reais do microfone!
-            HStack(alignment: .bottom, spacing: 8) {
+            // Barra Inferior de Envio: estilo WhatsApp ao gravar áudio (lixeira SEM fundo + microfone pulsando + ondas fluidas)
+            HStack(alignment: .center, spacing: 10) {
                 if audioManager.isRecording {
-                    // Lixeira para cancelar o áudio (substitui o "+")
+                    // Lixeira limpa SEM fundo para cancelar o áudio
                     Button {
                         withAnimation(.easeInOut(duration: 0.18)) {
+                            recMicPulse = false
                             audioManager.cancelRecording()
                         }
                     } label: {
                         Image(systemName: "trash")
-                            .font(.system(size: 17, weight: .regular))
+                            .font(.system(size: 20, weight: .regular))
                             .foregroundColor(JuntoColors.danger)
-                            .frame(width: 40, height: 40)
-                            .background(JuntoColors.dangerLight)
-                            .clipShape(Circle())
+                            .frame(width: 34, height: 34)
                     }
 
-                    // Ondas de volume real capturadas ao vivo pelo microfone + timer
+                    // Animação de gravação estilo WhatsApp (microfone vermelho pulsando + timer + ondas fluidas em tempo real)
                     HStack(spacing: 8) {
-                        Circle()
-                            .fill(JuntoColors.danger)
-                            .frame(width: 8, height: 8)
+                        Image(systemName: "mic.fill")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(JuntoColors.danger)
+                            .scaleEffect(recMicPulse ? 1.12 : 0.90)
+                            .opacity(recMicPulse ? 1.0 : 0.35)
+                            .onAppear {
+                                withAnimation(.easeInOut(duration: 0.65).repeatForever(autoreverses: true)) {
+                                    recMicPulse = true
+                                }
+                            }
+                            .onDisappear {
+                                recMicPulse = false
+                            }
 
                         Text("0:\(String(format: "%02d", audioManager.recordingSeconds))")
                             .font(.inter(13, weight: .medium))
@@ -207,22 +217,24 @@ struct FriendChatScreen: View {
                             .monospacedDigit()
 
                         HStack(spacing: 2.5) {
-                            let bars = Array(audioManager.liveLevels.suffix(22))
+                            let bars = Array(audioManager.liveLevels.suffix(26))
                             ForEach(Array(bars.enumerated()), id: \.offset) { _, lvl in
                                 Capsule()
-                                    .fill(JuntoColors.primary)
+                                    .fill(JuntoColors.textMuted.opacity(0.75))
                                     .frame(width: 2.5, height: max(4, lvl * 24))
                             }
                         }
+                        .animation(.easeOut(duration: 0.12), value: audioManager.liveLevels)
                         .frame(maxWidth: .infinity, alignment: .trailing)
                     }
                     .padding(.horizontal, 12)
-                    .frame(height: 42)
+                    .frame(height: 40)
                     .background(JuntoColors.surfaceSubtle)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .clipShape(Capsule())
 
-                    // Enviar áudio real gravado com suas ondas
+                    // Enviar áudio gravado
                     Button {
+                        recMicPulse = false
                         let recorded = audioManager.finishRecording()
                         store.sendChatMessage(
                             to: friend.username,
@@ -234,9 +246,9 @@ struct FriendChatScreen: View {
                         )
                     } label: {
                         Image(systemName: "paperplane.fill")
-                            .font(.system(size: 16))
+                            .font(.system(size: 15))
                             .foregroundColor(.white)
-                            .frame(width: 42, height: 42)
+                            .frame(width: 40, height: 40)
                             .background(JuntoColors.pixGreen)
                             .clipShape(Circle())
                     }

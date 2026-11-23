@@ -509,7 +509,7 @@ struct SecurityPrivacyScreen: View {
                                 showBlockedScreen = true
                             }
 
-                            Divider().padding(.leading, 58)
+                            Divider().padding(.leading, 54)
 
                             menuCardRow(
                                 icon: "iphone.and.arrow.forward",
@@ -520,7 +520,7 @@ struct SecurityPrivacyScreen: View {
                                 showDevicesScreen = true
                             }
 
-                            Divider().padding(.leading, 58)
+                            Divider().padding(.leading, 54)
 
                             menuCardRow(
                                 icon: "trash",
@@ -567,11 +567,9 @@ struct SecurityPrivacyScreen: View {
         Button(action: action) {
             HStack(spacing: 14) {
                 Image(systemName: icon)
-                    .font(.system(size: 16, weight: .regular))
+                    .font(.system(size: 18, weight: .regular))
                     .foregroundColor(iconColor)
-                    .frame(width: 34, height: 34)
-                    .background(isDestructive ? JuntoColors.dangerLight : JuntoColors.primaryLight)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .frame(width: 24)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(title)

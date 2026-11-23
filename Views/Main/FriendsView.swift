@@ -268,15 +268,34 @@ struct AddFriendScreen: View {
             .padding(.top, 12)
             .padding(.bottom, 16)
 
-            CleanOutlineInput(
-                label: "",
-                placeholder: "Pesquisar novos amigos por @usuário ou nome...",
-                text: $query,
-                autocapitalization: .never,
-                leadingPrefix: "@"
-            )
-            .padding(.horizontal, 20)
-            .padding(.bottom, 14)
+            // Barra de busca compacta para pesquisar novos amigos
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(JuntoColors.textMuted)
+
+                TextField("Buscar por @usuário ou nome...", text: $query)
+                    .font(.inter(14, weight: .regular))
+                    .foregroundColor(JuntoColors.textMain)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+
+                if !query.isEmpty {
+                    Button {
+                        query = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(JuntoColors.textLight)
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 38)
+            .background(JuntoColors.surfaceSubtle)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .padding(.horizontal, 18)
+            .padding(.bottom, 10)
 
             Divider().opacity(0.6)
 
@@ -352,27 +371,27 @@ struct AddFriendScreen: View {
                     }
                 }
             } else {
-                // Busca letra por letra compacta e responsiva de novos amigos
+                // Busca letra por letra bem compacta para adicionar novos amigos
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
                         ForEach(searchResults) { person in
                             let alreadySent = store.isInviteSent(for: person.username)
 
                             HStack(spacing: 10) {
-                                GeometricAvatarView(seed: person.username, displayName: person.name, size: 38)
+                                GeometricAvatarView(seed: person.username, displayName: person.name, size: 32)
 
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(person.name)
-                                        .font(.inter(14, weight: .regular))
+                                        .font(.inter(13, weight: .medium))
                                         .foregroundColor(JuntoColors.textMain)
                                         .lineLimit(1)
                                     Text("@\(person.username)")
-                                        .font(.inter(12, weight: .regular))
+                                        .font(.inter(11, weight: .regular))
                                         .foregroundColor(JuntoColors.textMuted)
                                         .lineLimit(1)
                                 }
 
-                                Spacer(minLength: 8)
+                                Spacer(minLength: 6)
 
                                 Button {
                                     if alreadySent {
@@ -381,23 +400,23 @@ struct AddFriendScreen: View {
                                         store.sendFriendInvite(username: person.username, displayName: person.name)
                                     }
                                 } label: {
-                                    Text(alreadySent ? "Convite enviado" : "Adicionar")
-                                        .font(.inter(12, weight: .medium))
+                                    Text(alreadySent ? "Enviado" : "Adicionar")
+                                        .font(.inter(11, weight: .medium))
                                         .foregroundColor(alreadySent ? JuntoColors.textMain : .white)
-                                        .padding(.horizontal, 12)
-                                        .frame(height: 32)
+                                        .padding(.horizontal, 10)
+                                        .frame(height: 28)
                                         .background(alreadySent ? JuntoColors.surfaceSubtle : JuntoColors.primary)
                                         .overlay(
-                                            RoundedRectangle(cornerRadius: 7, style: .continuous)
+                                            RoundedRectangle(cornerRadius: 6, style: .continuous)
                                                 .stroke(alreadySent ? JuntoColors.border : Color.clear, lineWidth: 1)
                                         )
-                                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
                                 }
                             }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 8)
+                            .padding(.horizontal, 18)
+                            .padding(.vertical, 6)
 
-                            Divider().padding(.leading, 68)
+                            Divider().padding(.leading, 60)
                         }
                     }
                 }

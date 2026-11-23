@@ -572,14 +572,34 @@ struct SelectFriendsForGroupScreen: View {
             .padding(.top, 12)
             .padding(.bottom, 16)
 
-            CleanOutlineInput(
-                label: "",
-                placeholder: "Buscar entre seus amigos...",
-                text: $searchText,
-                autocapitalization: .never
-            )
-            .padding(.horizontal, 20)
-            .padding(.bottom, 14)
+            // Barra de busca compacta
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .font(.system(size: 14, weight: .regular))
+                    .foregroundColor(JuntoColors.textMuted)
+
+                TextField("Buscar entre seus amigos...", text: $searchText)
+                    .font(.inter(14, weight: .regular))
+                    .foregroundColor(JuntoColors.textMain)
+                    .textInputAutocapitalization(.never)
+                    .autocorrectionDisabled()
+
+                if !searchText.isEmpty {
+                    Button {
+                        searchText = ""
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 14))
+                            .foregroundColor(JuntoColors.textLight)
+                    }
+                }
+            }
+            .padding(.horizontal, 12)
+            .frame(height: 38)
+            .background(JuntoColors.surfaceSubtle)
+            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .padding(.horizontal, 18)
+            .padding(.bottom, 10)
 
             Divider().opacity(0.6)
 
@@ -588,19 +608,21 @@ struct SelectFriendsForGroupScreen: View {
                     ForEach(filteredFriends) { friend in
                         let isAdded = selectedPeople.contains(where: { $0.username == friend.username })
 
-                        HStack(spacing: 12) {
-                            GeometricAvatarView(seed: friend.username, size: 46)
+                        HStack(spacing: 10) {
+                            GeometricAvatarView(seed: friend.username, size: 34)
 
-                            VStack(alignment: .leading, spacing: 2) {
+                            VStack(alignment: .leading, spacing: 1) {
                                 Text(friend.name)
-                                    .font(.inter(15, weight: .regular))
+                                    .font(.inter(13, weight: .medium))
                                     .foregroundColor(JuntoColors.textMain)
+                                    .lineLimit(1)
                                 Text("@\(friend.username)")
-                                    .font(.inter(12, weight: .regular))
+                                    .font(.inter(11, weight: .regular))
                                     .foregroundColor(JuntoColors.textMuted)
+                                    .lineLimit(1)
                             }
 
-                            Spacer()
+                            Spacer(minLength: 6)
 
                             Button {
                                 if isAdded {
@@ -610,22 +632,22 @@ struct SelectFriendsForGroupScreen: View {
                                 }
                             } label: {
                                 Text(isAdded ? "Adicionado" : "Adicionar")
-                                    .font(.inter(13, weight: .medium))
+                                    .font(.inter(11, weight: .medium))
                                     .foregroundColor(isAdded ? JuntoColors.textMain : .white)
-                                    .padding(.horizontal, 14)
-                                    .frame(height: 36)
+                                    .padding(.horizontal, 10)
+                                    .frame(height: 28)
                                     .background(isAdded ? JuntoColors.surfaceSubtle : JuntoColors.primary)
                                     .overlay(
-                                        RoundedRectangle(cornerRadius: 8)
+                                        RoundedRectangle(cornerRadius: 6)
                                             .stroke(isAdded ? JuntoColors.border : Color.clear, lineWidth: 1)
                                     )
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .clipShape(RoundedRectangle(cornerRadius: 6))
                             }
                         }
-                        .padding(.horizontal, 20)
-                        .padding(.vertical, 12)
+                        .padding(.horizontal, 18)
+                        .padding(.vertical, 7)
 
-                        Divider().padding(.leading, 78)
+                        Divider().padding(.leading, 62)
                     }
                 }
             }
