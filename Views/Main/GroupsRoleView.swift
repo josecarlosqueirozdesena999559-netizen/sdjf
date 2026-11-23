@@ -1404,7 +1404,6 @@ struct OrganizerPixPaymentSheet: View {
             timer?.invalidate()
         }
     }
-    }
 }
 
 // MARK: - Sheet Customizado Claro (Gerenciar Participante: Tornar Admin / Remover)

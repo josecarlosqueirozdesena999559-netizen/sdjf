@@ -10,6 +10,7 @@ struct AccountView: View {
     @State private var showInviteQRCode = false
     @State private var showInviteFriends = false
     @State private var showPrivacyPolicy = false
+    @State private var showProSubscription = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -47,10 +48,33 @@ struct AccountView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 3) {
-                            Text(store.user.fullName)
-                                .font(.inter(16, weight: .regular))
-                                .foregroundColor(JuntoColors.textMain)
-                                .lineLimit(1)
+                            HStack(spacing: 6) {
+                                Text(store.user.fullName)
+                                    .font(.inter(16, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMain)
+                                    .lineLimit(1)
+
+                                if store.user.isPro {
+                                    HStack(spacing: 3) {
+                                        JuntoIcon(kind: .crown, size: 10, color: JuntoColors.accent)
+                                        Text("PRO")
+                                            .font(.inter(9, weight: .bold))
+                                            .foregroundColor(.white)
+                                    }
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(
+                                        LinearGradient(
+                                            colors: [JuntoColors.primary, JuntoColors.proIndigo],
+                                            startPoint: .topLeading,
+                                            endPoint: .bottomTrailing
+                                        )
+                                    )
+                                    .clipShape(Capsule())
+                                    .shadow(color: JuntoColors.accent.opacity(0.3), radius: 3)
+                                }
+                            }
+
                             Text("@\(store.user.username)")
                                 .font(.inter(13, weight: .regular))
                                 .foregroundColor(JuntoColors.textMuted)
@@ -68,23 +92,26 @@ struct AccountView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 18)
 
-                    // Card Juntô Pro com emblema customizado
+                    // Card Juntô Pro (R$ 19,90/mês: Mercado Pago, Bot WhatsApp, Alertas e IA)
                     VStack(spacing: 14) {
                         JuntoProBadgeIcon(size: 52)
                             .padding(.top, 4)
 
                         VStack(spacing: 4) {
-                            Text("Faça mais com o Juntô Pro.")
-                                .font(.inter(16, weight: .medium))
+                            Text(store.user.isPro ? "Você é Juntô Pro ativo 👑" : "Juntô Pro • R$ 19,90/mês")
+                                .font(.inter(16, weight: .semibold))
                                 .foregroundColor(JuntoColors.textMain)
-                            Text("Comanda com IA ilimitada, relatórios avançados e grupos sem limites.")
+                            Text(store.user.isPro ? "Mercado Pago automático, Bot WhatsApp oficial e IA liberados." : "Pagamentos Mercado Pago, API WhatsApp oficial, alertas inteligentes e planos de economia com IA.")
                                 .font(.inter(12, weight: .regular))
                                 .foregroundColor(JuntoColors.textMuted)
                                 .multilineTextAlignment(.center)
                         }
 
-                        JuntoPillButton(title: "Obter Juntô Pro", color: JuntoColors.proIndigo) {
-                            store.showToast("Juntô Pro: Comanda IA ilimitada e relatórios avançados.", icon: "sparkles")
+                        JuntoPillButton(
+                            title: store.user.isPro ? "Gerenciar assinatura Pro" : "Conhecer o Juntô Pro (R$ 19,90)",
+                            color: JuntoColors.proIndigo
+                        ) {
+                            showProSubscription = true
                         }
                     }
                     .padding(20)
@@ -145,6 +172,10 @@ struct AccountView: View {
         }
         .fullScreenCover(isPresented: $showPrivacyPolicy) {
             PrivacyPolicyScreen()
+        }
+        .fullScreenCover(isPresented: $showProSubscription) {
+            JuntoProSubscriptionScreen()
+                .environmentObject(store)
         }
     }
 

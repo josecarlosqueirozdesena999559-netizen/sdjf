@@ -68,6 +68,9 @@ struct UserProfile {
     var language: String = "Português (Brasil)"
     var allowRecommendations: Bool = true
     var avatarData: Data? = nil
+    var isPro: Bool = false
+    var proPlanName: String? = nil
+    var proExpiresDateText: String? = nil
 
     var firstName: String {
         fullName.split(separator: " ").first.map(String.init) ?? "Amigo"

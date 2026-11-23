@@ -1245,6 +1245,21 @@ final class JuntoStore: ObservableObject {
         showToast("Conta desativada. Dados retidos por 90 dias (LGPD).", icon: "trash")
     }
 
+    // MARK: - Gestão da Assinatura Juntô Pro
+    func subscribeToPro(plan: String = "Mensal (R$ 19,90)") {
+        user.isPro = true
+        user.proPlanName = plan
+        user.proExpiresDateText = "Renovação em 23 de dez. de 2026"
+        showToast("Você agora é Juntô Pro! 👑", icon: "sparkles")
+    }
+
+    func cancelPro() {
+        user.isPro = false
+        user.proPlanName = nil
+        user.proExpiresDateText = nil
+        showToast("Assinatura Juntô Pro cancelada.", icon: "checkmark")
+    }
+
     func logout() {
         withAnimation(.easeInOut(duration: 0.25)) {
             route = .welcomeAuth
