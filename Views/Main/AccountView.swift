@@ -82,27 +82,29 @@ struct AccountView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 18)
 
-                    // Card Juntô Pro limpo
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text(store.user.isPro ? "Juntô Pro ativo" : "Juntô Pro")
+                    // Card Juntô Pro minimalista (sem texto de funções — as funções só aparecem ao clicar)
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(store.user.isPro ? "Juntô Pro Ativo" : "Juntô Pro")
                                 .font(.inter(16, weight: .medium))
                                 .foregroundColor(JuntoColors.textMain)
-                            Spacer()
-                            Text("R$ 19,90/mês")
-                                .font(.inter(13, weight: .medium))
-                                .foregroundColor(JuntoColors.primary)
+                            Text("R$ 19,90 / mês")
+                                .font(.inter(13, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
                         }
 
-                        Text("Grupos ilimitados, Potes Pessoais (Caixinhas), Pote Mensal para excursões, baixa automática de Pix e WhatsApp.")
-                            .font(.inter(13, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
+                        Spacer()
 
-                        JuntoPillButton(
-                            title: store.user.isPro ? "Gerenciar assinatura" : "Ver recursos do Juntô Pro",
-                            color: JuntoColors.primary
-                        ) {
+                        Button {
                             showProSubscription = true
+                        } label: {
+                            Text(store.user.isPro ? "Ver plano" : "Conhecer")
+                                .font(.inter(14, weight: .medium))
+                                .foregroundColor(.white)
+                                .padding(.horizontal, 18)
+                                .frame(height: 40)
+                                .background(JuntoColors.primary)
+                                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                         }
                     }
                     .padding(16)

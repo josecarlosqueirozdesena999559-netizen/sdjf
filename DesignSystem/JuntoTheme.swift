@@ -118,6 +118,50 @@ struct JuntoPotIcon: View {
     }
 }
 
+// MARK: - Ícone Oficial do Pix (Banco Central do Brasil — Losango com encaixes internos)
+struct PixOfficialIcon: View {
+    var size: CGFloat = 22
+    var color: Color = Color(hex: "#32BCAD")
+
+    var body: some View {
+        Canvas { ctx, sz in
+            let w = sz.width
+            let h = sz.height
+            let s = min(w, h)
+
+            // Losango arredondado do Pix rotacionado 45°
+            var outer = Path()
+            let r = s * 0.34
+            let rect = CGRect(x: -r, y: -r, width: r * 2, height: r * 2)
+            outer.addRoundedRect(in: rect, cornerSize: CGSize(width: s * 0.11, height: s * 0.11))
+
+            var transform = CGAffineTransform(translationX: w / 2, y: h / 2)
+                .rotated(by: .pi / 4)
+            let diamond = outer.applying(transform)
+            ctx.stroke(diamond, with: .color(color), style: StrokeStyle(lineWidth: s * 0.085, lineCap: .round, lineJoin: .round))
+
+            // Linhas internas características do símbolo do Pix (duas chaves opostas que se encontram no centro)
+            var inner = Path()
+            // Curva superior interna
+            inner.move(to: CGPoint(x: w * 0.27, y: h * 0.38))
+            inner.addLine(to: CGPoint(x: w * 0.41, y: h * 0.38))
+            inner.addQuadCurve(to: CGPoint(x: w * 0.50, y: h * 0.45), control: CGPoint(x: w * 0.46, y: h * 0.38))
+            inner.addQuadCurve(to: CGPoint(x: w * 0.59, y: h * 0.38), control: CGPoint(x: w * 0.54, y: h * 0.38))
+            inner.addLine(to: CGPoint(x: w * 0.73, y: h * 0.38))
+
+            // Curva inferior interna
+            inner.move(to: CGPoint(x: w * 0.27, y: h * 0.62))
+            inner.addLine(to: CGPoint(x: w * 0.41, y: h * 0.62))
+            inner.addQuadCurve(to: CGPoint(x: w * 0.50, y: h * 0.55), control: CGPoint(x: w * 0.46, y: h * 0.62))
+            inner.addQuadCurve(to: CGPoint(x: w * 0.59, y: h * 0.62), control: CGPoint(x: w * 0.54, y: h * 0.62))
+            inner.addLine(to: CGPoint(x: w * 0.73, y: h * 0.62))
+
+            ctx.stroke(inner, with: .color(color), style: StrokeStyle(lineWidth: s * 0.075, lineCap: .round, lineJoin: .round))
+        }
+        .frame(width: size, height: size)
+    }
+}
+
 // MARK: - Avatar Premium com Cores Misturadas Únicas (mais de 130 combinações diferentes)
 struct GeometricAvatarView: View {
     var seed: String = "junto"

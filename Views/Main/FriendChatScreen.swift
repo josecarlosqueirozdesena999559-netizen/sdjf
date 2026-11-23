@@ -16,6 +16,7 @@ struct FriendChatScreen: View {
     @State private var showPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var showDocumentImporter = false
+    @State private var showCreatePollSheet = false
     @State private var showProfileScreen = false
     @State private var recMicPulse = false
 
@@ -208,33 +209,12 @@ struct FriendChatScreen: View {
                 .padding(.vertical, 8)
                 .background(Color.white)
                 .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.8), alignment: .top)
-            } else if editingMessageId != nil {
-                HStack(spacing: 8) {
-                    Image(systemName: "pencil")
-                        .font(.system(size: 13, weight: .regular))
-                        .foregroundColor(JuntoColors.primary)
-                    Text("Editando mensagem")
-                        .font(.inter(12, weight: .medium))
-                        .foregroundColor(JuntoColors.textMain)
-                    Spacer()
-                    Button {
-                        editingMessageId = nil
-                        inputText = ""
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(JuntoColors.textMuted)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(JuntoColors.primaryLight)
             }
 
-            // Barra Inferior de Envio: estilo nativo iOS com ícones limpos
+            // Barra Inferior de Envio: estilo WhatsApp com cronômetro em cima, "Gravando" ao lado das ondas e "Excluir" para cancelar
             HStack(alignment: .center, spacing: 10) {
                 if audioManager.isRecording {
-                    // Lixeira para cancelar o áudio
+                    // Botão Excluir para cancelar antes de enviar (estilo WhatsApp)
                     Button {
                         withAnimation(.easeInOut(duration: 0.18)) {
                             recMicPulse = false
@@ -242,55 +222,47 @@ struct FriendChatScreen: View {
                             audioManager.cancelRecording()
                         }
                     } label: {
-                        Image(systemName: "trash")
-                            .font(.system(size: 18, weight: .regular))
-                            .foregroundColor(JuntoColors.danger)
-                            .frame(width: 36, height: 36)
+                        HStack(spacing: 4) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 14, weight: .medium))
+                            Text("Excluir")
+                                .font(.inter(13, weight: .medium))
+                        }
+                        .foregroundColor(JuntoColors.danger)
+                        .padding(.horizontal, 10)
+                        .frame(height: 40)
+                        .background(JuntoColors.dangerLight)
+                        .clipShape(Capsule())
                     }
 
-                    // Animação de gravação estilo WhatsApp (ponto vermelho pulsando + timer + ondas)
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(JuntoColors.danger)
-                            .frame(width: 10, height: 10)
-                            .scaleEffect(recMicPulse ? 1.25 : 0.85)
-                            .opacity(recMicPulse ? 1.0 : 0.4)
-                            .onAppear {
-                                withAnimation(.easeInOut(duration: 0.65).repeatForever(autoreverses: true)) {
-                                    recMicPulse = true
-                                }
-                            }
-                            .onDisappear {
-                                recMicPulse = false
-                            }
-
+                    // Cronômetro em cima + "Gravando" ao lado das ondas (SEM bola vermelha)
+                    VStack(alignment: .leading, spacing: 2) {
                         Text("0:\(String(format: "%02d", audioManager.recordingSeconds))")
-                            .font(.inter(13, weight: .medium))
-                            .foregroundColor(JuntoColors.textMain)
+                            .font(.inter(11, weight: .semibold))
+                            .foregroundColor(JuntoColors.primary)
                             .monospacedDigit()
 
-                        if isDraggingMic && !isMicLocked {
-                            Text("← Deslize para cancelar")
-                                .font(.inter(11, weight: .regular))
+                        HStack(spacing: 8) {
+                            Text("Gravando")
+                                .font(.inter(12, weight: .medium))
                                 .foregroundColor(JuntoColors.textMuted)
-                                .lineLimit(1)
-                        } else {
+
                             HStack(spacing: 2.5) {
-                                let bars = Array(audioManager.liveLevels.suffix(22))
+                                let bars = Array(audioManager.liveLevels.suffix(18))
                                 ForEach(Array(bars.enumerated()), id: \.offset) { _, lvl in
                                     Capsule()
-                                        .fill(JuntoColors.textMuted.opacity(0.75))
-                                        .frame(width: 2.5, height: max(4, lvl * 24))
+                                        .fill(JuntoColors.primary.opacity(0.75))
+                                        .frame(width: 2.4, height: max(4, lvl * 18))
                                 }
                             }
                             .animation(.easeOut(duration: 0.12), value: audioManager.liveLevels)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 12)
-                    .frame(height: 40)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
                     .background(JuntoColors.surfaceSubtle)
-                    .clipShape(Capsule())
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                     // Enviar áudio gravado
                     Button {
@@ -299,7 +271,7 @@ struct FriendChatScreen: View {
                         Image(systemName: "arrow.up")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
-                            .frame(width: 38, height: 38)
+                            .frame(width: 40, height: 40)
                             .background(JuntoColors.primary)
                             .clipShape(Circle())
                     }
@@ -504,6 +476,12 @@ struct FriendChatScreen: View {
                         showDocumentImporter = true
                     }
                 },
+                onSelectPoll: {
+                    showAttachmentMenu = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        showCreatePollSheet = true
+                    }
+                },
                 onSelectPix: {
                     showAttachmentMenu = false
                     store.sendChatMessage(
@@ -512,8 +490,15 @@ struct FriendChatScreen: View {
                     )
                 }
             )
-            .presentationDetents([.height(210)])
+            .presentationDetents([.height(225)])
             .presentationCornerRadius(22)
+        }
+        .sheet(isPresented: $showCreatePollSheet) {
+            CreateChatPollSheet { pollData in
+                store.sendChatMessage(to: friend.username, kind: .poll(pollData))
+            }
+            .presentationDetents([.medium, .large])
+            .presentationCornerRadius(20)
         }
         .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhotoItem, matching: .images)
         .onChange(of: selectedPhotoItem) { _, newItem in
@@ -652,6 +637,15 @@ struct FriendChatScreen: View {
                         }
                     }
 
+                case .poll(let pollData):
+                    ChatPollBubbleView(
+                        poll: pollData,
+                        isFromMe: msg.isFromMe,
+                        currentUsername: store.user.username
+                    ) { optionId in
+                        store.voteInFriendPoll(username: friend.username, messageId: msg.id, optionId: optionId)
+                    }
+
                 case .system(let info):
                     Text(info)
                         .font(.inter(12, weight: .regular))
@@ -766,6 +760,10 @@ struct FriendChatScreen: View {
             Image(systemName: "doc.text")
                 .font(.system(size: 11))
                 .foregroundColor(Color(hex: "#7C3AED"))
+        case .poll:
+            Image(systemName: "chart.bar.xaxis")
+                .font(.system(size: 11))
+                .foregroundColor(Color(hex: "#D97706"))
         default:
             EmptyView()
         }
@@ -990,10 +988,11 @@ struct TypingDotsBubble: View {
     }
 }
 
-// MARK: - Menu "+" estilo WhatsApp (Imagens, Documentos, Pix)
+// MARK: - Menu "+" estilo WhatsApp (Fotos, Arquivos, Enquete, Pix com ícone oficial)
 struct ChatAttachmentMenuSheet: View {
     let onSelectPhoto: () -> Void
     let onSelectDocument: () -> Void
+    var onSelectPoll: (() -> Void)? = nil
     let onSelectPix: () -> Void
     @Environment(\.dismiss) private var dismiss
 
@@ -1015,15 +1014,18 @@ struct ChatAttachmentMenuSheet: View {
             }
             .padding(.top, 18)
 
-            HStack(spacing: 18) {
-                attachmentOption(icon: "photo.on.rectangle.angled", label: "Imagens", color: JuntoColors.primary, action: onSelectPhoto)
-                attachmentOption(icon: "doc.text", label: "Documentos", color: JuntoColors.primary, action: onSelectDocument)
-                attachmentOption(icon: "qrcode", label: "Pix", color: JuntoColors.primary, action: onSelectPix)
+            HStack(spacing: 14) {
+                attachmentOption(icon: "photo.fill", label: "Fotos", color: Color(hex: "#2563EB"), action: onSelectPhoto)
+                attachmentOption(icon: "doc.fill", label: "Arquivos", color: Color(hex: "#7C3AED"), action: onSelectDocument)
+                if let onPoll = onSelectPoll {
+                    attachmentOption(icon: "chart.bar.xaxis", label: "Enquete", color: Color(hex: "#D97706"), action: onPoll)
+                }
+                pixAttachmentOption(action: onSelectPix)
             }
 
             Spacer()
         }
-        .padding(.horizontal, 22)
+        .padding(.horizontal, 20)
         .background(Color.white.ignoresSafeArea())
     }
 
@@ -1031,7 +1033,7 @@ struct ChatAttachmentMenuSheet: View {
         Button(action: action) {
             VStack(spacing: 8) {
                 Image(systemName: icon)
-                    .font(.system(size: 22, weight: .regular))
+                    .font(.system(size: 20, weight: .medium))
                     .foregroundColor(color)
                     .frame(width: 56, height: 56)
                     .background(Color.white)
@@ -1044,6 +1046,190 @@ struct ChatAttachmentMenuSheet: View {
             }
             .frame(maxWidth: .infinity)
         }
+    }
+
+    private func pixAttachmentOption(action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                PixOfficialIcon(size: 24, color: Color(hex: "#32BCAD"))
+                    .frame(width: 56, height: 56)
+                    .background(Color.white)
+                    .overlay(Circle().stroke(JuntoColors.border, lineWidth: 1))
+                    .clipShape(Circle())
+
+                Text("Pix")
+                    .font(.inter(12, weight: .medium))
+                    .foregroundColor(JuntoColors.textMain)
+            }
+            .frame(maxWidth: .infinity)
+        }
+    }
+}
+
+// MARK: - Bolha de Enquete Interativa no Chat (Votação em tempo real com barras de progresso)
+struct ChatPollBubbleView: View {
+    let poll: ChatPollData
+    let isFromMe: Bool
+    let currentUsername: String
+    let onVote: (UUID) -> Void
+
+    var body: some View {
+        let total = max(poll.totalVotes, 0)
+        let myKey = currentUsername.lowercased()
+
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(spacing: 6) {
+                Image(systemName: "chart.bar.xaxis")
+                    .font(.system(size: 12, weight: .semibold))
+                    .foregroundColor(isFromMe ? JuntoColors.accent : JuntoColors.primary)
+                Text("ENQUETE")
+                    .font(.inter(10, weight: .bold))
+                    .foregroundColor(isFromMe ? JuntoColors.accent : JuntoColors.primary)
+            }
+
+            Text(poll.question)
+                .font(.inter(15, weight: .medium))
+                .foregroundColor(isFromMe ? .white : JuntoColors.textMain)
+
+            VStack(spacing: 8) {
+                ForEach(poll.options) { opt in
+                    let votesCount = opt.voterUsernames.count
+                    let isVotedByMe = opt.voterUsernames.contains(myKey)
+                    let ratio = total > 0 ? Double(votesCount) / Double(total) : 0.0
+                    let pct = total > 0 ? Int(round(ratio * 100)) : 0
+
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        onVote(opt.id)
+                    } label: {
+                        VStack(alignment: .leading, spacing: 5) {
+                            HStack(spacing: 8) {
+                                Image(systemName: isVotedByMe ? "checkmark.circle.fill" : "circle")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(isFromMe ? (isVotedByMe ? JuntoColors.accent : .white.opacity(0.75)) : (isVotedByMe ? JuntoColors.primary : JuntoColors.textLight))
+
+                                Text(opt.text)
+                                    .font(.inter(13, weight: .medium))
+                                    .foregroundColor(isFromMe ? .white : JuntoColors.textMain)
+                                    .lineLimit(2)
+
+                                Spacer()
+
+                                Text("\(votesCount) (\(pct)%)")
+                                    .font(.inter(11, weight: .regular))
+                                    .foregroundColor(isFromMe ? .white.opacity(0.8) : JuntoColors.textMuted)
+                            }
+
+                            GeometryReader { geo in
+                                ZStack(alignment: .leading) {
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(isFromMe ? Color.white.opacity(0.18) : JuntoColors.surfaceSubtle)
+                                    RoundedRectangle(cornerRadius: 3)
+                                        .fill(isFromMe ? JuntoColors.accent : JuntoColors.primary)
+                                        .frame(width: geo.size.width * CGFloat(ratio))
+                                }
+                            }
+                            .frame(height: 5)
+                        }
+                        .padding(9)
+                        .background(isFromMe ? Color.white.opacity(0.08) : Color.white)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 8)
+                                .stroke(isFromMe ? Color.white.opacity(0.16) : JuntoColors.border, lineWidth: 0.8)
+                        )
+                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                    }
+                }
+            }
+
+            Text("\(poll.totalVotes) voto(s) • Toque em uma opção para votar")
+                .font(.inter(11, weight: .regular))
+                .foregroundColor(isFromMe ? .white.opacity(0.7) : JuntoColors.textMuted)
+        }
+        .frame(width: 235)
+    }
+}
+
+// MARK: - Sheet para Criar Enquete no Chat
+struct CreateChatPollSheet: View {
+    let onCreate: (ChatPollData) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var question: String = ""
+    @State private var option1: String = ""
+    @State private var option2: String = ""
+    @State private var option3: String = ""
+    @State private var allowMultiple: Bool = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack {
+                Text("Criar enquete")
+                    .font(.inter(18, weight: .medium))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(JuntoColors.textMuted)
+                        .frame(width: 30, height: 30)
+                        .background(JuntoColors.surfaceSubtle)
+                        .clipShape(Circle())
+                }
+            }
+            .padding(.top, 18)
+
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 14) {
+                    CleanOutlineInput(
+                        label: "Pergunta da enquete",
+                        placeholder: "Ex: Qual dia vamos para a praia?",
+                        text: $question
+                    )
+
+                    CleanOutlineInput(
+                        label: "Opção 1",
+                        placeholder: "Ex: Sexta à noite",
+                        text: $option1
+                    )
+
+                    CleanOutlineInput(
+                        label: "Opção 2",
+                        placeholder: "Ex: Sábado cedo",
+                        text: $option2
+                    )
+
+                    CleanOutlineInput(
+                        label: "Opção 3 (opcional)",
+                        placeholder: "Ex: Domingo",
+                        text: $option3
+                    )
+
+                    Toggle("Permitir múltiplas respostas", isOn: $allowMultiple)
+                        .font(.inter(14, weight: .regular))
+                        .foregroundColor(JuntoColors.textMain)
+                        .tint(JuntoColors.primary)
+                        .padding(.vertical, 4)
+
+                    JuntoPillButton(title: "Enviar enquete", color: JuntoColors.primary) {
+                        let q = question.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let o1 = option1.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let o2 = option2.trimmingCharacters(in: .whitespacesAndNewlines)
+                        let o3 = option3.trimmingCharacters(in: .whitespacesAndNewlines)
+                        guard !q.isEmpty, !o1.isEmpty, !o2.isEmpty else { return }
+
+                        var opts = [ChatPollOption(text: o1), ChatPollOption(text: o2)]
+                        if !o3.isEmpty { opts.append(ChatPollOption(text: o3)) }
+
+                        onCreate(ChatPollData(question: q, options: opts, allowMultipleAnswers: allowMultiple))
+                        dismiss()
+                    }
+                    .padding(.top, 6)
+                }
+            }
+        }
+        .padding(.horizontal, 20)
+        .background(Color.white.ignoresSafeArea())
     }
 }
 

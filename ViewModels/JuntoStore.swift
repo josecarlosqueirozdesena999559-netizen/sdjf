@@ -26,56 +26,18 @@ final class JuntoStore: ObservableObject {
     @Published var draftPixKey: String = ""
     @Published var usernameState: UsernameCheckState = .idle
 
-    // Mocks realistas e completos para testar imediatamente
-    @Published var friends: [FriendItem] = [
-        FriendItem(name: "Pedro Santos", username: "pedro.santos", initials: "PS", balance: 100.00, isOnline: true, lastSeenText: "online", friendsSinceText: "12 de jan. de 2026"),
-        FriendItem(name: "Camila Rocha", username: "camila.rocha", initials: "CR", balance: 70.00, isOnline: false, lastSeenText: "visto por último hoje às 19:42", friendsSinceText: "04 de mar. de 2026"),
-        FriendItem(name: "Matheus Alves", username: "matheus.alves", initials: "MA", balance: -35.36, isOnline: true, lastSeenText: "online", friendsSinceText: "21 de mai. de 2026"),
-        FriendItem(name: "Beatriz Lima", username: "bia.lima", initials: "BL", balance: 0.0, isOnline: false, lastSeenText: "visto por último ontem às 22:15", friendsSinceText: "09 de ago. de 2026")
-    ]
+    // Dados sincronizados em tempo real com o banco PostgreSQL do Docker (sem mocks fixos no app)
+    @Published var friends: [FriendItem] = []
 
-    // Despesas pessoais detalhadas por mês (para gráficos redondos e análises)
-    @Published var personalExpenses: [PersonalExpenseRecord] = [
-        PersonalExpenseRecord(title: "Casa de Praia (Cota)", category: "Viagem", amount: 420.00, dateText: "18 nov", monthKey: "Novembro 2026", groupName: "Viagem Ubatuba"),
-        PersonalExpenseRecord(title: "Gasolina + Pedágio", category: "Viagem", amount: 185.00, dateText: "17 nov", monthKey: "Novembro 2026", groupName: "Viagem Ubatuba"),
-        PersonalExpenseRecord(title: "Picanha + Bebidas", category: "Churrasco", amount: 240.00, dateText: "15 nov", monthKey: "Novembro 2026", groupName: "Churrasco de Domingo"),
-        PersonalExpenseRecord(title: "Carvão e Acompanhamentos", category: "Churrasco", amount: 115.00, dateText: "15 nov", monthKey: "Novembro 2026", groupName: "Churrasco de Domingo"),
-        PersonalExpenseRecord(title: "Energia + Condomínio", category: "Casa", amount: 265.00, dateText: "10 nov", monthKey: "Novembro 2026", groupName: "Contas do Apê 402"),
-        PersonalExpenseRecord(title: "Internet Fibra 500Mb", category: "Casa", amount: 65.00, dateText: "05 nov", monthKey: "Novembro 2026", groupName: "Contas do Apê 402"),
-        PersonalExpenseRecord(title: "Chopp + Petiscos", category: "Bar & Drinks", amount: 145.00, dateText: "02 nov", monthKey: "Novembro 2026", groupName: "Sextou"),
-        // Mês anterior (Outubro 2026) para comparativo
-        PersonalExpenseRecord(title: "Pousada Serra", category: "Viagem", amount: 520.00, dateText: "24 out", monthKey: "Outubro 2026", groupName: "Feriado Serra"),
-        PersonalExpenseRecord(title: "Aluguel + Luz", category: "Casa", amount: 490.00, dateText: "10 out", monthKey: "Outubro 2026", groupName: "Contas do Apê 402"),
-        PersonalExpenseRecord(title: "Churrasco Aniversário", category: "Churrasco", amount: 310.00, dateText: "12 out", monthKey: "Outubro 2026", groupName: "Aniversário Pedro"),
-        PersonalExpenseRecord(title: "Barzinho de Sexta", category: "Bar & Drinks", amount: 280.00, dateText: "04 out", monthKey: "Outubro 2026", groupName: "Galera")
-    ]
+    // Despesas pessoais sincronizadas com o PostgreSQL
+    @Published var personalExpenses: [PersonalExpenseRecord] = []
 
     @Published var showMyExpensesScreen: Bool = false
 
-    // Conversas de chat por @username (com separadores de data: Ontem, Hoje, etc.)
-    @Published var chatMessages: [String: [ChatMessage]] = [
-        "pedro.santos": [
-            ChatMessage(isFromMe: false, kind: .text("Fala! Já separei os R$ 100 da viagem de Ubatuba."), timeText: "21:12", dateLabel: "Ontem", status: .read),
-            ChatMessage(isFromMe: true, kind: .text("Show Pedro, pode mandar por Pix quando puder 👍"), timeText: "21:15", dateLabel: "Ontem", status: .read),
-            ChatMessage(
-                isFromMe: false,
-                kind: .audio(duration: 8, waveform: [0.25, 0.45, 0.72, 0.90, 0.55, 0.35, 0.68, 0.85, 0.95, 0.60, 0.42, 0.78, 0.50, 0.30, 0.64, 0.88, 0.74, 0.48, 0.35, 0.62, 0.80, 0.45, 0.28, 0.20], fileURL: nil),
-                timeText: "19:18",
-                dateLabel: "Hoje",
-                status: .read
-            )
-        ],
-        "camila.rocha": [
-            ChatMessage(isFromMe: false, kind: .text("Oi! Te mando minha parte do churrasco ainda hoje."), timeText: "18:30", dateLabel: "Hoje", status: .read),
-            ChatMessage(isFromMe: true, kind: .text("Tranquilo, sem pressa!"), timeText: "18:34", dateLabel: "Hoje", status: .delivered)
-        ],
-        "matheus.alves": [
-            ChatMessage(isFromMe: false, kind: .document("Comanda_Churrasco.pdf", "248 KB"), timeText: "17:45", dateLabel: "Ontem", status: .read),
-            ChatMessage(isFromMe: false, kind: .text("Ficou R$ 35,36 a sua parte da carne e do gelo."), timeText: "09:46", dateLabel: "Hoje", status: .read)
-        ]
-    ]
+    // Conversas de chat por @username sincronizadas com o servidor
+    @Published var chatMessages: [String: [ChatMessage]] = [:]
 
-    /// Conversas automáticas de cada grupo (todo o histórico fica disponível para novos membros e é apagado ao excluir o grupo)
+    /// Conversas de cada grupo sincronizadas com o servidor
     @Published var groupChatMessages: [UUID: [ChatMessage]] = [:]
 
     /// E-mail oficial de suporte / Fale Conosco / Ouvidoria LGPD (pronto para atualizar quando você enviar o definitivo)
@@ -83,17 +45,6 @@ final class JuntoStore: ObservableObject {
     @Published var isDatabaseSynced: Bool = false
 
     init() {
-        if groups.indices.contains(0) {
-            let g0 = groups[0]
-            groupChatMessages[g0.id] = [
-                ChatMessage(isFromMe: false, kind: .system("Grupo criado por Você com \(g0.participants.count) participantes"), timeText: "10:00", dateLabel: "Ontem"),
-                ChatMessage(isFromMe: false, kind: .text("Pessoal, já reservei a casa em Ubatuba! Quem puder já vai mandando a cota no Pix."), timeText: "10:12", dateLabel: "Ontem", status: .read, senderName: "Pedro Santos", senderUsername: "pedro.santos"),
-                ChatMessage(isFromMe: false, kind: .text("Acabei de mandar a minha parte! Mal posso esperar 🙌"), timeText: "11:05", dateLabel: "Ontem", status: .read, senderName: "Camila Rocha", senderUsername: "camila.rocha"),
-                ChatMessage(isFromMe: true, kind: .text("Recebido Camila! Já confirmei lá no Pote."), timeText: "11:18", dateLabel: "Ontem", status: .read, replyToAuthor: "Camila Rocha", replyToPreview: "Acabei de mandar a minha parte! Mal posso esperar 🙌"),
-                ChatMessage(isFromMe: false, kind: .text("Vou passar no mercado hoje pra pegar bebidas e gelo."), timeText: "09:30", dateLabel: "Hoje", status: .read, senderName: "Matheus Alves", senderUsername: "matheus.alves")
-            ]
-        }
-
         // Solicita permissão real de notificações do iOS e sincroniza com o banco PostgreSQL do Docker
         JuntoNotificationManager.shared.requestAuthorization()
         Task {
@@ -101,167 +52,22 @@ final class JuntoStore: ObservableObject {
         }
     }
 
-    // No plano normal (gratuito) o usuário só pode ter 1 grupo; no Juntô Pro pode criar quantos quiser
-    @Published var groups: [RoleGroup] = [
-        RoleGroup(
-            title: "Viagem Ubatuba",
-            category: "Viagem",
-            coverImageName: "GroupPraia",
-            potBalance: 1600.00,
-            potTarget: 3000.00,
-            totalSpent: 1840.00,
-            myShare: 0.0,
-            members: ["EU", "PS", "MA", "CR", "BL"],
-            participants: [
-                GroupParticipant(name: "Você", username: "lucas.andrade", quotaAmount: 200.00, hasPaid: true, role: .owner),
-                GroupParticipant(name: "Pedro Santos", username: "pedro.santos", quotaAmount: 200.00, hasPaid: true, role: .admin),
-                GroupParticipant(name: "Camila Rocha", username: "camila.rocha", quotaAmount: 200.00, hasPaid: true, role: .member),
-                GroupParticipant(name: "Matheus Alves", username: "matheus.alves", quotaAmount: 200.00, hasPaid: false, role: .member),
-                GroupParticipant(name: "Beatriz Lima", username: "bia.lima", quotaAmount: 200.00, hasPaid: false, role: .member)
-            ],
-            hasCollectivePot: true,
-            comandaItems: [
-                ComandaItem(name: "Casa de Praia (Diária)", detail: "1/5 da reserva", price: 110.00, isSelected: true),
-                ComandaItem(name: "Gasolina + Pedágio", detail: "Carro do Pedro", price: 40.00, isSelected: true)
-            ],
-            potMode: .monthly,
-            totalMonths: 3,
-            selectedMonthIndex: 1,
-            monthlyCycles: [
-                PotMonthCycle(
-                    monthNumber: 1,
-                    label: "Mês 1 • Out/26",
-                    paidUsernames: ["lucas.andrade", "pedro.santos", "camila.rocha", "matheus.alves", "bia.lima"]
-                ),
-                PotMonthCycle(
-                    monthNumber: 2,
-                    label: "Mês 2 • Nov/26",
-                    paidUsernames: ["lucas.andrade", "pedro.santos", "camila.rocha"],
-                    markedPaidUsernames: ["matheus.alves"]
-                ),
-                PotMonthCycle(
-                    monthNumber: 3,
-                    label: "Mês 3 • Dez/26",
-                    paidUsernames: []
-                )
-            ]
-        )
-    ]
+    // Grupos sincronizados do banco PostgreSQL (no plano gratuito permite 1 grupo; no Juntô Pro ilimitado)
+    @Published var groups: [RoleGroup] = []
 
     /// Potes Pessoais ("Caixinhas" individuais para guardar dinheiro para uma ocasião especial — recurso Juntô Pro)
-    @Published var personalPots: [PersonalSavingsPot] = [
-        PersonalSavingsPot(
-            title: "Réveillon em Pipa",
-            occasion: "Viagem",
-            icon: "airplane",
-            currentAmount: 850.00,
-            targetAmount: 1500.00,
-            targetDateText: "30 de dez. de 2026",
-            deposits: [
-                PersonalPotDeposit(amount: 350.00, note: "2º depósito na caixinha", dateText: "18 de nov."),
-                PersonalPotDeposit(amount: 500.00, note: "Depósito inicial", dateText: "02 de nov.")
-            ]
-        ),
-        PersonalSavingsPot(
-            title: "Ingresso Lollapalooza",
-            occasion: "Show / Festival",
-            icon: "music.note",
-            currentAmount: 450.00,
-            targetAmount: 900.00,
-            targetDateText: "15 de mar. de 2027",
-            deposits: [
-                PersonalPotDeposit(amount: 450.00, note: "Metade guardada", dateText: "10 de nov.")
-            ]
-        )
-    ]
+    @Published var personalPots: [PersonalSavingsPot] = []
 
-    @Published var activities: [ActivityEvent] = [
-        ActivityEvent(icon: "checkmark.circle", title: "Pedro Santos pagou via Pix", subtitle: "Viagem Ubatuba • Baixa automática", timeAgo: "Há 8 min", amountText: "+ R$ 100,00", isPositive: true),
-        ActivityEvent(icon: "list.bullet.rectangle.portrait", title: "Comanda dividida com IA", subtitle: "Churrasco de Domingo • 3 itens", timeAgo: "Há 1 hora", amountText: "R$ 63,36", isPositive: true),
-        ActivityEvent(icon: "dollarsign.circle", title: "Camila contribuiu no Pote", subtitle: "Viagem Ubatuba • Saldo R$ 640,00", timeAgo: "Ontem", amountText: "+ R$ 150,00", isPositive: true),
-        ActivityEvent(icon: "house", title: "Matheus adicionou \"Internet Fibra\"", subtitle: "Contas do Apê 402", timeAgo: "Há 2 dias", amountText: "R$ 135,00", isPositive: false)
-    ]
+    @Published var activities: [ActivityEvent] = []
 
     // Diretório de usuários para busca em tempo real letra por letra
-    let directoryUsers: [SearchableUser] = [
-        SearchableUser(name: "Ana Paula Silva", username: "ana.paula"),
-        SearchableUser(name: "Bruno Mendes", username: "bruno.mendes"),
-        SearchableUser(name: "Carla Teixeira", username: "carla.teixeira"),
-        SearchableUser(name: "Daniela Souza", username: "dani.souza"),
-        SearchableUser(name: "Eduardo Martins", username: "edu.martins"),
-        SearchableUser(name: "Felipe Rocha", username: "felipe.rocha"),
-        SearchableUser(name: "Gabriela Costa", username: "gabi.costa"),
-        SearchableUser(name: "Henrique Dias", username: "henrique.dias"),
-        SearchableUser(name: "Juliana Ferreira", username: "ju.ferreira"),
-        SearchableUser(name: "Mariana Alves", username: "mari.alves"),
-        SearchableUser(name: "Rafael Nunes", username: "rafa.nunes"),
-        SearchableUser(name: "Thiago Oliveira", username: "thiago.oliveira"),
-        SearchableUser(name: "Vitória Lima", username: "vitoria.lima")
-    ]
+    @Published var directoryUsers: [SearchableUser] = []
 
     @Published var sentInviteUsernames: Set<String> = []
 
-    @Published var notifications: [AppNotification] = [
-        AppNotification(
-            icon: "person.badge.plus",
-            title: "Ana Paula Silva",
-            message: "quer ser seu amigo",
-            timeAgo: "Agora",
-            isUnread: true,
-            isFriendRequest: true,
-            requestUserName: "Ana Paula Silva",
-            requestUsername: "ana.paula"
-        ),
-        AppNotification(
-            icon: "person.badge.plus",
-            title: "Bruno Mendes",
-            message: "quer ser seu amigo",
-            timeAgo: "12 min",
-            isUnread: true,
-            isFriendRequest: true,
-            requestUserName: "Bruno Mendes",
-            requestUsername: "bruno.mendes"
-        ),
-        AppNotification(
-            icon: "banknote",
-            title: "Você recebeu um novo pagamento",
-            message: "Matheus Alves informou R$ 75,00 em Churrasco de Domingo. Confira na sua conta.",
-            timeAgo: "18 min",
-            isUnread: true
-        ),
-        AppNotification(
-            icon: "person.2.badge.plus",
-            title: "Você foi adicionado em um grupo",
-            message: "Pedro Santos adicionou você ao grupo Viagem Ubatuba.",
-            timeAgo: "42 min",
-            isUnread: false
-        ),
-        AppNotification(
-            icon: "list.bullet.rectangle.portrait",
-            title: "Você adicionou uma nova despesa",
-            message: "Picanha + Bebidas (R$ 240,00) em Churrasco de Domingo.",
-            timeAgo: "1h",
-            isUnread: false
-        ),
-        AppNotification(
-            icon: "checkmark.circle",
-            title: "Você pagou a Pedro Santos",
-            message: "Pagamento de R$ 200,00 referente ao grupo Viagem Ubatuba.",
-            timeAgo: "3h",
-            isUnread: false
-        ),
-        AppNotification(
-            icon: "exclamationmark.triangle",
-            title: "Alerta de gastos",
-            message: "Seus gastos de novembro chegaram a R$ 1.535,00.",
-            timeAgo: "Ontem",
-            isUnread: false
-        )
-    ]
+    @Published var notifications: [AppNotification] = []
 
-    @Published var blockedUsers: [BlockedUserEntry] = [
-        BlockedUserEntry(name: "Diego Ferreira", username: "diego.ferreira")
-    ]
+    @Published var blockedUsers: [BlockedUserEntry] = []
 
     @Published var connectedDevices: [ConnectedDeviceSession] = [
         ConnectedDeviceSession(
@@ -270,20 +76,6 @@ final class JuntoStore: ObservableObject {
             locationText: "Brasil",
             lastActiveText: "Ativo agora",
             isCurrentDevice: true
-        ),
-        ConnectedDeviceSession(
-            deviceName: "iPhone 15 Pro",
-            systemInfo: "iOS 18.2",
-            locationText: "São Paulo, BR",
-            lastActiveText: "Ativo há 14 min",
-            isCurrentDevice: false
-        ),
-        ConnectedDeviceSession(
-            deviceName: "iPad Air",
-            systemInfo: "iPadOS 18.1",
-            locationText: "Natal, BR",
-            lastActiveText: "Ativo ontem às 21:30",
-            isCurrentDevice: false
         )
     ]
 
@@ -442,12 +234,13 @@ final class JuntoStore: ObservableObject {
         showToast("Mensagem enviada! Protocolo #\(protocolCode)", icon: "checkmark.circle")
     }
 
-    /// Sincroniza dados reais com o banco PostgreSQL do Docker (fallback transparente caso offline)
+    /// Sincroniza todos os dados reais com o banco PostgreSQL do Docker (usuário, amigos, grupos, potes pessoais, despesas, notificações e atividades)
     func syncWithBackendDatabase() async {
         guard let payload = await JuntoBackendService.shared.fetchBootstrap(username: user.username) else {
             return
         }
         isDatabaseSynced = true
+
         if let uDict = payload["user"] as? [String: Any] {
             if let name = uDict["fullName"] as? String, !name.isEmpty { user.fullName = name }
             if let uname = uDict["username"] as? String, !uname.isEmpty { user.username = uname }
@@ -456,6 +249,203 @@ final class JuntoStore: ObservableObject {
             if let pix = uDict["pixKey"] as? String, !pix.isEmpty { user.pixKey = pix }
             if let pro = uDict["isPro"] as? Bool { user.isPro = pro }
             if let plan = uDict["proPlanName"] as? String { user.proPlanName = plan }
+        }
+
+        // Sincroniza amigos reais do PostgreSQL
+        if let friendsArr = payload["friends"] as? [[String: Any]] {
+            var loadedFriends: [FriendItem] = []
+            for f in friendsArr {
+                let name = (f["name"] as? String) ?? "Amigo"
+                let uname = (f["username"] as? String) ?? "amigo"
+                let balance = (f["balance"] as? Double) ?? 0.0
+                let pending = (f["isPendingInvite"] as? Bool) ?? false
+                let muted = (f["isMuted"] as? Bool) ?? false
+                let initials = name.split(separator: " ").prefix(2).map { String($0.prefix(1)) }.joined().uppercased()
+                loadedFriends.append(
+                    FriendItem(
+                        name: name,
+                        username: uname,
+                        initials: initials.isEmpty ? "AM" : initials,
+                        balance: balance,
+                        isPendingInvite: pending,
+                        isOnline: true,
+                        lastSeenText: "online",
+                        friendsSinceText: "Sincronizado",
+                        isMuted: muted
+                    )
+                )
+            }
+            self.friends = loadedFriends
+        }
+
+        // Sincroniza grupos e Pote Mensal (Excursões) do PostgreSQL
+        if let groupsArr = payload["groups"] as? [[String: Any]] {
+            var loadedGroups: [RoleGroup] = []
+            for g in groupsArr {
+                let title = (g["title"] as? String) ?? "Grupo"
+                let category = (g["category"] as? String) ?? "Viagem"
+                let cover = (g["coverImage"] as? String) ?? "GroupPraia"
+                let potBalance = (g["potBalance"] as? Double) ?? 0.0
+                let potTarget = (g["potTarget"] as? Double) ?? 0.0
+                let totalSpent = (g["totalSpent"] as? Double) ?? 0.0
+                let potModeStr = (g["potMode"] as? String) ?? "SINGLE"
+                let totalMonths = (g["totalMonths"] as? Int) ?? 1
+
+                var loadedParticipants: [GroupParticipant] = []
+                var loadedInitials: [String] = []
+                if let pArr = g["participants"] as? [[String: Any]] {
+                    for p in pArr {
+                        let pName = (p["name"] as? String) ?? "Membro"
+                        let pUname = (p["username"] as? String) ?? "membro"
+                        let roleStr = (p["role"] as? String) ?? "MEMBER"
+                        let quota = (p["quotaAmount"] as? Double) ?? 0.0
+                        let hasPaid = (p["hasPaid"] as? Bool) ?? false
+                        let markedPaid = (p["markedPaidByMember"] as? Bool) ?? false
+                        let role: GroupParticipantRole = roleStr == "OWNER" ? .owner : (roleStr == "ADMIN" ? .admin : .member)
+                        loadedParticipants.append(
+                            GroupParticipant(
+                                name: pName,
+                                username: pUname,
+                                quotaAmount: quota,
+                                hasPaid: hasPaid,
+                                markedPaidByMember: markedPaid,
+                                role: role
+                            )
+                        )
+                        let initStr = pName.split(separator: " ").prefix(2).map { String($0.prefix(1)) }.joined().uppercased()
+                        loadedInitials.append(initStr.isEmpty ? "MB" : initStr)
+                    }
+                }
+
+                var loadedCycles: [PotMonthCycle] = []
+                if let cArr = g["monthlyCycles"] as? [[String: Any]] {
+                    for c in cArr {
+                        let mNum = (c["monthNumber"] as? Int) ?? 1
+                        let lbl = (c["label"] as? String) ?? "Mês \(mNum)"
+                        let paidArr = (c["paidUsernames"] as? [String]) ?? []
+                        let markedArr = (c["markedPaidUsernames"] as? [String]) ?? []
+                        loadedCycles.append(
+                            PotMonthCycle(
+                                monthNumber: mNum,
+                                label: lbl,
+                                paidUsernames: Set(paidArr.map { $0.lowercased() }),
+                                markedPaidUsernames: Set(markedArr.map { $0.lowercased() })
+                            )
+                        )
+                    }
+                }
+
+                let roleGroup = RoleGroup(
+                    title: title,
+                    category: category,
+                    coverImageName: cover,
+                    potBalance: potBalance,
+                    potTarget: potTarget,
+                    totalSpent: totalSpent,
+                    myShare: 0,
+                    members: loadedInitials,
+                    participants: loadedParticipants,
+                    hasCollectivePot: true,
+                    comandaItems: [],
+                    potMode: potModeStr == "MONTHLY" ? .monthly : .single,
+                    totalMonths: totalMonths,
+                    selectedMonthIndex: 0,
+                    monthlyCycles: loadedCycles
+                )
+                loadedGroups.append(roleGroup)
+                if groupChatMessages[roleGroup.id] == nil {
+                    groupChatMessages[roleGroup.id] = [
+                        ChatMessage(
+                            isFromMe: false,
+                            kind: .system("Grupo \"\(title)\" sincronizado com o banco de dados."),
+                            timeText: currentTimeString()
+                        )
+                    ]
+                }
+            }
+            self.groups = loadedGroups
+        }
+
+        // Sincroniza Potes Pessoais (Caixinhas) do PostgreSQL
+        if let potsArr = payload["personalPots"] as? [[String: Any]] {
+            var loadedPots: [PersonalSavingsPot] = []
+            for p in potsArr {
+                let title = (p["title"] as? String) ?? "Caixinha"
+                let occasion = (p["occasion"] as? String) ?? "Viagem"
+                let icon = (p["icon"] as? String) ?? "airplane"
+                let current = (p["currentAmount"] as? Double) ?? 0.0
+                let target = (p["targetAmount"] as? Double) ?? 0.0
+                let dateTxt = (p["targetDateText"] as? String) ?? ""
+                var loadedDeps: [PersonalPotDeposit] = []
+                if let dArr = p["deposits"] as? [[String: Any]] {
+                    for d in dArr {
+                        loadedDeps.append(
+                            PersonalPotDeposit(
+                                amount: (d["amount"] as? Double) ?? 0.0,
+                                note: (d["note"] as? String) ?? "Depósito",
+                                dateText: (d["dateText"] as? String) ?? "Hoje"
+                            )
+                        )
+                    }
+                }
+                loadedPots.append(
+                    PersonalSavingsPot(
+                        title: title,
+                        occasion: occasion,
+                        icon: icon,
+                        currentAmount: current,
+                        targetAmount: target,
+                        targetDateText: dateTxt,
+                        deposits: loadedDeps
+                    )
+                )
+            }
+            self.personalPots = loadedPots
+        }
+
+        // Sincroniza Despesas Pessoais do PostgreSQL
+        if let expArr = payload["personalExpenses"] as? [[String: Any]] {
+            self.personalExpenses = expArr.map { e in
+                PersonalExpenseRecord(
+                    title: (e["title"] as? String) ?? "Despesa",
+                    category: (e["category"] as? String) ?? "Outros",
+                    amount: (e["amount"] as? Double) ?? 0.0,
+                    dateText: (e["dateText"] as? String) ?? "Hoje",
+                    monthKey: (e["monthKey"] as? String) ?? "Novembro 2026",
+                    groupName: (e["groupName"] as? String) ?? "Pessoal",
+                    isPaid: (e["isPaid"] as? Bool) ?? false
+                )
+            }
+        }
+
+        // Sincroniza Notificações do PostgreSQL
+        if let notifArr = payload["notifications"] as? [[String: Any]] {
+            self.notifications = notifArr.map { n in
+                AppNotification(
+                    icon: (n["icon"] as? String) ?? "bell",
+                    title: (n["title"] as? String) ?? "Notificação",
+                    message: (n["message"] as? String) ?? "",
+                    timeAgo: "Agora",
+                    isUnread: (n["isUnread"] as? Bool) ?? true,
+                    isFriendRequest: (n["isFriendRequest"] as? Bool) ?? false,
+                    requestUserName: n["requestUserName"] as? String,
+                    requestUsername: n["requestUsername"] as? String
+                )
+            }
+        }
+
+        // Sincroniza Feed de Atividades do PostgreSQL
+        if let actArr = payload["activities"] as? [[String: Any]] {
+            self.activities = actArr.map { a in
+                ActivityEvent(
+                    icon: (a["icon"] as? String) ?? "checkmark.circle",
+                    title: (a["title"] as? String) ?? "Atividade",
+                    subtitle: (a["subtitle"] as? String) ?? "",
+                    timeAgo: (a["timeAgo"] as? String) ?? "Agora",
+                    amountText: a["amountText"] as? String,
+                    isPositive: (a["isPositive"] as? Bool) ?? true
+                )
+            }
         }
     }
 
@@ -513,13 +503,77 @@ final class JuntoStore: ObservableObject {
             isFromMe: true,
             kind: kind,
             timeText: currentTimeString(),
-            status: .read,
+            status: .sent,
             senderName: user.fullName,
             senderUsername: user.username,
             replyToAuthor: replyToAuthor,
             replyToPreview: replyToPreview
         )
+        let msgId = msg.id
         groupChatMessages[groupId, default: []].append(msg)
+
+        // Ciclo real de entrega (2 traços) e leitura (2 traços coloridos) no grupo
+        Task {
+            try? await Task.sleep(nanoseconds: 500_000_000)
+            updateGroupMessageStatus(groupId: groupId, messageId: msgId, status: .delivered)
+
+            try? await Task.sleep(nanoseconds: 1_100_000_000)
+            updateGroupMessageStatus(groupId: groupId, messageId: msgId, status: .read)
+        }
+    }
+
+    func updateGroupMessageStatus(groupId: UUID, messageId: UUID, status: MessageDeliveryStatus) {
+        guard let idx = groupChatMessages[groupId]?.firstIndex(where: { $0.id == messageId }) else { return }
+        groupChatMessages[groupId]?[idx].status = status
+    }
+
+    /// Votar ou remover voto em uma enquete no chat individual com amigo
+    func voteInFriendPoll(username: String, messageId: UUID, optionId: UUID) {
+        let key = username.lowercased()
+        guard let mIdx = chatMessages[key]?.firstIndex(where: { $0.id == messageId }) else { return }
+        guard case .poll(var pollData) = chatMessages[key]?[mIdx].kind else { return }
+        let myUname = user.username.lowercased()
+
+        guard let oIdx = pollData.options.firstIndex(where: { $0.id == optionId }) else { return }
+        let alreadyVoted = pollData.options[oIdx].voterUsernames.contains(myUname)
+
+        if !pollData.allowMultipleAnswers {
+            for i in pollData.options.indices {
+                pollData.options[i].voterUsernames.removeAll { $0 == myUname }
+            }
+        }
+
+        if alreadyVoted {
+            pollData.options[oIdx].voterUsernames.removeAll { $0 == myUname }
+        } else {
+            pollData.options[oIdx].voterUsernames.append(myUname)
+        }
+
+        chatMessages[key]?[mIdx].kind = .poll(pollData)
+    }
+
+    /// Votar ou remover voto em uma enquete no chat em grupo
+    func voteInGroupPoll(groupId: UUID, messageId: UUID, optionId: UUID) {
+        guard let mIdx = groupChatMessages[groupId]?.firstIndex(where: { $0.id == messageId }) else { return }
+        guard case .poll(var pollData) = groupChatMessages[groupId]?[mIdx].kind else { return }
+        let myUname = user.username.lowercased()
+
+        guard let oIdx = pollData.options.firstIndex(where: { $0.id == optionId }) else { return }
+        let alreadyVoted = pollData.options[oIdx].voterUsernames.contains(myUname)
+
+        if !pollData.allowMultipleAnswers {
+            for i in pollData.options.indices {
+                pollData.options[i].voterUsernames.removeAll { $0 == myUname }
+            }
+        }
+
+        if alreadyVoted {
+            pollData.options[oIdx].voterUsernames.removeAll { $0 == myUname }
+        } else {
+            pollData.options[oIdx].voterUsernames.append(myUname)
+        }
+
+        groupChatMessages[groupId]?[mIdx].kind = .poll(pollData)
     }
 
     func editGroupChatMessage(groupId: UUID, messageId: UUID, newText: String) {

@@ -112,11 +112,28 @@ enum MessageDeliveryStatus: String, Hashable {
     case read       // Lido (2 traços coloridos)
 }
 
+struct ChatPollOption: Identifiable, Hashable {
+    let id = UUID()
+    var text: String
+    var voterUsernames: [String] = []
+}
+
+struct ChatPollData: Hashable {
+    var question: String
+    var options: [ChatPollOption]
+    var allowMultipleAnswers: Bool = false
+
+    var totalVotes: Int {
+        options.reduce(0) { $0 + $1.voterUsernames.count }
+    }
+}
+
 enum ChatMessageKind: Hashable {
     case text(String)
     case photo(Data?, String)
     case audio(duration: Int, waveform: [Double], fileURL: URL?)
     case document(String, String)
+    case poll(ChatPollData)
     case system(String)
 }
 
@@ -140,6 +157,7 @@ struct ChatMessage: Identifiable, Hashable {
         case .photo(_, let caption): return caption.isEmpty ? "Foto" : "Foto: \(caption)"
         case .audio(let secs, _, _): return "Áudio (0:\(String(format: "%02d", secs)))"
         case .document(let name, _): return "Documento: \(name)"
+        case .poll(let poll): return "Enquete: \(poll.question)"
         case .system(let info): return info
         }
     }

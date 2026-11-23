@@ -17,6 +17,7 @@ struct GroupChatScreen: View {
     @State private var showPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var showDocumentImporter = false
+    @State private var showCreatePollSheet = false
     @State private var recMicPulse = false
 
     // Desfazer exclusão com cronômetro de 5 segundos estilo WhatsApp
@@ -226,33 +227,12 @@ struct GroupChatScreen: View {
                 .padding(.vertical, 8)
                 .background(Color.white)
                 .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.8), alignment: .top)
-            } else if editingMessageId != nil {
-                HStack(spacing: 8) {
-                    Image(systemName: "pencil")
-                        .font(.system(size: 13, weight: .regular))
-                        .foregroundColor(JuntoColors.primary)
-                    Text("Editando mensagem")
-                        .font(.inter(12, weight: .medium))
-                        .foregroundColor(JuntoColors.textMain)
-                    Spacer()
-                    Button {
-                        editingMessageId = nil
-                        inputText = ""
-                    } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 12, weight: .medium))
-                            .foregroundColor(JuntoColors.textMuted)
-                    }
-                }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 8)
-                .background(JuntoColors.primaryLight)
             }
 
-            // Barra Inferior com ícones nativos iOS limpos
+            // Barra Inferior: estilo WhatsApp com cronômetro em cima, "Gravando" ao lado das ondas e "Excluir" para cancelar
             HStack(alignment: .center, spacing: 10) {
                 if audioManager.isRecording {
-                    // Lixeira para cancelar o áudio
+                    // Botão Excluir para cancelar antes de enviar (estilo WhatsApp)
                     Button {
                         withAnimation(.easeInOut(duration: 0.18)) {
                             recMicPulse = false
@@ -260,53 +240,47 @@ struct GroupChatScreen: View {
                             audioManager.cancelRecording()
                         }
                     } label: {
-                        Image(systemName: "trash")
-                            .font(.system(size: 18, weight: .regular))
-                            .foregroundColor(JuntoColors.danger)
-                            .frame(width: 36, height: 36)
+                        HStack(spacing: 4) {
+                            Image(systemName: "trash")
+                                .font(.system(size: 14, weight: .medium))
+                            Text("Excluir")
+                                .font(.inter(13, weight: .medium))
+                        }
+                        .foregroundColor(JuntoColors.danger)
+                        .padding(.horizontal, 10)
+                        .frame(height: 40)
+                        .background(JuntoColors.dangerLight)
+                        .clipShape(Capsule())
                     }
 
-                    // Animação de gravação estilo WhatsApp (ponto vermelho pulsando + timer + ondas)
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(JuntoColors.danger)
-                            .frame(width: 10, height: 10)
-                            .scaleEffect(recMicPulse ? 1.25 : 0.85)
-                            .opacity(recMicPulse ? 1.0 : 0.4)
-                            .onAppear {
-                                withAnimation(.easeInOut(duration: 0.65).repeatForever(autoreverses: true)) {
-                                    recMicPulse = true
-                                }
-                            }
-                            .onDisappear { recMicPulse = false }
-
+                    // Cronômetro em cima + "Gravando" ao lado das ondas (SEM bola vermelha)
+                    VStack(alignment: .leading, spacing: 2) {
                         Text("0:\(String(format: "%02d", audioManager.recordingSeconds))")
-                            .font(.inter(13, weight: .medium))
-                            .foregroundColor(JuntoColors.textMain)
+                            .font(.inter(11, weight: .semibold))
+                            .foregroundColor(JuntoColors.primary)
                             .monospacedDigit()
 
-                        if isDraggingMic && !isMicLocked {
-                            Text("← Deslize para cancelar")
-                                .font(.inter(11, weight: .regular))
+                        HStack(spacing: 8) {
+                            Text("Gravando")
+                                .font(.inter(12, weight: .medium))
                                 .foregroundColor(JuntoColors.textMuted)
-                                .lineLimit(1)
-                        } else {
+
                             HStack(spacing: 2.5) {
-                                let bars = Array(audioManager.liveLevels.suffix(22))
+                                let bars = Array(audioManager.liveLevels.suffix(18))
                                 ForEach(Array(bars.enumerated()), id: \.offset) { _, lvl in
                                     Capsule()
-                                        .fill(JuntoColors.textMuted.opacity(0.75))
-                                        .frame(width: 2.5, height: max(4, lvl * 24))
+                                        .fill(JuntoColors.primary.opacity(0.75))
+                                        .frame(width: 2.4, height: max(4, lvl * 18))
                                 }
                             }
                             .animation(.easeOut(duration: 0.12), value: audioManager.liveLevels)
                         }
                     }
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 12)
-                    .frame(height: 40)
+                    .padding(.horizontal, 14)
+                    .padding(.vertical, 6)
                     .background(JuntoColors.surfaceSubtle)
-                    .clipShape(Capsule())
+                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                     // Enviar áudio gravado
                     Button {
@@ -315,7 +289,7 @@ struct GroupChatScreen: View {
                         Image(systemName: "arrow.up")
                             .font(.system(size: 16, weight: .semibold))
                             .foregroundColor(.white)
-                            .frame(width: 38, height: 38)
+                            .frame(width: 40, height: 40)
                             .background(JuntoColors.primary)
                             .clipShape(Circle())
                     }
@@ -508,6 +482,10 @@ struct GroupChatScreen: View {
                     showAttachmentMenu = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { showDocumentImporter = true }
                 },
+                onSelectPoll: {
+                    showAttachmentMenu = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { showCreatePollSheet = true }
+                },
                 onSelectPix: {
                     showAttachmentMenu = false
                     store.sendGroupChatMessage(
@@ -516,8 +494,15 @@ struct GroupChatScreen: View {
                     )
                 }
             )
-            .presentationDetents([.height(210)])
+            .presentationDetents([.height(225)])
             .presentationCornerRadius(22)
+        }
+        .sheet(isPresented: $showCreatePollSheet) {
+            CreateChatPollSheet { pollData in
+                store.sendGroupChatMessage(groupId: groupId, kind: .poll(pollData))
+            }
+            .presentationDetents([.medium, .large])
+            .presentationCornerRadius(20)
         }
         .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhotoItem, matching: .images)
         .onChange(of: selectedPhotoItem) { _, newItem in
@@ -663,11 +648,20 @@ struct GroupChatScreen: View {
                         }
                     }
 
+                case .poll(let pollData):
+                    ChatPollBubbleView(
+                        poll: pollData,
+                        isFromMe: msg.isFromMe,
+                        currentUsername: store.user.username
+                    ) { optionId in
+                        store.voteInGroupPoll(groupId: groupId, messageId: msg.id, optionId: optionId)
+                    }
+
                 case .system:
                     EmptyView()
                 }
 
-                // Rodapé: editada + hora
+                // Rodapé: editada + hora + traços de entregue / lido no grupo
                 HStack(spacing: 4) {
                     Spacer()
                     if msg.isEdited {
@@ -679,6 +673,9 @@ struct GroupChatScreen: View {
                     Text(msg.timeText)
                         .font(.inter(10, weight: .regular))
                         .foregroundColor(msg.isFromMe ? .white.opacity(0.72) : JuntoColors.textLight)
+                    if msg.isFromMe {
+                        groupMessageStatusTicks(msg.status)
+                    }
                 }
             }
             .padding(.horizontal, 12)
@@ -796,8 +793,37 @@ struct GroupChatScreen: View {
             Image(systemName: "doc.text")
                 .font(.system(size: 11))
                 .foregroundColor(Color(hex: "#7C3AED"))
+        case .poll:
+            Image(systemName: "chart.bar.xaxis")
+                .font(.system(size: 11))
+                .foregroundColor(Color(hex: "#D97706"))
         default:
             EmptyView()
+        }
+    }
+
+    /// 1 traço (enviado), 2 traços (entregue no grupo), 2 traços azuis (lido no grupo)
+    @ViewBuilder
+    private func groupMessageStatusTicks(_ status: MessageDeliveryStatus) -> some View {
+        switch status {
+        case .sent:
+            Image(systemName: "checkmark")
+                .font(.system(size: 9, weight: .semibold))
+                .foregroundColor(Color.white.opacity(0.65))
+        case .delivered:
+            HStack(spacing: -5) {
+                Image(systemName: "checkmark")
+                Image(systemName: "checkmark")
+            }
+            .font(.system(size: 9, weight: .semibold))
+            .foregroundColor(Color.white.opacity(0.70))
+        case .read:
+            HStack(spacing: -5) {
+                Image(systemName: "checkmark")
+                Image(systemName: "checkmark")
+            }
+            .font(.system(size: 9, weight: .bold))
+            .foregroundColor(Color(hex: "#38BDF8"))
         }
     }
 

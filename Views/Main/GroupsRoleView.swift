@@ -4,6 +4,7 @@ import CoreImage.CIFilterBuiltins
 
 struct GroupsRoleView: View {
     @EnvironmentObject var store: JuntoStore
+    @State private var showPlusMenuSheet = false
     @State private var showCreateGroup = false
     @State private var showCreatePersonalPot = false
     @State private var showProPaywall = false
@@ -26,19 +27,14 @@ struct GroupsRoleView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Topo estilo WhatsApp: "Grupos" + botão "+" à direita
+            // Topo: "Grupos" + botão "+" que abre seletor entre Pote em Grupo e Pote Pessoal (Caixinha)
             HStack {
                 Text("Grupos")
                     .font(.inter(24, weight: .medium))
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
                 Button {
-                    if store.canCreateMoreGroups() {
-                        showCreateGroup = true
-                    } else {
-                        store.showToast("Plano gratuito permite 1 grupo. Assine o Juntô Pro para grupos ilimitados.", icon: "lock")
-                        showProPaywall = true
-                    }
+                    showPlusMenuSheet = true
                 } label: {
                     Image(systemName: "plus")
                         .font(.system(size: 18, weight: .medium))
@@ -134,128 +130,105 @@ struct GroupsRoleView: View {
                         Divider().padding(.leading, 86)
                     }
 
-                    // MARK: - Pote Pessoal (Caixinhas para guardar finanças para uma ocasião — Recurso Pago Juntô Pro)
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            VStack(alignment: .leading, spacing: 2) {
-                                HStack(spacing: 6) {
-                                    Text("Potes Pessoais (Caixinhas)")
-                                        .font(.inter(16, weight: .medium))
-                                        .foregroundColor(JuntoColors.textMain)
-                                    Text("PRO")
-                                        .font(.inter(9, weight: .medium))
-                                        .foregroundColor(.white)
-                                        .padding(.horizontal, 6)
-                                        .padding(.vertical, 2)
-                                        .background(JuntoColors.primary)
-                                        .clipShape(Capsule())
-                                }
-                                Text("Guarde finanças todo mês para uma ocasião especial")
-                                    .font(.inter(12, weight: .regular))
+                    // Lista de Potes Pessoais (Caixinhas) criadas pelo usuário
+                    if !filteredPersonalPots.isEmpty {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 6) {
+                                Text("Meus Potes Pessoais")
+                                    .font(.inter(14, weight: .medium))
                                     .foregroundColor(JuntoColors.textMuted)
+                                Text("PRO")
+                                    .font(.inter(9, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 5)
+                                    .padding(.vertical, 1.5)
+                                    .background(JuntoColors.primary)
+                                    .clipShape(Capsule())
                             }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 18)
 
-                            Spacer()
-
-                            Button {
-                                if store.user.isPro {
-                                    showCreatePersonalPot = true
-                                } else {
-                                    store.showToast("Pote Pessoal (Caixinha) é exclusivo do Juntô Pro.", icon: "lock")
-                                    showProPaywall = true
-                                }
-                            } label: {
-                                HStack(spacing: 4) {
-                                    Image(systemName: store.user.isPro ? "plus" : "lock")
-                                        .font(.system(size: 12, weight: .medium))
-                                    Text("Nova caixinha")
-                                        .font(.inter(12, weight: .medium))
-                                }
-                                .foregroundColor(JuntoColors.primary)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 7)
-                                .background(JuntoColors.primaryLight)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
-                        }
-                        .padding(.horizontal, 20)
-                        .padding(.top, 22)
-
-                        VStack(spacing: 10) {
-                            ForEach(filteredPersonalPots) { pot in
-                                Button {
-                                    if store.user.isPro {
-                                        selectedPersonalPotId = pot.id
-                                    } else {
-                                        store.showToast("Desbloqueie suas Caixinhas no Juntô Pro.", icon: "lock")
-                                        showProPaywall = true
-                                    }
-                                } label: {
-                                    VStack(alignment: .leading, spacing: 10) {
+                            VStack(spacing: 10) {
+                                ForEach(filteredPersonalPots) { pot in
+                                    Button {
+                                        if store.user.isPro {
+                                            selectedPersonalPotId = pot.id
+                                        } else {
+                                            store.showToast("Pote Pessoal (Caixinha) é exclusivo do Juntô Pro.", icon: "lock")
+                                            showProPaywall = true
+                                        }
+                                    } label: {
                                         HStack(spacing: 12) {
                                             Image(systemName: pot.icon)
-                                                .font(.system(size: 18, weight: .regular))
+                                                .font(.system(size: 17, weight: .regular))
                                                 .foregroundColor(JuntoColors.primary)
-                                                .frame(width: 36, height: 36)
+                                                .frame(width: 44, height: 44)
                                                 .background(JuntoColors.surfaceSubtle)
-                                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                                .clipShape(RoundedRectangle(cornerRadius: 10))
 
-                                            VStack(alignment: .leading, spacing: 2) {
-                                                Text(pot.title)
-                                                    .font(.inter(15, weight: .medium))
-                                                    .foregroundColor(JuntoColors.textMain)
-                                                Text("\(pot.occasion) · Meta até \(pot.targetDateText)")
+                                            VStack(alignment: .leading, spacing: 3) {
+                                                HStack(spacing: 6) {
+                                                    Text(pot.title)
+                                                        .font(.inter(15, weight: .medium))
+                                                        .foregroundColor(JuntoColors.textMain)
+                                                    Text("· \(pot.percentCompleted)%")
+                                                        .font(.inter(12, weight: .medium))
+                                                        .foregroundColor(pot.percentCompleted == 100 ? JuntoColors.pixGreen : JuntoColors.primary)
+                                                }
+                                                Text("\(JuntoStore.formatBRL(pot.currentAmount)) de \(JuntoStore.formatBRL(pot.targetAmount)) · \(pot.occasion)")
                                                     .font(.inter(12, weight: .regular))
                                                     .foregroundColor(JuntoColors.textMuted)
+                                                    .lineLimit(1)
                                             }
 
                                             Spacer()
 
-                                            VStack(alignment: .trailing, spacing: 2) {
-                                                Text("\(pot.percentCompleted)%")
-                                                    .font(.inter(15, weight: .medium))
-                                                    .foregroundColor(pot.percentCompleted == 100 ? JuntoColors.pixGreen : JuntoColors.primary)
-                                                Text("da meta")
-                                                    .font(.inter(10, weight: .regular))
-                                                    .foregroundColor(JuntoColors.textMuted)
-                                            }
+                                            Image(systemName: store.user.isPro ? "chevron.right" : "lock")
+                                                .font(.system(size: 13, weight: .regular))
+                                                .foregroundColor(JuntoColors.textLight)
                                         }
-
-                                        GeometryReader { geo in
-                                            let ratio = pot.targetAmount > 0 ? min(pot.currentAmount / pot.targetAmount, 1.0) : 0
-                                            ZStack(alignment: .leading) {
-                                                RoundedRectangle(cornerRadius: 4).fill(JuntoColors.surfaceSubtle)
-                                                RoundedRectangle(cornerRadius: 4)
-                                                    .fill(pot.percentCompleted == 100 ? JuntoColors.pixGreen : JuntoColors.primary)
-                                                    .frame(width: max(geo.size.width * ratio, ratio > 0 ? 8 : 0))
-                                            }
-                                        }
-                                        .frame(height: 6)
-
-                                        HStack {
-                                            Text("Guardado: \(JuntoStore.formatBRL(pot.currentAmount))")
-                                                .font(.inter(12, weight: .medium))
-                                                .foregroundColor(JuntoColors.textMain)
-                                            Spacer()
-                                            Text("Objetivo: \(JuntoStore.formatBRL(pot.targetAmount))")
-                                                .font(.inter(12, weight: .regular))
-                                                .foregroundColor(JuntoColors.textMuted)
-                                        }
+                                        .padding(.horizontal, 20)
+                                        .padding(.vertical, 10)
                                     }
-                                    .padding(14)
-                                    .background(Color.white)
-                                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    Divider().padding(.leading, 76)
                                 }
                             }
                         }
-                        .padding(.horizontal, 20)
                     }
                 }
                 .padding(.bottom, 140)
             }
         }
         .background(Color.white)
+        .sheet(isPresented: $showPlusMenuSheet) {
+            CreateGroupOrPotChoiceSheet(
+                isPro: store.user.isPro,
+                onSelectGroupPot: {
+                    showPlusMenuSheet = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                        if store.canCreateMoreGroups() {
+                            showCreateGroup = true
+                        } else {
+                            store.showToast("Plano gratuito permite 1 grupo. Assine o Juntô Pro para grupos ilimitados.", icon: "lock")
+                            showProPaywall = true
+                        }
+                    }
+                },
+                onSelectPersonalPot: {
+                    showPlusMenuSheet = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) {
+                        if store.user.isPro {
+                            showCreatePersonalPot = true
+                        } else {
+                            store.showToast("Pote Pessoal (Caixinha) é exclusivo do Juntô Pro.", icon: "lock")
+                            showProPaywall = true
+                        }
+                    }
+                }
+            )
+            .presentationDetents([.height(265)])
+            .presentationCornerRadius(20)
+        }
         .fullScreenCover(isPresented: $showCreateGroup) {
             CreateGroupScreen(initialType: store.openCreateGroupWithCategory ?? "Viagem") { createdGroupId in
                 selectedGroupId = createdGroupId
@@ -316,6 +289,105 @@ struct GroupsRoleView: View {
                 .resizable()
                 .scaledToFill()
         }
+    }
+}
+
+// MARK: - Sheet ao clicar em "+" na tela de Grupos (Escolher entre Pote em Grupo ou Pote Pessoal Caixinha Pro)
+struct CreateGroupOrPotChoiceSheet: View {
+    let isPro: Bool
+    let onSelectGroupPot: () -> Void
+    let onSelectPersonalPot: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack {
+                Text("O que você deseja criar?")
+                    .font(.inter(17, weight: .medium))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(JuntoColors.textMuted)
+                        .frame(width: 30, height: 30)
+                        .background(JuntoColors.surfaceSubtle)
+                        .clipShape(Circle())
+                }
+            }
+            .padding(.top, 18)
+
+            VStack(spacing: 10) {
+                Button(action: onSelectGroupPot) {
+                    HStack(spacing: 14) {
+                        Image(systemName: "person.2")
+                            .font(.system(size: 18, weight: .regular))
+                            .foregroundColor(JuntoColors.primary)
+                            .frame(width: 38, height: 38)
+                            .background(JuntoColors.surfaceSubtle)
+                            .clipShape(RoundedRectangle(cornerRadius: 9))
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("Grupo / Pote Coletivo")
+                                .font(.inter(15, weight: .medium))
+                                .foregroundColor(JuntoColors.textMain)
+                            Text("Para viagens, rolês, excursões mensais ou casa")
+                                .font(.inter(12, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 13))
+                            .foregroundColor(JuntoColors.textLight)
+                    }
+                    .padding(14)
+                    .background(Color.white)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+
+                Button(action: onSelectPersonalPot) {
+                    HStack(spacing: 14) {
+                        Image(systemName: isPro ? "archivebox" : "lock")
+                            .font(.system(size: 18, weight: .regular))
+                            .foregroundColor(JuntoColors.primary)
+                            .frame(width: 38, height: 38)
+                            .background(JuntoColors.surfaceSubtle)
+                            .clipShape(RoundedRectangle(cornerRadius: 9))
+
+                        VStack(alignment: .leading, spacing: 2) {
+                            HStack(spacing: 6) {
+                                Text("Pote Pessoal (Caixinha)")
+                                    .font(.inter(15, weight: .medium))
+                                    .foregroundColor(JuntoColors.textMain)
+                                Text("PRO")
+                                    .font(.inter(9, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(JuntoColors.primary)
+                                    .clipShape(Capsule())
+                            }
+                            Text("Guarde finanças individualmente para uma ocasião")
+                                .font(.inter(12, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                        }
+                        Spacer()
+                        Image(systemName: isPro ? "chevron.right" : "lock.fill")
+                            .font(.system(size: 13))
+                            .foregroundColor(JuntoColors.textLight)
+                    }
+                    .padding(14)
+                    .background(Color.white)
+                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .background(Color.white.ignoresSafeArea())
     }
 }
 
@@ -1045,179 +1117,129 @@ struct GroupDetailSheet: View {
                             .foregroundColor(JuntoColors.textMuted)
                     }
 
-                    // POTE COLETIVO (Suporta Meta Única e Pote Mensal tipo Excursões — só fica 100% quando todos pagam!)
+                    // POTE COLETIVO / POTE MENSAL LIMPO E ORGANIZADO (100% só quando todos pagam)
                     if group.hasCollectivePot {
                         VStack(alignment: .leading, spacing: 14) {
-                            HStack(spacing: 10) {
-                                JuntoPotIcon(size: 36)
+                            // Topo: Título + Meta Geral
+                            HStack(alignment: .center, spacing: 10) {
+                                JuntoPotIcon(size: 34)
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text(group.potMode == .monthly ? "Pote Mensal (Excursão)" : "Pote Coletivo")
+                                    Text(group.potMode == .monthly ? "Pote Mensal" : "Pote Coletivo")
                                         .font(.inter(15, weight: .medium))
                                         .foregroundColor(JuntoColors.textMain)
-                                    if group.potMode == .monthly {
-                                        Text("\(group.completedMonthsCount) de \(max(1, group.monthlyCycles.count)) meses 100% quitados")
-                                            .font(.inter(12, weight: .regular))
-                                            .foregroundColor(JuntoColors.textMuted)
-                                    } else {
-                                        Text("\(paidCount) de \(group.participants.count) pagaram (100% quando todos pagam)")
-                                            .font(.inter(12, weight: .regular))
-                                            .foregroundColor(JuntoColors.textMuted)
-                                    }
+                                    Text("\(JuntoStore.formatBRL(group.potBalance)) de \(JuntoStore.formatBRL(group.potTarget))")
+                                        .font(.inter(12, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
                                 }
                                 Spacer()
-                                VStack(alignment: .trailing, spacing: 0) {
+                                VStack(alignment: .trailing, spacing: 1) {
                                     Text("\(overallPercent)%")
                                         .font(.inter(18, weight: .medium))
                                         .foregroundColor(overallPercent == 100 ? JuntoColors.pixGreen : JuntoColors.primary)
-                                    Text("da meta total")
-                                        .font(.inter(10, weight: .regular))
+                                    Text("meta geral")
+                                        .font(.inter(11, weight: .regular))
                                         .foregroundColor(JuntoColors.textMuted)
                                 }
                             }
 
-                            // Se for Pote Mensal (Excursão): Resumo % do Mês vs % da Meta Total + Seletor de Meses
+                            // Se for Pote Mensal: Abas limpas de meses + Barra do mês selecionado
                             if group.potMode == .monthly && !group.monthlyCycles.isEmpty {
                                 let currentCycle = group.monthlyCycles[activeMonthIdx]
                                 let monthCollected = Double(paidCount) * group.monthlyQuotaPerPerson
 
-                                // Cards detalhados: % deste mês vs % da meta geral
-                                HStack(spacing: 10) {
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        HStack {
-                                            Text(currentCycle.label)
-                                                .font(.inter(11, weight: .medium))
-                                                .foregroundColor(JuntoColors.textMuted)
-                                            Spacer()
-                                            Text("\(monthPercent)%")
-                                                .font(.inter(15, weight: .medium))
-                                                .foregroundColor(monthPercent == 100 ? JuntoColors.pixGreen : JuntoColors.primary)
-                                        }
-                                        Text("\(paidCount) de \(group.participants.count) pagaram")
-                                            .font(.inter(12, weight: .medium))
-                                            .foregroundColor(JuntoColors.textMain)
-                                        Text("\(JuntoStore.formatBRL(monthCollected)) de \(JuntoStore.formatBRL(group.monthlyTargetAmount))")
-                                            .font(.inter(11, weight: .regular))
-                                            .foregroundColor(JuntoColors.textMuted)
-                                    }
-                                    .padding(12)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(Color.white)
-                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
-
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        HStack {
-                                            Text("Meta Geral")
-                                                .font(.inter(11, weight: .medium))
-                                                .foregroundColor(JuntoColors.textMuted)
-                                            Spacer()
-                                            Text("\(overallPercent)%")
-                                                .font(.inter(15, weight: .medium))
-                                                .foregroundColor(overallPercent == 100 ? JuntoColors.pixGreen : JuntoColors.primary)
-                                        }
-                                        Text("\(JuntoStore.formatBRL(group.potBalance))")
-                                            .font(.inter(12, weight: .medium))
-                                            .foregroundColor(JuntoColors.textMain)
-                                        Text("de \(JuntoStore.formatBRL(group.potTarget))")
-                                            .font(.inter(11, weight: .regular))
-                                            .foregroundColor(JuntoColors.textMuted)
-                                    }
-                                    .padding(12)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .background(Color.white)
-                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                                }
-
-                                // Seletor horizontal de meses da excursão com % de cada mês
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Acompanhamento mês a mês (só fica 100% quando todos pagam):")
-                                        .font(.inter(11, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMuted)
-
-                                    ScrollView(.horizontal, showsIndicators: false) {
-                                        HStack(spacing: 8) {
-                                            ForEach(Array(group.monthlyCycles.enumerated()), id: \.element.id) { mIdx, cycle in
-                                                let isSelected = activeMonthIdx == mIdx
-                                                let cPct = group.monthCompletionPercent(at: mIdx)
-                                                Button {
-                                                    withAnimation(.easeInOut(duration: 0.16)) {
-                                                        store.groups[idx].selectedMonthIndex = mIdx
-                                                    }
-                                                } label: {
-                                                    HStack(spacing: 6) {
-                                                        if cPct == 100 {
-                                                            Image(systemName: "checkmark.circle.fill")
-                                                                .font(.system(size: 12))
-                                                                .foregroundColor(isSelected ? .white : JuntoColors.pixGreen)
-                                                        }
-                                                        Text(cycle.label)
-                                                            .font(.inter(12, weight: .medium))
-                                                        Text("\(cPct)%")
-                                                            .font(.inter(11, weight: .regular))
-                                                            .opacity(0.85)
-                                                    }
-                                                    .foregroundColor(isSelected ? .white : JuntoColors.textMain)
-                                                    .padding(.horizontal, 12)
-                                                    .frame(height: 34)
-                                                    .background(isSelected ? JuntoColors.primary : Color.white)
-                                                    .overlay(
-                                                        RoundedRectangle(cornerRadius: 8)
-                                                            .stroke(isSelected ? JuntoColors.primary : JuntoColors.border, lineWidth: 1)
-                                                    )
-                                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 8) {
+                                        ForEach(Array(group.monthlyCycles.enumerated()), id: \.element.id) { mIdx, cycle in
+                                            let isSelected = activeMonthIdx == mIdx
+                                            let cPct = group.monthCompletionPercent(at: mIdx)
+                                            Button {
+                                                withAnimation(.easeInOut(duration: 0.16)) {
+                                                    store.groups[idx].selectedMonthIndex = mIdx
                                                 }
+                                            } label: {
+                                                HStack(spacing: 5) {
+                                                    if cPct == 100 {
+                                                        Image(systemName: "checkmark")
+                                                            .font(.system(size: 10, weight: .bold))
+                                                            .foregroundColor(isSelected ? .white : JuntoColors.pixGreen)
+                                                    }
+                                                    Text(cycle.label)
+                                                        .font(.inter(12, weight: .medium))
+                                                    Text("· \(cPct)%")
+                                                        .font(.inter(12, weight: .regular))
+                                                        .opacity(0.85)
+                                                }
+                                                .foregroundColor(isSelected ? .white : JuntoColors.textMain)
+                                                .padding(.horizontal, 12)
+                                                .frame(height: 34)
+                                                .background(isSelected ? JuntoColors.primary : JuntoColors.surfaceSubtle)
+                                                .clipShape(RoundedRectangle(cornerRadius: 8))
                                             }
                                         }
                                     }
                                 }
-                            }
 
-                            if group.potTarget > 0 {
+                                // Barra limpa do mês selecionado
                                 VStack(spacing: 6) {
-                                    let activeBarRatio: Double = group.potMode == .monthly
-                                        ? (Double(monthPercent) / 100.0)
-                                        : (Double(overallPercent) / 100.0)
+                                    HStack {
+                                        Text("\(currentCycle.label) · \(paidCount) de \(group.participants.count) pagaram")
+                                            .font(.inter(12, weight: .medium))
+                                            .foregroundColor(JuntoColors.textMain)
+                                        Spacer()
+                                        Text("\(monthPercent)% do mês")
+                                            .font(.inter(12, weight: .medium))
+                                            .foregroundColor(monthPercent == 100 ? JuntoColors.pixGreen : JuntoColors.primary)
+                                    }
 
                                     GeometryReader { geo in
-                                        let ratio = min(max(activeBarRatio, 0), 1.0)
+                                        let ratio = min(max(Double(monthPercent) / 100.0, 0), 1.0)
                                         ZStack(alignment: .leading) {
-                                            RoundedRectangle(cornerRadius: 6).fill(JuntoColors.border.opacity(0.7))
-                                            RoundedRectangle(cornerRadius: 6)
+                                            RoundedRectangle(cornerRadius: 4).fill(JuntoColors.surfaceSubtle)
+                                            RoundedRectangle(cornerRadius: 4)
                                                 .fill(ratio >= 1.0 ? JuntoColors.pixGreen : JuntoColors.primary)
-                                                .frame(width: max(geo.size.width * ratio, ratio > 0 ? 12 : 0))
+                                                .frame(width: max(geo.size.width * ratio, ratio > 0 ? 8 : 0))
                                         }
                                     }
-                                    .frame(height: 8)
+                                    .frame(height: 6)
 
                                     HStack {
-                                        if group.potMode == .monthly && group.monthlyCycles.indices.contains(activeMonthIdx) {
-                                            Text("\(group.monthlyCycles[activeMonthIdx].label): \(monthPercent)% concluído")
-                                                .font(.inter(12, weight: .medium))
-                                                .foregroundColor(JuntoColors.textMain)
-                                        } else {
-                                            Text("Arrecadado: \(JuntoStore.formatBRL(group.potBalance))")
-                                                .font(.inter(12, weight: .medium))
-                                                .foregroundColor(JuntoColors.textMain)
-                                        }
+                                        Text("Arrecadado no mês: \(JuntoStore.formatBRL(monthCollected))")
+                                            .font(.inter(11, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
                                         Spacer()
-                                        Text("Meta total: \(JuntoStore.formatBRL(group.potTarget))")
-                                            .font(.inter(12, weight: .regular))
+                                        Text("Meta do mês: \(JuntoStore.formatBRL(group.monthlyTargetAmount))")
+                                            .font(.inter(11, weight: .regular))
                                             .foregroundColor(JuntoColors.textMuted)
                                     }
-
-                                    HStack(spacing: 12) {
-                                        Label("Início: \(Self.dateFormatter.string(from: group.startDate))", systemImage: "calendar")
-                                        Spacer()
-                                        Label("Meta até: \(Self.dateFormatter.string(from: group.targetDate))", systemImage: "flag")
+                                }
+                            } else if group.potTarget > 0 {
+                                VStack(spacing: 6) {
+                                    GeometryReader { geo in
+                                        let ratio = min(max(Double(overallPercent) / 100.0, 0), 1.0)
+                                        ZStack(alignment: .leading) {
+                                            RoundedRectangle(cornerRadius: 4).fill(JuntoColors.surfaceSubtle)
+                                            RoundedRectangle(cornerRadius: 4)
+                                                .fill(ratio >= 1.0 ? JuntoColors.pixGreen : JuntoColors.primary)
+                                                .frame(width: max(geo.size.width * ratio, ratio > 0 ? 8 : 0))
+                                        }
                                     }
-                                    .font(.inter(11, weight: .regular))
-                                    .foregroundColor(JuntoColors.textMuted)
-                                    .padding(.top, 2)
+                                    .frame(height: 6)
+
+                                    HStack {
+                                        Text("\(paidCount) de \(group.participants.count) pagaram")
+                                            .font(.inter(12, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                        Spacer()
+                                        Text("Meta até \(Self.dateFormatter.string(from: group.targetDate))")
+                                            .font(.inter(11, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                    }
                                 }
                             }
 
-                            // Lista automática de cotas (por mês selecionado no Pote Mensal ou geral na Meta Única)
+                            Divider()
+
+                            // Lista limpa de cotas por participante
                             let isOwner = store.isCurrentUserOwner(in: group)
                             VStack(spacing: 0) {
                                 ForEach(group.participants) { participant in
@@ -1247,21 +1269,17 @@ struct GroupDetailSheet: View {
                                                     .font(.inter(14, weight: .regular))
                                                     .foregroundColor(JuntoColors.textMain)
                                                 if participant.role != .member {
-                                                    HStack(spacing: 3) {
-                                                        Image(systemName: participant.role == .owner ? "crown" : "checkmark.shield")
-                                                            .font(.system(size: 10, weight: .medium))
-                                                        Text(participant.role.rawValue)
-                                                            .font(.inter(11, weight: .medium))
-                                                    }
-                                                    .foregroundColor(participant.role == .owner ? JuntoColors.primary : JuntoColors.textMuted)
+                                                    Text("· \(participant.role.rawValue)")
+                                                        .font(.inter(11, weight: .medium))
+                                                        .foregroundColor(participant.role == .owner ? JuntoColors.primary : JuntoColors.textMuted)
                                                 }
                                             }
                                             if isMarkedInCurrentCycle && !isPaidInCurrentCycle {
-                                                Text("Cota\(monthLabelText): \(JuntoStore.formatBRL(participant.quotaAmount)) · Informou pago")
-                                                    .font(.inter(11, weight: .medium))
+                                                Text("\(JuntoStore.formatBRL(participant.quotaAmount)) · Informou pago")
+                                                    .font(.inter(12, weight: .medium))
                                                     .foregroundColor(JuntoColors.orangeSave)
                                             } else {
-                                                Text("Cota\(monthLabelText): \(JuntoStore.formatBRL(participant.quotaAmount))")
+                                                Text("Cota: \(JuntoStore.formatBRL(participant.quotaAmount))")
                                                     .font(.inter(12, weight: .regular))
                                                     .foregroundColor(JuntoColors.textMuted)
                                             }
@@ -1272,7 +1290,7 @@ struct GroupDetailSheet: View {
                                         if isPaidInCurrentCycle {
                                             HStack(spacing: 4) {
                                                 Image(systemName: "checkmark")
-                                                    .font(.system(size: 12, weight: .semibold))
+                                                    .font(.system(size: 11, weight: .semibold))
                                                 Text("Pago")
                                                     .font(.inter(12, weight: .medium))
                                             }
@@ -1280,7 +1298,7 @@ struct GroupDetailSheet: View {
                                         } else if participant.name == "Você" {
                                             if isMarkedInCurrentCycle {
                                                 if isOwner {
-                                                    Button("Confirmar pago") {
+                                                    Button("Confirmar") {
                                                         store.ownerConfirmParticipantPaid(groupId: groupId, participantId: participant.id, monthIndex: activeMonthIdx)
                                                     }
                                                     .font(.inter(11, weight: .medium))
@@ -1290,13 +1308,9 @@ struct GroupDetailSheet: View {
                                                     .background(JuntoColors.pixGreen)
                                                     .clipShape(RoundedRectangle(cornerRadius: 6))
                                                 } else {
-                                                    Text("Aguardando dono")
+                                                    Text("Aguardando")
                                                         .font(.inter(11, weight: .medium))
                                                         .foregroundColor(JuntoColors.orangeSave)
-                                                        .padding(.horizontal, 8)
-                                                        .padding(.vertical, 5)
-                                                        .background(JuntoColors.accentLight)
-                                                        .clipShape(RoundedRectangle(cornerRadius: 6))
                                                 }
                                             } else {
                                                 Button("Pagar") {
@@ -1314,7 +1328,7 @@ struct GroupDetailSheet: View {
                                                 .clipShape(RoundedRectangle(cornerRadius: 6))
                                             }
                                         } else if isOwner {
-                                            Button("Confirmar pago") {
+                                            Button("Confirmar") {
                                                 store.ownerConfirmParticipantPaid(groupId: groupId, participantId: participant.id, monthIndex: activeMonthIdx)
                                             }
                                             .font(.inter(11, weight: .medium))
@@ -1330,14 +1344,13 @@ struct GroupDetailSheet: View {
                                         }
                                     }
                                     .padding(.vertical, 8)
-                                    Divider()
                                 }
                             }
                         }
                         .padding(16)
-                        .background(JuntoColors.warmBg)
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
                     }
 
                     // Despesas / Comanda do Grupo (somente Dono ou Admin)
