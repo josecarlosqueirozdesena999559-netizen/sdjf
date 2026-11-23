@@ -36,7 +36,7 @@ final class AudioChatManager: NSObject, ObservableObject, AVAudioPlayerDelegate 
             try session.setCategory(
                 .playAndRecord,
                 mode: .voiceChat,
-                options: [.defaultToSpeaker, .allowBluetooth]
+                options: [.defaultToSpeaker, .allowBluetoothHFP]
             )
             try session.setPreferredSampleRate(44100)
             try session.setActive(true)

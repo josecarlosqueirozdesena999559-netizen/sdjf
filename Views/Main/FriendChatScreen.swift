@@ -758,8 +758,6 @@ struct FriendChatScreen: View {
             JuntoIcon(kind: .photo, size: 12, color: Color(hex: "#2563EB"), weight: 1.8)
         case .document:
             JuntoIcon(kind: .docText, size: 12, color: Color(hex: "#7C3AED"), weight: 1.8)
-        case .pix:
-            JuntoIcon(kind: .pix, size: 12, color: JuntoColors.pixGreen, weight: 1.8)
         default:
             EmptyView()
         }

@@ -94,7 +94,7 @@ struct JuntoIcon: View {
     private func draw(ctx: GraphicsContext, sz: CGSize) {
         let w = sz.width, h = sz.height
         let s = min(w, h)
-        var c = ctx
+        let c = ctx
         c.stroke(Path { _ in }, with: .foreground) // define cor base
 
         switch kind {
