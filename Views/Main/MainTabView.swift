@@ -25,27 +25,49 @@ struct MainTabView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.white.ignoresSafeArea())
 
-            // Camada flutuante inferior: Botão "Adicionar despesa" + Tab Bar Pílula Vidro
+            // Camada flutuante inferior: "Minhas despesas" + "Adicionar despesa" + Tab Bar Pílula Vidro
             VStack(alignment: .trailing, spacing: 14) {
-                // Botão flutuante verde pílula (exibido em Amigos, Grupos e Atividade, como no modelo)
                 if store.selectedTab != .account {
-                    Button {
-                        store.showAddExpenseSheet = true
-                    } label: {
-                        HStack(spacing: 8) {
-                            Image(systemName: "list.bullet.rectangle.portrait")
-                                .font(.system(size: 16, weight: .regular))
-                            Text("Adicionar despesa")
-                                .font(.inter(15, weight: .medium))
+                    HStack(spacing: 10) {
+                        Button {
+                            store.showMyExpensesScreen = true
+                        } label: {
+                            HStack(spacing: 7) {
+                                Image(systemName: "chart.pie")
+                                    .font(.system(size: 15, weight: .regular))
+                                Text("Minhas despesas")
+                                    .font(.inter(14, weight: .medium))
+                            }
+                            .foregroundColor(JuntoColors.primary)
+                            .padding(.horizontal, 14)
+                            .frame(height: 46)
+                            .background(Color.white)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                    .stroke(JuntoColors.border, lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .shadow(color: Color.black.opacity(0.08), radius: 8, x: 0, y: 3)
                         }
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 20)
-                        .frame(height: 48)
-                        .background(JuntoColors.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                        .shadow(color: JuntoColors.primary.opacity(0.24), radius: 10, x: 0, y: 4)
+
+                        Button {
+                            store.showAddExpenseSheet = true
+                        } label: {
+                            HStack(spacing: 7) {
+                                Image(systemName: "plus")
+                                    .font(.system(size: 15, weight: .medium))
+                                Text("Adicionar despesa")
+                                    .font(.inter(14, weight: .medium))
+                            }
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 16)
+                            .frame(height: 46)
+                            .background(JuntoColors.primary)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            .shadow(color: JuntoColors.primary.opacity(0.24), radius: 10, x: 0, y: 4)
+                        }
                     }
-                    .padding(.trailing, 18)
+                    .padding(.horizontal, 20)
                 }
 
                 // Tab Bar Flutuante Estilo iOS Liquid Glass (Exatamente como nas screenshots)
@@ -105,7 +127,11 @@ struct MainTabView: View {
         .sheet(isPresented: $store.showAddExpenseSheet) {
             AddExpenseSheetView()
                 .environmentObject(store)
-                .presentationDetents([.medium])
+                .presentationDetents([.medium, .large])
+        }
+        .fullScreenCover(isPresented: $store.showMyExpensesScreen) {
+            MyExpensesAnalyticsScreen()
+                .environmentObject(store)
         }
         .sheet(item: $store.activePixSheet) { pixData in
             PixSheetView(data: pixData) {
@@ -131,7 +157,10 @@ struct AddExpenseSheetView: View {
 
     @State private var descriptionText: String = ""
     @State private var amountText: String = ""
+    @State private var selectedCategory: String = "Viagem"
     @State private var selectedGroupTitle: String = ""
+
+    private let expenseCategories = ["Viagem", "Churrasco", "Casa", "Bar & Drinks", "Outros"]
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
@@ -144,7 +173,7 @@ struct AddExpenseSheetView: View {
                 Spacer()
                 CircleNavButton(icon: "checkmark", bgColor: JuntoColors.primary, fgColor: .white) {
                     let numeric = Double(amountText.replacingOccurrences(of: ",", with: ".")) ?? 0
-                    store.addQuickExpense(description: descriptionText, amount: numeric, groupTitle: selectedGroupTitle)
+                    store.addQuickExpense(description: descriptionText, amount: numeric, groupTitle: selectedGroupTitle, category: selectedCategory)
                     dismiss()
                 }
             }
@@ -159,6 +188,31 @@ struct AddExpenseSheetView: View {
                 keyboardType: .decimalPad,
                 leadingPrefix: "R$"
             )
+
+            VStack(alignment: .leading, spacing: 7) {
+                Text("Categoria")
+                    .font(.inter(13, weight: .regular))
+                    .foregroundColor(JuntoColors.textMain)
+
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(expenseCategories, id: \.self) { cat in
+                            let active = selectedCategory == cat
+                            Button {
+                                selectedCategory = cat
+                            } label: {
+                                Text(cat)
+                                    .font(.inter(13, weight: .regular))
+                                    .foregroundColor(active ? .white : JuntoColors.textMain)
+                                    .padding(.horizontal, 14)
+                                    .padding(.vertical, 8)
+                                    .background(active ? JuntoColors.primary : JuntoColors.surfaceSubtle)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                        }
+                    }
+                }
+            }
 
             if !store.groups.isEmpty {
                 VStack(alignment: .leading, spacing: 7) {

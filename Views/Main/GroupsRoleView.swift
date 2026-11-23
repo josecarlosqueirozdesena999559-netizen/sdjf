@@ -156,6 +156,8 @@ struct CreateGroupScreen: View {
     @State private var coverImageData: Data? = nil
 
     @State private var potTotalText: String = "300"
+    @State private var startDate: Date = Date()
+    @State private var targetDate: Date = Calendar.current.date(byAdding: .day, value: 15, to: Date()) ?? Date()
     @State private var selectedPeople: [SearchableUser] = []
     @State private var showSelectFriendsScreen: Bool = false
 
@@ -369,6 +371,37 @@ struct CreateGroupScreen: View {
                             leadingPrefix: "R$"
                         )
 
+                        // Data de início e Meta até o dia
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Data de início")
+                                    .font(.inter(13, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMain)
+                                DatePicker("", selection: $startDate, displayedComponents: .date)
+                                    .labelsHidden()
+                                    .environment(\.locale, Locale(identifier: "pt_BR"))
+                                    .padding(.horizontal, 10)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .frame(height: 46)
+                                    .background(Color.white)
+                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
+                            }
+
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text("Meta até o dia")
+                                    .font(.inter(13, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMain)
+                                DatePicker("", selection: $targetDate, in: startDate..., displayedComponents: .date)
+                                    .labelsHidden()
+                                    .environment(\.locale, Locale(identifier: "pt_BR"))
+                                    .padding(.horizontal, 10)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .frame(height: 46)
+                                    .background(Color.white)
+                                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
+                            }
+                        }
+
                         // Botão "Adicionar membros" -> abre tela com a lista de amigos!
                         VStack(alignment: .leading, spacing: 10) {
                             HStack {
@@ -475,7 +508,9 @@ struct CreateGroupScreen: View {
             hasPot: true,
             potTarget: potTotalValue,
             invitedPeople: selectedPeople,
-            coverImageData: coverImageData
+            coverImageData: coverImageData,
+            startDate: startDate,
+            targetDate: targetDate
         )
         let createdId = store.groups.first?.id
         dismiss()
@@ -594,6 +629,13 @@ struct GroupDetailSheet: View {
 
     @State private var showAddMemberScreen = false
     @State private var selectedParticipantForAction: GroupParticipant? = nil
+    @State private var showWithdrawSheet = false
+
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "dd/MM/yyyy"
+        return f
+    }()
 
     private var groupIndex: Int? {
         store.groups.firstIndex(where: { $0.id == groupId })
@@ -775,6 +817,26 @@ struct GroupDetailSheet: View {
                                             .font(.inter(12, weight: .regular))
                                             .foregroundColor(JuntoColors.textMuted)
                                     }
+
+                                    HStack(spacing: 12) {
+                                        Label("Início: \(Self.dateFormatter.string(from: group.startDate))", systemImage: "calendar")
+                                        Spacer()
+                                        Label("Meta até: \(Self.dateFormatter.string(from: group.targetDate))", systemImage: "flag")
+                                    }
+                                    .font(.inter(11, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                                    .padding(.top, 2)
+                                }
+                            }
+
+                            // Botão de Saque via EFI (exclusivo para o responsável/dono do grupo)
+                            if store.isCurrentUserOwner(in: group) && group.potBalance > 0 {
+                                JuntoPillButton(
+                                    title: "Sacar \(JuntoStore.formatBRL(group.potBalance)) via Pix (EFI)",
+                                    icon: "arrow.up.right.circle",
+                                    color: JuntoColors.primary
+                                ) {
+                                    showWithdrawSheet = true
                                 }
                             }
 
@@ -960,7 +1022,106 @@ struct GroupDetailSheet: View {
                 .presentationDetents([.height(270)])
                 .presentationCornerRadius(20)
             }
+            .sheet(isPresented: $showWithdrawSheet) {
+                PotWithdrawSheet(
+                    groupTitle: group.title,
+                    availableAmount: group.potBalance,
+                    pixKey: store.user.pixKey
+                ) { amountToWithdraw in
+                    store.withdrawPotViaEfi(groupId: groupId, amount: amountToWithdraw)
+                    showWithdrawSheet = false
+                }
+                .presentationDetents([.height(340)])
+                .presentationCornerRadius(20)
+            }
         }
+    }
+}
+
+// MARK: - Sheet de Saque do Pote via Pix (EFI) para o responsável do grupo
+struct PotWithdrawSheet: View {
+    let groupTitle: String
+    let availableAmount: Double
+    let pixKey: String
+    let onConfirm: (Double) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Sacar saldo do Pote")
+                        .font(.inter(18, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                    Text("Transferência instantânea via EFI Bank")
+                        .font(.inter(12, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                }
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(JuntoColors.textMuted)
+                        .frame(width: 32, height: 32)
+                        .background(JuntoColors.surfaceSubtle)
+                        .clipShape(Circle())
+                }
+            }
+            .padding(.top, 20)
+
+            VStack(spacing: 10) {
+                HStack {
+                    Text("Valor disponível")
+                        .font(.inter(13, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                    Spacer()
+                    Text(JuntoStore.formatBRL(availableAmount))
+                        .font(.inter(18, weight: .medium))
+                        .foregroundColor(JuntoColors.pixGreen)
+                }
+
+                Divider()
+
+                HStack {
+                    Text("Destino (sua chave Pix)")
+                        .font(.inter(13, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                    Spacer()
+                    Text(pixKey)
+                        .font(.inter(13, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                        .lineLimit(1)
+                }
+
+                Divider()
+
+                HStack {
+                    Text("Processamento")
+                        .font(.inter(13, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                    Spacer()
+                    Text("Pix EFI · Cai na hora")
+                        .font(.inter(13, weight: .medium))
+                        .foregroundColor(JuntoColors.primary)
+                }
+            }
+            .padding(14)
+            .background(Color.white)
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
+
+            JuntoPillButton(
+                title: "Confirmar saque de \(JuntoStore.formatBRL(availableAmount))",
+                icon: "checkmark.circle",
+                color: JuntoColors.pixGreen
+            ) {
+                onConfirm(availableAmount)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .background(JuntoColors.warmBg.ignoresSafeArea())
     }
 }
 

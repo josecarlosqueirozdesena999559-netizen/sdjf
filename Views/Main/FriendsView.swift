@@ -211,6 +211,7 @@ struct AddFriendScreen: View {
     var onOpenChat: ((FriendItem) -> Void)? = nil
 
     @State private var query: String = ""
+    @State private var selectedFriendForOptions: FriendItem? = nil
 
     private var cleanQuery: String {
         query.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "@", with: "").lowercased()
@@ -308,6 +309,19 @@ struct AddFriendScreen: View {
                                             .font(.inter(12, weight: .medium))
                                             .foregroundColor(JuntoColors.primary)
                                     }
+
+                                    // Botão 3 pontos (Desfazer amizade / Bloquear)
+                                    Button {
+                                        selectedFriendForOptions = friend
+                                    } label: {
+                                        Image(systemName: "ellipsis")
+                                            .font(.system(size: 15, weight: .medium))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                            .frame(width: 32, height: 32)
+                                            .background(JuntoColors.surfaceSubtle)
+                                            .clipShape(Circle())
+                                    }
+                                    .padding(.leading, 4)
                                 }
                                 .padding(.horizontal, 20)
                                 .padding(.vertical, 12)
@@ -368,5 +382,99 @@ struct AddFriendScreen: View {
             }
         }
         .background(Color.white.ignoresSafeArea())
+        .sheet(item: $selectedFriendForOptions) { friend in
+            FriendOptionsSheet(
+                friend: friend,
+                onUnfriend: {
+                    store.unfriend(username: friend.username)
+                    selectedFriendForOptions = nil
+                },
+                onBlock: {
+                    store.blockAndUnfriend(username: friend.username)
+                    selectedFriendForOptions = nil
+                }
+            )
+            .presentationDetents([.height(270)])
+            .presentationCornerRadius(20)
+        }
+    }
+}
+
+// MARK: - Sheet Claro Customizado (3 Pontos do Amigo: Desfazer Amizade / Bloquear)
+struct FriendOptionsSheet: View {
+    let friend: FriendItem
+    let onUnfriend: () -> Void
+    let onBlock: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack(spacing: 12) {
+                GeometricAvatarView(seed: friend.username, size: 46)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(friend.name)
+                        .font(.inter(16, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                    Text("@\(friend.username)")
+                        .font(.inter(13, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                }
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .medium))
+                        .foregroundColor(JuntoColors.textMuted)
+                        .frame(width: 32, height: 32)
+                        .background(JuntoColors.surfaceSubtle)
+                        .clipShape(Circle())
+                }
+            }
+            .padding(.top, 20)
+
+            VStack(spacing: 10) {
+                Button(action: onUnfriend) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "person.badge.minus")
+                            .font(.system(size: 17))
+                            .foregroundColor(JuntoColors.textMain)
+                        Text("Desfazer amizade")
+                            .font(.inter(15, weight: .medium))
+                            .foregroundColor(JuntoColors.textMain)
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(height: 50)
+                    .background(Color.white)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+
+                Button(action: onBlock) {
+                    HStack(spacing: 12) {
+                        Image(systemName: "hand.raised")
+                            .font(.system(size: 17))
+                            .foregroundColor(JuntoColors.danger)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text("Bloquear usuário")
+                                .font(.inter(15, weight: .medium))
+                                .foregroundColor(JuntoColors.danger)
+                            Text("Desfaz a amizade automaticamente")
+                                .font(.inter(11, weight: .regular))
+                                .foregroundColor(JuntoColors.danger.opacity(0.8))
+                        }
+                        Spacer()
+                    }
+                    .padding(.horizontal, 16)
+                    .frame(height: 54)
+                    .background(JuntoColors.dangerLight)
+                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.danger.opacity(0.25), lineWidth: 1))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                }
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .background(JuntoColors.warmBg.ignoresSafeArea())
     }
 }

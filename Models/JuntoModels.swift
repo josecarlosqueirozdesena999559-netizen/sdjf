@@ -111,6 +111,18 @@ struct FriendItem: Identifiable {
     var isPendingInvite: Bool = false
     var isOnline: Bool = false
     var lastSeenText: String = "visto por último hoje às 18:10"
+    var friendsSinceText: String = "14 de mar. de 2026"
+    var isMuted: Bool = false
+}
+
+struct PersonalExpenseRecord: Identifiable {
+    let id = UUID()
+    let title: String
+    let category: String
+    let amount: Double
+    let dateText: String
+    let monthKey: String // ex: "Novembro 2026", "Outubro 2026"
+    let groupName: String
 }
 
 struct ComandaItem: Identifiable {
@@ -142,6 +154,8 @@ struct RoleGroup: Identifiable {
     var category: String
     var coverImageName: String
     var coverImageData: Data? = nil
+    var startDate: Date = Date()
+    var targetDate: Date = Calendar.current.date(byAdding: .day, value: 15, to: Date()) ?? Date()
     var potBalance: Double
     var potTarget: Double
     var totalSpent: Double

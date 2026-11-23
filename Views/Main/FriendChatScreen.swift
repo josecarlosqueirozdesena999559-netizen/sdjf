@@ -2,7 +2,7 @@ import SwiftUI
 import PhotosUI
 import UniformTypeIdentifiers
 
-/// Chat completo estilo WhatsApp com texto, foto, áudio, documento, status online / visto por último (SEM bolinha online no avatar)
+/// Chat estilo WhatsApp: sem saldo no topo, lixeira no lugar do "+" ao gravar áudio, e tela de perfil ao tocar no topo
 struct FriendChatScreen: View {
     @EnvironmentObject var store: JuntoStore
     let friend: FriendItem
@@ -13,6 +13,7 @@ struct FriendChatScreen: View {
     @State private var showPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var showDocumentImporter = false
+    @State private var showProfileScreen = false
 
     // Gravação e reprodução de áudio
     @State private var isRecordingAudio = false
@@ -21,13 +22,17 @@ struct FriendChatScreen: View {
 
     private let recordTimer = Timer.publish(every: 1.0, on: .main, in: .common).autoconnect()
 
+    private var currentFriend: FriendItem {
+        store.friends.first(where: { $0.username == friend.username }) ?? friend
+    }
+
     private var messages: [ChatMessage] {
         store.messages(for: friend.username)
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            // Topo do Chat estilo WhatsApp (SEM bolinha online no avatar!)
+            // Topo limpo estilo WhatsApp (SEM saldo e SEM bolinha online no avatar — toque no perfil abre FriendProfileScreen!)
             HStack(spacing: 12) {
                 Button { dismiss() } label: {
                     Image(systemName: "chevron.left")
@@ -36,49 +41,34 @@ struct FriendChatScreen: View {
                         .frame(width: 34, height: 34)
                 }
 
-                GeometricAvatarView(seed: friend.username, size: 40)
+                Button {
+                    showProfileScreen = true
+                } label: {
+                    HStack(spacing: 10) {
+                        GeometricAvatarView(seed: currentFriend.username, size: 40)
 
-                VStack(alignment: .leading, spacing: 1) {
-                    Text(friend.name)
-                        .font(.inter(16, weight: .medium))
-                        .foregroundColor(JuntoColors.textMain)
-                        .lineLimit(1)
+                        VStack(alignment: .leading, spacing: 1) {
+                            HStack(spacing: 5) {
+                                Text(currentFriend.name)
+                                    .font(.inter(16, weight: .medium))
+                                    .foregroundColor(JuntoColors.textMain)
+                                    .lineLimit(1)
+                                if currentFriend.isMuted {
+                                    Image(systemName: "bell.slash.fill")
+                                        .font(.system(size: 11))
+                                        .foregroundColor(JuntoColors.textLight)
+                                }
+                            }
 
-                    Text(friend.isOnline ? "online" : friend.lastSeenText)
-                        .font(.inter(12, weight: .regular))
-                        .foregroundColor(friend.isOnline ? JuntoColors.pixGreen : JuntoColors.textMuted)
-                        .lineLimit(1)
+                            Text(currentFriend.isOnline ? "online" : currentFriend.lastSeenText)
+                                .font(.inter(12, weight: .regular))
+                                .foregroundColor(currentFriend.isOnline ? JuntoColors.pixGreen : JuntoColors.textMuted)
+                                .lineLimit(1)
+                        }
+                    }
                 }
 
                 Spacer()
-
-                // Atalho financeiro discreto no topo (se houver dívida)
-                if friend.balance < 0 {
-                    Button {
-                        dismiss()
-                        store.openPixPayment(
-                            title: "Acerto com \(friend.name)",
-                            recipient: friend.name,
-                            amount: abs(friend.balance)
-                        )
-                    } label: {
-                        Text("Pagar \(JuntoStore.formatBRL(abs(friend.balance)))")
-                            .font(.inter(12, weight: .medium))
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 10)
-                            .padding(.vertical, 6)
-                            .background(JuntoColors.primary)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                    }
-                } else if friend.balance > 0 {
-                    Text("Te deve \(JuntoStore.formatBRL(friend.balance))")
-                        .font(.inter(11, weight: .medium))
-                        .foregroundColor(JuntoColors.pixGreen)
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 5)
-                        .background(JuntoColors.pixGreenLight)
-                        .clipShape(RoundedRectangle(cornerRadius: 6))
-                }
             }
             .padding(.horizontal, 14)
             .padding(.vertical, 10)
@@ -121,56 +111,46 @@ struct FriendChatScreen: View {
                 }
             }
 
-            // Barra Inferior de Envio (Clipe/Anexos + Campo de Texto + Áudio/Enviar)
+            // Barra Inferior de Envio: ao gravar áudio, o botão "+" some e entra a LIXEIRA para cancelar!
             HStack(alignment: .bottom, spacing: 8) {
-                Button {
-                    showAttachmentMenu = true
-                } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(JuntoColors.primary)
-                        .frame(width: 40, height: 40)
-                        .background(JuntoColors.surfaceSubtle)
-                        .clipShape(Circle())
-                }
-
                 if isRecordingAudio {
-                    // Estado de gravação de áudio ao vivo
+                    // Lixeira para cancelar o áudio (substitui o "+")
+                    Button {
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            isRecordingAudio = false
+                            recordingSeconds = 0
+                        }
+                    } label: {
+                        Image(systemName: "trash")
+                            .font(.system(size: 17, weight: .regular))
+                            .foregroundColor(JuntoColors.danger)
+                            .frame(width: 40, height: 40)
+                            .background(JuntoColors.dangerLight)
+                            .clipShape(Circle())
+                    }
+
+                    // Indicador de gravação ao vivo
                     HStack(spacing: 10) {
                         Circle()
                             .fill(JuntoColors.danger)
-                            .frame(width: 10, height: 10)
+                            .frame(width: 9, height: 9)
                         Text("Gravando áudio  0:\(String(format: "%02d", recordingSeconds))")
                             .font(.inter(14, weight: .regular))
                             .foregroundColor(JuntoColors.textMain)
                         Spacer()
-                        Button("Cancelar") {
-                            isRecordingAudio = false
-                            recordingSeconds = 0
-                        }
-                        .font(.inter(13, weight: .regular))
-                        .foregroundColor(JuntoColors.danger)
                     }
                     .padding(.horizontal, 14)
                     .frame(height: 42)
-                    .background(JuntoColors.dangerLight)
+                    .background(JuntoColors.surfaceSubtle)
                     .clipShape(RoundedRectangle(cornerRadius: 10))
-                } else {
-                    TextField("Mensagem...", text: $inputText, axis: .vertical)
-                        .font(.inter(15, weight: .regular))
-                        .foregroundColor(JuntoColors.textMain)
-                        .lineLimit(1...4)
-                        .padding(.horizontal, 14)
-                        .padding(.vertical, 10)
-                        .background(JuntoColors.surfaceSubtle)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                }
 
-                if isRecordingAudio {
+                    // Enviar áudio
                     Button {
                         let secs = max(recordingSeconds, 1)
-                        isRecordingAudio = false
-                        recordingSeconds = 0
+                        withAnimation(.easeInOut(duration: 0.18)) {
+                            isRecordingAudio = false
+                            recordingSeconds = 0
+                        }
                         store.sendChatMessage(to: friend.username, kind: .audio(secs))
                     } label: {
                         Image(systemName: "paperplane.fill")
@@ -180,31 +160,55 @@ struct FriendChatScreen: View {
                             .background(JuntoColors.pixGreen)
                             .clipShape(Circle())
                     }
-                } else if inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                    Button {
-                        recordingSeconds = 0
-                        isRecordingAudio = true
-                    } label: {
-                        Image(systemName: "mic.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(.white)
-                            .frame(width: 42, height: 42)
-                            .background(JuntoColors.primary)
-                            .clipShape(Circle())
-                    }
                 } else {
                     Button {
-                        let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !text.isEmpty else { return }
-                        inputText = ""
-                        store.sendChatMessage(to: friend.username, kind: .text(text))
+                        showAttachmentMenu = true
                     } label: {
-                        Image(systemName: "paperplane.fill")
-                            .font(.system(size: 16))
-                            .foregroundColor(.white)
-                            .frame(width: 42, height: 42)
-                            .background(JuntoColors.primary)
+                        Image(systemName: "plus")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundColor(JuntoColors.primary)
+                            .frame(width: 40, height: 40)
+                            .background(JuntoColors.surfaceSubtle)
                             .clipShape(Circle())
+                    }
+
+                    TextField("Mensagem...", text: $inputText, axis: .vertical)
+                        .font(.inter(15, weight: .regular))
+                        .foregroundColor(JuntoColors.textMain)
+                        .lineLimit(1...4)
+                        .padding(.horizontal, 14)
+                        .padding(.vertical, 10)
+                        .background(JuntoColors.surfaceSubtle)
+                        .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                    if inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        Button {
+                            recordingSeconds = 0
+                            withAnimation(.easeInOut(duration: 0.18)) {
+                                isRecordingAudio = true
+                            }
+                        } label: {
+                            Image(systemName: "mic.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(.white)
+                                .frame(width: 42, height: 42)
+                                .background(JuntoColors.primary)
+                                .clipShape(Circle())
+                        }
+                    } else {
+                        Button {
+                            let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
+                            guard !text.isEmpty else { return }
+                            inputText = ""
+                            store.sendChatMessage(to: friend.username, kind: .text(text))
+                        } label: {
+                            Image(systemName: "paperplane.fill")
+                                .font(.system(size: 16))
+                                .foregroundColor(.white)
+                                .frame(width: 42, height: 42)
+                                .background(JuntoColors.primary)
+                                .clipShape(Circle())
+                        }
                     }
                 }
             }
@@ -215,6 +219,13 @@ struct FriendChatScreen: View {
         }
         .onReceive(recordTimer) { _ in
             if isRecordingAudio { recordingSeconds += 1 }
+        }
+        .fullScreenCover(isPresented: $showProfileScreen) {
+            FriendProfileScreen(friend: currentFriend) {
+                // Se o usuário foi bloqueado, fecha o chat também
+                dismiss()
+            }
+            .environmentObject(store)
         }
         .confirmationDialog("Enviar anexo", isPresented: $showAttachmentMenu, titleVisibility: .visible) {
             Button("Foto da galeria") { showPhotoPicker = true }
@@ -291,7 +302,6 @@ struct FriendChatScreen: View {
                                 .clipShape(Circle())
                         }
 
-                        // Ondas de áudio minimalistas
                         HStack(spacing: 3) {
                             ForEach(0..<14, id: \.self) { i in
                                 Capsule()
@@ -326,7 +336,6 @@ struct FriendChatScreen: View {
                     }
                 }
 
-                // Horário + check de leitura
                 HStack(spacing: 3) {
                     Text(msg.timeText)
                         .font(.inter(10, weight: .regular))
@@ -348,6 +357,148 @@ struct FriendChatScreen: View {
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
             if !msg.isFromMe { Spacer(minLength: 48) }
+        }
+    }
+}
+
+// MARK: - Tela de Perfil do Usuário (ao tocar no topo da conversa)
+struct FriendProfileScreen: View {
+    @EnvironmentObject var store: JuntoStore
+    let friend: FriendItem
+    var onBlocked: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var showBlockConfirm = false
+
+    private var liveFriend: FriendItem {
+        store.friends.first(where: { $0.username == friend.username }) ?? friend
+    }
+
+    var body: some View {
+        ZStack {
+            JuntoColors.warmBg.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                HStack {
+                    CircleNavButton(icon: "chevron.left") { dismiss() }
+                    Spacer()
+                    Text("Perfil")
+                        .font(.inter(17, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                    Spacer()
+                    Spacer().frame(width: 44)
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 12)
+                .padding(.bottom, 14)
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 18) {
+                        // Cartão de identidade
+                        VStack(spacing: 12) {
+                            GeometricAvatarView(seed: liveFriend.username, size: 88)
+
+                            VStack(spacing: 4) {
+                                Text(liveFriend.name)
+                                    .font(.inter(20, weight: .medium))
+                                    .foregroundColor(JuntoColors.textMain)
+                                Text("@\(liveFriend.username)")
+                                    .font(.inter(14, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                                Text(liveFriend.isOnline ? "online" : liveFriend.lastSeenText)
+                                    .font(.inter(12, weight: .regular))
+                                    .foregroundColor(liveFriend.isOnline ? JuntoColors.pixGreen : JuntoColors.textLight)
+                                    .padding(.top, 2)
+                            }
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 22)
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                        // Informações & Notificações
+                        VStack(spacing: 0) {
+                            HStack(spacing: 12) {
+                                Image(systemName: "calendar")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(JuntoColors.primary)
+                                    .frame(width: 32, height: 32)
+                                    .background(JuntoColors.primaryLight)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Amigos desde")
+                                        .font(.inter(12, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                    Text(liveFriend.friendsSinceText)
+                                        .font(.inter(14, weight: .medium))
+                                        .foregroundColor(JuntoColors.textMain)
+                                }
+                                Spacer()
+                            }
+                            .padding(14)
+
+                            Divider().padding(.leading, 58)
+
+                            HStack(spacing: 12) {
+                                Image(systemName: liveFriend.isMuted ? "bell.slash" : "bell")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(JuntoColors.primary)
+                                    .frame(width: 32, height: 32)
+                                    .background(JuntoColors.primaryLight)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+
+                                Toggle("Silenciar notificações", isOn: Binding(
+                                    get: { liveFriend.isMuted },
+                                    set: { _ in store.toggleMuteFriend(username: liveFriend.username) }
+                                ))
+                                .font(.inter(14, weight: .regular))
+                                .foregroundColor(JuntoColors.textMain)
+                                .tint(JuntoColors.primary)
+                            }
+                            .padding(14)
+                        }
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                        // Voltar para a conversa
+                        JuntoPillButton(title: "Voltar para a conversa", icon: "bubble.left", color: JuntoColors.primary) {
+                            dismiss()
+                        }
+
+                        // Bloquear usuário (desfaz amizade automaticamente)
+                        Button {
+                            showBlockConfirm = true
+                        } label: {
+                            HStack(spacing: 10) {
+                                Image(systemName: "hand.raised")
+                                Text("Bloquear usuário")
+                                    .font(.inter(15, weight: .medium))
+                            }
+                            .foregroundColor(JuntoColors.danger)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(JuntoColors.dangerLight)
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.danger.opacity(0.25), lineWidth: 1))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 32)
+                }
+            }
+        }
+        .alert("Bloquear \(liveFriend.name)?", isPresented: $showBlockConfirm) {
+            Button("Cancelar", role: .cancel) {}
+            Button("Bloquear", role: .destructive) {
+                store.blockAndUnfriend(username: liveFriend.username)
+                dismiss()
+                onBlocked()
+            }
+        } message: {
+            Text("Ao bloquear, a amizade será desfeita automaticamente e essa pessoa não poderá mais falar com você.")
         }
     }
 }

@@ -27,11 +27,29 @@ final class JuntoStore: ObservableObject {
 
     // Mocks realistas e completos para testar imediatamente
     @Published var friends: [FriendItem] = [
-        FriendItem(name: "Pedro Santos", username: "pedro.santos", initials: "PS", balance: 100.00, isOnline: true, lastSeenText: "online"),
-        FriendItem(name: "Camila Rocha", username: "camila.rocha", initials: "CR", balance: 70.00, isOnline: false, lastSeenText: "visto por último hoje às 19:42"),
-        FriendItem(name: "Matheus Alves", username: "matheus.alves", initials: "MA", balance: -35.36, isOnline: true, lastSeenText: "online"),
-        FriendItem(name: "Beatriz Lima", username: "bia.lima", initials: "BL", balance: 0.0, isOnline: false, lastSeenText: "visto por último ontem às 22:15")
+        FriendItem(name: "Pedro Santos", username: "pedro.santos", initials: "PS", balance: 100.00, isOnline: true, lastSeenText: "online", friendsSinceText: "12 de jan. de 2026"),
+        FriendItem(name: "Camila Rocha", username: "camila.rocha", initials: "CR", balance: 70.00, isOnline: false, lastSeenText: "visto por último hoje às 19:42", friendsSinceText: "04 de mar. de 2026"),
+        FriendItem(name: "Matheus Alves", username: "matheus.alves", initials: "MA", balance: -35.36, isOnline: true, lastSeenText: "online", friendsSinceText: "21 de mai. de 2026"),
+        FriendItem(name: "Beatriz Lima", username: "bia.lima", initials: "BL", balance: 0.0, isOnline: false, lastSeenText: "visto por último ontem às 22:15", friendsSinceText: "09 de ago. de 2026")
     ]
+
+    // Despesas pessoais detalhadas por mês (para gráficos redondos e análises)
+    @Published var personalExpenses: [PersonalExpenseRecord] = [
+        PersonalExpenseRecord(title: "Casa de Praia (Cota)", category: "Viagem", amount: 420.00, dateText: "18 nov", monthKey: "Novembro 2026", groupName: "Viagem Ubatuba"),
+        PersonalExpenseRecord(title: "Gasolina + Pedágio", category: "Viagem", amount: 185.00, dateText: "17 nov", monthKey: "Novembro 2026", groupName: "Viagem Ubatuba"),
+        PersonalExpenseRecord(title: "Picanha + Bebidas", category: "Churrasco", amount: 240.00, dateText: "15 nov", monthKey: "Novembro 2026", groupName: "Churrasco de Domingo"),
+        PersonalExpenseRecord(title: "Carvão e Acompanhamentos", category: "Churrasco", amount: 115.00, dateText: "15 nov", monthKey: "Novembro 2026", groupName: "Churrasco de Domingo"),
+        PersonalExpenseRecord(title: "Energia + Condomínio", category: "Casa", amount: 265.00, dateText: "10 nov", monthKey: "Novembro 2026", groupName: "Contas do Apê 402"),
+        PersonalExpenseRecord(title: "Internet Fibra 500Mb", category: "Casa", amount: 65.00, dateText: "05 nov", monthKey: "Novembro 2026", groupName: "Contas do Apê 402"),
+        PersonalExpenseRecord(title: "Chopp + Petiscos", category: "Bar & Drinks", amount: 145.00, dateText: "02 nov", monthKey: "Novembro 2026", groupName: "Sextou"),
+        // Mês anterior (Outubro 2026) para comparativo
+        PersonalExpenseRecord(title: "Pousada Serra", category: "Viagem", amount: 520.00, dateText: "24 out", monthKey: "Outubro 2026", groupName: "Feriado Serra"),
+        PersonalExpenseRecord(title: "Aluguel + Luz", category: "Casa", amount: 490.00, dateText: "10 out", monthKey: "Outubro 2026", groupName: "Contas do Apê 402"),
+        PersonalExpenseRecord(title: "Churrasco Aniversário", category: "Churrasco", amount: 310.00, dateText: "12 out", monthKey: "Outubro 2026", groupName: "Aniversário Pedro"),
+        PersonalExpenseRecord(title: "Barzinho de Sexta", category: "Bar & Drinks", amount: 280.00, dateText: "04 out", monthKey: "Outubro 2026", groupName: "Galera")
+    ]
+
+    @Published var showMyExpensesScreen: Bool = false
 
     // Conversas de chat por @username
     @Published var chatMessages: [String: [ChatMessage]] = [
@@ -280,6 +298,69 @@ final class JuntoStore: ObservableObject {
         showToast("Conversa apagada.", icon: "trash")
     }
 
+    /// Desfaz amizade com o usuário
+    func unfriend(username raw: String) {
+        let clean = raw.lowercased().replacingOccurrences(of: "@", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        friends.removeAll { $0.username.lowercased() == clean }
+        sentInviteUsernames.remove(clean)
+        showToast("Amizade com @\(clean) desfeita.", icon: "person.badge.minus")
+    }
+
+    /// Bloqueia o usuário e automaticamente desfaz a amizade
+    func blockAndUnfriend(username raw: String) {
+        let clean = raw.lowercased().replacingOccurrences(of: "@", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        friends.removeAll { $0.username.lowercased() == clean }
+        sentInviteUsernames.remove(clean)
+        chatMessages[clean] = nil
+        if !blockedUsernames.contains(clean) {
+            blockedUsernames.insert(clean, at: 0)
+        }
+        showToast("@\(clean) bloqueado e amizade desfeita.", icon: "hand.raised")
+    }
+
+    /// Silencia ou ativa notificações de um amigo
+    func toggleMuteFriend(username raw: String) {
+        let clean = raw.lowercased()
+        guard let idx = friends.firstIndex(where: { $0.username.lowercased() == clean }) else { return }
+        friends[idx].isMuted.toggle()
+        showToast(
+            friends[idx].isMuted ? "Notificações silenciadas." : "Notificações ativadas.",
+            icon: friends[idx].isMuted ? "bell.slash" : "bell"
+        )
+    }
+
+    /// Verifica se o usuário atual é o Dono (responsável) do grupo
+    func isCurrentUserOwner(in group: RoleGroup) -> Bool {
+        group.participants.first(where: { $0.name == "Você" || $0.username == user.username })?.role == .owner
+    }
+
+    /// Saque do Pote Coletivo via EFI direto para a conta/Pix do responsável do grupo
+    func withdrawPotViaEfi(groupId: UUID, amount: Double) {
+        guard amount > 0, let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
+        guard isCurrentUserOwner(in: groups[idx]) else {
+            showToast("Apenas o responsável pelo grupo pode sacar o pote.", icon: "lock")
+            return
+        }
+        let withdrawable = min(amount, groups[idx].potBalance)
+        guard withdrawable > 0 else { return }
+
+        groups[idx].potBalance -= withdrawable
+        let groupTitle = groups[idx].title
+
+        activities.insert(
+            ActivityEvent(
+                icon: "arrow.up.right.circle",
+                title: "Saque do Pote via Pix (EFI)",
+                subtitle: "\(groupTitle) → \(user.pixKey)",
+                timeAgo: "Agora",
+                amountText: "+ \(Self.formatBRL(withdrawable))",
+                isPositive: true
+            ),
+            at: 0
+        )
+        showToast("Saque de \(Self.formatBRL(withdrawable)) enviado via Pix EFI para sua conta!", icon: "checkmark.circle")
+    }
+
     func isInviteSent(for username: String) -> Bool {
         let clean = username.lowercased().replacingOccurrences(of: "@", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
         return sentInviteUsernames.contains(clean) || friends.contains(where: { $0.username.lowercased() == clean })
@@ -502,7 +583,9 @@ final class JuntoStore: ObservableObject {
         hasPot: Bool = true,
         potTarget: Double = 0,
         invitedPeople: [SearchableUser] = [],
-        coverImageData: Data? = nil
+        coverImageData: Data? = nil,
+        startDate: Date = Date(),
+        targetDate: Date = Calendar.current.date(byAdding: .day, value: 15, to: Date()) ?? Date()
     ) {
         let cleanTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanTitle.isEmpty else {
@@ -538,6 +621,8 @@ final class JuntoStore: ObservableObject {
             category: category,
             coverImageName: cover,
             coverImageData: coverImageData,
+            startDate: startDate,
+            targetDate: targetDate,
             potBalance: 0,
             potTarget: potTarget,
             totalSpent: 0,
@@ -600,21 +685,33 @@ final class JuntoStore: ObservableObject {
         }
     }
 
-    func addQuickExpense(description: String, amount: Double, groupTitle: String) {
+    func addQuickExpense(description: String, amount: Double, groupTitle: String, category: String = "Outros") {
         let cleanDesc = description.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !cleanDesc.isEmpty, amount > 0 else {
             showToast("Informe descrição e valor.", icon: "exclamationmark.circle")
             return
         }
 
+        personalExpenses.insert(
+            PersonalExpenseRecord(
+                title: cleanDesc,
+                category: category,
+                amount: amount,
+                dateText: "Hoje",
+                monthKey: "Novembro 2026",
+                groupName: groupTitle.isEmpty ? "Pessoal" : groupTitle
+            ),
+            at: 0
+        )
+
         activities.insert(
             ActivityEvent(
-                icon: "receipt",
+                icon: "list.bullet.rectangle.portrait",
                 title: "Você adicionou \"\(cleanDesc)\"",
-                subtitle: groupTitle.isEmpty ? "Despesa dividida igualmente" : groupTitle,
+                subtitle: groupTitle.isEmpty ? category : groupTitle,
                 timeAgo: "Agora",
                 amountText: Self.formatBRL(amount),
-                isPositive: true
+                isPositive: false
             ),
             at: 0
         )
