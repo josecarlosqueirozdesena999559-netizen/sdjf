@@ -323,17 +323,21 @@ struct NotificationsSheetView: View {
                             }
                             .padding(.vertical, 12)
                         } else {
-                            HStack(alignment: .top, spacing: 12) {
-                                Image(systemName: item.icon)
-                                    .font(.system(size: 18, weight: .regular))
-                                    .foregroundColor(JuntoColors.primary)
-                                    .frame(width: 32, height: 32)
+                            HStack(alignment: .center, spacing: 12) {
+                                if let acceptedUser = item.requestUsername {
+                                    GeometricAvatarView(seed: acceptedUser, size: 40)
+                                } else {
+                                    Image(systemName: item.icon)
+                                        .font(.system(size: 18, weight: .regular))
+                                        .foregroundColor(JuntoColors.primary)
+                                        .frame(width: 32, height: 32)
+                                }
 
                                 VStack(alignment: .leading, spacing: 3) {
                                     HStack {
                                         Text(item.title)
                                             .font(.inter(14, weight: .medium))
-                                            .foregroundColor(JuntoColors.textMain)
+                                            .foregroundColor(item.requestUsername != nil ? JuntoColors.pixGreen : JuntoColors.textMain)
                                         Spacer()
                                         Text(item.timeAgo)
                                             .font(.inter(12, weight: .regular))
@@ -353,5 +357,8 @@ struct NotificationsSheetView: View {
         }
         .padding(.horizontal, 20)
         .background(Color.white)
+        .onAppear {
+            store.markAllNotificationsRead()
+        }
     }
 }

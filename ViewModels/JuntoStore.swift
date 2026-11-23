@@ -270,7 +270,7 @@ final class JuntoStore: ObservableObject {
     private let takenUsernames: Set<String> = ["admin", "pedro", "matheus", "camila", "junto", "teste", "suporte"]
 
     var unreadNotificationsCount: Int {
-        notifications.filter { $0.isUnread }.count
+        notifications.filter { $0.isUnread || $0.isFriendRequest }.count
     }
 
     var netBalance: Double {
@@ -455,7 +455,17 @@ final class JuntoStore: ObservableObject {
             )
         }
 
-        notifications.remove(at: idx)
+        // Mantém no sino mostrando que o pedido foi aceito ("Vocês agora são amigos")
+        notifications[idx] = AppNotification(
+            icon: "person.2.fill",
+            title: "Pedido aceito",
+            message: "Você e \(reqName) agora são amigos.",
+            timeAgo: "Agora",
+            isUnread: false,
+            isFriendRequest: false,
+            requestUserName: reqName,
+            requestUsername: reqUsername
+        )
         activities.insert(
             ActivityEvent(
                 icon: "person.badge.plus",
@@ -1037,7 +1047,12 @@ final class JuntoStore: ObservableObject {
     }
 
     func markAllNotificationsRead() {
-        for i in notifications.indices { notifications[i].isUnread = false }
+        for i in notifications.indices {
+            // Zera notificações comuns ao abrir, mas mantém pedidos de amizade pendentes contando até aceitar/recusar
+            if !notifications[i].isFriendRequest {
+                notifications[i].isUnread = false
+            }
+        }
     }
 
     func unblockUser(_ username: String) {

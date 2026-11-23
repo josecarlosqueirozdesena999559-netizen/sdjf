@@ -61,16 +61,10 @@ struct FriendChatScreen: View {
                                 }
                             }
 
-                            if currentFriend.isTyping {
-                                Text("digitando...")
-                                    .font(.inter(12, weight: .medium))
-                                    .foregroundColor(JuntoColors.pixGreen)
-                            } else {
-                                Text(currentFriend.isOnline ? "online" : currentFriend.lastSeenText)
-                                    .font(.inter(12, weight: .regular))
-                                    .foregroundColor(currentFriend.isOnline ? JuntoColors.pixGreen : JuntoColors.textMuted)
-                                    .lineLimit(1)
-                            }
+                            Text(currentFriend.isOnline ? "online" : currentFriend.lastSeenText)
+                                .font(.inter(12, weight: .regular))
+                                .foregroundColor(currentFriend.isOnline ? JuntoColors.pixGreen : JuntoColors.textMuted)
+                                .lineLimit(1)
                         }
                     }
                 }
@@ -129,18 +123,10 @@ struct FriendChatScreen: View {
 
                             if currentFriend.isTyping {
                                 HStack {
-                                    HStack(spacing: 4) {
-                                        Text("digitando...")
-                                            .font(.inter(12, weight: .regular))
-                                            .foregroundColor(JuntoColors.textMuted)
-                                    }
-                                    .padding(.horizontal, 12)
-                                    .padding(.vertical, 8)
-                                    .background(Color.white)
-                                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 0.8))
-                                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                                    TypingDotsBubble()
                                     Spacer()
                                 }
+                                .transition(.opacity.combined(with: .move(edge: .bottom)))
                             }
                         }
                         .padding(.horizontal, 14)
@@ -249,7 +235,7 @@ struct FriendChatScreen: View {
                             .font(.system(size: 15))
                             .foregroundColor(.white)
                             .frame(width: 40, height: 40)
-                            .background(JuntoColors.pixGreen)
+                            .background(JuntoColors.primary)
                             .clipShape(Circle())
                     }
                 } else {
@@ -313,7 +299,22 @@ struct FriendChatScreen: View {
             .background(Color.white)
             .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.8), alignment: .top)
         }
+        .onAppear {
+            // Reprodução automática do próximo áudio consecutivo da conversa
+            audioManager.onPlaybackFinished = { finishedId in
+                let list = store.messages(for: friend.username)
+                guard let idx = list.firstIndex(where: { $0.id == finishedId }),
+                      idx + 1 < list.count else { return }
+                let nextMsg = list[idx + 1]
+                if case .audio(let nextDur, _, let nextURL) = nextMsg.kind {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        audioManager.togglePlayback(messageId: nextMsg.id, fileURL: nextURL, durationSeconds: nextDur)
+                    }
+                }
+            }
+        }
         .onDisappear {
+            audioManager.onPlaybackFinished = nil
             audioManager.stopPlayback()
             audioManager.cancelRecording()
         }
@@ -402,17 +403,18 @@ struct FriendChatScreen: View {
                                 .clipShape(Circle())
                         }
 
-                        // Ondas gravadas sincronizadas com o progresso da reprodução
+                        // Ondas gravadas sincronizadas — ficam em laranja vibrante ao reproduzir!
                         HStack(spacing: 2.5) {
                             ForEach(Array(bars.enumerated()), id: \.offset) { idx, level in
                                 let barFraction = Double(idx + 1) / Double(max(bars.count, 1))
                                 let isActiveBar = isPlaying && barFraction <= progress
-                                let activeColor: Color = msg.isFromMe ? JuntoColors.accent : JuntoColors.primary
-                                let inactiveColor: Color = msg.isFromMe ? Color.white.opacity(0.42) : JuntoColors.primary.opacity(0.28)
+                                let activeColor: Color = JuntoColors.accent // Laranja vibrante ao escutar
+                                let inactiveColor: Color = msg.isFromMe ? Color.white.opacity(0.40) : JuntoColors.primary.opacity(0.24)
 
                                 Capsule()
                                     .fill(isActiveBar ? activeColor : inactiveColor)
                                     .frame(width: 2.8, height: max(5, CGFloat(level) * 24))
+                                    .animation(.easeOut(duration: 0.1), value: isActiveBar)
                             }
                         }
 
@@ -668,6 +670,34 @@ struct FriendProfileScreen: View {
             }
         } message: {
             Text("Ao bloquear, a amizade será desfeita automaticamente e essa pessoa não poderá mais falar com você.")
+        }
+    }
+}
+
+// MARK: - Balão animado "digitando..." (3 pontinhos saltando na parte inferior do chat)
+struct TypingDotsBubble: View {
+    @State private var phase: Int = 0
+    private let timer = Timer.publish(every: 0.34, on: .main, in: .common).autoconnect()
+
+    var body: some View {
+        HStack(spacing: 5) {
+            ForEach(0..<3, id: \.self) { index in
+                Circle()
+                    .fill(JuntoColors.textMuted)
+                    .frame(width: 7, height: 7)
+                    .scaleEffect(phase == index ? 1.25 : 0.78)
+                    .opacity(phase == index ? 1.0 : 0.45)
+                    .offset(y: phase == index ? -3 : 0)
+                    .animation(.easeInOut(duration: 0.28), value: phase)
+            }
+        }
+        .padding(.horizontal, 14)
+        .padding(.vertical, 11)
+        .background(Color.white)
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(JuntoColors.border, lineWidth: 0.8))
+        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .onReceive(timer) { _ in
+            phase = (phase + 1) % 3
         }
     }
 }

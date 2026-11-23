@@ -2,7 +2,7 @@ import Foundation
 import AVFoundation
 import SwiftUI
 
-/// Gerenciador real de gravação (AVAudioRecorder com metering de volume) e reprodução sincronizada (AVAudioPlayer)
+/// Gerenciador real de gravação limpa (AVAudioRecorder com supressão de ruído / voiceChat) e reprodução sincronizada com auto-play
 @MainActor
 final class AudioChatManager: NSObject, ObservableObject, AVAudioPlayerDelegate {
     @Published var isRecording = false
@@ -13,6 +13,9 @@ final class AudioChatManager: NSObject, ObservableObject, AVAudioPlayerDelegate 
     @Published var playbackProgress: Double = 0.0
     @Published var playbackCurrentSeconds: Int = 0
 
+    /// Chamado automaticamente quando um áudio termina de tocar (permite tocar o próximo áudio da fila)
+    var onPlaybackFinished: ((UUID) -> Void)?
+
     private var recorder: AVAudioRecorder?
     private var player: AVAudioPlayer?
     private var currentRecordingURL: URL?
@@ -21,7 +24,7 @@ final class AudioChatManager: NSObject, ObservableObject, AVAudioPlayerDelegate 
     private var recordStartDate: Date?
     private var simulatedDuration: Double = 0
 
-    // MARK: - Gravação Real com Metering de Volume
+    // MARK: - Gravação Real Limpa (44.1kHz AAC High + VoiceChat noise suppression)
     func startRecording() {
         stopPlayback()
         liveLevels = []
@@ -30,7 +33,12 @@ final class AudioChatManager: NSObject, ObservableObject, AVAudioPlayerDelegate 
 
         let session = AVAudioSession.sharedInstance()
         do {
-            try session.setCategory(.playAndRecord, mode: .default, options: [.defaultToSpeaker])
+            try session.setCategory(
+                .playAndRecord,
+                mode: .voiceChat,
+                options: [.defaultToSpeaker, .allowBluetooth]
+            )
+            try session.setPreferredSampleRate(44100)
             try session.setActive(true)
 
             let fileURL = FileManager.default.temporaryDirectory
@@ -39,17 +47,18 @@ final class AudioChatManager: NSObject, ObservableObject, AVAudioPlayerDelegate 
 
             let settings: [String: Any] = [
                 AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
-                AVSampleRateKey: 22050,
+                AVSampleRateKey: 44100.0,
                 AVNumberOfChannelsKey: 1,
-                AVEncoderAudioQualityKey: AVAudioQuality.medium.rawValue
+                AVEncoderBitRateKey: 96000,
+                AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
             ]
 
             let rec = try AVAudioRecorder(url: fileURL, settings: settings)
             rec.isMeteringEnabled = true
+            rec.prepareToRecord()
             rec.record()
             recorder = rec
         } catch {
-            // Fallback seguro no simulador se microfone não estiver disponível
             recorder = nil
         }
 
@@ -77,8 +86,7 @@ final class AudioChatManager: NSObject, ObservableObject, AVAudioPlayerDelegate 
             let clamped = max(-52.0, min(0.0, Double(power)))
             normalized = CGFloat(max(0.14, (clamped + 52.0) / 52.0))
         } else {
-            // Fallback de onda suave no simulador sem microfone físico
-            normalized = CGFloat.random(in: 0.18...0.88)
+            normalized = CGFloat.random(in: 0.18...0.85)
         }
 
         liveLevels.append(normalized)
@@ -92,6 +100,7 @@ final class AudioChatManager: NSObject, ObservableObject, AVAudioPlayerDelegate 
         meteringTimer = nil
         recorder?.stop()
         recorder = nil
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
         if let url = currentRecordingURL {
             try? FileManager.default.removeItem(at: url)
         }
@@ -106,6 +115,7 @@ final class AudioChatManager: NSObject, ObservableObject, AVAudioPlayerDelegate 
         meteringTimer = nil
         recorder?.stop()
         recorder = nil
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
 
         let finalDuration = max(recordingSeconds, 1)
         let sampledWaveform = resampleWaveform(liveLevels, targetCount: 24)
@@ -119,7 +129,7 @@ final class AudioChatManager: NSObject, ObservableObject, AVAudioPlayerDelegate 
         return (finalDuration, sampledWaveform, url)
     }
 
-    // MARK: - Reprodução Sincronizada com Ondas
+    // MARK: - Reprodução Limpa e Sincronizada com Ondas + Auto-Play
     func togglePlayback(messageId: UUID, fileURL: URL?, durationSeconds: Int) {
         if playingMessageId == messageId {
             stopPlayback()
@@ -135,10 +145,12 @@ final class AudioChatManager: NSObject, ObservableObject, AVAudioPlayerDelegate 
         if let url = fileURL, FileManager.default.fileExists(atPath: url.path) {
             do {
                 let session = AVAudioSession.sharedInstance()
-                try session.setCategory(.playback, mode: .default)
+                try session.setCategory(.playback, mode: .spokenAudio, options: [])
                 try session.setActive(true)
                 let p = try AVAudioPlayer(contentsOf: url)
                 p.delegate = self
+                p.volume = 1.0
+                p.prepareToPlay()
                 p.play()
                 player = p
             } catch {
@@ -155,14 +167,18 @@ final class AudioChatManager: NSObject, ObservableObject, AVAudioPlayerDelegate 
                     self.playbackProgress = min(p.currentTime / p.duration, 1.0)
                     self.playbackCurrentSeconds = Int(p.currentTime)
                     if !p.isPlaying && self.playbackProgress >= 0.98 {
+                        let finishedId = messageId
                         self.stopPlayback()
+                        self.onPlaybackFinished?(finishedId)
                     }
                 } else {
                     let elapsed = Date().timeIntervalSince(start)
                     self.playbackProgress = min(elapsed / self.simulatedDuration, 1.0)
                     self.playbackCurrentSeconds = Int(elapsed)
                     if elapsed >= self.simulatedDuration {
+                        let finishedId = messageId
                         self.stopPlayback()
+                        self.onPlaybackFinished?(finishedId)
                     }
                 }
             }
@@ -181,7 +197,11 @@ final class AudioChatManager: NSObject, ObservableObject, AVAudioPlayerDelegate 
 
     nonisolated func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
         Task { @MainActor in
+            let finishedId = self.playingMessageId
             self.stopPlayback()
+            if flag, let id = finishedId {
+                self.onPlaybackFinished?(id)
+            }
         }
     }
 

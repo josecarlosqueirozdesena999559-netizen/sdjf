@@ -38,10 +38,15 @@ struct FriendsView: View {
                             .clipShape(Circle())
 
                         if store.unreadNotificationsCount > 0 {
-                            Circle()
-                                .fill(JuntoColors.accent)
-                                .frame(width: 8, height: 8)
-                                .offset(x: -9, y: 9)
+                            Text("\(min(store.unreadNotificationsCount, 99))")
+                                .font(.inter(10, weight: .medium))
+                                .foregroundColor(.white)
+                                .frame(minWidth: 18, minHeight: 18)
+                                .padding(.horizontal, 4)
+                                .background(JuntoColors.danger)
+                                .clipShape(Capsule())
+                                .overlay(Capsule().stroke(Color.white, lineWidth: 1.5))
+                                .offset(x: 3, y: -3)
                         }
                     }
                 }
