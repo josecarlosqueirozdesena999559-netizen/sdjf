@@ -326,13 +326,30 @@ struct FriendChatScreen: View {
             }
             .environmentObject(store)
         }
-        .confirmationDialog("Enviar anexo", isPresented: $showAttachmentMenu, titleVisibility: .visible) {
-            Button("Foto da galeria") { showPhotoPicker = true }
-            Button("Documento (PDF / arquivo)") { showDocumentImporter = true }
-            Button("Enviar comprovante rápido (PDF)") {
-                store.sendChatMessage(to: friend.username, kind: .document("Comprovante_Pix.pdf", "124 KB"))
-            }
-            Button("Cancelar", role: .cancel) {}
+        .sheet(isPresented: $showAttachmentMenu) {
+            ChatAttachmentMenuSheet(
+                onSelectPhoto: {
+                    showAttachmentMenu = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        showPhotoPicker = true
+                    }
+                },
+                onSelectDocument: {
+                    showAttachmentMenu = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        showDocumentImporter = true
+                    }
+                },
+                onSelectPix: {
+                    showAttachmentMenu = false
+                    store.sendChatMessage(
+                        to: friend.username,
+                        kind: .text("Minha chave Pix: \(store.user.pixKey)")
+                    )
+                }
+            )
+            .presentationDetents([.height(210)])
+            .presentationCornerRadius(22)
         }
         .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhotoItem, matching: .images)
         .onChange(of: selectedPhotoItem) { _, newItem in
@@ -701,6 +718,64 @@ struct TypingDotsBubble: View {
         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
         .onReceive(timer) { _ in
             phase = (phase + 1) % 3
+        }
+    }
+}
+
+// MARK: - Menu "+" estilo WhatsApp (Imagens, Documentos, Pix)
+struct ChatAttachmentMenuSheet: View {
+    let onSelectPhoto: () -> Void
+    let onSelectDocument: () -> Void
+    let onSelectPix: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 18) {
+            HStack {
+                Text("Enviar na conversa")
+                    .font(.inter(16, weight: .medium))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .medium))
+                        .foregroundColor(JuntoColors.textMuted)
+                        .frame(width: 30, height: 30)
+                        .background(JuntoColors.surfaceSubtle)
+                        .clipShape(Circle())
+                }
+            }
+            .padding(.top, 18)
+
+            HStack(spacing: 18) {
+                attachmentOption(icon: "photo.on.rectangle.angled", label: "Imagens", color: Color(hex: "#2563EB"), action: onSelectPhoto)
+                attachmentOption(icon: "doc.text", label: "Documentos", color: Color(hex: "#7C3AED"), action: onSelectDocument)
+                attachmentOption(icon: "qrcode", label: "Pix", color: JuntoColors.pixGreen, action: onSelectPix)
+            }
+
+            Spacer()
+        }
+        .padding(.horizontal, 22)
+        .background(JuntoColors.warmBg.ignoresSafeArea())
+    }
+
+    private func attachmentOption(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.system(size: 22, weight: .regular))
+                    .foregroundColor(color)
+                    .frame(width: 58, height: 58)
+                    .background(Color.white)
+                    .overlay(Circle().stroke(JuntoColors.border, lineWidth: 1))
+                    .clipShape(Circle())
+                    .shadow(color: Color.black.opacity(0.04), radius: 5, y: 2)
+
+                Text(label)
+                    .font(.inter(12, weight: .medium))
+                    .foregroundColor(JuntoColors.textMain)
+            }
+            .frame(maxWidth: .infinity)
         }
     }
 }

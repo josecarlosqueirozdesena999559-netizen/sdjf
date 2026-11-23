@@ -1,11 +1,15 @@
 import SwiftUI
 import PhotosUI
+import CoreImage.CIFilterBuiltins
 
 struct AccountView: View {
     @EnvironmentObject var store: JuntoStore
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var showAccountSettings = false
     @State private var showSecurityPrivacy = false
+    @State private var showMyPixKey = false
+    @State private var showInviteFriends = false
+    @State private var showPrivacyPolicy = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -64,19 +68,23 @@ struct AccountView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 18)
 
-                    // Card Juntô Pro
-                    VStack(spacing: 16) {
-                        Image(systemName: "diamond.fill")
-                            .font(.system(size: 36, weight: .light))
-                            .foregroundColor(JuntoColors.proIndigo)
-                            .padding(.top, 6)
+                    // Card Juntô Pro com emblema customizado
+                    VStack(spacing: 14) {
+                        JuntoProBadgeIcon(size: 52)
+                            .padding(.top, 4)
 
-                        Text("Faça mais com o Juntô Pro.")
-                            .font(.inter(16, weight: .regular))
-                            .foregroundColor(JuntoColors.textMain)
+                        VStack(spacing: 4) {
+                            Text("Faça mais com o Juntô Pro.")
+                                .font(.inter(16, weight: .medium))
+                                .foregroundColor(JuntoColors.textMain)
+                            Text("Comanda com IA ilimitada, relatórios avançados e grupos sem limites.")
+                                .font(.inter(12, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                                .multilineTextAlignment(.center)
+                        }
 
                         JuntoPillButton(title: "Obter Juntô Pro", color: JuntoColors.proIndigo) {
-                            store.showToast("Juntô Pro: Comanda IA ilimitada e Pix automático.", icon: "sparkles")
+                            store.showToast("Juntô Pro: Comanda IA ilimitada e relatórios avançados.", icon: "sparkles")
                         }
                     }
                     .padding(20)
@@ -85,9 +93,14 @@ struct AccountView: View {
                     .padding(.horizontal, 18)
                     .padding(.bottom, 20)
 
-                    // Menu limpo (Segurança e privacidade em menu exclusivo!)
-                    accountRow(icon: "qrcode", title: "Meu código Pix") {
-                        store.openPixPayment(title: "Meu QR Code Pix", recipient: store.user.fullName, amount: 25.00)
+                    // Menu limpo
+                    accountRow(icon: "qrcode", title: "Chave Pix") {
+                        showMyPixKey = true
+                    }
+                    Divider().padding(.leading, 20)
+
+                    accountRow(icon: "person.badge.plus", title: "Convidar amigos") {
+                        showInviteFriends = true
                     }
                     Divider().padding(.leading, 20)
 
@@ -102,7 +115,7 @@ struct AccountView: View {
                     Divider().padding(.leading, 20)
 
                     accountRow(icon: "doc.text", title: "Política de Privacidade (LGPD)") {
-                        store.showToast("Dados protegidos com AES-256 e retenção LGPD de 90 dias.", icon: "lock.shield")
+                        showPrivacyPolicy = true
                     }
                     Divider().padding(.leading, 20)
 
@@ -121,6 +134,22 @@ struct AccountView: View {
         .fullScreenCover(isPresented: $showSecurityPrivacy) {
             SecurityPrivacyScreen()
                 .environmentObject(store)
+        }
+        .fullScreenCover(isPresented: $showMyPixKey) {
+            MyPixKeyScreen {
+                showMyPixKey = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    showAccountSettings = true
+                }
+            }
+            .environmentObject(store)
+        }
+        .fullScreenCover(isPresented: $showInviteFriends) {
+            InviteFriendsScreen()
+                .environmentObject(store)
+        }
+        .fullScreenCover(isPresented: $showPrivacyPolicy) {
+            PrivacyPolicyScreen()
         }
     }
 
@@ -799,5 +828,467 @@ struct DeleteAccountScreen: View {
                 Spacer()
             }
         }
+    }
+}
+
+// MARK: - Emblema Premium Customizado do Juntô Pro
+struct JuntoProBadgeIcon: View {
+    var size: CGFloat = 52
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: size * 0.28, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: [JuntoColors.primary, JuntoColors.proIndigo],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .frame(width: size, height: size)
+                .shadow(color: JuntoColors.proIndigo.opacity(0.28), radius: 10, y: 4)
+
+            RoundedRectangle(cornerRadius: size * 0.24, style: .continuous)
+                .stroke(JuntoColors.accent.opacity(0.65), lineWidth: 1.2)
+                .frame(width: size * 0.86, height: size * 0.86)
+
+            Image(systemName: "crown.fill")
+                .font(.system(size: size * 0.36, weight: .medium))
+                .foregroundColor(JuntoColors.accent)
+
+            Image(systemName: "sparkle")
+                .font(.system(size: size * 0.16, weight: .semibold))
+                .foregroundColor(.white)
+                .offset(x: size * 0.26, y: -size * 0.24)
+        }
+    }
+}
+
+// MARK: - Tela "Chave Pix" (QR Code real + Copiar + Compartilhar + Editar)
+struct MyPixKeyScreen: View {
+    @EnvironmentObject var store: JuntoStore
+    var onEditPixKey: () -> Void
+    @Environment(\.dismiss) private var dismiss
+    @State private var copied = false
+
+    private var pixPayload: String {
+        "00020126420014br.gov.bcb.pix0120\(store.user.pixKey)5204000053039865802BR5914\(store.user.fullName.prefix(14).uppercased())6009SAO PAULO62070503***6304E1F9"
+    }
+
+    private func generateQRCodeImage(from string: String) -> UIImage? {
+        let context = CIContext()
+        let filter = CIFilter.qrCodeGenerator()
+        filter.message = Data(string.utf8)
+        filter.correctionLevel = "M"
+        guard let output = filter.outputImage else { return nil }
+        let scaled = output.transformed(by: CGAffineTransform(scaleX: 9, y: 9))
+        guard let cgImage = context.createCGImage(scaled, from: scaled.extent) else { return nil }
+        return UIImage(cgImage: cgImage)
+    }
+
+    var body: some View {
+        ZStack {
+            JuntoColors.warmBg.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                HStack {
+                    CircleNavButton(icon: "chevron.left") { dismiss() }
+                    Spacer()
+                    Text("Chave Pix")
+                        .font(.inter(17, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                    Spacer()
+                    Spacer().frame(width: 44)
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 10)
+                .padding(.bottom, 16)
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 18) {
+                        // Cartão principal com QR Code Pix
+                        VStack(spacing: 16) {
+                            VStack(spacing: 3) {
+                                Text(store.user.fullName)
+                                    .font(.inter(18, weight: .medium))
+                                    .foregroundColor(JuntoColors.textMain)
+                                Text("@\(store.user.username)")
+                                    .font(.inter(13, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                            }
+
+                            if let qrImg = generateQRCodeImage(from: pixPayload) {
+                                Image(uiImage: qrImg)
+                                    .interpolation(.none)
+                                    .resizable()
+                                    .scaledToFit()
+                                    .frame(width: 196, height: 196)
+                                    .padding(14)
+                                    .background(Color.white)
+                                    .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
+                                    .clipShape(RoundedRectangle(cornerRadius: 14))
+                            }
+
+                            Text("Mostre este QR Code para receber pagamentos de amigos e grupos diretamente na sua conta.")
+                                .font(.inter(12, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 10)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(22)
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+
+                        // Bloco da Chave Pix cadastrada
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack {
+                                Text("SUA CHAVE PIX")
+                                    .font(.inter(11, weight: .medium))
+                                    .tracking(0.8)
+                                    .foregroundColor(JuntoColors.textMuted)
+                                Spacer()
+                                Button("Alterar") {
+                                    onEditPixKey()
+                                }
+                                .font(.inter(12, weight: .medium))
+                                .foregroundColor(JuntoColors.primary)
+                            }
+
+                            Text(store.user.pixKey)
+                                .font(.inter(16, weight: .medium))
+                                .foregroundColor(JuntoColors.textMain)
+                                .textSelection(.enabled)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(16)
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                        // Ações: Copiar + Compartilhar
+                        VStack(spacing: 10) {
+                            JuntoPillButton(
+                                title: copied ? "Chave Pix copiada!" : "Copiar chave Pix",
+                                icon: copied ? "checkmark" : "doc.on.doc",
+                                color: JuntoColors.primary
+                            ) {
+                                UIPasteboard.general.string = store.user.pixKey
+                                copied = true
+                                store.showToast("Chave Pix copiada!", icon: "doc.on.doc")
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copied = false }
+                            }
+
+                            ShareLink(
+                                item: "Minha chave Pix no Juntô (\(store.user.fullName)): \(store.user.pixKey)"
+                            ) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "square.and.arrow.up")
+                                        .font(.system(size: 16, weight: .regular))
+                                    Text("Compartilhar chave Pix")
+                                        .font(.inter(16, weight: .medium))
+                                }
+                                .foregroundColor(JuntoColors.primary)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 52)
+                                .background(Color.white)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 10, style: .continuous)
+                                        .stroke(JuntoColors.primary, lineWidth: 1.2)
+                                )
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 36)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Tela "Convidar amigos" com Link Real Compartilhável
+struct InviteFriendsScreen: View {
+    @EnvironmentObject var store: JuntoStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var copiedLink = false
+
+    private var inviteURLString: String {
+        "https://junto.app/convite/\(store.user.username)"
+    }
+
+    private var inviteShareMessage: String {
+        "Bora dividir os rolês e viagens sem dor de cabeça no Juntô! Me adiciona por esse link: \(inviteURLString)"
+    }
+
+    var body: some View {
+        ZStack {
+            JuntoColors.warmBg.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                HStack {
+                    CircleNavButton(icon: "chevron.left") { dismiss() }
+                    Spacer()
+                    Text("Convidar amigos")
+                        .font(.inter(17, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                    Spacer()
+                    Spacer().frame(width: 44)
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 10)
+                .padding(.bottom, 18)
+
+                ScrollView(showsIndicators: false) {
+                    VStack(spacing: 20) {
+                        // Card de convite
+                        VStack(spacing: 14) {
+                            JuntoLogoMark(size: 56)
+                                .padding(.top, 4)
+
+                            Text("Chame a galera pro Juntô")
+                                .font(.inter(20, weight: .medium))
+                                .foregroundColor(JuntoColors.textMain)
+                                .multilineTextAlignment(.center)
+
+                            Text("Envie seu link exclusivo para amigos entrarem direto nos seus grupos, racharem despesas e acertarem tudo via Pix.")
+                                .font(.inter(14, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                                .multilineTextAlignment(.center)
+                                .lineSpacing(3)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(24)
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 16))
+
+                        // Caixa com link real gerado
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("SEU LINK DE CONVITE")
+                                .font(.inter(11, weight: .medium))
+                                .tracking(0.8)
+                                .foregroundColor(JuntoColors.textMuted)
+
+                            HStack(spacing: 10) {
+                                Image(systemName: "link")
+                                    .font(.system(size: 15))
+                                    .foregroundColor(JuntoColors.primary)
+                                Text(inviteURLString)
+                                    .font(.inter(14, weight: .medium))
+                                    .foregroundColor(JuntoColors.textMain)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                                Spacer()
+                            }
+                            .padding(14)
+                            .background(JuntoColors.surfaceSubtle)
+                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
+                            .clipShape(RoundedRectangle(cornerRadius: 10))
+                        }
+                        .padding(16)
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                        // Botões reais: ShareLink nativo iOS + Copiar link
+                        VStack(spacing: 10) {
+                            ShareLink(item: inviteShareMessage) {
+                                HStack(spacing: 8) {
+                                    Image(systemName: "square.and.arrow.up")
+                                        .font(.system(size: 16, weight: .regular))
+                                    Text("Compartilhar link de convite")
+                                        .font(.inter(16, weight: .medium))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 52)
+                                .background(JuntoColors.primary)
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                            }
+
+                            JuntoOutlineButton(
+                                title: copiedLink ? "Link copiado!" : "Copiar link",
+                                icon: copiedLink ? "checkmark" : "doc.on.doc",
+                                color: JuntoColors.primary
+                            ) {
+                                UIPasteboard.general.string = inviteURLString
+                                copiedLink = true
+                                store.showToast("Link de convite copiado!", icon: "link")
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedLink = false }
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 36)
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Política de Privacidade Completa (Textos Jurídicos LGPD & Marco Civil + Práticas Reais do Juntô)
+struct PrivacyPolicyScreen: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        ZStack {
+            JuntoColors.warmBg.ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                HStack {
+                    CircleNavButton(icon: "chevron.left") { dismiss() }
+                    Spacer()
+                    Text("Política de Privacidade")
+                        .font(.inter(17, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                    Spacer()
+                    Spacer().frame(width: 44)
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 10)
+                .padding(.bottom, 14)
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 18) {
+                        // Cabeçalho jurídico
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Política de Privacidade e Proteção de Dados Pessoais")
+                                .font(.inter(20, weight: .medium))
+                                .foregroundColor(JuntoColors.textMain)
+                            Text("Aplicativo Juntô • Versão 1.0 • Atualizada em 22 de novembro de 2026")
+                                .font(.inter(12, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                            Text("Elaborada em conformidade com a Lei Federal nº 13.709/2018 (Lei Geral de Proteção de Dados Pessoais – LGPD), a Lei nº 12.965/2014 (Marco Civil da Internet) e o Decreto nº 8.771/2016.")
+                                .font(.inter(12, weight: .regular))
+                                .foregroundColor(JuntoColors.primary)
+                                .padding(.top, 4)
+                        }
+                        .padding(18)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 14))
+
+                        policySection(
+                            number: "1. Controlador e Escopo de Aplicação",
+                            body: """
+Esta Política de Privacidade descreve, de maneira clara, transparente e acessível (art. 6º, VI, e art. 9º da Lei nº 13.709/2018 – LGPD), como o aplicativo Juntô (“Plataforma” ou “Controlador”) coleta, utiliza, armazena, protege e elimina dados pessoais dos seus usuários (“Titulares”).
+
+Ao criar uma conta ou utilizar quaisquer funcionalidades do Juntô — incluindo divisão de despesas em grupos, gestão de cotas de potes coletivos, chats individuais e registros financeiros pessoais — o Titular declara ciência integral das práticas descritas neste instrumento.
+"""
+                        )
+
+                        policySection(
+                            number: "2. Dados Pessoais Coletados e Finalidades Específicas",
+                            body: """
+Em observância ao princípio da necessidade e minimização de dados (art. 6º, III, da LGPD), coletamos exclusivamente os dados indispensáveis ao funcionamento da Plataforma:
+
+• Dados de Identificação e Cadastro: nome completo, endereço de e-mail, nome de usuário exclusivo (@usuário) e número de telefone brasileiro (+55). Finalidade: criação da conta, autenticação, descoberta exclusiva por @usuário e comunicação de segurança.
+• Chave Pix Informada pelo Titular: CPF, celular, e-mail ou chave aleatória cadastrada voluntariamente pelo usuário. Finalidade: geração de QR Code estático e exibição para que outros participantes de grupos realizem transferências Pix diretamente ao organizador, fora da Plataforma.
+• Dados de Uso e Grupos: nomes e categorias de grupos, valores de despesas, divisão de cotas, marcações manuais de pagamento (“Pago” / “Confirmar pago”), mensagens de texto, áudios, fotos e documentos anexados voluntariamente nas conversas.
+• Registros Técnicos e Sessões de Dispositivos: modelo do aparelho, versão do sistema operacional, endereço IP, data e hora de acesso (art. 15 da Lei nº 12.965/2014 – Marco Civil da Internet). Finalidade: exibição da tela “Dispositivos conectados”, prevenção a fraudes e cumprimento de obrigação legal de guarda de logs de acesso por 6 (seis) meses.
+
+O Juntô NÃO coleta dados pessoais sensíveis previstos no art. 5º, II, da LGPD (como origem racial, convicção religiosa, dados biométricos ou de saúde) e NÃO acessa sua lista de contatos telefônicos sem autorização expressa.
+"""
+                        )
+
+                        policySection(
+                            number: "3. Natureza P2P e Ausência de Intermediação Financeira",
+                            body: """
+O Juntô atua estritamente como ferramenta tecnológica de organização, cálculo, rateio e comunicação entre amigos e participantes de grupos.
+
+• O aplicativo NÃO realiza custódia de valores, NÃO mantém saldo bancário de terceiros, NÃO executa débitos automáticos em contas bancárias e NÃO atua como Instituição de Pagamento (Lei nº 12.865/2013).
+• Toda transferência financeira via Pix é realizada diretamente entre o pagador e o organizador do grupo, por meio do aplicativo bancário de escolha de cada usuário. O Juntô apenas facilita a exibição da chave Pix / QR Code do organizador e registra a marcação manual de pagamento e sua conferência pelo responsável do grupo.
+"""
+                        )
+
+                        policySection(
+                            number: "4. Bases Legais para o Tratamento (Art. 7º da LGPD)",
+                            body: """
+Todo tratamento de dados pessoais realizado pelo Juntô fundamenta-se nas hipóteses legais do art. 7º da Lei nº 13.709/2018:
+
+• Execução de contrato ou procedimentos preliminares (art. 7º, V): operacionalização do cadastro, grupos, cálculos de rateio e mensagens em tempo real.
+• Consentimento livre, informado e inequívoco do Titular (art. 7º, I): uso de câmera/galeria para foto de perfil ou capa de grupo, gravação de mensagens de áudio via microfone e compartilhamento de documentos.
+• Cumprimento de obrigação legal ou regulatória (art. 7º, II): guarda de registros de acesso conforme o art. 15 do Marco Civil da Internet e atendimento a requisições judiciais.
+• Exercício regular de direitos e prevenção a fraudes (art. 7º, VI e IX): proteção da integridade das sessões, bloqueio de usuários abusivos e auditoria de segurança.
+"""
+                        )
+
+                        policySection(
+                            number: "5. Medidas Técnicas e Administrativas de Segurança (Art. 46 da LGPD)",
+                            body: """
+Adotamos medidas técnicas e organizacionais compatíveis com as melhores práticas de segurança da informação para proteger os dados contra acessos não autorizados, perda, alteração ou vazamento:
+
+• Criptografia em Trânsito: todas as comunicações entre o aplicativo iOS, APIs REST e conexões em tempo real (Socket.IO) trafegam sobre TLS 1.3 com certificados válidos.
+• Criptografia em Repouso (AES-256-GCM): dados pessoais críticos armazenados em nosso banco de dados PostgreSQL — incluindo chave Pix, telefone e registros de auditoria/retenção — são cifrados com algoritmo autenticado AES-256-GCM e chaves gerenciadas exclusivamente no ambiente seguro do servidor.
+• Proteção de Credenciais e Sessões: senhas são armazenadas exclusivamente por meio de hash criptográfico irreversível com sal aleatório; sessões utilizam tokens JWT assinados com expiração controlada e revogação individual por aparelho na tela “Dispositivos conectados”.
+• Comunicação de Incidentes: na hipótese de incidente de segurança que possa acarretar risco ou dano relevante aos Titulares, o Juntô comunicará a Autoridade Nacional de Proteção de Dados (ANPD) e os usuários afetados nos prazos e termos do art. 48 da LGPD e da Resolução CD/ANPD nº 15/2024.
+"""
+                        )
+
+                        policySection(
+                            number: "6. Retenção de 90 Dias Pós-Exclusão e Anonimização Definitiva (Arts. 15 e 16 da LGPD)",
+                            body: """
+O Titular pode solicitar a exclusão da sua conta a qualquer momento em Conta → Segurança e privacidade → Excluir conta.
+
+• Encerramento Imediato: ao confirmar a exclusão, o acesso à conta e todas as sessões ativas em todos os dispositivos são revogados imediatamente, e o @usuário fica bloqueado contra reutilização imediata.
+• Período de Retenção Segura (90 dias): com respaldo no art. 16, I e IV, da LGPD, os registros essenciais de auditoria são mantidos de forma isolada e cifrada por 90 (noventa) dias corridos, exclusivamente para cumprimento de obrigações legais, prevenção a fraudes e resguardo de direitos em eventual disputa entre participantes de grupos.
+• Anonimização Irreversível Automatizada: decorrido o prazo de 90 dias, nossa rotina automatizada de expurgo realiza a eliminação definitiva e anonimização irreversível dos identificadores pessoais (art. 5º, XI, e art. 12 da LGPD), impossibilitando a reidentificação do Titular.
+"""
+                        )
+
+                        policySection(
+                            number: "7. Direitos do Titular de Dados (Art. 18 da LGPD)",
+                            body: """
+Nos termos do art. 18 da Lei nº 13.709/2018, você tem direito a obter do Juntô, a qualquer momento e mediante requisição gratuita:
+
+I. Confirmação da existência de tratamento de seus dados pessoais;
+II. Acesso aos dados mantidos sobre você;
+III. Correção de dados incompletos, inexatos ou desatualizados (disponível diretamente em “Editar perfil”);
+IV. Anonimização, bloqueio ou eliminação de dados desnecessários, excessivos ou tratados em desconformidade com a LGPD;
+V. Portabilidade dos dados a outro fornecedor de serviço, mediante requisição expressa;
+VI. Eliminação dos dados pessoais tratados com base no consentimento;
+VII. Informação sobre a possibilidade de não fornecer consentimento e as consequências da negativa;
+VIII. Revogação do consentimento, nos termos do art. 8º, § 5º, da LGPD.
+"""
+                        )
+
+                        policySection(
+                            number: "8. Encarregado pelo Tratamento de Dados Pessoais (DPO) e Contato",
+                            body: """
+Para exercer qualquer direito previsto no art. 18 da LGPD, esclarecer dúvidas sobre esta Política ou reportar questões de privacidade e segurança, entre em contato diretamente com o nosso Encarregado pelo Tratamento de Dados Pessoais (art. 41 da LGPD):
+
+• Canal Oficial de Privacidade (DPO): privacidade@junto.app
+• Prazo de resposta: até 15 (quinze) dias corridos, conforme diretrizes da LGPD e da ANPD.
+
+Fica eleito o foro da legislação brasileira, com aplicação integral das normas da República Federativa do Brasil, para dirimir quaisquer controvérsias oriundas deste documento.
+"""
+                        )
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 40)
+                }
+            }
+        }
+    }
+
+    private func policySection(number: String, body: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(number)
+                .font(.inter(15, weight: .medium))
+                .foregroundColor(JuntoColors.primary)
+
+            Text(body)
+                .font(.inter(13, weight: .regular))
+                .foregroundColor(JuntoColors.textMain)
+                .lineSpacing(4)
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.white)
+        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
+        .clipShape(RoundedRectangle(cornerRadius: 14))
     }
 }

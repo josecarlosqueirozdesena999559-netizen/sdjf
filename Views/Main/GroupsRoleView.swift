@@ -70,13 +70,9 @@ struct GroupsRoleView: View {
 
                                         if group.hasCollectivePot && group.potTarget > 0 {
                                             let pct = Int(min((group.potBalance / group.potTarget) * 100, 100))
-                                            Text("\(pct)%")
-                                                .font(.inter(11, weight: .medium))
+                                            Text("· \(pct)%")
+                                                .font(.inter(12, weight: .medium))
                                                 .foregroundColor(JuntoColors.pixGreen)
-                                                .padding(.horizontal, 6)
-                                                .padding(.vertical, 2)
-                                                .background(JuntoColors.pixGreenLight)
-                                                .clipShape(RoundedRectangle(cornerRadius: 5))
                                         }
                                     }
 
@@ -828,13 +824,14 @@ struct GroupDetailSheet: View {
                                         .foregroundColor(JuntoColors.textMuted)
                                 }
                                 Spacer()
-                                Text("\(potPercent)%")
-                                    .font(.inter(14, weight: .medium))
-                                    .foregroundColor(JuntoColors.pixGreen)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 5)
-                                    .background(JuntoColors.pixGreenLight)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                VStack(alignment: .trailing, spacing: 0) {
+                                    Text("\(potPercent)%")
+                                        .font(.inter(18, weight: .medium))
+                                        .foregroundColor(JuntoColors.primary)
+                                    Text("da meta")
+                                        .font(.inter(10, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                }
                             }
 
                             if group.potTarget > 0 {
@@ -890,13 +887,13 @@ struct GroupDetailSheet: View {
                                                     .font(.inter(14, weight: .regular))
                                                     .foregroundColor(JuntoColors.textMain)
                                                 if participant.role != .member {
-                                                    Text(participant.role.rawValue)
-                                                        .font(.inter(10, weight: .medium))
-                                                        .foregroundColor(participant.role == .owner ? JuntoColors.primary : JuntoColors.orangeSave)
-                                                        .padding(.horizontal, 6)
-                                                        .padding(.vertical, 2)
-                                                        .background(participant.role == .owner ? JuntoColors.primaryLight : JuntoColors.accentLight)
-                                                        .clipShape(RoundedRectangle(cornerRadius: 4))
+                                                    HStack(spacing: 3) {
+                                                        Image(systemName: participant.role == .owner ? "crown" : "checkmark.shield")
+                                                            .font(.system(size: 10, weight: .medium))
+                                                        Text(participant.role.rawValue)
+                                                            .font(.inter(11, weight: .medium))
+                                                    }
+                                                    .foregroundColor(participant.role == .owner ? JuntoColors.primary : JuntoColors.textMuted)
                                                 }
                                             }
                                             if participant.markedPaidByMember && !participant.hasPaid {
@@ -913,13 +910,13 @@ struct GroupDetailSheet: View {
                                         Spacer()
 
                                         if participant.hasPaid {
-                                            Text("Pago")
-                                                .font(.inter(12, weight: .medium))
-                                                .foregroundColor(JuntoColors.pixGreen)
-                                                .padding(.horizontal, 10)
-                                                .padding(.vertical, 5)
-                                                .background(JuntoColors.pixGreenLight)
-                                                .clipShape(RoundedRectangle(cornerRadius: 6))
+                                            HStack(spacing: 4) {
+                                                Image(systemName: "checkmark.circle.fill")
+                                                    .font(.system(size: 13))
+                                                Text("Pago")
+                                                    .font(.inter(12, weight: .medium))
+                                            }
+                                            .foregroundColor(JuntoColors.pixGreen)
                                         } else if participant.name == "Você" {
                                             if participant.markedPaidByMember {
                                                 if isOwner {
