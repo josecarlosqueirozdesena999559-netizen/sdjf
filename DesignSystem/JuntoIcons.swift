@@ -6,6 +6,7 @@ enum JuntoIconKind {
     case tabFriends
     case tabGroups
     case tabActivity
+    case tabNearby
     // ── Ações gerais ────────────────────────────────────
     case plus
     case addPerson
@@ -73,6 +74,7 @@ enum JuntoIconKind {
         case .tabFriends:    return "person"
         case .tabGroups:     return "person.2"
         case .tabActivity:   return "arrow.left.arrow.right.circle"
+        case .tabNearby:     return "location.circle"
         case .plus:          return "plus"
         case .addPerson:     return "person.badge.plus"
         case .checkmark:     return "checkmark"

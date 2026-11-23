@@ -20,8 +20,8 @@ struct MainTabView: View {
                     )
                 case .groups:
                     GroupsRoleView()
-                case .activities:
-                    ActivitiesView()
+                case .nearby:
+                    NearbyView()
                 case .account:
                     AccountView()
                 }
@@ -103,18 +103,18 @@ struct MainTabView: View {
 
     private func tabIconKind(_ tab: MainTab) -> JuntoIconKind {
         switch tab {
-        case .friends:    return .tabFriends
-        case .groups:     return .tabGroups
-        case .activities: return .tabActivity
-        case .account:    return .person
+        case .friends: return .tabFriends
+        case .groups:  return .tabGroups
+        case .nearby:  return .tabNearby
+        case .account: return .person
         }
     }
 
     private func tabIconName(_ tab: MainTab, selected: Bool) -> String {
         switch tab {
         case .friends: return selected ? "person.fill" : "person"
-        case .groups: return selected ? "person.2.fill" : "person.2"
-        case .activities: return selected ? "arrow.left.arrow.right.circle.fill" : "arrow.left.arrow.right.circle"
+        case .groups:  return selected ? "person.2.fill" : "person.2"
+        case .nearby:  return selected ? "location.circle.fill" : "location.circle"
         case .account: return "person.crop.circle"
         }
     }

@@ -64,25 +64,14 @@ struct GroupsRoleView: View {
                             .foregroundColor(JuntoColors.textLight)
 
                         Text("Nenhum grupo por aqui")
-                            .font(.inter(16, weight: .medium))
+                            .font(.inter(17, weight: .medium))
                             .foregroundColor(JuntoColors.textMain)
 
-                        HStack(spacing: 6) {
-                            Text("Crie um grupo ou viagem clicando no botão")
-                                .font(.inter(14, weight: .regular))
-                                .foregroundColor(JuntoColors.textMuted)
-                            Image(systemName: "plus")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(width: 24, height: 24)
-                                .background(JuntoColors.primary)
-                                .clipShape(Circle())
-                            Text("acima")
-                                .font(.inter(14, weight: .regular))
-                                .foregroundColor(JuntoColors.textMuted)
-                        }
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 28)
+                        Text("Crie seu primeiro rolê, viagem ou grupo clicando no botão '+' no topo.")
+                            .font(.inter(14, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 32)
                     } else {
                         Text("Nenhum grupo encontrado.")
                             .font(.inter(15, weight: .regular))
@@ -324,11 +313,13 @@ struct CreateGroupScreen: View {
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var coverImageData: Data? = nil
 
-    @State private var potTotalText: String = "300"
+    @State private var potTotalText: String = ""
     @State private var potMode: PotRecurrenceMode = .single
-    @State private var totalMonths: Int = 3
     @State private var startDate: Date = Date()
-    @State private var targetDate: Date = Calendar.current.date(byAdding: .day, value: 15, to: Date()) ?? Date()
+    @State private var targetDate: Date = Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date()
+    @State private var isPublicGroup: Bool = false
+    @State private var maxParticipants: Int = 30
+    @State private var publicUntilDate: Date = Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date()
     @State private var selectedPeople: [SearchableUser] = []
     @State private var showSelectFriendsScreen: Bool = false
 
@@ -357,8 +348,16 @@ struct CreateGroupScreen: View {
         1 + selectedPeople.count
     }
 
+    private var calculatedMonthsCount: Int {
+        let comps = Calendar.current.dateComponents([.month, .day], from: startDate, to: targetDate)
+        let m = comps.month ?? 0
+        let d = comps.day ?? 0
+        let total = d > 0 ? m + 1 : m
+        return max(1, total)
+    }
+
     private var activeMonthsCount: Int {
-        potMode == .monthly ? max(1, totalMonths) : 1
+        potMode == .monthly ? calculatedMonthsCount : 1
     }
 
     private var quotaPerPerson: Double {
@@ -559,33 +558,26 @@ struct CreateGroupScreen: View {
                         )
 
                         if potMode == .monthly {
-                            VStack(alignment: .leading, spacing: 8) {
-                                Text("Duração (meses de pagamento)")
-                                    .font(.inter(13, weight: .regular))
-                                    .foregroundColor(JuntoColors.textMain)
-
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 8) {
-                                        ForEach([2, 3, 4, 6, 8, 10, 12], id: \.self) { m in
-                                            let selected = totalMonths == m
-                                            Button {
-                                                totalMonths = m
-                                            } label: {
-                                                Text("\(m) meses")
-                                                    .font(.inter(13, weight: .medium))
-                                                    .foregroundColor(selected ? .white : JuntoColors.textMain)
-                                                    .padding(.horizontal, 14)
-                                                    .frame(height: 34)
-                                                    .background(selected ? JuntoColors.primary : JuntoColors.surfaceSubtle)
-                                                    .clipShape(Capsule())
-                                            }
-                                        }
-                                    }
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Duração calculada pelo período")
+                                        .font(.inter(12, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                    Text("\(calculatedMonthsCount) mês(es) de parcelas")
+                                        .font(.inter(15, weight: .medium))
+                                        .foregroundColor(JuntoColors.primary)
                                 }
+                                Spacer()
+                                Image(systemName: "calendar.badge.clock")
+                                    .font(.system(size: 20, weight: .regular))
+                                    .foregroundColor(JuntoColors.primary)
                             }
+                            .padding(12)
+                            .background(JuntoColors.surfaceSubtle)
+                            .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
 
-                        // Data de início e Meta até o dia (linhas limpas nativas iOS sem caixa pesada)
+                        // Data de início e Meta até o dia (linhas limpas nativas iOS que calculam os meses sozinho)
                         VStack(spacing: 0) {
                             Divider()
                             HStack {
@@ -612,6 +604,81 @@ struct CreateGroupScreen: View {
                             }
                             .padding(.vertical, 10)
                             Divider()
+                        }
+
+                        // Configuração de Grupo Público (Próximos)
+                        VStack(alignment: .leading, spacing: 12) {
+                            Toggle(isOn: $isPublicGroup) {
+                                VStack(alignment: .leading, spacing: 3) {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "globe.americas.fill")
+                                            .font(.system(size: 15))
+                                            .foregroundColor(isPublicGroup ? JuntoColors.primary : JuntoColors.textMuted)
+                                        Text("Grupo Público (Próximos)")
+                                            .font(.inter(15, weight: .medium))
+                                            .foregroundColor(JuntoColors.textMain)
+                                    }
+                                    Text("Pessoas da sua cidade ou região podem encontrar e entrar no grupo.")
+                                        .font(.inter(12, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                }
+                            }
+                            .tint(JuntoColors.primary)
+
+                            if isPublicGroup {
+                                VStack(alignment: .leading, spacing: 12) {
+                                    // Limite de pessoas (até 100)
+                                    VStack(alignment: .leading, spacing: 6) {
+                                        HStack {
+                                            Text("Limite de vagas")
+                                                .font(.inter(13, weight: .regular))
+                                                .foregroundColor(JuntoColors.textMain)
+                                            Spacer()
+                                            Text("\(maxParticipants) pessoas (máx. 100)")
+                                                .font(.inter(13, weight: .medium))
+                                                .foregroundColor(JuntoColors.primary)
+                                        }
+
+                                        Stepper(value: $maxParticipants, in: 2...100, step: 1) {
+                                            Text("Vagas: \(maxParticipants)")
+                                                .font(.inter(13, weight: .regular))
+                                                .foregroundColor(JuntoColors.textMuted)
+                                        }
+                                        .labelsHidden()
+
+                                        Text("Ao preencher as vagas, o grupo sai da aba pública automaticamente. Se alguém sair, fica disponível novamente.")
+                                            .font(.inter(11, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                    }
+                                    .padding(12)
+                                    .background(JuntoColors.surfaceSubtle)
+                                    .clipShape(RoundedRectangle(cornerRadius: 10))
+
+                                    // Fica no ar até o dia
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text("Fica no ar até o dia")
+                                                .font(.inter(13, weight: .regular))
+                                                .foregroundColor(JuntoColors.textMain)
+                                            Text("Após esta data, não aceita novos membros")
+                                                .font(.inter(11, weight: .regular))
+                                                .foregroundColor(JuntoColors.textMuted)
+                                        }
+                                        Spacer()
+                                        DatePicker("", selection: $publicUntilDate, in: Date()..., displayedComponents: .date)
+                                            .labelsHidden()
+                                            .environment(\.locale, Locale(identifier: "pt_BR"))
+                                    }
+                                    .padding(.vertical, 4)
+
+                                    Text("💡 O valor por pessoa é recalculado dinamicamente conforme novos membros entram no grupo.")
+                                        .font(.inter(12, weight: .regular))
+                                        .foregroundColor(JuntoColors.primary)
+                                        .padding(10)
+                                        .background(JuntoColors.primaryLight.opacity(0.5))
+                                        .clipShape(RoundedRectangle(cornerRadius: 8))
+                                }
+                            }
                         }
 
                         // Membros
@@ -720,7 +787,10 @@ struct CreateGroupScreen: View {
             invitedPeople: selectedPeople,
             coverImageData: coverImageData,
             startDate: startDate,
-            targetDate: targetDate
+            targetDate: targetDate,
+            isPublic: isPublicGroup,
+            maxParticipants: maxParticipants,
+            publicUntilDate: publicUntilDate
         )
         let createdId = store.groups.first?.id
         dismiss()
@@ -1159,6 +1229,7 @@ struct GroupDetailSheet: View {
                                                 Text(participant.name)
                                                     .font(.inter(14, weight: .medium))
                                                     .foregroundColor(JuntoColors.textMain)
+                                                VerifiedBadgeView(type: participant.proPlanType, size: 12)
                                                 if participant.role != .member {
                                                     Text("· \(participant.role.rawValue)")
                                                         .font(.inter(11, weight: .regular))
@@ -1645,9 +1716,12 @@ struct ParticipantActionSheet: View {
             HStack(spacing: 12) {
                 GeometricAvatarView(seed: participant.username, size: 48)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(participant.name)
-                        .font(.inter(16, weight: .medium))
-                        .foregroundColor(JuntoColors.textMain)
+                    HStack(spacing: 5) {
+                        Text(participant.name)
+                            .font(.inter(16, weight: .medium))
+                            .foregroundColor(JuntoColors.textMain)
+                        VerifiedBadgeView(type: participant.proPlanType, size: 14)
+                    }
                     Text("@\(participant.username) · \(participant.role.rawValue)")
                         .font(.inter(13, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)

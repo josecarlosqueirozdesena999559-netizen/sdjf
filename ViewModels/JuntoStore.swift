@@ -47,10 +47,14 @@ final class JuntoStore: ObservableObject {
     init() {
         // Solicita permissão real de notificações do iOS e sincroniza com o banco PostgreSQL do Docker
         JuntoNotificationManager.shared.requestAuthorization()
+        setupSeedData()
         Task {
             await syncWithBackendDatabase()
         }
     }
+
+    // Pessoas próximas descobertas pelo algoritmo
+    @Published var nearbyUsers: [NearbyUserItem] = []
 
     // Grupos sincronizados do banco PostgreSQL (no plano gratuito permite 1 grupo; no Juntô Pro ilimitado)
     @Published var groups: [RoleGroup] = []
@@ -1171,7 +1175,10 @@ final class JuntoStore: ObservableObject {
         invitedPeople: [SearchableUser] = [],
         coverImageData: Data? = nil,
         startDate: Date = Date(),
-        targetDate: Date = Calendar.current.date(byAdding: .day, value: 15, to: Date()) ?? Date()
+        targetDate: Date = Calendar.current.date(byAdding: .day, value: 15, to: Date()) ?? Date(),
+        isPublic: Bool = false,
+        maxParticipants: Int = 100,
+        publicUntilDate: Date = Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date()
     ) {
         guard canCreateMoreGroups() else {
             showToast("O plano gratuito permite apenas 1 grupo. Assine o Juntô Pro para grupos ilimitados.", icon: "lock")
@@ -1196,13 +1203,13 @@ final class JuntoStore: ObservableObject {
         let quotaPerPerson = potTarget > 0 ? ((potTarget / Double(monthsCount)) / Double(totalPeopleCount)) : 0
 
         var participantsList: [GroupParticipant] = [
-            GroupParticipant(name: "Você", username: user.username, quotaAmount: quotaPerPerson, hasPaid: false, role: .owner)
+            GroupParticipant(name: "Você", username: user.username, quotaAmount: quotaPerPerson, hasPaid: false, role: .owner, proPlanType: user.proPlanType)
         ]
         var memberInitials: [String] = ["EU"]
 
         for person in invitedPeople {
             participantsList.append(
-                GroupParticipant(name: person.name, username: person.username, quotaAmount: quotaPerPerson, hasPaid: false, role: .member)
+                GroupParticipant(name: person.name, username: person.username, quotaAmount: quotaPerPerson, hasPaid: false, role: .member, proPlanType: person.proPlanType)
             )
             let initStr = person.name.split(separator: " ").prefix(2).map { String($0.prefix(1)) }.joined().uppercased()
             memberInitials.append(initStr.isEmpty ? String(person.username.prefix(2)).uppercased() : initStr)
@@ -1244,7 +1251,10 @@ final class JuntoStore: ObservableObject {
             potMode: potMode,
             totalMonths: monthsCount,
             selectedMonthIndex: 0,
-            monthlyCycles: cycles
+            monthlyCycles: cycles,
+            isPublic: isPublic,
+            maxParticipants: min(100, max(2, maxParticipants)),
+            publicUntilDate: publicUntilDate
         )
 
         groups.insert(newGroup, at: 0)
@@ -1573,23 +1583,26 @@ final class JuntoStore: ObservableObject {
     }
 
     // MARK: - Gestão da Assinatura Juntô Pro
-    func subscribeToPro(plan: String = "Mensal (R$ 19,90)") {
+    func subscribeToPro(plan: String = "Mensal (R$ 19,90)", planType: ProPlanType = .monthly) {
         user.isPro = true
+        user.proPlanType = planType
         user.proPlanName = plan
-        user.proExpiresDateText = "Renovação em 23 de dez. de 2026"
+        user.proExpiresDateText = planType == .yearly ? "Renovação em 23 de nov. de 2027" : "Renovação em 23 de dez. de 2026"
         let uname = user.username
         Task {
             await JuntoBackendService.shared.syncProStatus(username: uname, isPro: true, planName: plan)
         }
+        let selo = planType == .yearly ? "Dourado" : "Roxo"
         JuntoNotificationManager.shared.triggerLocalNotification(
-            title: "Juntô Pro Ativado",
-            body: "Grupos ilimitados, Potes Pessoais (Caixinhas) e Pote Mensal para excursões liberados!"
+            title: "Juntô Pro Ativado • Selo \(selo)",
+            body: "Grupos ilimitados, grupos públicos e selo verificado \(selo.lowercased()) liberados em todo o app!"
         )
-        showToast("Você agora é Juntô Pro!", icon: "checkmark.circle")
+        showToast("Você agora é Juntô Pro com Selo \(selo)!", icon: "checkmark.seal.fill")
     }
 
     func cancelPro() {
         user.isPro = false
+        user.proPlanType = .none
         user.proPlanName = nil
         user.proExpiresDateText = nil
         let uname = user.username
@@ -1597,6 +1610,210 @@ final class JuntoStore: ObservableObject {
             await JuntoBackendService.shared.syncProStatus(username: uname, isPro: false, planName: nil)
         }
         showToast("Assinatura Juntô Pro cancelada.", icon: "checkmark")
+    }
+
+    // MARK: - Interações da Aba Próximos (Pessoas e Grupos Públicos)
+    func joinPublicGroup(groupId: UUID) {
+        guard let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
+        let group = groups[idx]
+        guard !group.participants.contains(where: { $0.username.lowercased() == user.username.lowercased() }) else {
+            showToast("Você já está participando deste grupo.", icon: "info.circle")
+            return
+        }
+        guard group.participants.count < group.maxParticipants else {
+            showToast("Este grupo atingiu a capacidade máxima de vagas (\(group.maxParticipants)).", icon: "person.crop.circle.badge.xmark")
+            return
+        }
+        guard Date() <= group.publicUntilDate else {
+            showToast("O prazo deste grupo público já expirou.", icon: "clock.badge.xmark")
+            return
+        }
+
+        addParticipantToGroup(groupId: groupId, username: user.username, displayName: user.fullName)
+        showToast("Você entrou no grupo \"\(group.title)\"!", icon: "checkmark.circle")
+    }
+
+    func addNearbyUserAsFriend(userItem: NearbyUserItem) {
+        guard let idx = nearbyUsers.firstIndex(where: { $0.id == userItem.id }) else { return }
+        nearbyUsers[idx].isInvited = true
+        addFriend(username: userItem.username, name: userItem.name)
+        showToast("Convite enviado para \(userItem.name)!", icon: "person.badge.plus")
+    }
+
+    // MARK: - Dados Iniciais / Seed para Próximos e Grupos Públicos
+    func setupSeedData() {
+        if nearbyUsers.isEmpty {
+            nearbyUsers = [
+                NearbyUserItem(
+                    name: "Beatriz Lima",
+                    username: "bia.lima",
+                    distanceMeters: 450,
+                    neighborhood: "Pinheiros, SP",
+                    mutualFriendsCount: 3,
+                    interests: ["Viagens", "Churrasco", "Praia"],
+                    proPlanType: .yearly
+                ),
+                NearbyUserItem(
+                    name: "Rodrigo Costa",
+                    username: "rodrigo.costa",
+                    distanceMeters: 800,
+                    neighborhood: "Vila Madalena, SP",
+                    mutualFriendsCount: 5,
+                    interests: ["Futebol", "Bar & Drinks"],
+                    proPlanType: .monthly
+                ),
+                NearbyUserItem(
+                    name: "Juliana Mendes",
+                    username: "ju.mendes",
+                    distanceMeters: 1200,
+                    neighborhood: "Pinheiros, SP",
+                    mutualFriendsCount: 2,
+                    interests: ["Piscina", "Música"],
+                    proPlanType: .none
+                ),
+                NearbyUserItem(
+                    name: "Felipe Siqueira",
+                    username: "felipe.siqueira",
+                    distanceMeters: 2400,
+                    neighborhood: "Itaim Bibi, SP",
+                    mutualFriendsCount: 4,
+                    interests: ["Excursão", "Trilha"],
+                    proPlanType: .yearly
+                ),
+                NearbyUserItem(
+                    name: "Mariana Alencar",
+                    username: "mari.alencar",
+                    distanceMeters: 3100,
+                    neighborhood: "Jardins, SP",
+                    mutualFriendsCount: 1,
+                    interests: ["Casal", "Gastronomia"],
+                    proPlanType: .monthly
+                ),
+                NearbyUserItem(
+                    name: "Gabriel Ramos",
+                    username: "gabriel.ramos",
+                    distanceMeters: 4500,
+                    neighborhood: "Moema, SP",
+                    mutualFriendsCount: 6,
+                    interests: ["Festa", "Rolezinho"],
+                    proPlanType: .none
+                )
+            ]
+        }
+
+        if directoryUsers.isEmpty {
+            directoryUsers = [
+                SearchableUser(name: "Beatriz Lima", username: "bia.lima", proPlanType: .yearly),
+                SearchableUser(name: "Rodrigo Costa", username: "rodrigo.costa", proPlanType: .monthly),
+                SearchableUser(name: "Juliana Mendes", username: "ju.mendes", proPlanType: .none),
+                SearchableUser(name: "Felipe Siqueira", username: "felipe.siqueira", proPlanType: .yearly),
+                SearchableUser(name: "Mariana Alencar", username: "mari.alencar", proPlanType: .monthly),
+                SearchableUser(name: "Gabriel Ramos", username: "gabriel.ramos", proPlanType: .none),
+                SearchableUser(name: "Camila Ribeiro", username: "camila.ribeiro", proPlanType: .monthly),
+                SearchableUser(name: "Pedro Henrique", username: "pedro.henrique", proPlanType: .none)
+            ]
+        }
+
+        if friends.isEmpty {
+            friends = [
+                FriendItem(
+                    name: "Camila Ribeiro",
+                    username: "camila.ribeiro",
+                    initials: "CR",
+                    balance: 45.0,
+                    proPlanType: .monthly,
+                    isOnline: true,
+                    lastSeenText: "online",
+                    friendsSinceText: "12 de jan. de 2026"
+                ),
+                FriendItem(
+                    name: "Pedro Henrique",
+                    username: "pedro.henrique",
+                    initials: "PH",
+                    balance: -30.0,
+                    proPlanType: .none,
+                    isOnline: false,
+                    lastSeenText: "visto há 15 min",
+                    friendsSinceText: "03 de fev. de 2026"
+                ),
+                FriendItem(
+                    name: "Beatriz Lima",
+                    username: "bia.lima",
+                    initials: "BL",
+                    balance: 0.0,
+                    proPlanType: .yearly,
+                    isOnline: true,
+                    lastSeenText: "online",
+                    friendsSinceText: "20 de mar. de 2026"
+                )
+            ]
+        }
+
+        if groups.isEmpty {
+            let poolGroup = RoleGroup(
+                title: "Piscina no Clube",
+                category: "Festa",
+                coverImageName: "GroupBar",
+                startDate: Date(),
+                targetDate: Calendar.current.date(byAdding: .day, value: 14, to: Date()) ?? Date(),
+                potBalance: 750,
+                potTarget: 1500,
+                totalSpent: 0,
+                myShare: 0,
+                members: ["BL", "RC", "JM", "FS", "MA", "GR"],
+                participants: [
+                    GroupParticipant(name: "Beatriz Lima", username: "bia.lima", quotaAmount: 68.18, hasPaid: true, role: .owner, proPlanType: .yearly),
+                    GroupParticipant(name: "Rodrigo Costa", username: "rodrigo.costa", quotaAmount: 68.18, hasPaid: true, role: .admin, proPlanType: .monthly),
+                    GroupParticipant(name: "Juliana Mendes", username: "ju.mendes", quotaAmount: 68.18, hasPaid: true, role: .member, proPlanType: .none),
+                    GroupParticipant(name: "Felipe Siqueira", username: "felipe.siqueira", quotaAmount: 68.18, hasPaid: true, role: .member, proPlanType: .yearly),
+                    GroupParticipant(name: "Mariana Alencar", username: "mari.alencar", quotaAmount: 68.18, hasPaid: false, role: .member, proPlanType: .monthly),
+                    GroupParticipant(name: "Gabriel Ramos", username: "gabriel.ramos", quotaAmount: 68.18, hasPaid: false, role: .member, proPlanType: .none)
+                ],
+                hasCollectivePot: true,
+                comandaItems: [],
+                potMode: .single,
+                totalMonths: 1,
+                selectedMonthIndex: 0,
+                monthlyCycles: [],
+                isPublic: true,
+                maxParticipants: 25,
+                publicUntilDate: Calendar.current.date(byAdding: .day, value: 20, to: Date()) ?? Date(),
+                locationText: "São Paulo, SP • 1.4 km",
+                distanceKm: 1.4
+            )
+
+            let soccerGroup = RoleGroup(
+                title: "Futebol de Quinta & Resenha",
+                category: "Esporte",
+                coverImageName: "GroupChurrasco",
+                startDate: Date(),
+                targetDate: Calendar.current.date(byAdding: .day, value: 10, to: Date()) ?? Date(),
+                potBalance: 320,
+                potTarget: 400,
+                totalSpent: 0,
+                myShare: 0,
+                members: ["RC", "FS", "GR", "PH"],
+                participants: [
+                    GroupParticipant(name: "Rodrigo Costa", username: "rodrigo.costa", quotaAmount: 40.0, hasPaid: true, role: .owner, proPlanType: .monthly),
+                    GroupParticipant(name: "Felipe Siqueira", username: "felipe.siqueira", quotaAmount: 40.0, hasPaid: true, role: .admin, proPlanType: .yearly),
+                    GroupParticipant(name: "Gabriel Ramos", username: "gabriel.ramos", quotaAmount: 40.0, hasPaid: true, role: .member, proPlanType: .none),
+                    GroupParticipant(name: "Pedro Henrique", username: "pedro.henrique", quotaAmount: 40.0, hasPaid: true, role: .member, proPlanType: .none)
+                ],
+                hasCollectivePot: true,
+                comandaItems: [],
+                potMode: .single,
+                totalMonths: 1,
+                selectedMonthIndex: 0,
+                monthlyCycles: [],
+                isPublic: true,
+                maxParticipants: 14,
+                publicUntilDate: Calendar.current.date(byAdding: .day, value: 12, to: Date()) ?? Date(),
+                locationText: "São Paulo, SP • 800 m",
+                distanceKm: 0.8
+            )
+
+            groups = [poolGroup, soccerGroup]
+        }
     }
 
     func logout() {

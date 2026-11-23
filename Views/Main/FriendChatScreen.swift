@@ -69,6 +69,7 @@ struct FriendChatScreen: View {
                                     .font(.inter(16, weight: .medium))
                                     .foregroundColor(JuntoColors.textMain)
                                     .lineLimit(1)
+                                VerifiedBadgeView(type: currentFriend.proPlanType, size: 14)
                                 if currentFriend.isMuted {
                                     Image(systemName: "bell.slash.fill")
                                         .font(.system(size: 11))
@@ -897,9 +898,12 @@ struct FriendProfileScreen: View {
                             GeometricAvatarView(seed: liveFriend.username, size: 104)
                                 .padding(.top, 18)
 
-                            Text(liveFriend.name)
-                                .font(.inter(22, weight: .medium))
-                                .foregroundColor(JuntoColors.textMain)
+                            HStack(spacing: 6) {
+                                Text(liveFriend.name)
+                                    .font(.inter(22, weight: .medium))
+                                    .foregroundColor(JuntoColors.textMain)
+                                VerifiedBadgeView(type: liveFriend.proPlanType, size: 18)
+                            }
 
                             Text("@\(liveFriend.username)")
                                 .font(.inter(14, weight: .regular))

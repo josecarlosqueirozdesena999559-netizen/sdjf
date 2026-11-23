@@ -48,11 +48,13 @@ struct AccountView: View {
                         }
 
                         VStack(alignment: .leading, spacing: 3) {
-                            HStack(spacing: 6) {
+                            HStack(spacing: 5) {
                                 Text(store.user.fullName)
                                     .font(.inter(16, weight: .regular))
                                     .foregroundColor(JuntoColors.textMain)
                                     .lineLimit(1)
+
+                                VerifiedBadgeView(type: store.user.proPlanType, size: 15)
 
                                 if store.user.isPro {
                                     Text("PRO")
@@ -60,7 +62,7 @@ struct AccountView: View {
                                         .foregroundColor(.white)
                                         .padding(.horizontal, 6)
                                         .padding(.vertical, 2)
-                                        .background(JuntoColors.primary)
+                                        .background(store.user.proPlanType == .yearly ? Color(hex: "#F59E0B") : Color(hex: "#7C3AED"))
                                         .clipShape(Capsule())
                                 }
                             }
@@ -935,9 +937,12 @@ struct MyInviteQRCodeScreen: View {
                             )
 
                             VStack(spacing: 3) {
-                                Text(store.user.fullName)
-                                    .font(.inter(18, weight: .medium))
-                                    .foregroundColor(JuntoColors.textMain)
+                                HStack(spacing: 5) {
+                                    Text(store.user.fullName)
+                                        .font(.inter(18, weight: .medium))
+                                        .foregroundColor(JuntoColors.textMain)
+                                    VerifiedBadgeView(type: store.user.proPlanType, size: 16)
+                                }
                                 Text("@\(store.user.username)")
                                     .font(.inter(13, weight: .regular))
                                     .foregroundColor(JuntoColors.textMuted)

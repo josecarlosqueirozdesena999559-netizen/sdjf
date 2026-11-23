@@ -212,10 +212,13 @@ struct FriendsView: View {
                                 }
 
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text(friend.name)
-                                        .font(.inter(15, weight: .medium))
-                                        .foregroundColor(JuntoColors.textMain)
-                                        .lineLimit(1)
+                                    HStack(spacing: 5) {
+                                        Text(friend.name)
+                                            .font(.inter(15, weight: .medium))
+                                            .foregroundColor(JuntoColors.textMain)
+                                            .lineLimit(1)
+                                        VerifiedBadgeView(type: friend.proPlanType, size: 13)
+                                    }
 
                                     Text(store.lastMessagePreview(for: friend.username))
                                         .font(.inter(13, weight: .regular))
@@ -414,9 +417,12 @@ struct AddFriendScreen: View {
                                     }
 
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text(friend.name)
-                                            .font(.inter(15, weight: .regular))
-                                            .foregroundColor(JuntoColors.textMain)
+                                        HStack(spacing: 5) {
+                                            Text(friend.name)
+                                                .font(.inter(15, weight: .regular))
+                                                .foregroundColor(JuntoColors.textMain)
+                                            VerifiedBadgeView(type: friend.proPlanType, size: 13)
+                                        }
                                         Text("@\(friend.username)")
                                             .font(.inter(12, weight: .regular))
                                             .foregroundColor(JuntoColors.textMuted)
@@ -546,9 +552,12 @@ struct FriendOptionsSheet: View {
             HStack(spacing: 12) {
                 GeometricAvatarView(seed: friend.username, size: 46)
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(friend.name)
-                        .font(.inter(16, weight: .medium))
-                        .foregroundColor(JuntoColors.textMain)
+                    HStack(spacing: 5) {
+                        Text(friend.name)
+                            .font(.inter(16, weight: .medium))
+                            .foregroundColor(JuntoColors.textMain)
+                        VerifiedBadgeView(type: friend.proPlanType, size: 14)
+                    }
                     Text("@\(friend.username)")
                         .font(.inter(13, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)

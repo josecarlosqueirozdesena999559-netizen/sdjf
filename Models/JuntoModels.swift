@@ -9,17 +9,31 @@ enum AppRoute {
     case main
 }
 
+enum ProPlanType: String, Codable, Hashable {
+    case none
+    case monthly
+    case yearly
+
+    var displayName: String {
+        switch self {
+        case .none: return "Gratuito"
+        case .monthly: return "Mensal"
+        case .yearly: return "Anual"
+        }
+    }
+}
+
 enum MainTab: Int, CaseIterable {
     case friends = 0
     case groups = 1
-    case activities = 2
+    case nearby = 2
     case account = 3
 
     var title: String {
         switch self {
         case .friends: return "Amigos"
         case .groups: return "Grupos"
-        case .activities: return "Atividade"
+        case .nearby: return "Próximos"
         case .account: return "Conta"
         }
     }
@@ -28,7 +42,7 @@ enum MainTab: Int, CaseIterable {
         switch self {
         case .friends: return "person"
         case .groups: return "person.2"
-        case .activities: return "arrow.left.arrow.right.circle"
+        case .nearby: return "location.circle"
         case .account: return "person.crop.circle"
         }
     }
@@ -69,6 +83,7 @@ struct UserProfile {
     var allowRecommendations: Bool = true
     var avatarData: Data? = nil
     var isPro: Bool = false
+    var proPlanType: ProPlanType = .none
     var proPlanName: String? = nil
     var proExpiresDateText: String? = nil
 
@@ -104,6 +119,7 @@ struct SearchableUser: Identifiable, Hashable {
     let id = UUID()
     let name: String
     let username: String
+    var proPlanType: ProPlanType = .none
 }
 
 enum MessageDeliveryStatus: String, Hashable {
@@ -148,6 +164,7 @@ struct ChatMessage: Identifiable, Hashable {
     var status: MessageDeliveryStatus = .sent
     var senderName: String? = nil
     var senderUsername: String? = nil
+    var senderProPlanType: ProPlanType = .none
     var replyToAuthor: String? = nil
     var replyToPreview: String? = nil
 
@@ -169,6 +186,7 @@ struct FriendItem: Identifiable {
     let username: String
     let initials: String
     var balance: Double
+    var proPlanType: ProPlanType = .none
     var isPendingInvite: Bool = false
     var isOnline: Bool = false
     var isTyping: Bool = false
@@ -223,6 +241,7 @@ struct GroupParticipant: Identifiable, Hashable {
     var hasPaid: Bool
     var markedPaidByMember: Bool = false
     var role: GroupParticipantRole = .member
+    var proPlanType: ProPlanType = .none
 }
 
 struct RoleGroup: Identifiable {
@@ -247,6 +266,39 @@ struct RoleGroup: Identifiable {
     var totalMonths: Int = 1
     var selectedMonthIndex: Int = 0
     var monthlyCycles: [PotMonthCycle] = []
+
+    // Grupo Público (Descoberta na aba Próximos)
+    var isPublic: Bool = false
+    var maxParticipants: Int = 100
+    var publicUntilDate: Date = Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date()
+    var locationText: String = "São Paulo, SP"
+    var distanceKm: Double = 1.8
+
+    /// Grupo lotado (atingiu a capacidade máxima definida pelo admin de até 100 participantes)
+    var isFull: Bool {
+        participants.count >= maxParticipants
+    }
+
+    /// Visível na aba de Próximos:
+    /// 1. Deve ser público
+    /// 2. NÃO pode estar lotado (ao preencher as vagas ele não aparece para entrarem; saiu um fica disponível novamente!)
+    /// 3. Não pode ter expirado o prazo definido pelo admin
+    var isPublicActive: Bool {
+        isPublic && !isFull && Date() <= publicUntilDate
+    }
+
+    /// Quantidade de vagas restantes no grupo
+    var remainingSlots: Int {
+        max(0, maxParticipants - participants.count)
+    }
+
+    /// Cota recalculada dinamicamente conforme novas pessoas entram
+    var dynamicQuotaPerPerson: Double {
+        guard potTarget > 0 else { return 0 }
+        let months = potMode == .monthly ? max(1, totalMonths) : 1
+        let count = max(1, participants.count)
+        return (potTarget / Double(months)) / Double(count)
+    }
 
     /// Porcentagem concluída de um mês específico (só chega a 100% quando TODOS os participantes pagam aquele mês)
     func monthCompletionPercent(at index: Int) -> Int {
@@ -366,4 +418,27 @@ struct PixChargeSheetData: Identifiable {
     let recipientName: String
     let amount: Double
     let pixPayload: String
+}
+
+/// Usuário descoberto pelo algoritmo de proximidade (raio de km e bairro)
+struct NearbyUserItem: Identifiable, Hashable {
+    let id = UUID()
+    let name: String
+    let username: String
+    let distanceMeters: Int
+    let neighborhood: String
+    let mutualFriendsCount: Int
+    let interests: [String]
+    var proPlanType: ProPlanType = .none
+    var isInvited: Bool = false
+    var isFriend: Bool = false
+
+    var distanceText: String {
+        if distanceMeters < 1000 {
+            return "\(distanceMeters) m"
+        } else {
+            let km = Double(distanceMeters) / 1000.0
+            return String(format: "%.1f km", km)
+        }
+    }
 }

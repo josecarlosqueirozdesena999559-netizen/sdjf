@@ -98,6 +98,29 @@ struct JuntoLogoMark: View {
     }
 }
 
+// MARK: - Selo de Usuário Verificado (Assinante Mensal Roxo / Assinante Anual Dourado)
+struct VerifiedBadgeView: View {
+    var type: ProPlanType = .none
+    var size: CGFloat = 13
+
+    var body: some View {
+        switch type {
+        case .monthly:
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: size, weight: .semibold))
+                .foregroundColor(Color(hex: "#7C3AED")) // Roxo exclusivo para assinante mensal
+                .accessibilityLabel("Assinante Mensal Verificado")
+        case .yearly:
+            Image(systemName: "checkmark.seal.fill")
+                .font(.system(size: size, weight: .semibold))
+                .foregroundColor(Color(hex: "#F59E0B")) // Dourado exclusivo para assinante anual
+                .accessibilityLabel("Assinante Anual Verificado")
+        case .none:
+            EmptyView()
+        }
+    }
+}
+
 // MARK: - Ícone Nativo iOS do Pote Coletivo (Padronizado com o sistema, sem moedas nem fundos pesados)
 struct JuntoPotIcon: View {
     var size: CGFloat = 22

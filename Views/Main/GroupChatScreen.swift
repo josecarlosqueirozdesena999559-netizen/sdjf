@@ -571,9 +571,12 @@ struct GroupChatScreen: View {
             VStack(alignment: .leading, spacing: 5) {
                 // Nome do participante em cor única (somente para mensagens de outros membros)
                 if !msg.isFromMe {
-                    Text(senderDisplayName)
-                        .font(.inter(12, weight: .medium))
-                        .foregroundColor(nameColor)
+                    HStack(spacing: 4) {
+                        Text(senderDisplayName)
+                            .font(.inter(12, weight: .medium))
+                            .foregroundColor(nameColor)
+                        VerifiedBadgeView(type: msg.senderProPlanType, size: 11)
+                    }
                 }
 
                 // Bloco de resposta citada (Reply)

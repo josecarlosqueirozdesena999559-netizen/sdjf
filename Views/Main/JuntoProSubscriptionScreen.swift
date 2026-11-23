@@ -15,11 +15,11 @@ struct JuntoProSubscriptionScreen: View {
     @State private var showCancelConfirm = false
 
     private let proFeatures: [(title: String, subtitle: String)] = [
-        ("Grupos, viagens e rolês ilimitados", "No plano gratuito você tem acesso completo ao chat e ao pote para 1 grupo ativo. No Pro, crie quantos grupos, viagens e excursões quiser."),
-        ("Múltiplos potes e excursões simultâneas", "Organize vários rolês, churrascos e viagens com Pote Coletivo ou Pote Mensal ao mesmo tempo sem limite de grupos."),
-        ("Múltiplos administradores por grupo", "Adicione amigos como co-organizadores em todas as suas viagens para ajudar a lançar gastos e confirmar pagamentos."),
-        ("Chat e enquetes liberados em todos os grupos", "Todas as funções de bate-papo, áudio, fotos, arquivos, enquetes e Pix funcionam gratuitamente em todos os seus grupos."),
-        ("Alertas e lembretes de viagens", "Notificações automáticas de prazos de metas e avisos instantâneos quando participantes informam pagamentos.")
+        ("Selo de Verificado Exclusivo", "Assinante Mensal recebe o Selo Roxo e o Assinante Anual recebe o Selo Dourado em todas as telas, grupos e conversas."),
+        ("Grupos, viagens e rolês ilimitados", "No plano gratuito você tem 1 grupo ativo. No Pro, crie quantos rolês, viagens e excursões quiser."),
+        ("Criar Grupos Públicos na aba Próximos", "Organize encontros, piscina no clube ou futebol com limite de até 100 vagas e cotas recalculadas dinamicamente."),
+        ("Múltiplos administradores por grupo", "Adicione amigos como co-organizadores para ajudar a lançar gastos e confirmar pagamentos."),
+        ("Alertas e lembretes prioritários", "Notificações automáticas de prazos de metas e confirmações em tempo real quando participantes pagam.")
     ]
 
     var body: some View {
@@ -69,6 +69,8 @@ struct JuntoProSubscriptionScreen: View {
                             title: "Mensal",
                             price: "R$ 19,90",
                             periodText: "por mês",
+                            badgeType: .monthly,
+                            badgeLabel: "Selo Roxo",
                             isSelected: selectedPeriod == .monthly
                         ) {
                             withAnimation(.easeInOut(duration: 0.15)) {
@@ -80,6 +82,8 @@ struct JuntoProSubscriptionScreen: View {
                             title: "Anual",
                             price: "R$ 14,90",
                             periodText: "por mês (R$ 178,80/ano)",
+                            badgeType: .yearly,
+                            badgeLabel: "Selo Dourado",
                             isSelected: selectedPeriod == .yearly
                         ) {
                             withAnimation(.easeInOut(duration: 0.15)) {
@@ -130,10 +134,8 @@ struct JuntoProSubscriptionScreen: View {
                         if store.user.isPro {
                             VStack(spacing: 10) {
                                 HStack(spacing: 8) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 16))
-                                        .foregroundColor(JuntoColors.primary)
-                                    Text("Plano Juntô Pro ativo")
+                                    VerifiedBadgeView(type: store.user.proPlanType, size: 18)
+                                    Text("Plano Juntô Pro ativo (\(store.user.proPlanType.displayName))")
                                         .font(.inter(15, weight: .medium))
                                         .foregroundColor(JuntoColors.textMain)
                                 }
@@ -206,9 +208,12 @@ struct JuntoProSubscriptionScreen: View {
         isProcessing = true
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
+        let planName = selectedPeriod == .monthly ? "Mensal (R$ 19,90)" : "Anual (R$ 178,80)"
+        let planType: ProPlanType = selectedPeriod == .monthly ? .monthly : .yearly
+
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
             isProcessing = false
-            store.subscribeToPro(plan: selectedPeriod.rawValue)
+            store.subscribeToPro(plan: planName, planType: planType)
             dismiss()
         }
     }
@@ -217,6 +222,8 @@ struct JuntoProSubscriptionScreen: View {
         title: String,
         price: String,
         periodText: String,
+        badgeType: ProPlanType,
+        badgeLabel: String,
         isSelected: Bool,
         action: @escaping () -> Void
     ) -> some View {
@@ -240,6 +247,14 @@ struct JuntoProSubscriptionScreen: View {
                     .font(.inter(11, weight: .regular))
                     .foregroundColor(JuntoColors.textMuted)
                     .lineLimit(1)
+
+                HStack(spacing: 4) {
+                    VerifiedBadgeView(type: badgeType, size: 13)
+                    Text(badgeLabel)
+                        .font(.inter(11, weight: .medium))
+                        .foregroundColor(badgeType == .yearly ? Color(hex: "#D97706") : Color(hex: "#7C3AED"))
+                }
+                .padding(.top, 2)
             }
             .padding(14)
             .frame(maxWidth: .infinity, alignment: .leading)
