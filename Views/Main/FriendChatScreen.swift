@@ -510,7 +510,7 @@ struct FriendChatScreen: View {
                     showAttachmentMenu = false
                     store.sendChatMessage(
                         to: friend.username,
-                        kind: .text("PIX:\(store.user.name)|\(store.user.pixKey)")
+                        kind: .text("PIX:\(store.user.fullName)|\(store.user.pixKey)")
                     )
                 },
                 onSelectDocument: {

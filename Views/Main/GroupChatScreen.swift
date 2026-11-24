@@ -130,9 +130,8 @@ struct GroupChatScreen: View {
                     LazyVStack(spacing: 10, pinnedViews: [.sectionHeaders]) {
                         ForEach(groupedMessagesByDate, id: \.date) { section in
                             Section(header: datePillHeader(section.date)) {
-                                 ForEach(section.items) { msg in
-                                     messageOrSystemPill(msg)
-                                 }
+                                ForEach(section.items) { msg in
+                                    messageOrSystemPill(msg)
                                 }
                             }
                         }
@@ -497,7 +496,7 @@ struct GroupChatScreen: View {
                     showAttachmentMenu = false
                     store.sendGroupChatMessage(
                         groupId: groupId,
-                        kind: .text("PIX:\(store.user.name)|\(store.user.pixKey)")
+                        kind: .text("PIX:\(store.user.fullName)|\(store.user.pixKey)")
                     )
                 },
                 onSelectDocument: {
