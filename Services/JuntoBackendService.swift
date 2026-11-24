@@ -3,11 +3,11 @@ import Foundation
 /// Cliente HTTP Real que sincroniza o aplicativo iOS Juntô com o banco PostgreSQL + Redis no Docker via Cloudflare Tunnel
 actor JuntoBackendService {
     static let shared = JuntoBackendService()
-    static let defaultProductionTunnelURL = "https://ringtones-additionally-automation-blog.trycloudflare.com"
+    static let defaultProductionTunnelURL = "https://vsnet-alex-alexandria-chess.trycloudflare.com"
 
     private var baseURL: String {
         let saved = UserDefaults.standard.string(forKey: "junto_api_base_url")
-        if let s = saved, !s.isEmpty && !s.contains("localhost") {
+        if let s = saved, !s.isEmpty && !s.contains("localhost") && s.contains("trycloudflare.com") {
             return s
         }
         return JuntoBackendService.defaultProductionTunnelURL
