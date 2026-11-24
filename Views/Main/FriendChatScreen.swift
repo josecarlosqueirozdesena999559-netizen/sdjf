@@ -14,6 +14,8 @@ struct FriendChatScreen: View {
     @State private var replyingToMessage: ChatMessage? = nil
     @State private var selectedMessageForMenu: ChatMessage? = nil
     @State private var showAttachmentMenu = false
+    @State private var showCameraPicker = false
+    @State private var capturedImage: UIImage? = nil
     @State private var showPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var showDocumentImporter = false
@@ -495,11 +497,24 @@ struct FriendChatScreen: View {
         }
         .sheet(isPresented: $showAttachmentMenu) {
             ChatAttachmentMenuSheet(
+                onSelectCamera: {
+                    showAttachmentMenu = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        showCameraPicker = true
+                    }
+                },
                 onSelectPhoto: {
                     showAttachmentMenu = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                         showPhotoPicker = true
                     }
+                },
+                onSelectPix: {
+                    showAttachmentMenu = false
+                    store.sendChatMessage(
+                        to: friend.username,
+                        kind: .text("Minha chave Pix: \(store.user.pixKey)")
+                    )
                 },
                 onSelectDocument: {
                     showAttachmentMenu = false
@@ -512,24 +527,29 @@ struct FriendChatScreen: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                         showCreatePollSheet = true
                     }
-                },
-                onSelectPix: {
-                    showAttachmentMenu = false
-                    store.sendChatMessage(
-                        to: friend.username,
-                        kind: .text("Minha chave Pix: \(store.user.pixKey)")
-                    )
                 }
             )
-            .presentationDetents([.height(225)])
-            .presentationCornerRadius(22)
+            .presentationDetents([.height(230)])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(24)
+        }
+        .fullScreenCover(isPresented: $showCameraPicker) {
+            CameraReceiptPicker(selectedImage: $capturedImage, sourceType: .camera)
+                .ignoresSafeArea()
+        }
+        .onChange(of: capturedImage) { _, newImg in
+            if let img = newImg, let data = img.jpegData(compressionQuality: 0.8) {
+                store.sendChatMessage(to: friend.username, kind: .photo(data, ""))
+                capturedImage = nil
+            }
         }
         .sheet(isPresented: $showCreatePollSheet) {
             CreateChatPollSheet { pollData in
                 store.sendChatMessage(to: friend.username, kind: .poll(pollData))
             }
-            .presentationDetents([.medium, .large])
-            .presentationCornerRadius(20)
+            .presentationDetents([.fraction(0.85), .large])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(24)
         }
         .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhotoItem, matching: .images)
         .onChange(of: selectedPhotoItem) { _, newItem in
@@ -1052,39 +1072,45 @@ struct TypingDotsBubble: View {
     }
 }
 
-// MARK: - Menu "+" estilo WhatsApp (Fotos, Arquivos, Enquete, Pix com ícone oficial)
+// MARK: - Menu "+" estilo WhatsApp (Câmera, Galeria, Pix com ícone oficial, Documentos e Enquete)
 struct ChatAttachmentMenuSheet: View {
+    let onSelectCamera: () -> Void
     let onSelectPhoto: () -> Void
+    let onSelectPix: () -> Void
     let onSelectDocument: () -> Void
     var onSelectPoll: (() -> Void)? = nil
-    let onSelectPix: () -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(spacing: 18) {
+        VStack(spacing: 16) {
             HStack {
                 Text("Enviar na conversa")
-                    .font(.inter(16, weight: .medium))
+                    .font(.inter(16, weight: .semibold))
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
                 Button { dismiss() } label: {
                     Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .medium))
+                        .font(.system(size: 13, weight: .semibold))
                         .foregroundColor(JuntoColors.textMuted)
                         .frame(width: 30, height: 30)
                         .background(JuntoColors.surfaceSubtle)
                         .clipShape(Circle())
                 }
             }
-            .padding(.top, 18)
+            .padding(.top, 16)
 
-            HStack(spacing: 14) {
-                attachmentOption(icon: "photo.fill", label: "Fotos", color: Color(hex: "#2563EB"), action: onSelectPhoto)
-                attachmentOption(icon: "doc.fill", label: "Arquivos", color: Color(hex: "#7C3AED"), action: onSelectDocument)
-                if let onPoll = onSelectPoll {
-                    attachmentOption(icon: "chart.bar.xaxis", label: "Enquete", color: Color(hex: "#D97706"), action: onPoll)
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 16) {
+                    attachmentOption(icon: "camera.fill", label: "Câmera", bg: Color(hex: "#E11D48"), action: onSelectCamera)
+                    attachmentOption(icon: "photo.fill", label: "Galeria", bg: Color(hex: "#8B5CF6"), action: onSelectPhoto)
+                    pixAttachmentOption(action: onSelectPix)
+                    attachmentOption(icon: "doc.fill", label: "Documento", bg: Color(hex: "#2563EB"), action: onSelectDocument)
+                    if let onPoll = onSelectPoll {
+                        attachmentOption(icon: "chart.bar.xaxis", label: "Enquete", bg: Color(hex: "#F59E0B"), action: onPoll)
+                    }
                 }
-                pixAttachmentOption(action: onSelectPix)
+                .padding(.horizontal, 4)
+                .padding(.vertical, 8)
             }
 
             Spacer()
@@ -1093,39 +1119,43 @@ struct ChatAttachmentMenuSheet: View {
         .background(Color.white.ignoresSafeArea())
     }
 
-    private func attachmentOption(icon: String, label: String, color: Color, action: @escaping () -> Void) -> some View {
+    private func attachmentOption(icon: String, label: String, bg: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundColor(color)
-                    .frame(width: 56, height: 56)
-                    .background(Color.white)
-                    .overlay(Circle().stroke(JuntoColors.border, lineWidth: 1))
-                    .clipShape(Circle())
+                ZStack {
+                    Circle()
+                        .fill(bg)
+                        .frame(width: 56, height: 56)
+                    Image(systemName: icon)
+                        .font(.system(size: 24, weight: .medium))
+                        .foregroundColor(.white)
+                }
+                .shadow(color: bg.opacity(0.28), radius: 4, x: 0, y: 2)
 
                 Text(label)
                     .font(.inter(12, weight: .medium))
                     .foregroundColor(JuntoColors.textMain)
             }
-            .frame(maxWidth: .infinity)
+            .frame(width: 66)
         }
     }
 
     private func pixAttachmentOption(action: @escaping () -> Void) -> some View {
         Button(action: action) {
             VStack(spacing: 8) {
-                PixOfficialIcon(size: 24, color: Color(hex: "#32BCAD"))
-                    .frame(width: 56, height: 56)
-                    .background(Color.white)
-                    .overlay(Circle().stroke(JuntoColors.border, lineWidth: 1))
-                    .clipShape(Circle())
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: "#00B494"))
+                        .frame(width: 56, height: 56)
+                    PixOfficialIcon(size: 28, color: .white)
+                }
+                .shadow(color: Color(hex: "#00B494").opacity(0.28), radius: 4, x: 0, y: 2)
 
-                Text("Pix")
+                Text("Chave Pix")
                     .font(.inter(12, weight: .medium))
                     .foregroundColor(JuntoColors.textMain)
             }
-            .frame(maxWidth: .infinity)
+            .frame(width: 66)
         }
     }
 }
@@ -1214,86 +1244,211 @@ struct ChatPollBubbleView: View {
     }
 }
 
-// MARK: - Sheet para Criar Enquete no Chat
+// MARK: - Sheet para Criar Enquete no Chat (Espaçosa, organizada e com validação clara)
 struct CreateChatPollSheet: View {
     let onCreate: (ChatPollData) -> Void
     @Environment(\.dismiss) private var dismiss
 
     @State private var question: String = ""
-    @State private var option1: String = ""
-    @State private var option2: String = ""
-    @State private var option3: String = ""
+    @State private var options: [String] = ["", ""]
     @State private var allowMultiple: Bool = false
+    @State private var validationError: String? = nil
+
+    private var isValid: Bool {
+        let q = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        let validOpts = options.map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }.filter { !$0.isEmpty }
+        return !q.isEmpty && validOpts.count >= 2
+    }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            HStack {
-                Text("Criar enquete")
-                    .font(.inter(18, weight: .medium))
-                    .foregroundColor(JuntoColors.textMain)
-                Spacer()
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(JuntoColors.textMuted)
-                        .frame(width: 30, height: 30)
-                        .background(JuntoColors.surfaceSubtle)
-                        .clipShape(Circle())
-                }
-            }
-            .padding(.top, 18)
+        ZStack {
+            Color.white.ignoresSafeArea()
 
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 14) {
-                    CleanOutlineInput(
-                        label: "Pergunta da enquete",
-                        placeholder: "Ex: Qual dia vamos para a praia?",
-                        text: $question
-                    )
-
-                    CleanOutlineInput(
-                        label: "Opção 1",
-                        placeholder: "Ex: Sexta à noite",
-                        text: $option1
-                    )
-
-                    CleanOutlineInput(
-                        label: "Opção 2",
-                        placeholder: "Ex: Sábado cedo",
-                        text: $option2
-                    )
-
-                    CleanOutlineInput(
-                        label: "Opção 3 (opcional)",
-                        placeholder: "Ex: Domingo",
-                        text: $option3
-                    )
-
-                    Toggle("Permitir múltiplas respostas", isOn: $allowMultiple)
-                        .font(.inter(14, weight: .regular))
-                        .foregroundColor(JuntoColors.textMain)
-                        .tint(JuntoColors.primary)
-                        .padding(.vertical, 4)
-
-                    JuntoPillButton(title: "Enviar enquete", color: JuntoColors.primary) {
-                        let q = question.trimmingCharacters(in: .whitespacesAndNewlines)
-                        let o1 = option1.trimmingCharacters(in: .whitespacesAndNewlines)
-                        let o2 = option2.trimmingCharacters(in: .whitespacesAndNewlines)
-                        let o3 = option3.trimmingCharacters(in: .whitespacesAndNewlines)
-                        guard !q.isEmpty, !o1.isEmpty, !o2.isEmpty else { return }
-
-                        var opts = [ChatPollOption(text: o1), ChatPollOption(text: o2)]
-                        if !o3.isEmpty { opts.append(ChatPollOption(text: o3)) }
-
-                        onCreate(ChatPollData(question: q, options: opts, allowMultipleAnswers: allowMultiple))
-                        dismiss()
+            VStack(spacing: 0) {
+                // Topo com botão fechar
+                HStack {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Criar Enquete")
+                            .font(.inter(18, weight: .bold))
+                            .foregroundColor(JuntoColors.textMain)
+                        Text("Faça uma pergunta para o grupo ou amigo votar")
+                            .font(.inter(12, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
                     }
-                    .padding(.top, 6)
+                    Spacer()
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .frame(width: 32, height: 32)
+                            .background(JuntoColors.surfaceSubtle)
+                            .clipShape(Circle())
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 18)
+                .padding(.bottom, 12)
+
+                Divider().opacity(0.6)
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 18) {
+                        // Pergunta
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Pergunta")
+                                .font(.inter(13, weight: .semibold))
+                                .foregroundColor(JuntoColors.textMain)
+
+                            HStack {
+                                TextField("Faça uma pergunta...", text: $question)
+                                    .font(.inter(15, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMain)
+                                if !question.isEmpty {
+                                    Button { question = "" } label: {
+                                        Image(systemName: "xmark.circle.fill")
+                                            .foregroundColor(JuntoColors.textLight)
+                                    }
+                                }
+                            }
+                            .padding(14)
+                            .background(JuntoColors.surfaceSubtle)
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12)
+                                    .stroke(question.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && validationError != nil ? JuntoColors.danger : Color.clear, lineWidth: 1)
+                            )
+                        }
+
+                        // Opções
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text("Opções")
+                                    .font(.inter(13, weight: .semibold))
+                                    .foregroundColor(JuntoColors.textMain)
+                                Spacer()
+                                Text("Mínimo 2")
+                                    .font(.inter(11, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                            }
+
+                            ForEach(0..<options.count, id: \.self) { idx in
+                                HStack(spacing: 8) {
+                                    Image(systemName: "circle")
+                                        .font(.system(size: 14))
+                                        .foregroundColor(JuntoColors.textLight)
+
+                                    TextField(idx < 2 ? "Opção \(idx + 1) (obrigatória)" : "Opção \(idx + 1)", text: $options[idx])
+                                        .font(.inter(14, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMain)
+
+                                    if options.count > 2 && idx >= 2 {
+                                        Button {
+                                            options.remove(at: idx)
+                                        } label: {
+                                            Image(systemName: "trash")
+                                                .font(.system(size: 13))
+                                                .foregroundColor(JuntoColors.danger)
+                                        }
+                                    }
+                                }
+                                .padding(12)
+                                .background(JuntoColors.surfaceSubtle)
+                                .clipShape(RoundedRectangle(cornerRadius: 10))
+                            }
+
+                            if options.count < 6 {
+                                Button {
+                                    withAnimation {
+                                        options.append("")
+                                    }
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        Image(systemName: "plus.circle.fill")
+                                            .font(.system(size: 14))
+                                        Text("Adicionar opção")
+                                            .font(.inter(13, weight: .medium))
+                                    }
+                                    .foregroundColor(JuntoColors.primary)
+                                    .padding(.vertical, 4)
+                                }
+                            }
+                        }
+
+                        // Configurações da enquete
+                        VStack(spacing: 6) {
+                            Toggle("Permitir múltiplas respostas", isOn: $allowMultiple)
+                                .font(.inter(14, weight: .medium))
+                                .foregroundColor(JuntoColors.textMain)
+                                .tint(JuntoColors.primary)
+                        }
+                        .padding(14)
+                        .background(JuntoColors.surfaceSubtle)
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                        // Mensagem de validação
+                        if let err = validationError {
+                            HStack(spacing: 6) {
+                                Image(systemName: "exclamationmark.circle.fill")
+                                    .font(.system(size: 13))
+                                Text(err)
+                                    .font(.inter(12, weight: .medium))
+                            }
+                            .foregroundColor(JuntoColors.danger)
+                        }
+
+                        // Botão Criar Enquete
+                        Button {
+                            submitPoll()
+                        } label: {
+                            HStack(spacing: 6) {
+                                Image(systemName: "chart.bar.xaxis")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text("Criar e Enviar Enquete")
+                                    .font(.inter(15, weight: .semibold))
+                            }
+                            .foregroundColor(.white)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 50)
+                            .background(isValid ? JuntoColors.primary : JuntoColors.primary.opacity(0.45))
+                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                        }
+                        .padding(.top, 6)
+                        .padding(.bottom, 20)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 14)
                 }
             }
         }
-        .padding(.horizontal, 20)
-        .background(Color.white.ignoresSafeArea())
+    }
+
+    private func submitPoll() {
+        let q = question.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !q.isEmpty else {
+            validationError = "Digite a pergunta da enquete."
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            return
+        }
+
+        let validOpts = options
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        guard validOpts.count >= 2 else {
+            validationError = "Preencha pelo menos 2 opções de resposta."
+            UINotificationFeedbackGenerator().notificationOccurred(.warning)
+            return
+        }
+
+        validationError = nil
+        let pollData = ChatPollData(
+            question: q,
+            options: validOpts.map { ChatPollOption(text: $0) },
+            allowMultipleAnswers: allowMultiple
+        )
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        onCreate(pollData)
+        dismiss()
     }
 }
 

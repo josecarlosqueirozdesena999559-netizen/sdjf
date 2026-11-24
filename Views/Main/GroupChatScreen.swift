@@ -15,6 +15,8 @@ struct GroupChatScreen: View {
     @State private var replyingToMessage: ChatMessage? = nil
     @State private var selectedMessageForMenu: ChatMessage? = nil
     @State private var showAttachmentMenu = false
+    @State private var showCameraPicker = false
+    @State private var capturedImage: UIImage? = nil
     @State private var showPhotoPicker = false
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var showDocumentImporter = false
@@ -503,9 +505,20 @@ struct GroupChatScreen: View {
         }
         .sheet(isPresented: $showAttachmentMenu) {
             ChatAttachmentMenuSheet(
+                onSelectCamera: {
+                    showAttachmentMenu = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { showCameraPicker = true }
+                },
                 onSelectPhoto: {
                     showAttachmentMenu = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { showPhotoPicker = true }
+                },
+                onSelectPix: {
+                    showAttachmentMenu = false
+                    store.sendGroupChatMessage(
+                        groupId: groupId,
+                        kind: .text("Minha chave Pix: \(store.user.pixKey)")
+                    )
                 },
                 onSelectDocument: {
                     showAttachmentMenu = false
@@ -514,24 +527,29 @@ struct GroupChatScreen: View {
                 onSelectPoll: {
                     showAttachmentMenu = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { showCreatePollSheet = true }
-                },
-                onSelectPix: {
-                    showAttachmentMenu = false
-                    store.sendGroupChatMessage(
-                        groupId: groupId,
-                        kind: .text("Minha chave Pix: \(store.user.pixKey)")
-                    )
                 }
             )
-            .presentationDetents([.height(225)])
-            .presentationCornerRadius(22)
+            .presentationDetents([.height(230)])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(24)
+        }
+        .fullScreenCover(isPresented: $showCameraPicker) {
+            CameraReceiptPicker(selectedImage: $capturedImage, sourceType: .camera)
+                .ignoresSafeArea()
+        }
+        .onChange(of: capturedImage) { _, newImg in
+            if let img = newImg, let data = img.jpegData(compressionQuality: 0.8) {
+                store.sendGroupChatMessage(groupId: groupId, kind: .photo(data, ""))
+                capturedImage = nil
+            }
         }
         .sheet(isPresented: $showCreatePollSheet) {
             CreateChatPollSheet { pollData in
                 store.sendGroupChatMessage(groupId: groupId, kind: .poll(pollData))
             }
-            .presentationDetents([.medium, .large])
-            .presentationCornerRadius(20)
+            .presentationDetents([.fraction(0.85), .large])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(24)
         }
         .photosPicker(isPresented: $showPhotoPicker, selection: $selectedPhotoItem, matching: .images)
         .onChange(of: selectedPhotoItem) { _, newItem in
