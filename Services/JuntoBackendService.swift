@@ -3,7 +3,7 @@ import Foundation
 /// Cliente HTTP + SSE Real que sincroniza o aplicativo iOS Juntô com o banco PostgreSQL + Redis no Docker via Cloudflare Tunnel HTTPS
 actor JuntoBackendService {
     static let shared = JuntoBackendService()
-    static let defaultProductionTunnelURL = "https://translations-procedures-chris-marked.trycloudflare.com"
+    static let defaultProductionTunnelURL = "https://brings-extent-personals-desktops.trycloudflare.com"
 
     private static let accessTokenKey = "junto_access_token"
     private static let refreshTokenKey = "junto_refresh_token"
@@ -249,7 +249,59 @@ actor JuntoBackendService {
         return res
     }
 
-    // MARK: - 4. OTP WhatsApp & Redefinição de Senha Real no Redis/PostgreSQL
+    // MARK: - 4. Login / Cadastro Exclusivo via WhatsApp OTP no Redis/PostgreSQL
+    func requestWhatsAppOTP(phone: String) async -> (ok: Bool, isExistingUser: Bool) {
+        let digitsOnly = phone.filter { $0.isNumber }
+        guard digitsOnly.count >= 10 else { return (false, false) }
+        let res = await request(
+            path: "/v1/auth/whatsapp/send-otp",
+            method: "POST",
+            body: [
+                "phone": digitsOnly,
+                "template": "junto_codigo_verificacao"
+            ],
+            allowRetryOnUnauthorized: false
+        )
+        let ok = (res?["ok"] as? Bool) ?? false
+        let existing = (res?["isExistingUser"] as? Bool) ?? false
+        return (ok, existing)
+    }
+
+    func loginWithWhatsAppOTP(
+        phone: String,
+        code: String,
+        fullName: String? = nil,
+        pixKey: String? = nil
+    ) async -> [String: Any]? {
+        let digitsOnly = phone.filter { $0.isNumber }
+        guard digitsOnly.count >= 10 else { return nil }
+        var body: [String: Any] = [
+            "phone": digitsOnly,
+            "code": code.trimmingCharacters(in: .whitespacesAndNewlines),
+            "deviceName": "iPhone iOS"
+        ]
+        if let name = fullName?.trimmingCharacters(in: .whitespacesAndNewlines), !name.isEmpty {
+            body["fullName"] = name
+        }
+        if let pix = pixKey?.trimmingCharacters(in: .whitespacesAndNewlines), !pix.isEmpty {
+            body["pixKey"] = pix
+        }
+
+        let res = await request(
+            path: "/v1/auth/whatsapp/login-otp",
+            method: "POST",
+            body: body,
+            allowRetryOnUnauthorized: false
+        )
+        if let token = res?["accessToken"] as? String {
+            accessToken = token
+        }
+        if let rt = res?["refreshToken"] as? String {
+            refreshToken = rt
+        }
+        return res
+    }
+
     func sendWhatsAppVerificationCode(phone: String, code: String) async -> Bool {
         let digitsOnly = phone.filter { $0.isNumber }
         guard digitsOnly.count >= 10 else { return false }
@@ -359,7 +411,19 @@ actor JuntoBackendService {
         return await request(path: "/v1/sync/bootstrap?username=\(encoded)")
     }
 
-    // MARK: - 7. Amigos & Busca Real no PostgreSQL
+    // MARK: - 7. Contatos Estilo WhatsApp & Busca Real no PostgreSQL
+    func addOrOpenContact(name: String, phone: String) async -> [String: Any]? {
+        let res = await request(
+            path: "/v1/friends/contacts/add",
+            method: "POST",
+            body: [
+                "name": name.trimmingCharacters(in: .whitespacesAndNewlines),
+                "phone": phone.trimmingCharacters(in: .whitespacesAndNewlines)
+            ]
+        )
+        return res?["contact"] as? [String: Any]
+    }
+
     func searchUsers(query: String) async -> [[String: Any]] {
         let encoded = query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
         guard let res = await request(path: "/v1/friends/search?q=\(encoded)"),

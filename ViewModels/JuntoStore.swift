@@ -289,6 +289,97 @@ final class JuntoStore: ObservableObject {
         showToast("Mensagem enviada! Protocolo #\(protocolCode)", icon: "checkmark.circle")
     }
 
+    // MARK: - Contatos Estilo WhatsApp (Adicionar Novo Contato Nome + Telefone e abrir conversa direto)
+    func addContactAndOpenChat(name rawName: String, phone rawPhone: String) async -> FriendItem? {
+        let cleanName = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
+        let digits = ContactsManager.normalizeBrDigits(rawPhone)
+        guard cleanName.count >= 2, digits.count >= 8 else {
+            showToast("Informe o nome e um telefone válido.", icon: "exclamationmark.circle")
+            return nil
+        }
+
+        let formattedPhone = ContactsManager.formatPhone(digits)
+
+        // Se já existe na lista de contatos pelo telefone, abre direto
+        if let existing = friends.first(where: { ContactsManager.normalizeBrDigits($0.phone) == digits }) {
+            return existing
+        }
+
+        // Salva/vincula o contato no PostgreSQL (cria vínculo direto ACCEPTED, sem pedido de amizade)
+        var resolvedUsername = "\(cleanName.lowercased().filter { $0.isLetter || $0.isNumber }.prefix(10)).\(digits.suffix(4))"
+        var resolvedName = cleanName
+        var resolvedPlan: ProPlanType = .none
+
+        if let contactObj = await JuntoBackendService.shared.addOrOpenContact(name: cleanName, phone: formattedPhone) {
+            if let uname = contactObj["username"] as? String, !uname.isEmpty { resolvedUsername = uname }
+            if let cname = contactObj["name"] as? String, !cname.isEmpty { resolvedName = cname }
+            if let pStr = contactObj["proPlanType"] as? String { resolvedPlan = ProPlanType(rawValue: pStr) ?? .none }
+        }
+
+        if let existingByHandle = friends.first(where: { $0.username.lowercased() == resolvedUsername.lowercased() }) {
+            return existingByHandle
+        }
+
+        let initials = resolvedName.split(separator: " ").prefix(2).map { String($0.prefix(1)) }.joined().uppercased()
+        let newContact = FriendItem(
+            name: resolvedName,
+            username: resolvedUsername,
+            initials: initials.isEmpty ? "CT" : initials,
+            phone: formattedPhone,
+            balance: 0,
+            proPlanType: resolvedPlan,
+            isPendingInvite: false,
+            isOnline: true,
+            lastSeenText: "online",
+            friendsSinceText: "Contato"
+        )
+        friends.insert(newContact, at: 0)
+        return newContact
+    }
+
+    // MARK: - Login & Cadastro Exclusivo via WhatsApp + Código OTP
+    func loginWithWhatsAppOTP(
+        phone: String,
+        code: String,
+        fullName: String? = nil,
+        pixKey: String? = nil
+    ) async -> (success: Bool, needsProfile: Bool, errorMessage: String?) {
+        guard let res = await JuntoBackendService.shared.loginWithWhatsAppOTP(
+            phone: phone,
+            code: code,
+            fullName: fullName,
+            pixKey: pixKey
+        ) else {
+            return (false, false, "Código inválido ou expirado. Tente novamente.")
+        }
+
+        if (res["needsProfile"] as? Bool) == true {
+            return (false, true, nil)
+        }
+
+        if let uDict = res["user"] as? [String: Any] {
+            if let n = uDict["fullName"] as? String, !n.isEmpty { user.fullName = n }
+            if let u = uDict["username"] as? String, !u.isEmpty { user.username = u }
+            if let e = uDict["email"] as? String, !e.isEmpty { user.email = e }
+            if let p = uDict["phone"] as? String, !p.isEmpty { user.phone = p }
+            if let pix = uDict["pixKey"] as? String, !pix.isEmpty { user.pixKey = pix }
+            if let pro = uDict["isPro"] as? Bool { user.isPro = pro }
+            if let pt = uDict["proPlanType"] as? String { user.proPlanType = ProPlanType(rawValue: pt) ?? .none }
+            if let pn = uDict["proPlanName"] as? String { user.proPlanName = pn }
+        }
+
+        saveUserSession()
+        await syncWithBackendDatabase()
+        if let token = JuntoNotificationManager.shared.apnsDeviceToken {
+            await JuntoBackendService.shared.registerDeviceToken(token)
+        }
+
+        withAnimation(.easeInOut(duration: 0.25)) {
+            route = .main
+        }
+        return (true, false, nil)
+    }
+
     func refreshDatabaseSync() {
         Task {
             await syncWithBackendDatabase()
@@ -319,8 +410,9 @@ final class JuntoStore: ObservableObject {
         if let friendsArr = payload["friends"] as? [[String: Any]] {
             var loadedFriends: [FriendItem] = []
             for f in friendsArr {
-                let name = (f["name"] as? String) ?? "Amigo"
-                let uname = (f["username"] as? String) ?? "amigo"
+                let name = (f["name"] as? String) ?? "Contato"
+                let uname = (f["username"] as? String) ?? "contato"
+                let phone = (f["phone"] as? String) ?? ""
                 let balance = (f["balance"] as? Double) ?? 0.0
                 let pending = (f["isPendingInvite"] as? Bool) ?? false
                 let muted = (f["isMuted"] as? Bool) ?? false
@@ -330,13 +422,14 @@ final class JuntoStore: ObservableObject {
                     FriendItem(
                         name: name,
                         username: uname,
-                        initials: initials.isEmpty ? "AM" : initials,
+                        initials: initials.isEmpty ? "CT" : initials,
+                        phone: phone,
                         balance: balance,
                         proPlanType: ProPlanType(rawValue: pTypeStr) ?? .none,
                         isPendingInvite: pending,
                         isOnline: true,
                         lastSeenText: "online",
-                        friendsSinceText: "Sincronizado",
+                        friendsSinceText: "Contato",
                         isMuted: muted
                     )
                 )

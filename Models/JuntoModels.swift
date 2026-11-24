@@ -233,6 +233,7 @@ struct FriendItem: Identifiable {
     let name: String
     let username: String
     let initials: String
+    var phone: String = ""
     var balance: Double
     var proPlanType: ProPlanType = .none
     var isPendingInvite: Bool = false

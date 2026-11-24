@@ -310,68 +310,76 @@ struct FriendsView: View {
     }
 }
 
-// MARK: - Tela do botão "+": Lista de todos os amigos + Busca de novos amigos letra por letra
+// MARK: - Tela do botão "+": Contatos estilo WhatsApp (Agenda + Novo Contato + Mandar Mensagem direto)
 struct AddFriendScreen: View {
     @EnvironmentObject var store: JuntoStore
+    @StateObject private var contactsManager = ContactsManager.shared
     @Environment(\.dismiss) private var dismiss
     var onOpenChat: ((FriendItem) -> Void)? = nil
 
     @State private var query: String = ""
+    @State private var showNewContactPopup: Bool = false
+    @State private var isOpeningContact: Bool = false
     @State private var selectedFriendForOptions: FriendItem? = nil
 
     private var cleanQuery: String {
-        query.trimmingCharacters(in: .whitespacesAndNewlines).replacingOccurrences(of: "@", with: "").lowercased()
+        query.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var searchResults: [SearchableUser] {
-        guard !cleanQuery.isEmpty else { return [] }
-        var matches = store.directoryUsers.filter {
-            $0.username.lowercased().contains(cleanQuery) ||
-            $0.name.localizedCaseInsensitiveContains(cleanQuery)
+    private var filteredSavedContacts: [FriendItem] {
+        let base = store.friends
+        guard !cleanQuery.isEmpty else { return base }
+        let qDigits = ContactsManager.normalizeBrDigits(cleanQuery)
+        return base.filter { f in
+            f.name.localizedCaseInsensitiveContains(cleanQuery) ||
+            f.phone.localizedCaseInsensitiveContains(cleanQuery) ||
+            (!qDigits.isEmpty && ContactsManager.normalizeBrDigits(f.phone).contains(qDigits))
         }
-        if cleanQuery.count >= 3 && !matches.contains(where: { $0.username.lowercased() == cleanQuery }) {
-            let formattedName = cleanQuery
-                .split(separator: ".")
-                .map { $0.capitalized }
-                .joined(separator: " ")
-            matches.append(SearchableUser(name: formattedName, username: cleanQuery))
+    }
+
+    private var filteredDeviceContacts: [PhoneContactItem] {
+        let savedPhones = Set(store.friends.map { ContactsManager.normalizeBrDigits($0.phone) }.filter { !$0.isEmpty })
+        let nonDuplicates = contactsManager.phoneContacts.filter { !savedPhones.contains($0.normalizedDigits) }
+        guard !cleanQuery.isEmpty else { return nonDuplicates }
+        let qDigits = ContactsManager.normalizeBrDigits(cleanQuery)
+        return nonDuplicates.filter { c in
+            c.name.localizedCaseInsensitiveContains(cleanQuery) ||
+            c.phone.localizedCaseInsensitiveContains(cleanQuery) ||
+            (!qDigits.isEmpty && c.normalizedDigits.contains(qDigits))
         }
-        return matches
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                CircleNavButton(icon: "chevron.left") { dismiss() }
+                PopupCloseButton { dismiss() }
                 Spacer()
-                Text("Amigos e convites")
-                    .font(.inter(17, weight: .medium))
-                    .foregroundColor(JuntoColors.textMain)
+                VStack(spacing: 1) {
+                    Text("Contatos")
+                        .font(.inter(17, weight: .semibold))
+                        .foregroundColor(JuntoColors.textMain)
+                    let totalCount = filteredSavedContacts.count + filteredDeviceContacts.count
+                    Text("\(totalCount) contato(s)")
+                        .font(.inter(11, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                }
                 Spacer()
-                Spacer().frame(width: 44)
+                Color.clear.frame(width: 34, height: 34)
             }
             .padding(.horizontal, 18)
             .padding(.top, 12)
-            .padding(.bottom, 16)
+            .padding(.bottom, 14)
 
-            // Barra de busca compacta para pesquisar novos amigos
+            // Barra de busca limpa (nome ou telefone)
             HStack(spacing: 8) {
                 Image(systemName: "magnifyingglass")
                     .font(.system(size: 14, weight: .regular))
                     .foregroundColor(JuntoColors.textMuted)
 
-                TextField("Buscar por @usuário ou nome...", text: $query)
+                TextField("Pesquisar nome ou telefone...", text: $query)
                     .font(.inter(14, weight: .regular))
                     .foregroundColor(JuntoColors.textMain)
-                    .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
-                    .onChange(of: query) { _, newValue in
-                        let q = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
-                        Task { await store.refreshRemoteDirectory(query: q) }
-                    }
-                    .onAppear {
-                        Task { await store.refreshRemoteDirectory(query: "") }
-                    }
 
                 if !query.isEmpty {
                     Button {
@@ -384,149 +392,231 @@ struct AddFriendScreen: View {
                 }
             }
             .padding(.horizontal, 12)
-            .frame(height: 38)
+            .frame(height: 40)
             .background(JuntoColors.surfaceSubtle)
             .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             .padding(.horizontal, 18)
-            .padding(.bottom, 10)
+            .padding(.bottom, 12)
 
             Divider().opacity(0.6)
 
-            if cleanQuery.isEmpty {
-                // Lista completa de todos os amigos já adicionados (inclusive quitados)
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text("Seus amigos (\(store.friends.count))")
-                            .font(.inter(13, weight: .medium))
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Opção estilo WhatsApp: "Novo contato" (abre popup com Nome + Telefone)
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        showNewContactPopup = true
+                    } label: {
+                        HStack(spacing: 14) {
+                            ZStack {
+                                Circle()
+                                    .fill(JuntoColors.primary)
+                                    .frame(width: 44, height: 44)
+                                Image(systemName: "person.badge.plus")
+                                    .font(.system(size: 18, weight: .medium))
+                                    .foregroundColor(.white)
+                            }
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Novo contato")
+                                    .font(.inter(15, weight: .semibold))
+                                    .foregroundColor(JuntoColors.textMain)
+                                Text("Salvar nome e telefone para conversar")
+                                    .font(.inter(12, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                            }
+
+                            Spacer()
+
+                            Image(systemName: "chevron.right")
+                                .font(.system(size: 12, weight: .medium))
+                                .foregroundColor(JuntoColors.textLight)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 13)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    Divider().padding(.leading, 78)
+
+                    // Contatos já no Juntô
+                    if !filteredSavedContacts.isEmpty {
+                        Text("Contatos no Juntô")
+                            .font(.inter(12, weight: .semibold))
                             .foregroundColor(JuntoColors.textMuted)
                             .padding(.horizontal, 20)
-                            .padding(.top, 14)
-                            .padding(.bottom, 8)
+                            .padding(.top, 16)
+                            .padding(.bottom, 6)
 
-                        ForEach(store.friends) { friend in
+                        ForEach(filteredSavedContacts) { contact in
+                            HStack(spacing: 12) {
+                                Button {
+                                    openChatAndDismiss(contact)
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        GeometricAvatarView(seed: contact.username, displayName: contact.name, size: 44)
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            HStack(spacing: 5) {
+                                                Text(contact.name)
+                                                    .font(.inter(15, weight: .medium))
+                                                    .foregroundColor(JuntoColors.textMain)
+                                                    .lineLimit(1)
+                                                VerifiedBadgeView(type: contact.proPlanType, size: 13)
+                                            }
+                                            Text(contact.phone.isEmpty ? "Disponível para mensagem" : contact.phone)
+                                                .font(.inter(12, weight: .regular))
+                                                .foregroundColor(JuntoColors.textMuted)
+                                                .lineLimit(1)
+                                        }
+
+                                        Spacer(minLength: 8)
+
+                                        Text("Mensagem")
+                                            .font(.inter(12, weight: .semibold))
+                                            .foregroundColor(JuntoColors.primary)
+                                            .padding(.horizontal, 12)
+                                            .frame(height: 30)
+                                            .background(JuntoColors.primary.opacity(0.10))
+                                            .clipShape(Capsule())
+                                    }
+                                    .contentShape(Rectangle())
+                                }
+                                .buttonStyle(.plain)
+
+                                Button {
+                                    selectedFriendForOptions = contact
+                                } label: {
+                                    Image(systemName: "ellipsis")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                        .frame(width: 28, height: 28)
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+
+                            Divider().padding(.leading, 76)
+                        }
+                    }
+
+                    // Contatos da Agenda do iPhone (CNContactStore)
+                    if contactsManager.authorizationStatus == .notDetermined {
+                        Button {
+                            contactsManager.requestAndLoadContacts()
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "person.crop.rectangle.stack")
+                                    .font(.system(size: 18, weight: .regular))
+                                    .foregroundColor(JuntoColors.primary)
+                                    .frame(width: 28)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Sincronizar agenda do iPhone")
+                                        .font(.inter(14, weight: .medium))
+                                        .foregroundColor(JuntoColors.textMain)
+                                    Text("Ver seus contatos aqui como no WhatsApp")
+                                        .font(.inter(12, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(JuntoColors.textLight)
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 16)
+                        }
+                        .buttonStyle(.plain)
+                    } else if !filteredDeviceContacts.isEmpty {
+                        Text("Contatos do telefone")
+                            .font(.inter(12, weight: .semibold))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 16)
+                            .padding(.bottom, 6)
+
+                        ForEach(filteredDeviceContacts) { phoneContact in
                             Button {
-                                dismiss()
-                                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                                    onOpenChat?(friend)
+                                guard !isOpeningContact else { return }
+                                isOpeningContact = true
+                                Task {
+                                    let opened = await store.addContactAndOpenChat(name: phoneContact.name, phone: phoneContact.phone)
+                                    isOpeningContact = false
+                                    if let f = opened {
+                                        openChatAndDismiss(f)
+                                    }
                                 }
                             } label: {
                                 HStack(spacing: 12) {
-                                    ZStack(alignment: .bottomTrailing) {
-                                        GeometricAvatarView(seed: friend.username, displayName: friend.name, size: 46)
-                                        if friend.isOnline {
-                                            Circle()
-                                                .fill(JuntoColors.pixGreen)
-                                                .frame(width: 12, height: 12)
-                                                .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                                        }
-                                    }
+                                    GeometricAvatarView(seed: phoneContact.normalizedDigits, displayName: phoneContact.name, size: 44)
 
                                     VStack(alignment: .leading, spacing: 2) {
-                                        HStack(spacing: 5) {
-                                            Text(friend.name)
-                                                .font(.inter(15, weight: .regular))
-                                                .foregroundColor(JuntoColors.textMain)
-                                            VerifiedBadgeView(type: friend.proPlanType, size: 13)
-                                        }
-                                        Text("@\(friend.username)")
+                                        Text(phoneContact.name)
+                                            .font(.inter(15, weight: .medium))
+                                            .foregroundColor(JuntoColors.textMain)
+                                            .lineLimit(1)
+                                        Text(phoneContact.phone)
                                             .font(.inter(12, weight: .regular))
                                             .foregroundColor(JuntoColors.textMuted)
+                                            .lineLimit(1)
                                     }
 
-                                    Spacer()
+                                    Spacer(minLength: 8)
 
-                                    if friend.isPendingInvite {
-                                        Text("Convite enviado")
-                                            .font(.inter(12, weight: .regular))
-                                            .foregroundColor(JuntoColors.textMuted)
-                                    } else if friend.balance > 0 {
-                                        Text("+ \(JuntoStore.formatBRL(friend.balance))")
-                                            .font(.inter(13, weight: .medium))
-                                            .foregroundColor(JuntoColors.pixGreen)
-                                    } else if friend.balance < 0 {
-                                        Text("- \(JuntoStore.formatBRL(abs(friend.balance)))")
-                                            .font(.inter(13, weight: .medium))
-                                            .foregroundColor(JuntoColors.orangeSave)
-                                    } else {
-                                        Text("Conversar")
-                                            .font(.inter(12, weight: .medium))
-                                            .foregroundColor(JuntoColors.primary)
-                                    }
-
-                                    // Botão 3 pontos (Desfazer amizade / Bloquear)
-                                    Button {
-                                        selectedFriendForOptions = friend
-                                    } label: {
-                                        Image(systemName: "ellipsis")
-                                            .font(.system(size: 15, weight: .medium))
-                                            .foregroundColor(JuntoColors.textMuted)
-                                            .frame(width: 32, height: 32)
-                                            .background(JuntoColors.surfaceSubtle)
-                                            .clipShape(Circle())
-                                    }
-                                    .padding(.leading, 4)
+                                    Text("Mensagem")
+                                        .font(.inter(12, weight: .semibold))
+                                        .foregroundColor(JuntoColors.primary)
+                                        .padding(.horizontal, 12)
+                                        .frame(height: 30)
+                                        .background(JuntoColors.primary.opacity(0.10))
+                                        .clipShape(Capsule())
                                 }
                                 .padding(.horizontal, 20)
-                                .padding(.vertical, 12)
+                                .padding(.vertical, 10)
+                                .contentShape(Rectangle())
                             }
+                            .buttonStyle(.plain)
 
-                            Divider().padding(.leading, 78)
+                            Divider().padding(.leading, 76)
                         }
+                    } else if filteredSavedContacts.isEmpty && !cleanQuery.isEmpty {
+                        VStack(spacing: 10) {
+                            Text("Nenhum contato encontrado.")
+                                .font(.inter(14, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                            Button("Adicionar novo contato") {
+                                showNewContactPopup = true
+                            }
+                            .font(.inter(13, weight: .semibold))
+                            .foregroundColor(JuntoColors.primary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.vertical, 32)
                     }
                 }
-            } else {
-                // Busca letra por letra bem compacta para adicionar novos amigos
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        ForEach(searchResults) { person in
-                            let alreadySent = store.isInviteSent(for: person.username)
-
-                            HStack(spacing: 10) {
-                                GeometricAvatarView(seed: person.username, displayName: person.name, size: 32)
-
-                                VStack(alignment: .leading, spacing: 1) {
-                                    Text(person.name)
-                                        .font(.inter(13, weight: .medium))
-                                        .foregroundColor(JuntoColors.textMain)
-                                        .lineLimit(1)
-                                    Text("@\(person.username)")
-                                        .font(.inter(11, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMuted)
-                                        .lineLimit(1)
-                                }
-
-                                Spacer(minLength: 6)
-
-                                Button {
-                                    if alreadySent {
-                                        store.cancelFriendInvite(username: person.username)
-                                    } else {
-                                        store.sendFriendInvite(username: person.username, displayName: person.name)
-                                    }
-                                } label: {
-                                    Text(alreadySent ? "Enviado" : "Adicionar")
-                                        .font(.inter(11, weight: .medium))
-                                        .foregroundColor(alreadySent ? JuntoColors.textMain : .white)
-                                        .padding(.horizontal, 10)
-                                        .frame(height: 28)
-                                        .background(alreadySent ? JuntoColors.surfaceSubtle : JuntoColors.primary)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 6, style: .continuous)
-                                                .stroke(alreadySent ? JuntoColors.border : Color.clear, lineWidth: 1)
-                                        )
-                                        .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
-                                }
-                            }
-                            .padding(.horizontal, 18)
-                            .padding(.vertical, 6)
-
-                            Divider().padding(.leading, 60)
+                .padding(.bottom, 40)
+            }
+        }
+        .background(Color.white.ignoresSafeArea())
+        .onAppear {
+            contactsManager.requestAndLoadContacts()
+        }
+        .sheet(isPresented: $showNewContactPopup) {
+            NewContactPopupSheet { name, phone in
+                Task {
+                    if let created = await store.addContactAndOpenChat(name: name, phone: phone) {
+                        showNewContactPopup = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                            openChatAndDismiss(created)
                         }
                     }
                 }
             }
+            .presentationDetents([.height(330), .medium])
+            .presentationDragIndicator(.visible)
+            .presentationCornerRadius(24)
         }
-        .background(Color.white.ignoresSafeArea())
         .sheet(item: $selectedFriendForOptions) { friend in
             FriendOptionsSheet(
                 friend: friend,
@@ -542,6 +632,102 @@ struct AddFriendScreen: View {
             .presentationDetents([.height(270)])
             .presentationCornerRadius(20)
         }
+    }
+
+    private func openChatAndDismiss(_ friend: FriendItem) {
+        dismiss()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
+            onOpenChat?(friend)
+        }
+    }
+}
+
+// MARK: - Popup "Novo contato" (Nome + Telefone, estilo WhatsApp, fechar apenas X)
+private struct NewContactPopupSheet: View {
+    var onSave: (String, String) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var nameText: String = ""
+    @State private var phoneText: String = ""
+    @State private var isSaving: Bool = false
+
+    private var canSave: Bool {
+        nameText.trimmingCharacters(in: .whitespacesAndNewlines).count >= 2 &&
+        ContactsManager.normalizeBrDigits(phoneText).count >= 10
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                Text("Novo contato")
+                    .font(.inter(18, weight: .semibold))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                PopupCloseButton { dismiss() }
+            }
+            .padding(.top, 20)
+
+            CleanOutlineInput(
+                label: "Nome",
+                placeholder: "Ex: João Silva",
+                text: $nameText
+            )
+
+            CleanOutlineInput(
+                label: "Telefone (WhatsApp)",
+                placeholder: "(11) 99999-9999",
+                text: $phoneText,
+                keyboardType: .phonePad,
+                leadingPrefix: "+55"
+            )
+            .onChange(of: phoneText) { _, newValue in
+                let formatted = formatLivePhoneInput(newValue)
+                if formatted != phoneText {
+                    phoneText = formatted
+                }
+            }
+
+            Button {
+                guard canSave, !isSaving else { return }
+                isSaving = true
+                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                onSave(nameText, phoneText)
+            } label: {
+                HStack(spacing: 8) {
+                    if isSaving {
+                        ProgressView().tint(.white)
+                    } else {
+                        Image(systemName: "bubble.left.fill")
+                            .font(.system(size: 13))
+                        Text("Salvar e mandar mensagem")
+                            .font(.inter(15, weight: .semibold))
+                    }
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(canSave ? JuntoColors.primary : JuntoColors.border)
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            }
+            .disabled(!canSave || isSaving)
+            .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.97))
+
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .background(Color.white.ignoresSafeArea())
+    }
+
+    private func formatLivePhoneInput(_ raw: String) -> String {
+        let digits = String(raw.filter { $0.isNumber }.prefix(11))
+        if digits.count <= 2 { return digits }
+        if digits.count <= 7 {
+            return "(\(digits.prefix(2))) \(digits.dropFirst(2))"
+        }
+        let ddd = digits.prefix(2)
+        let mid = digits.dropFirst(2).prefix(digits.count == 11 ? 5 : 4)
+        let end = digits.dropFirst(digits.count == 11 ? 7 : 6)
+        return "(\(ddd)) \(mid)-\(end)"
     }
 }
 

@@ -44,13 +44,7 @@ struct WelcomeAuthView: View {
                 Spacer().frame(height: 52)
 
                 VStack(spacing: 12) {
-                    JuntoPillButton(title: "Criar conta", color: JuntoColors.primary) {
-                        withAnimation(.easeInOut(duration: 0.22)) {
-                            store.route = .registerFlow
-                        }
-                    }
-
-                    JuntoOutlineButton(title: "Entrar", color: JuntoColors.primary) {
+                    JuntoPillButton(title: "Continuar com WhatsApp", color: JuntoColors.primary) {
                         withAnimation(.easeInOut(duration: 0.22)) {
                             store.route = .login
                         }
