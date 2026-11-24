@@ -915,7 +915,9 @@ struct FriendProfileScreen: View {
                         .frame(maxWidth: .infinity)
                         .padding(.bottom, 8)
 
-                        // Grupo de informações (Amigos desde + Silenciar notificações)
+                        Divider().opacity(0.6)
+
+                        // Informações limpas no mesmo tom do fundo (sem retângulo!)
                         VStack(spacing: 0) {
                             HStack(spacing: 14) {
                                 Image(systemName: "calendar")
@@ -923,7 +925,7 @@ struct FriendProfileScreen: View {
                                     .foregroundColor(JuntoColors.textMuted)
                                     .frame(width: 26)
 
-                                Text("Amigos desde")
+                                Text("No Juntô desde")
                                     .font(.inter(15, weight: .regular))
                                     .foregroundColor(JuntoColors.textMain)
 
@@ -933,10 +935,10 @@ struct FriendProfileScreen: View {
                                     .font(.inter(14, weight: .regular))
                                     .foregroundColor(JuntoColors.textMuted)
                             }
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, 20)
                             .padding(.vertical, 14)
 
-                            Divider().padding(.leading, 56)
+                            Divider().padding(.leading, 60)
 
                             HStack(spacing: 14) {
                                 Image(systemName: liveFriend.isMuted ? "bell.slash" : "bell")
@@ -952,37 +954,34 @@ struct FriendProfileScreen: View {
                                 .foregroundColor(JuntoColors.textMain)
                                 .tint(JuntoColors.primary)
                             }
-                            .padding(.horizontal, 16)
+                            .padding(.horizontal, 20)
                             .padding(.vertical, 10)
-                        }
-                        .background(Color.white)
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 0.8))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
 
-                        // Ação Bloquear estilo WhatsApp (fundo branco limpo, ícone nosign, texto vermelho discreto)
-                        Button {
-                            showBlockConfirm = true
-                        } label: {
-                            HStack(spacing: 14) {
-                                Image(systemName: "nosign")
-                                    .font(.system(size: 16, weight: .regular))
-                                    .foregroundColor(JuntoColors.danger)
-                                    .frame(width: 26)
+                            Divider().padding(.leading, 60)
 
-                                Text("Bloquear \(liveFriend.name.split(separator: " ").first.map(String.init) ?? liveFriend.name)")
-                                    .font(.inter(15, weight: .regular))
-                                    .foregroundColor(JuntoColors.danger)
+                            // Ação Bloquear limpa no mesmo fundo (sem retângulo)
+                            Button {
+                                showBlockConfirm = true
+                            } label: {
+                                HStack(spacing: 14) {
+                                    Image(systemName: "nosign")
+                                        .font(.system(size: 16, weight: .regular))
+                                        .foregroundColor(JuntoColors.danger)
+                                        .frame(width: 26)
 
-                                Spacer()
+                                    Text("Bloquear \(liveFriend.name.split(separator: " ").first.map(String.init) ?? liveFriend.name)")
+                                        .font(.inter(15, weight: .medium))
+                                        .foregroundColor(JuntoColors.danger)
+
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 16)
+                                .contentShape(Rectangle())
                             }
-                            .padding(.horizontal, 16)
-                            .padding(.vertical, 15)
-                            .background(Color.white)
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 0.8))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
+                            .buttonStyle(.plain)
                         }
                     }
-                    .padding(.horizontal, 18)
                     .padding(.bottom, 32)
                 }
             }

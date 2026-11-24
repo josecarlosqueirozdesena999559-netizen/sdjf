@@ -44,11 +44,30 @@ struct WelcomeAuthView: View {
                 Spacer().frame(height: 52)
 
                 VStack(spacing: 12) {
-                    JuntoPillButton(title: "Continuar com WhatsApp", color: JuntoColors.primary) {
+                    JuntoPillButton(title: "Cadastrar", color: JuntoColors.primary) {
+                        withAnimation(.easeInOut(duration: 0.22)) {
+                            store.route = .registerFlow
+                        }
+                    }
+
+                    Button {
                         withAnimation(.easeInOut(duration: 0.22)) {
                             store.route = .login
                         }
+                    } label: {
+                        Text("Entrar")
+                            .font(.inter(16, weight: .semibold))
+                            .foregroundColor(JuntoColors.primary)
+                            .frame(maxWidth: .infinity)
+                            .frame(height: 52)
+                            .background(Color.white)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(JuntoColors.primary, lineWidth: 1.4)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
+                    .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.97))
                 }
                 .padding(.horizontal, 32)
 

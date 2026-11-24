@@ -618,41 +618,39 @@ private struct CategoryBreakdownSheet: View {
             }
             .padding(.top, 20)
 
-            // Resumo da categoria: Total, Pago, Falta pagar
-            HStack(spacing: 10) {
-                miniStat(label: "Total", value: JuntoStore.formatBRL(slice.amount), color: JuntoColors.textMain)
+            // Resumo limpo da categoria: Total, Pago, Falta pagar (sem retângulos cinzas)
+            Divider().opacity(0.6)
+            HStack(spacing: 0) {
+                miniStat(label: "Total", value: JuntoStore.formatBRL(slice.amount), color: JuntoColors.primary)
                 miniStat(label: "Já pago", value: JuntoStore.formatBRL(slice.paidAmount), color: JuntoColors.pixGreen)
                 miniStat(label: "Falta", value: JuntoStore.formatBRL(slice.pendingAmount), color: slice.pendingAmount > 0 ? JuntoColors.orangeSave : JuntoColors.textMuted)
             }
+            .padding(.vertical, 6)
 
-            // Média e maior gasto
-            HStack(spacing: 10) {
+            Divider().opacity(0.6)
+
+            HStack {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Média nesta categoria")
-                        .font(.inter(11, weight: .regular))
+                    Text("Média na categoria")
+                        .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                     Text(JuntoStore.formatBRL(avgAmount))
-                        .font(.inter(14, weight: .semibold))
+                        .font(.inter(15, weight: .bold))
                         .foregroundColor(JuntoColors.textMain)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
-                .background(JuntoColors.surfaceSubtle)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-
-                VStack(alignment: .leading, spacing: 2) {
+                Spacer()
+                VStack(alignment: .trailing, spacing: 2) {
                     Text("Maior gasto")
-                        .font(.inter(11, weight: .regular))
+                        .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                     Text(highestExpense.map { JuntoStore.formatBRL($0.amount) } ?? "—")
-                        .font(.inter(14, weight: .semibold))
+                        .font(.inter(15, weight: .bold))
                         .foregroundColor(JuntoColors.textMain)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .padding(12)
-                .background(JuntoColors.surfaceSubtle)
-                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
             }
+            .padding(.vertical, 4)
+
+            Divider().opacity(0.6)
 
             Text("Lançamentos de \(slice.category)")
                 .font(.inter(14, weight: .semibold))
@@ -703,18 +701,15 @@ private struct CategoryBreakdownSheet: View {
     private func miniStat(label: String, value: String, color: Color) -> some View {
         VStack(alignment: .leading, spacing: 3) {
             Text(label)
-                .font(.inter(11, weight: .regular))
+                .font(.inter(12, weight: .regular))
                 .foregroundColor(JuntoColors.textMuted)
             Text(value)
-                .font(.inter(14, weight: .semibold))
+                .font(.inter(16, weight: .bold))
                 .foregroundColor(color)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(12)
-        .background(JuntoColors.surfaceSubtle)
-        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 }
 
@@ -786,17 +781,17 @@ private struct PersonalExpenseDetailSheet: View {
                     .clipShape(Capsule())
             }
 
+            Divider().opacity(0.6)
+
             VStack(spacing: 0) {
                 infoRow(label: "Grupo / Origem", value: expense.groupName)
-                Divider().padding(.leading, 14)
+                Divider().opacity(0.5)
                 infoRow(label: "Período", value: "\(expense.dateText) · \(expense.monthKey)")
-                Divider().padding(.leading, 14)
+                Divider().opacity(0.5)
                 infoRow(label: "Peso em \(expense.category)", value: String(format: "%.1f%%", pctOfCategory))
-                Divider().padding(.leading, 14)
+                Divider().opacity(0.5)
                 infoRow(label: "Peso no total geral", value: String(format: "%.1f%%", pctOfPeriod))
             }
-            .background(JuntoColors.surfaceSubtle.opacity(0.65))
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
             Spacer()
         }
@@ -811,44 +806,9 @@ private struct PersonalExpenseDetailSheet: View {
                 .foregroundColor(JuntoColors.textMuted)
             Spacer()
             Text(value)
-                .font(.inter(13, weight: .medium))
+                .font(.inter(13, weight: .semibold))
                 .foregroundColor(JuntoColors.textMain)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 11)
-    }
-}
-
-// MARK: - Gráfico de Rosca (Donut Chart) em SwiftUI Nativo
-private struct DonutChartView: View {
-    let slices: [MyExpensesAnalyticsScreen.CategorySlice]
-    let selectedCategory: String?
-
-    var body: some View {
-        ZStack {
-            if slices.isEmpty {
-                Circle()
-                    .stroke(JuntoColors.border, lineWidth: 24)
-            } else {
-                ForEach(Array(slices.enumerated()), id: \.element.id) { index, slice in
-                    let start = startFraction(for: index)
-                    let end = start + (slice.percentage / 100.0)
-                    let isDimmed = selectedCategory != nil && selectedCategory != slice.category
-
-                    Circle()
-                        .trim(from: CGFloat(start) + 0.004, to: max(CGFloat(end) - 0.004, CGFloat(start) + 0.005))
-                        .stroke(
-                            slice.color.opacity(isDimmed ? 0.25 : 1.0),
-                            style: StrokeStyle(lineWidth: selectedCategory == slice.category ? 28 : 22, lineCap: .butt)
-                        )
-                        .rotationEffect(.degrees(-90))
-                        .animation(.easeInOut(duration: 0.25), value: selectedCategory)
-                }
-            }
-        }
-    }
-
-    private func startFraction(for index: Int) -> Double {
-        slices.prefix(index).reduce(0) { $0 + ($1.percentage / 100.0) }
+        .padding(.vertical, 12)
     }
 }

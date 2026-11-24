@@ -540,9 +540,7 @@ struct GroupChatScreen: View {
                             let isFriend = store.friends.contains { $0.username.lowercased() == uname.lowercased() && !$0.isPendingInvite }
                             Button {
                                 withAnimation {
-                                    if isFriend {
-                                        store.unfriend(username: uname)
-                                    } else {
+                                    if !isFriend {
                                         store.addFriend(username: uname, name: senderDisplayName)
                                     }
                                 }

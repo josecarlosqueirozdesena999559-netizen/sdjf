@@ -85,12 +85,18 @@ struct AccountView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 18)
 
-                    // Card Juntô Pro: ao assinar, some daqui e reaparece somente na renovação
+                    // Juntô Pro limpo no mesmo tom do fundo (sem retângulo com borda; some ao assinar até a renovação)
                     if !store.user.isPro || store.isProRenewalDue {
+                        Divider().padding(.leading, 20)
                         HStack(spacing: 12) {
+                            Image(systemName: "crown")
+                                .font(.system(size: 18, weight: .regular))
+                                .foregroundColor(JuntoColors.primary)
+                                .frame(width: 26)
+
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(store.isProRenewalDue ? "Renovar Juntô Pro" : "Juntô Pro")
-                                    .font(.inter(16, weight: .medium))
+                                    .font(.inter(15, weight: .semibold))
                                     .foregroundColor(JuntoColors.textMain)
                                 Text(store.isProRenewalDue ? (store.user.proExpiresDateText ?? "Renovação disponível") : "R$ 19,90 / mês")
                                     .font(.inter(13, weight: .regular))
@@ -103,20 +109,17 @@ struct AccountView: View {
                                 showProSubscription = true
                             } label: {
                                 Text(store.isProRenewalDue ? "Renovar" : "Conhecer")
-                                    .font(.inter(14, weight: .medium))
+                                    .font(.inter(13, weight: .semibold))
                                     .foregroundColor(.white)
-                                    .padding(.horizontal, 18)
-                                    .frame(height: 40)
+                                    .padding(.horizontal, 16)
+                                    .frame(height: 36)
                                     .background(JuntoColors.primary)
-                                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                                    .clipShape(Capsule())
                             }
                         }
-                        .padding(16)
-                        .background(Color.white)
-                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-                        .clipShape(RoundedRectangle(cornerRadius: 12))
                         .padding(.horizontal, 20)
-                        .padding(.bottom, 20)
+                        .padding(.vertical, 14)
+                        Divider().padding(.leading, 20)
                     }
 
                     // Menu limpo (sem Pix no perfil — QR Code de convite para adicionar amigos!)
@@ -251,32 +254,34 @@ struct AccountSettingsScreen: View {
 
     var body: some View {
         ZStack {
-            JuntoColors.warmBg.ignoresSafeArea()
+            Color.white.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 HStack {
                     CircleNavButton(icon: "chevron.left") { dismiss() }
                     Spacer()
                     Text("Editar perfil")
-                        .font(.inter(17, weight: .medium))
+                        .font(.inter(17, weight: .semibold))
                         .foregroundColor(JuntoColors.textMain)
                     Spacer()
                     Spacer().frame(width: 44)
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 10)
-                .padding(.bottom, 14)
+                .padding(.bottom, 12)
+
+                Divider().opacity(0.6)
 
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 20) {
-                        // Foto / Avatar
+                    VStack(alignment: .leading, spacing: 0) {
+                        // Foto / Avatar direto no mesmo tom do fundo (sem retângulo!)
                         VStack(spacing: 12) {
                             ZStack(alignment: .bottomTrailing) {
                                 GeometricAvatarView(
                                     seed: store.user.username,
                                     displayName: draftName,
                                     avatarData: draftAvatarData,
-                                    size: 84
+                                    size: 88
                                 )
 
                                 PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
@@ -299,56 +304,46 @@ struct AccountSettingsScreen: View {
 
                             VStack(spacing: 2) {
                                 Text(draftName)
-                                    .font(.inter(17, weight: .medium))
+                                    .font(.inter(19, weight: .bold))
                                     .foregroundColor(JuntoColors.textMain)
-                                Text("@\(store.user.username) · 🇧🇷 Brasil")
+                                Text(draftPhone.isEmpty ? "Brasil" : "+55 \(draftPhone)")
                                     .font(.inter(13, weight: .regular))
                                     .foregroundColor(JuntoColors.textMuted)
                             }
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical, 18)
-                        .background(Color.white)
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+                        .padding(.vertical, 24)
 
-                        // Dados da conta
+                        Divider().opacity(0.6)
+
+                        // Dados da conta em linhas limpas no mesmo fundo (sem retângulo!)
                         VStack(alignment: .leading, spacing: 0) {
-                            Text("DADOS DA CONTA")
-                                .font(.inter(11, weight: .medium))
-                                .tracking(0.8)
+                            Text("Dados da conta")
+                                .font(.inter(13, weight: .semibold))
                                 .foregroundColor(JuntoColors.textMuted)
-                                .padding(.horizontal, 16)
-                                .padding(.top, 14)
+                                .padding(.horizontal, 20)
+                                .padding(.top, 18)
                                 .padding(.bottom, 6)
 
                             profileFieldRow(icon: "person", label: "Nome completo", value: draftName) {
                                 editField = .name
                             }
-                            Divider().padding(.leading, 54)
+                            Divider().padding(.leading, 58)
 
-                            profileFieldRow(icon: "envelope", label: "E-mail", value: draftEmail) {
-                                editField = .email
-                            }
-                            Divider().padding(.leading, 54)
-
-                            profileFieldRow(icon: "phone", label: "Telefone (Brasil)", value: "+55 \(draftPhone)") {
+                            profileFieldRow(icon: "phone", label: "WhatsApp", value: "+55 \(draftPhone)") {
                                 editField = .phone
                             }
-                            Divider().padding(.leading, 54)
+                            Divider().padding(.leading, 58)
 
-                            profileFieldRow(icon: "qrcode", label: "Chave Pix", value: draftPixKey) {
+                            profileFieldRow(icon: "qrcode", label: "Chave Pix", value: draftPixKey.isEmpty ? "Adicionar chave Pix" : draftPixKey) {
                                 editField = .pixKey
                             }
-                            Divider().padding(.leading, 54)
+                            Divider().padding(.leading, 58)
 
-                            profileFieldRow(icon: "lock", label: "Senha", value: passwordChanged ? "Nova senha definida" : "••••••••") {
-                                editField = .password
+                            profileFieldRow(icon: "envelope", label: "E-mail", value: draftEmail.isEmpty ? "Adicionar e-mail" : draftEmail) {
+                                editField = .email
                             }
                         }
-                        .background(Color.white)
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
 
                         // Botão Salvar aparece SOMENTE quando houver alterações!
                         if hasChanges {
@@ -363,10 +358,11 @@ struct AccountSettingsScreen: View {
                                 store.showToast("Alterações salvas.", icon: "checkmark.circle")
                                 dismiss()
                             }
+                            .padding(.horizontal, 20)
+                            .padding(.top, 24)
                             .transition(.opacity.combined(with: .move(edge: .bottom)))
                         }
                     }
-                    .padding(.horizontal, 20)
                     .padding(.bottom, 40)
                 }
             }

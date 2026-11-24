@@ -6,8 +6,9 @@ struct ActivitiesView: View {
     @State private var selectedActivity: ActivityEvent? = nil
 
     private var filteredActivities: [ActivityEvent] {
-        if searchText.isEmpty { return store.activities }
-        return store.activities.filter {
+        let monetaryOnly = store.activities.filter { JuntoStore.isMonetaryActivity($0) }
+        if searchText.isEmpty { return monetaryOnly }
+        return monetaryOnly.filter {
             $0.title.localizedCaseInsensitiveContains(searchText) ||
             $0.subtitle.localizedCaseInsensitiveContains(searchText)
         }
@@ -57,18 +58,23 @@ struct ActivitiesView: View {
 
             if filteredActivities.isEmpty {
                 Spacer()
-                VStack(spacing: 12) {
-                    Image(systemName: "list.bullet.rectangle.portrait")
-                        .font(.system(size: 32, weight: .thin))
-                        .foregroundColor(JuntoColors.textLight)
+                VStack(spacing: 14) {
+                    ZStack {
+                        Circle()
+                            .fill(JuntoColors.primary.opacity(0.08))
+                            .frame(width: 68, height: 68)
+                        Image(systemName: searchText.isEmpty ? "banknote" : "magnifyingglass")
+                            .font(.system(size: 26, weight: .regular))
+                            .foregroundColor(JuntoColors.primary)
+                    }
 
-                    Text(searchText.isEmpty ? "Nenhum lançamento ainda" : "Nenhum lançamento encontrado")
-                        .font(.inter(16, weight: .medium))
+                    Text(searchText.isEmpty ? "Nenhum pagamento ainda" : "Nenhum lançamento encontrado")
+                        .font(.inter(17, weight: .bold))
                         .foregroundColor(JuntoColors.textMain)
 
                     if searchText.isEmpty {
-                        Text("Os pagamentos e movimentações dos seus grupos aparecem aqui automaticamente.")
-                            .font(.inter(13, weight: .regular))
+                        Text("Somente seus pagamentos e valores dos grupos aparecem aqui para calcular seus gastos mensais.")
+                            .font(.inter(14, weight: .regular))
                             .foregroundColor(JuntoColors.textMuted)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 36)

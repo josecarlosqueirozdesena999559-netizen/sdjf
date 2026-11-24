@@ -115,6 +115,7 @@ struct UserProfile: Codable {
     var country: CountryOption
     var phone: String
     var pixKey: String
+    var age: Int? = nil
     var timezone: String = "(GMT-03:00) Brasília"
     var currency: String = "BRL"
     var language: String = "Português (Brasil)"

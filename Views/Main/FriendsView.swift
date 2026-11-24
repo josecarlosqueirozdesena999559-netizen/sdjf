@@ -101,34 +101,54 @@ struct FriendsView: View {
                 Spacer()
                 VStack(spacing: 14) {
                     if searchText.isEmpty {
-                        Image(systemName: "bubble.left.and.bubble.right")
-                            .font(.system(size: 34, weight: .thin))
-                            .foregroundColor(JuntoColors.textLight)
+                        ZStack {
+                            Circle()
+                                .fill(JuntoColors.primary.opacity(0.08))
+                                .frame(width: 68, height: 68)
+                            Image(systemName: "bubble.left.and.bubble.right")
+                                .font(.system(size: 26, weight: .regular))
+                                .foregroundColor(JuntoColors.primary)
+                        }
 
                         Text("Nenhuma conversa por aqui")
-                            .font(.inter(16, weight: .medium))
+                            .font(.inter(17, weight: .bold))
                             .foregroundColor(JuntoColors.textMain)
 
-                        HStack(spacing: 6) {
-                            Text("Inicie uma conversa clicando no botão")
-                                .font(.inter(14, weight: .regular))
-                                .foregroundColor(JuntoColors.textMuted)
-                            Image(systemName: "plus")
-                                .font(.system(size: 12, weight: .semibold))
-                                .foregroundColor(.white)
-                                .frame(width: 24, height: 24)
-                                .background(JuntoColors.primary)
-                                .clipShape(Circle())
-                            Text("acima")
-                                .font(.inter(14, weight: .regular))
+                        Text("Inicie uma conversa com seus contatos do Juntô ou crie um grupo para dividir gastos.")
+                            .font(.inter(14, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 36)
+
+                        Button {
+                            showAddFriendScreen = true
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "person.badge.plus")
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text("Iniciar conversa")
+                                    .font(.inter(14, weight: .semibold))
+                            }
+                            .foregroundColor(JuntoColors.primary)
+                            .padding(.horizontal, 22)
+                            .frame(height: 44)
+                            .background(Color.white)
+                            .overlay(Capsule().stroke(JuntoColors.primary, lineWidth: 1.2))
+                            .clipShape(Capsule())
+                        }
+                        .padding(.top, 4)
+                    } else {
+                        ZStack {
+                            Circle()
+                                .fill(JuntoColors.surfaceSubtle)
+                                .frame(width: 60, height: 60)
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 22, weight: .regular))
                                 .foregroundColor(JuntoColors.textMuted)
                         }
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 28)
-                    } else {
-                        Text("Nenhuma conversa encontrada.")
-                            .font(.inter(15, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
+                        Text("Nenhuma conversa encontrada")
+                            .font(.inter(15, weight: .semibold))
+                            .foregroundColor(JuntoColors.textMain)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -307,6 +327,13 @@ struct FriendsView: View {
         }
         .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
         .listRowBackground(Color.white)
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                store.clearGroupConversation(for: group.id)
+            } label: {
+                Label("Apagar conversa", systemImage: "trash")
+            }
+        }
     }
 }
 
@@ -669,21 +696,18 @@ struct AddFriendScreen: View {
         .sheet(item: $selectedFriendForOptions) { friend in
             FriendOptionsSheet(
                 friend: friend,
-                onUnfriend: {
-                    store.unfriend(username: friend.username)
-                    selectedFriendForOptions = nil
-                },
                 onBlock: {
                     store.blockAndUnfriend(username: friend.username)
                     selectedFriendForOptions = nil
                 }
             )
-            .presentationDetents([.height(270)])
+            .presentationDetents([.height(210)])
             .presentationCornerRadius(20)
         }
     }
 
     private func openChatAndDismiss(_ friend: FriendItem) {
+        store.unhideConversation(for: friend.username)
         dismiss()
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.28) {
             onOpenChat?(friend)
@@ -815,25 +839,24 @@ private struct NewContactPopupSheet: View {
     }
 }
 
-// MARK: - Sheet Claro Customizado (3 Pontos do Amigo: Desfazer Amizade / Bloquear)
+// MARK: - Sheet Claro Customizado (3 Pontos do Contato: Somente Bloquear)
 struct FriendOptionsSheet: View {
     let friend: FriendItem
-    let onUnfriend: () -> Void
     let onBlock: () -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 12) {
-                GeometricAvatarView(seed: friend.username, size: 46)
+                GeometricAvatarView(seed: friend.username, displayName: friend.name, size: 46)
                 VStack(alignment: .leading, spacing: 2) {
                     HStack(spacing: 5) {
                         Text(friend.name)
-                            .font(.inter(16, weight: .medium))
+                            .font(.inter(16, weight: .semibold))
                             .foregroundColor(JuntoColors.textMain)
                         VerifiedBadgeView(type: friend.proPlanType, size: 14)
                     }
-                    Text("@\(friend.username)")
+                    Text(friend.phone.isEmpty ? "@\(friend.username)" : friend.phone)
                         .font(.inter(13, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                 }
@@ -842,45 +865,26 @@ struct FriendOptionsSheet: View {
             }
             .padding(.top, 20)
 
-            VStack(spacing: 10) {
-                Button(action: onUnfriend) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "person.badge.minus")
-                            .font(.system(size: 17))
-                            .foregroundColor(JuntoColors.textMain)
-                        Text("Desfazer amizade")
-                            .font(.inter(15, weight: .medium))
-                            .foregroundColor(JuntoColors.textMain)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 16)
-                    .frame(height: 50)
-                    .background(Color.white)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                }
+            Divider().opacity(0.6)
 
-                Button(action: onBlock) {
-                    HStack(spacing: 12) {
-                        Image(systemName: "nosign")
-                            .font(.system(size: 17))
-                            .foregroundColor(JuntoColors.danger)
-                        Text("Bloquear usuário")
-                            .font(.inter(15, weight: .medium))
-                            .foregroundColor(JuntoColors.danger)
-                        Spacer()
-                    }
-                    .padding(.horizontal, 16)
-                    .frame(height: 50)
-                    .background(Color.white)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+            Button(action: onBlock) {
+                HStack(spacing: 12) {
+                    Image(systemName: "nosign")
+                        .font(.system(size: 18, weight: .regular))
+                        .foregroundColor(JuntoColors.danger)
+                    Text("Bloquear usuário")
+                        .font(.inter(15, weight: .semibold))
+                        .foregroundColor(JuntoColors.danger)
+                    Spacer()
                 }
+                .padding(.vertical, 10)
+                .contentShape(Rectangle())
             }
+            .buttonStyle(.plain)
 
             Spacer()
         }
         .padding(.horizontal, 20)
-        .background(JuntoColors.warmBg.ignoresSafeArea())
+        .background(Color.white.ignoresSafeArea())
     }
 }

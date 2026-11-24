@@ -40,6 +40,10 @@ final class JuntoStore: ObservableObject {
     /// Conversas de cada grupo sincronizadas com o servidor
     @Published var groupChatMessages: [UUID: [ChatMessage]] = [:]
 
+    /// Conversas apagadas pelo usuário na tela inicial (ocultas até nova mensagem ou reabertura pelos contatos)
+    @Published var hiddenChatUsernames: Set<String> = []
+    @Published var hiddenGroupChatIds: Set<UUID> = []
+
     /// E-mail oficial de suporte / Fale Conosco / Ouvidoria LGPD (pronto para atualizar quando você enviar o definitivo)
     @Published var supportEmail: String = "suporte@junto.app"
     @Published var isDatabaseSynced: Bool = false
@@ -47,6 +51,35 @@ final class JuntoStore: ObservableObject {
     // MARK: - Persistência Real de Sessão do Usuário (Auto-Login Sem Tela de Cadastro)
     private let savedProfileKey = "junto_user_profile_data"
     private let sessionActiveKey = "junto_session_is_active"
+    private let hiddenChatsKey = "junto_hidden_chat_usernames"
+    private let hiddenGroupChatsKey = "junto_hidden_group_chat_ids"
+
+    private func persistHiddenChats() {
+        UserDefaults.standard.set(Array(hiddenChatUsernames), forKey: hiddenChatsKey)
+        UserDefaults.standard.set(hiddenGroupChatIds.map { $0.uuidString }, forKey: hiddenGroupChatsKey)
+    }
+
+    private func loadHiddenChats() {
+        if let arr = UserDefaults.standard.stringArray(forKey: hiddenChatsKey) {
+            hiddenChatUsernames = Set(arr.map { $0.lowercased() })
+        }
+        if let gArr = UserDefaults.standard.stringArray(forKey: hiddenGroupChatsKey) {
+            hiddenGroupChatIds = Set(gArr.compactMap { UUID(uuidString: $0) })
+        }
+    }
+
+    func unhideConversation(for username: String) {
+        let key = username.lowercased()
+        if hiddenChatUsernames.remove(key) != nil {
+            persistHiddenChats()
+        }
+    }
+
+    func unhideGroupConversation(for groupId: UUID) {
+        if hiddenGroupChatIds.remove(groupId) != nil {
+            persistHiddenChats()
+        }
+    }
 
     func saveUserSession() {
         if let encoded = try? JSONEncoder().encode(user) {
@@ -65,6 +98,7 @@ final class JuntoStore: ObservableObject {
     }
 
     func loadSavedUserSession() {
+        loadHiddenChats()
         let isSessionActive = UserDefaults.standard.bool(forKey: sessionActiveKey)
         guard isSessionActive,
               let data = UserDefaults.standard.data(forKey: savedProfileKey),
@@ -78,6 +112,10 @@ final class JuntoStore: ObservableObject {
     func clearUserSession() {
         UserDefaults.standard.removeObject(forKey: savedProfileKey)
         UserDefaults.standard.set(false, forKey: sessionActiveKey)
+        UserDefaults.standard.removeObject(forKey: hiddenChatsKey)
+        UserDefaults.standard.removeObject(forKey: hiddenGroupChatsKey)
+        hiddenChatUsernames = []
+        hiddenGroupChatIds = []
         UserDefaults.standard.removeObject(forKey: "junto_access_token")
         KeychainHelper.delete(forKey: "junto_access_token")
         KeychainHelper.delete(forKey: "junto_refresh_token")
@@ -343,7 +381,9 @@ final class JuntoStore: ObservableObject {
         phone: String,
         code: String,
         fullName: String? = nil,
-        pixKey: String? = nil
+        pixKey: String? = nil,
+        age: Int? = nil,
+        autoNavigate: Bool = true
     ) async -> (success: Bool, needsProfile: Bool, errorMessage: String?) {
         guard let res = await JuntoBackendService.shared.loginWithWhatsAppOTP(
             phone: phone,
@@ -368,6 +408,9 @@ final class JuntoStore: ObservableObject {
             if let pt = uDict["proPlanType"] as? String { user.proPlanType = ProPlanType(rawValue: pt) ?? .none }
             if let pn = uDict["proPlanName"] as? String { user.proPlanName = pn }
         }
+        if let age {
+            user.age = age
+        }
 
         saveUserSession()
         await syncWithBackendDatabase()
@@ -375,8 +418,10 @@ final class JuntoStore: ObservableObject {
             await JuntoBackendService.shared.registerDeviceToken(token)
         }
 
-        withAnimation(.easeInOut(duration: 0.25)) {
-            route = .main
+        if autoNavigate {
+            withAnimation(.easeInOut(duration: 0.25)) {
+                route = .main
+            }
         }
         return (true, false, nil)
     }
@@ -621,25 +666,40 @@ final class JuntoStore: ObservableObject {
             }
         }
 
-        // Sincroniza Feed de Atividades do PostgreSQL
+        // Sincroniza Feed de Atividades do PostgreSQL (somente valores e pagamentos reais)
         if let actArr = payload["activities"] as? [[String: Any]] {
             self.activities = actArr.map { a in
                 ActivityEvent(
                     icon: (a["icon"] as? String) ?? "checkmark.circle",
-                    title: (a["title"] as? String) ?? "Atividade",
+                    title: (a["title"] as? String) ?? "Pagamento",
                     subtitle: (a["subtitle"] as? String) ?? "",
                     timeAgo: (a["timeAgo"] as? String) ?? "Agora",
                     amountText: a["amountText"] as? String,
                     isPositive: (a["isPositive"] as? Bool) ?? true
                 )
             }
+            .filter { Self.isMonetaryActivity($0) }
         }
 
         startRealtimeSync()
         await refreshRemoteDirectory(query: "")
     }
 
-    // MARK: - Realtime SSE + Hidratação de Mensagens e Diretório Real do PostgreSQL
+    // MARK: - Filtro estrito de Lançamentos (SOMENTE valores e pagamentos reais — nunca criação/exclusão de grupos ou conversas)
+    static func isMonetaryActivity(_ event: ActivityEvent) -> Bool {
+        guard let amt = event.amountText?.trimmingCharacters(in: .whitespacesAndNewlines), !amt.isEmpty else {
+            return false
+        }
+        let lowerTitle = event.title.lowercased()
+        let blockedKeywords = [
+            "grupo \"", "criado", "criada", "excluído", "excluída", "excluido", "excluida",
+            "entrou no grupo", "convite", "aceitou", "apagada", "desfeita", "caixinha \""
+        ]
+        for kw in blockedKeywords where lowerTitle.contains(kw) {
+            return false
+        }
+        return true
+    }
     func startRealtimeSync() {
         Task {
             await JuntoBackendService.shared.startRealtimeStream { [weak self] eventName, rawJson in
@@ -659,6 +719,7 @@ final class JuntoStore: ObservableObject {
         case "chat:friend_message":
             if let msg = parseWireChatMessage(payload),
                let senderHandle = msg.senderUsername?.lowercased(), !senderHandle.isEmpty {
+                unhideConversation(for: senderHandle)
                 if !(chatMessages[senderHandle]?.contains(where: { $0.id == msg.id }) ?? false) {
                     chatMessages[senderHandle, default: []].append(msg)
                     objectWillChange.send()
@@ -673,6 +734,7 @@ final class JuntoStore: ObservableObject {
             if let gidStr = payload["groupId"] as? String,
                let gid = UUID(uuidString: gidStr),
                let msg = parseWireChatMessage(payload) {
+                unhideGroupConversation(for: gid)
                 if !(groupChatMessages[gid]?.contains(where: { $0.id == msg.id }) ?? false) {
                     groupChatMessages[gid, default: []].append(msg)
                     objectWillChange.send()
@@ -945,16 +1007,18 @@ final class JuntoStore: ObservableObject {
 
     /// Lista unificada de todas as conversas estilo WhatsApp:
     /// amigos e grupos competem na mesma lista por atividade recente.
-    /// Quem tiver mensagem mais recente SEMPRE sobe para o topo!
+    /// Conversas apagadas saem da tela inicial imediatamente até receber nova mensagem ou reabertura.
     var unifiedChatsSortedByRecent: [UnifiedChatItem] {
         var list: [UnifiedChatItem] = []
 
         for f in friends {
+            if hiddenChatUsernames.contains(f.username.lowercased()) { continue }
             let d = lastMessageDate(for: f.username)
             list.append(.friend(f, d))
         }
 
         for g in groups {
+            if hiddenGroupChatIds.contains(g.id) { continue }
             let d = lastGroupMessageDate(for: g.id)
             list.append(.group(g, d))
         }
@@ -975,6 +1039,7 @@ final class JuntoStore: ObservableObject {
         replyToAuthor: String? = nil,
         replyToPreview: String? = nil
     ) {
+        unhideGroupConversation(for: groupId)
         let msg = ChatMessage(
             isFromMe: true,
             kind: kind,
@@ -1096,6 +1161,7 @@ final class JuntoStore: ObservableObject {
         replyToPreview: String? = nil
     ) {
         let key = username.lowercased()
+        unhideConversation(for: key)
         let msg = ChatMessage(
             isFromMe: true,
             kind: kind,
@@ -1193,17 +1259,6 @@ final class JuntoStore: ObservableObject {
             requestUserName: reqName,
             requestUsername: reqUsername
         )
-        activities.insert(
-            ActivityEvent(
-                icon: "person.badge.plus",
-                title: "Você aceitou \(reqName)",
-                subtitle: "@\(reqUsername) agora é seu amigo",
-                timeAgo: "Agora",
-                amountText: nil,
-                isPositive: true
-            ),
-            at: 0
-        )
         Task { _ = await JuntoBackendService.shared.acceptFriend(username: reqUsername) }
         showToast("Você e \(reqName) agora são amigos!", icon: "checkmark.circle")
     }
@@ -1215,11 +1270,23 @@ final class JuntoStore: ObservableObject {
         showToast("Convite recusado.", icon: "xmark.circle")
     }
 
-    /// Apaga as mensagens da conversa. Se houver dívida (balance != 0), o amigo continua na lista inicial sem mensagens.
+    /// Apaga as mensagens e remove imediatamente a conversa da lista inicial (não vai para Lançamentos)
     func clearConversation(for username: String) {
         let key = username.lowercased()
         chatMessages[key] = []
+        hiddenChatUsernames.insert(key)
+        persistHiddenChats()
+        objectWillChange.send()
         Task { await JuntoBackendService.shared.clearFriendConversation(username: key) }
+        showToast("Conversa apagada.", icon: "trash")
+    }
+
+    /// Apaga a conversa de grupo da lista inicial (mantém o grupo na aba Grupos e não vai para Lançamentos)
+    func clearGroupConversation(for groupId: UUID) {
+        groupChatMessages[groupId] = []
+        hiddenGroupChatIds.insert(groupId)
+        persistHiddenChats()
+        objectWillChange.send()
         showToast("Conversa apagada.", icon: "trash")
     }
 
@@ -1698,17 +1765,6 @@ final class JuntoStore: ObservableObject {
             FriendItem(name: displayName, username: clean, initials: initials, balance: 0, isPendingInvite: true),
             at: 0
         )
-        activities.insert(
-            ActivityEvent(
-                icon: "person.badge.plus",
-                title: "Convite enviado para \(displayName)",
-                subtitle: "@\(clean) • Aguardando confirmação",
-                timeAgo: "Agora",
-                amountText: nil,
-                isPositive: true
-            ),
-            at: 0
-        )
         Task { _ = await JuntoBackendService.shared.inviteFriend(username: clean) }
         showToast("Convite enviado para @\(clean).", icon: "paperplane")
     }
@@ -1965,17 +2021,6 @@ final class JuntoStore: ObservableObject {
             )
         )
 
-        activities.insert(
-            ActivityEvent(
-                icon: "person.badge.plus",
-                title: "\(displayName) entrou no grupo",
-                subtitle: "\(groups[idx].title) • Cotas atualizadas",
-                timeAgo: "Agora",
-                amountText: nil,
-                isPositive: true
-            ),
-            at: 0
-        )
         let gidStr = groupId.uuidString.lowercased()
         Task { await JuntoBackendService.shared.addGroupMember(groupId: gidStr, username: clean) }
         showToast("@\(clean) adicionado e cotas recalculadas!", icon: "person.badge.plus")
@@ -2099,18 +2144,6 @@ final class JuntoStore: ObservableObject {
             subtitleText = "\(category) • \(totalPeopleCount) participante(s)"
         }
 
-        activities.insert(
-            ActivityEvent(
-                icon: hasPot ? "dollarsign.circle" : "person.2",
-                title: "Grupo \"\(cleanTitle)\" criado",
-                subtitle: subtitleText,
-                timeAgo: "Agora",
-                amountText: (hasPot && potTarget > 0) ? Self.formatBRL(potTarget) : nil,
-                isPositive: true
-            ),
-            at: 0
-        )
-
         let localGroupId = newGroup.id
         let memberHandles = invitedPeople.map { $0.username }
         let modeString = potMode == .monthly ? "MONTHLY" : "SINGLE"
@@ -2166,17 +2199,6 @@ final class JuntoStore: ObservableObject {
             targetDateText: targetDateText
         )
         personalPots.insert(pot, at: 0)
-        activities.insert(
-            ActivityEvent(
-                icon: icon,
-                title: "Caixinha \"\(cleanTitle)\" criada",
-                subtitle: "\(occasion) • Meta \(Self.formatBRL(targetAmount))",
-                timeAgo: "Agora",
-                amountText: Self.formatBRL(targetAmount),
-                isPositive: true
-            ),
-            at: 0
-        )
         let uname = user.username
         Task {
             await JuntoBackendService.shared.createPersonalPot(
@@ -2234,26 +2256,17 @@ final class JuntoStore: ObservableObject {
         showToast("Caixinha \"\(title)\" excluída.", icon: "trash")
     }
 
-    /// Exclui o grupo e apaga automaticamente toda a conversa em grupo
+    /// Exclui o grupo e apaga automaticamente toda a conversa em grupo (não registra em Lançamentos)
     func deleteGroup(groupId: UUID) {
         guard let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
         let title = groups[idx].title
         groups.remove(at: idx)
         groupChatMessages.removeValue(forKey: groupId)
-        activities.insert(
-            ActivityEvent(
-                icon: "trash",
-                title: "Grupo \"\(title)\" excluído",
-                subtitle: "Conversa e histórico apagados",
-                timeAgo: "Agora",
-                amountText: nil,
-                isPositive: false
-            ),
-            at: 0
-        )
+        hiddenGroupChatIds.remove(groupId)
+        persistHiddenChats()
         let gidStr = groupId.uuidString.lowercased()
         Task { await JuntoBackendService.shared.deleteGroupOnServer(groupId: gidStr) }
-        showToast("Grupo \"\(title)\" e sua conversa foram excluídos.", icon: "trash")
+        showToast("Grupo \"\(title)\" excluído.", icon: "trash")
     }
 
     /// Paga a cota de um participante no Pote Coletivo (atualiza saldo e status automaticamente)

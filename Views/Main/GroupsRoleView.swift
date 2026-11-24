@@ -72,23 +72,59 @@ struct GroupsRoleView: View {
                 Spacer()
                 VStack(spacing: 14) {
                     if searchText.isEmpty {
-                        Image(systemName: "person.2")
-                            .font(.system(size: 34, weight: .thin))
-                            .foregroundColor(JuntoColors.textLight)
+                        ZStack {
+                            Circle()
+                                .fill(JuntoColors.primary.opacity(0.08))
+                                .frame(width: 68, height: 68)
+                            Image(systemName: "person.2")
+                                .font(.system(size: 26, weight: .regular))
+                                .foregroundColor(JuntoColors.primary)
+                        }
 
                         Text("Nenhum grupo por aqui")
-                            .font(.inter(17, weight: .medium))
+                            .font(.inter(17, weight: .bold))
                             .foregroundColor(JuntoColors.textMain)
 
-                        Text("Crie seu primeiro rolê, viagem ou grupo clicando no botão '+' no topo.")
+                        Text("Organize viagens, casa ou rolês e divida contas com facilidade.")
                             .font(.inter(14, weight: .regular))
                             .foregroundColor(JuntoColors.textMuted)
                             .multilineTextAlignment(.center)
-                            .padding(.horizontal, 32)
+                            .padding(.horizontal, 36)
+
+                        Button {
+                            if store.canCreateMoreGroups() {
+                                showCreateGroup = true
+                            } else {
+                                store.showToast("Plano gratuito permite 1 grupo. Assine o Juntô Pro para grupos ilimitados.", icon: "lock")
+                                showProPaywall = true
+                            }
+                        } label: {
+                            HStack(spacing: 8) {
+                                Image(systemName: "person.2.badge.plus")
+                                    .font(.system(size: 14, weight: .semibold))
+                                Text("Começar um novo grupo")
+                                    .font(.inter(14, weight: .semibold))
+                            }
+                            .foregroundColor(JuntoColors.primary)
+                            .padding(.horizontal, 22)
+                            .frame(height: 44)
+                            .background(Color.white)
+                            .overlay(Capsule().stroke(JuntoColors.primary, lineWidth: 1.2))
+                            .clipShape(Capsule())
+                        }
+                        .padding(.top, 4)
                     } else {
-                        Text("Nenhum grupo encontrado.")
-                            .font(.inter(15, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
+                        ZStack {
+                            Circle()
+                                .fill(JuntoColors.surfaceSubtle)
+                                .frame(width: 60, height: 60)
+                            Image(systemName: "magnifyingglass")
+                                .font(.system(size: 22, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                        }
+                        Text("Nenhum grupo encontrado")
+                            .font(.inter(15, weight: .semibold))
+                            .foregroundColor(JuntoColors.textMain)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -2080,9 +2116,7 @@ struct GroupMembersSheet: View {
                                     let isFriend = store.friends.contains { $0.username.lowercased() == participant.username.lowercased() && !$0.isPendingInvite }
                                     Button {
                                         withAnimation {
-                                            if isFriend {
-                                                store.unfriend(username: participant.username)
-                                            } else {
+                                            if !isFriend {
                                                 store.addFriend(username: participant.username, name: participant.name)
                                             }
                                         }

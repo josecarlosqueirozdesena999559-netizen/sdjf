@@ -1,21 +1,19 @@
 import SwiftUI
 
-/// Entrada e Cadastro 100% via WhatsApp + Código OTP de 6 dígitos (sem nome de usuário e sem senha)
+/// Login limpo (1 input por tela): Tela 1 = Número do WhatsApp -> Tela 2 = Código do WhatsApp -> Início
 struct LoginView: View {
     @EnvironmentObject var store: JuntoStore
 
-    enum WhatsAppAuthStep {
+    enum LoginStep {
         case phone
         case otp
-        case profile
     }
 
-    @State private var step: WhatsAppAuthStep = .phone
+    @State private var step: LoginStep = .phone
     @State private var phoneText: String = ""
     @State private var otpCode: String = ""
-    @State private var fullNameText: String = ""
-    @State private var pixKeyText: String = ""
     @State private var isLoading: Bool = false
+    @State private var accountNotFound: Bool = false
     @State private var resendSeconds: Int = 0
     @State private var resendTimer: Timer? = nil
 
@@ -25,39 +23,54 @@ struct LoginView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            HStack {
+            // Topo com voltar e progresso (2 passos)
+            HStack(spacing: 14) {
                 CircleNavButton(icon: "chevron.left") {
-                    switch step {
-                    case .phone:
-                        withAnimation { store.route = .welcomeAuth }
-                    case .otp:
-                        withAnimation {
+                    if step == .otp {
+                        withAnimation(.easeInOut(duration: 0.2)) {
                             otpCode = ""
+                            accountNotFound = false
                             step = .phone
                         }
-                    case .profile:
-                        withAnimation { step = .otp }
+                    } else {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            store.route = .welcomeAuth
+                        }
                     }
                 }
-                Spacer()
+
+                GeometryReader { geo in
+                    let pct: CGFloat = step == .phone ? 0.5 : 1.0
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(JuntoColors.surfaceSubtle)
+                        Capsule()
+                            .fill(JuntoColors.primary)
+                            .frame(width: geo.size.width * pct)
+                            .animation(.easeInOut(duration: 0.25), value: step)
+                    }
+                }
+                .frame(height: 5)
+
+                Spacer().frame(width: 24)
             }
             .padding(.horizontal, 18)
-            .padding(.top, 10)
+            .padding(.top, 12)
+            .padding(.bottom, 10)
 
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 22) {
+                VStack(alignment: .leading, spacing: 26) {
                     switch step {
                     case .phone:
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text("Entrar com WhatsApp")
-                                .font(.inter(24, weight: .semibold))
+                                .font(.inter(26, weight: .bold))
                                 .foregroundColor(JuntoColors.textMain)
-                            Text("Informe seu número. Enviaremos um código de 6 dígitos no seu WhatsApp para confirmar.")
+                            Text("Informe seu número cadastrado. Enviaremos um código de 6 dígitos no seu WhatsApp.")
                                 .font(.inter(14, weight: .regular))
                                 .foregroundColor(JuntoColors.textMuted)
                                 .lineSpacing(3)
                         }
-                        .padding(.top, 18)
+                        .padding(.top, 20)
 
                         CleanOutlineInput(
                             label: "Número do WhatsApp",
@@ -67,43 +80,57 @@ struct LoginView: View {
                             leadingPrefix: "+55"
                         )
                         .onChange(of: phoneText) { _, newValue in
-                            let formatted = formatLivePhone(newValue)
+                            accountNotFound = false
+                            let formatted = Self.formatLivePhone(newValue)
                             if formatted != phoneText { phoneText = formatted }
                         }
 
                         JuntoPillButton(
-                            title: isLoading ? "Enviando código..." : "Enviar código no WhatsApp",
+                            title: isLoading ? "Enviando código..." : "Avançar",
                             color: cleanDigits.count >= 10 ? JuntoColors.primary : JuntoColors.border
                         ) {
                             sendOTP()
                         }
                         .disabled(cleanDigits.count < 10 || isLoading)
-                        .padding(.top, 6)
 
                     case .otp:
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(alignment: .leading, spacing: 8) {
                             Text("Código do WhatsApp")
-                                .font(.inter(24, weight: .semibold))
+                                .font(.inter(26, weight: .bold))
                                 .foregroundColor(JuntoColors.textMain)
                             Text("Digite o código de 6 dígitos enviado para +55 \(phoneText).")
                                 .font(.inter(14, weight: .regular))
                                 .foregroundColor(JuntoColors.textMuted)
                                 .lineSpacing(3)
                         }
-                        .padding(.top, 18)
+                        .padding(.top, 20)
 
                         WhatsAppSixDigitOTPView(code: $otpCode) {
                             verifyOTPAndEnter()
                         }
                         .padding(.vertical, 6)
 
-                        JuntoPillButton(
-                            title: isLoading ? "Confirmando..." : "Confirmar código",
-                            color: otpCode.count == 6 ? JuntoColors.primary : JuntoColors.border
-                        ) {
-                            verifyOTPAndEnter()
+                        if accountNotFound {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Nenhuma conta encontrada para este número. Faça seu cadastro para começar.")
+                                    .font(.inter(13, weight: .medium))
+                                    .foregroundColor(JuntoColors.orangeSave)
+
+                                JuntoPillButton(title: "Ir para cadastro", color: JuntoColors.primary) {
+                                    withAnimation(.easeInOut(duration: 0.22)) {
+                                        store.route = .registerFlow
+                                    }
+                                }
+                            }
+                        } else {
+                            JuntoPillButton(
+                                title: isLoading ? "Entrando..." : "Entrar",
+                                color: otpCode.count == 6 ? JuntoColors.primary : JuntoColors.border
+                            ) {
+                                verifyOTPAndEnter()
+                            }
+                            .disabled(otpCode.count < 6 || isLoading)
                         }
-                        .disabled(otpCode.count < 6 || isLoading)
 
                         HStack {
                             Spacer()
@@ -116,46 +143,12 @@ struct LoginView: View {
                                 Button("Reenviar código no WhatsApp") {
                                     sendOTP()
                                 }
-                                .font(.inter(13, weight: .medium))
+                                .font(.inter(13, weight: .semibold))
                                 .foregroundColor(JuntoColors.primary)
                             }
                             Spacer()
                         }
                         .padding(.top, 4)
-
-                    case .profile:
-                        VStack(alignment: .leading, spacing: 6) {
-                            Text("Como você se chama?")
-                                .font(.inter(24, weight: .semibold))
-                                .foregroundColor(JuntoColors.textMain)
-                            Text("Seu nome aparecerá para seus contatos e grupos no Juntô.")
-                                .font(.inter(14, weight: .regular))
-                                .foregroundColor(JuntoColors.textMuted)
-                                .lineSpacing(3)
-                        }
-                        .padding(.top, 18)
-
-                        CleanOutlineInput(
-                            label: "Seu nome",
-                            placeholder: "Ex: Ana Silva",
-                            text: $fullNameText
-                        )
-
-                        CleanOutlineInput(
-                            label: "Chave Pix (opcional)",
-                            placeholder: "CPF, celular ou e-mail",
-                            text: $pixKeyText,
-                            autocapitalization: .never
-                        )
-
-                        JuntoPillButton(
-                            title: isLoading ? "Entrando..." : "Começar no Juntô",
-                            color: fullNameText.trimmingCharacters(in: .whitespaces).count >= 2 ? JuntoColors.primary : JuntoColors.border
-                        ) {
-                            completeNewProfile()
-                        }
-                        .disabled(fullNameText.trimmingCharacters(in: .whitespaces).count < 2 || isLoading)
-                        .padding(.top, 6)
                     }
                 }
                 .padding(.horizontal, 22)
@@ -171,6 +164,7 @@ struct LoginView: View {
     private func sendOTP() {
         guard cleanDigits.count >= 10, !isLoading else { return }
         isLoading = true
+        accountNotFound = false
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
         Task {
@@ -193,35 +187,16 @@ struct LoginView: View {
         isLoading = true
 
         Task {
-            let outcome = await store.loginWithWhatsAppOTP(phone: cleanDigits, code: otpCode)
+            let outcome = await store.loginWithWhatsAppOTP(phone: cleanDigits, code: otpCode, autoNavigate: true)
             isLoading = false
             if outcome.success {
                 resendTimer?.invalidate()
             } else if outcome.needsProfile {
                 withAnimation(.easeInOut(duration: 0.2)) {
-                    step = .profile
+                    accountNotFound = true
                 }
             } else if let err = outcome.errorMessage {
                 otpCode = ""
-                store.showToast(err, icon: "exclamationmark.circle")
-            }
-        }
-    }
-
-    private func completeNewProfile() {
-        let cleanName = fullNameText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard cleanName.count >= 2, !isLoading else { return }
-        isLoading = true
-
-        Task {
-            let outcome = await store.loginWithWhatsAppOTP(
-                phone: cleanDigits,
-                code: otpCode,
-                fullName: cleanName,
-                pixKey: pixKeyText.isEmpty ? nil : pixKeyText
-            )
-            isLoading = false
-            if !outcome.success, let err = outcome.errorMessage {
                 store.showToast(err, icon: "exclamationmark.circle")
             }
         }
@@ -242,7 +217,7 @@ struct LoginView: View {
         }
     }
 
-    private func formatLivePhone(_ raw: String) -> String {
+    static func formatLivePhone(_ raw: String) -> String {
         let digits = String(raw.filter { $0.isNumber }.prefix(11))
         if digits.count <= 2 { return digits }
         if digits.count <= 7 {
