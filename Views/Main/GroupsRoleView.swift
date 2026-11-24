@@ -90,8 +90,9 @@ struct GroupsRoleView: View {
                             } label: {
                                 HStack(spacing: 12) {
                                     groupCoverImage(group)
-                                        .frame(width: 54, height: 54)
-                                        .clipShape(RoundedRectangle(cornerRadius: 10))
+                                        .frame(width: 52, height: 52)
+                                        .clipped()
+                                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                                     VStack(alignment: .leading, spacing: 4) {
                                         HStack(spacing: 6) {
@@ -1063,19 +1064,21 @@ struct GroupDetailSheet: View {
                     }
                     .padding(.top, 16)
 
-                    // Capa do grupo (suporta foto escolhida da galeria!)
+                    // Capa do grupo ampla (sem cortes verticais)
                     ZStack(alignment: .bottomLeading) {
                         if let data = group.coverImageData, let uiImg = UIImage(data: data) {
                             Image(uiImage: uiImg)
                                 .resizable()
                                 .scaledToFill()
-                                .frame(height: 145)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 195)
                                 .clipped()
                         } else {
                             Image(group.coverImageName)
                                 .resizable()
                                 .scaledToFill()
-                                .frame(height: 145)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 195)
                                 .clipped()
                         }
 
@@ -1813,44 +1816,86 @@ struct GroupMembersSheet: View {
 
                             Spacer()
 
-                            // Status de Pagamento
-                            if participant.hasPaid {
-                                HStack(spacing: 4) {
-                                    Image(systemName: "checkmark.circle.fill")
-                                        .font(.system(size: 13))
-                                    Text("Pago")
-                                        .font(.inter(12, weight: .bold))
+                            if currentGroup.isPublic {
+                                // Em grupos públicos: botão Adicionar / Amigos (ao clicar desfaz amizade)
+                                if !isMe {
+                                    let isFriend = store.friends.contains { $0.username.lowercased() == participant.username.lowercased() && !$0.isPendingInvite }
+                                    Button {
+                                        withAnimation {
+                                            if isFriend {
+                                                store.unfriend(username: participant.username)
+                                            } else {
+                                                store.addFriend(username: participant.username, name: participant.name)
+                                            }
+                                        }
+                                    } label: {
+                                        if isFriend {
+                                            HStack(spacing: 3) {
+                                                Image(systemName: "checkmark")
+                                                    .font(.system(size: 9, weight: .bold))
+                                                Text("Amigos")
+                                                    .font(.inter(11, weight: .medium))
+                                            }
+                                            .foregroundColor(JuntoColors.textMuted)
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 5)
+                                            .background(JuntoColors.surfaceSubtle)
+                                            .clipShape(Capsule())
+                                        } else {
+                                            HStack(spacing: 3) {
+                                                Image(systemName: "plus")
+                                                    .font(.system(size: 9, weight: .bold))
+                                                Text("Adicionar")
+                                                    .font(.inter(11, weight: .medium))
+                                            }
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 10)
+                                            .padding(.vertical, 5)
+                                            .background(JuntoColors.primary)
+                                            .clipShape(Capsule())
+                                        }
+                                    }
                                 }
-                                .foregroundColor(JuntoColors.pixGreen)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(JuntoColors.pixGreen.opacity(0.12))
-                                .clipShape(Capsule())
                             } else {
-                                Text("Pendente")
-                                    .font(.inter(12, weight: .medium))
-                                    .foregroundColor(JuntoColors.orangeSave)
-                                    .padding(.horizontal, 8)
+                                // Status de Pagamento (Grupos Fechados / Rolês)
+                                if participant.hasPaid {
+                                    HStack(spacing: 4) {
+                                        Image(systemName: "checkmark.circle.fill")
+                                            .font(.system(size: 13))
+                                        Text("Pago")
+                                            .font(.inter(12, weight: .bold))
+                                    }
+                                    .foregroundColor(JuntoColors.pixGreen)
+                                    .padding(.horizontal, 10)
                                     .padding(.vertical, 4)
-                                    .background(JuntoColors.orangeSave.opacity(0.12))
+                                    .background(JuntoColors.pixGreen.opacity(0.12))
                                     .clipShape(Capsule())
-                            }
-
-                            // Ação rápida para Dono/Admin
-                            if isCurrentUserOwnerOrAdmin {
-                                Button {
-                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                    store.ownerConfirmParticipantPaid(
-                                        groupId: currentGroup.id,
-                                        participantId: participant.id,
-                                        monthIndex: currentGroup.selectedMonthIndex
-                                    )
-                                } label: {
-                                    Image(systemName: participant.hasPaid ? "arrow.uturn.backward.circle" : "checkmark.seal")
-                                        .font(.system(size: 18))
-                                        .foregroundColor(participant.hasPaid ? JuntoColors.textMuted : JuntoColors.primary)
+                                } else {
+                                    Text("Pendente")
+                                        .font(.inter(12, weight: .medium))
+                                        .foregroundColor(JuntoColors.orangeSave)
+                                        .padding(.horizontal, 8)
+                                        .padding(.vertical, 4)
+                                        .background(JuntoColors.orangeSave.opacity(0.12))
+                                        .clipShape(Capsule())
                                 }
-                                .padding(.leading, 4)
+
+                                // Ação rápida para Dono/Admin
+                                if isCurrentUserOwnerOrAdmin {
+                                    Button {
+                                        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                        store.ownerConfirmParticipantPaid(
+                                            groupId: currentGroup.id,
+                                            participantId: participant.id,
+                                            monthIndex: currentGroup.selectedMonthIndex
+                                        )
+                                    } label: {
+                                        Image(systemName: participant.hasPaid ? "arrow.uturn.backward.circle" : "checkmark.seal")
+                                            .font(.system(size: 18))
+                                            .foregroundColor(participant.hasPaid ? JuntoColors.textMuted : JuntoColors.primary)
+                                    }
+                                    .padding(.leading, 4)
+                                }
                             }
                         }
                         .padding(.horizontal, 20)

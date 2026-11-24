@@ -597,11 +597,50 @@ struct GroupChatScreen: View {
             VStack(alignment: .leading, spacing: 5) {
                 // Nome do participante em cor única (somente para mensagens de outros membros)
                 if !msg.isFromMe {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 5) {
                         Text(senderDisplayName)
                             .font(.inter(12, weight: .medium))
                             .foregroundColor(nameColor)
                         VerifiedBadgeView(type: msg.senderProPlanType, size: 11)
+
+                        if let uname = msg.senderUsername, uname.lowercased() != store.user.username.lowercased() {
+                            let isFriend = store.friends.contains { $0.username.lowercased() == uname.lowercased() && !$0.isPendingInvite }
+                            Button {
+                                withAnimation {
+                                    if isFriend {
+                                        store.unfriend(username: uname)
+                                    } else {
+                                        store.addFriend(username: uname, name: senderDisplayName)
+                                    }
+                                }
+                            } label: {
+                                if isFriend {
+                                    HStack(spacing: 2) {
+                                        Image(systemName: "checkmark")
+                                            .font(.system(size: 8, weight: .bold))
+                                        Text("Amigos")
+                                            .font(.inter(10, weight: .medium))
+                                    }
+                                    .foregroundColor(JuntoColors.textMuted)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(JuntoColors.surfaceSubtle)
+                                    .clipShape(Capsule())
+                                } else {
+                                    HStack(spacing: 2) {
+                                        Image(systemName: "plus")
+                                            .font(.system(size: 8, weight: .bold))
+                                        Text("Adicionar")
+                                            .font(.inter(10, weight: .medium))
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 6)
+                                    .padding(.vertical, 2)
+                                    .background(JuntoColors.primary)
+                                    .clipShape(Capsule())
+                                }
+                            }
+                        }
                     }
                 }
 

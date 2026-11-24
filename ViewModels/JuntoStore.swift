@@ -589,6 +589,13 @@ final class JuntoStore: ObservableObject {
         let msgId = msg.id
         groupChatMessages[groupId, default: []].append(msg)
 
+        // Move o grupo para o topo da lista de conversas de grupos imediatamente
+        if let gIdx = groups.firstIndex(where: { $0.id == groupId }) {
+            let g = groups.remove(at: gIdx)
+            groups.insert(g, at: 0)
+        }
+        objectWillChange.send()
+
         // Ciclo real de entrega (2 traços) e leitura (2 traços coloridos) no grupo
         Task {
             try? await Task.sleep(nanoseconds: 500_000_000)
@@ -687,12 +694,20 @@ final class JuntoStore: ObservableObject {
             isFromMe: true,
             kind: kind,
             timeText: currentTimeString(),
+            createdAt: Date(),
             status: .sent,
             replyToAuthor: replyToAuthor,
             replyToPreview: replyToPreview
         )
         let msgId = msg.id
         chatMessages[key, default: []].append(msg)
+
+        // IMPORTANTE: Move o amigo para o topo da lista de conversas imediatamente!
+        if let idx = friends.firstIndex(where: { $0.username.lowercased() == key }) {
+            let friend = friends.remove(at: idx)
+            friends.insert(friend, at: 0)
+        }
+        objectWillChange.send()
 
         // Simulação em tempo real do ciclo de entrega/leitura (no servidor via Socket.IO chat:status)
         let isFriendOnline = friends.first(where: { $0.username.lowercased() == key })?.isOnline ?? false
@@ -803,6 +818,23 @@ final class JuntoStore: ObservableObject {
         let key = username.lowercased()
         chatMessages[key] = []
         showToast("Conversa apagada.", icon: "trash")
+    }
+
+    /// Adiciona diretamente como amigo
+    func addFriend(username raw: String, name: String) {
+        let clean = raw.lowercased().replacingOccurrences(of: "@", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        guard clean != user.username.lowercased() else { return }
+        if let idx = friends.firstIndex(where: { $0.username.lowercased() == clean }) {
+            friends[idx].isPendingInvite = false
+            showToast("\(name) já está na sua lista de amigos!", icon: "checkmark")
+            return
+        }
+        let initials = String(name.prefix(2)).uppercased()
+        friends.insert(
+            FriendItem(name: name, username: clean, initials: initials, balance: 0, isPendingInvite: false, isOnline: true),
+            at: 0
+        )
+        showToast("\(name) adicionado aos amigos!", icon: "person.badge.plus")
     }
 
     /// Desfaz amizade com o usuário

@@ -165,6 +165,7 @@ struct FriendsView: View {
                                     }
                                 }
                                 .frame(width: 50, height: 50)
+                                .clipped()
                                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                                 VStack(alignment: .leading, spacing: 3) {

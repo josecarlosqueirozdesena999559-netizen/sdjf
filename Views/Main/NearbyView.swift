@@ -305,11 +305,16 @@ struct NearbyView: View {
         } label: {
             VStack(alignment: .leading, spacing: 10) {
                 HStack(alignment: .top, spacing: 12) {
-                    Image(group.coverImageName)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 52, height: 52)
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    Group {
+                        if let data = group.coverImageData, let uiImg = UIImage(data: data) {
+                            Image(uiImage: uiImg).resizable().scaledToFill()
+                        } else {
+                            Image(group.coverImageName).resizable().scaledToFill()
+                        }
+                    }
+                    .frame(width: 52, height: 52)
+                    .clipped()
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                     VStack(alignment: .leading, spacing: 3) {
                         Text(group.title)
@@ -500,11 +505,22 @@ struct PublicGroupDetailSheet: View {
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
 
-                Image(group.coverImageName)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(width: 72, height: 72)
-                    .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+                // Capa ampla do grupo (sem cortes)
+                Group {
+                    if let data = group.coverImageData, let uiImg = UIImage(data: data) {
+                        Image(uiImage: uiImg)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        Image(group.coverImageName)
+                            .resizable()
+                            .scaledToFill()
+                    }
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 160)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
 
                 VStack(spacing: 3) {
                     Text(group.title)
