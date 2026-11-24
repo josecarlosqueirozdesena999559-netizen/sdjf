@@ -1642,24 +1642,19 @@ struct GroupDetailSheet: View {
     }
 }
 
-// MARK: - Tela "Configurações de grupo" (Fiel ao modelo limpo com funções reais Juntô Pro)
+// MARK: - Tela "Configurações de grupo" (Identidade própria Juntô + Agente Juntô IA e funções Pro)
 struct GroupSettingsScreen: View {
     @EnvironmentObject var store: JuntoStore
     let groupId: UUID
     var onLeaveOrDelete: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
 
-    @State private var simplifyDebts: Bool = true
-    @State private var defaultSplitMode: String = "Pago por você e dividido igualmente"
     @State private var showAddMemberScreen: Bool = false
     @State private var showEditGroupAlert: Bool = false
     @State private var editedTitle: String = ""
     @State private var selectedParticipantForAction: GroupParticipant? = nil
     @State private var showLeaveOrDeleteConfirm: Bool = false
-    @State private var showSimplifyInfoAlert: Bool = false
     @State private var showProPaywall: Bool = false
-    @State private var showSplitModeSheet: Bool = false
-    @State private var generatedClosurePDF: URL? = nil
 
     private var groupIndex: Int? {
         store.resolvedGroupIndex(for: groupId)
@@ -1673,9 +1668,15 @@ struct GroupSettingsScreen: View {
             let inviteText = "Entre no grupo \"\(group.title)\" no Juntô para dividir gastos e pagar no Pix: https://junto.app/baixar"
             let pendingChargeText = store.pendingChargeMessage(for: group)
             let organizer = store.organizerPixInfo(for: group)
+            let pendingMembers = group.participants.filter { !$0.hasPaid && $0.quotaAmount > 0 }
+            let previewText = store.composeAIReminderMessage(
+                for: group,
+                pendingParticipants: pendingMembers.isEmpty ? Array(group.participants.prefix(1)) : pendingMembers,
+                daysLeft: max(1, group.aiReminderDaysBefore)
+            )
 
             VStack(alignment: .leading, spacing: 0) {
-                // Topo fiel ao modelo: < | Configurações de grupo
+                // Topo limpo: < | Configurações de grupo
                 HStack {
                     CircleNavButton(icon: "chevron.left") { dismiss() }
                     Spacer()
@@ -1693,14 +1694,19 @@ struct GroupSettingsScreen: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
-                        // Cabeçalho do grupo: ícone da categoria + nome + Editar (sem foto de capa)
+                        // Cabeçalho do grupo: ícone da categoria + nome + Editar
                         HStack(spacing: 14) {
                             GroupCategoryIconTile(category: group.category, size: 52)
 
-                            Text(group.title)
-                                .font(.inter(17, weight: .semibold))
-                                .foregroundColor(JuntoColors.textMain)
-                                .lineLimit(2)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(group.title)
+                                    .font(.inter(17, weight: .bold))
+                                    .foregroundColor(JuntoColors.textMain)
+                                    .lineLimit(2)
+                                Text("\(group.category) · \(group.participants.count) participantes")
+                                    .font(.inter(12, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                            }
 
                             Spacer()
 
@@ -1725,7 +1731,6 @@ struct GroupSettingsScreen: View {
                                 .padding(.top, 18)
                                 .padding(.bottom, 6)
 
-                            // Adicionar pessoas ao grupo
                             Button {
                                 showAddMemberScreen = true
                             } label: {
@@ -1745,7 +1750,6 @@ struct GroupSettingsScreen: View {
                             }
                             .buttonStyle(.plain)
 
-                            // Convidar via link (ShareLink nativo)
                             ShareLink(item: inviteText) {
                                 HStack(spacing: 16) {
                                     Image(systemName: "link")
@@ -1763,7 +1767,6 @@ struct GroupSettingsScreen: View {
                             }
                             .buttonStyle(.plain)
 
-                            // Lista de membros
                             ForEach(group.participants) { participant in
                                 Button {
                                     if participant.role != .owner {
@@ -1802,96 +1805,265 @@ struct GroupSettingsScreen: View {
                             }
                         }
 
-                        // Seção: Configurações avançadas e recursos reais Juntô Pro
-                        VStack(alignment: .leading, spacing: 18) {
-                            Text("Configurações avançadas")
+                        Divider().opacity(0.6).padding(.top, 14)
+
+                        // Seção exclusiva Juntô: Automação com IA e Controles do Grupo
+                        VStack(alignment: .leading, spacing: 22) {
+                            Text("Automação e controles do grupo")
                                 .font(.inter(13, weight: .semibold))
                                 .foregroundColor(JuntoColors.textMain)
-                                .padding(.top, 22)
+                                .padding(.top, 20)
 
-                            // Simplificar dívidas do grupo
-                            VStack(alignment: .leading, spacing: 8) {
+                            // 1. AGENTE JUNTÔ IA — Lembretes automáticos no app próximo ao vencimento (PRO)
+                            VStack(alignment: .leading, spacing: 10) {
                                 HStack(alignment: .center, spacing: 14) {
-                                    Image(systemName: "point.3.connected.trianglepath.dotted")
+                                    Image(systemName: "sparkles")
+                                        .font(.system(size: 19, weight: .medium))
+                                        .foregroundColor(JuntoColors.primary)
+                                        .frame(width: 28)
+
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        HStack(spacing: 6) {
+                                            Text("Agente Juntô IA")
+                                                .font(.inter(16, weight: .semibold))
+                                                .foregroundColor(JuntoColors.textMain)
+                                            proBadgePill
+                                        }
+                                        Text("Lembretes automáticos de vencimento")
+                                            .font(.inter(12, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                    }
+
+                                    Spacer()
+
+                                    Toggle("", isOn: Binding(
+                                        get: { store.groups[idx].aiReminderEnabled },
+                                        set: { newVal in
+                                            if newVal && !store.user.isPro {
+                                                showProPaywall = true
+                                            } else {
+                                                withAnimation(.easeInOut(duration: 0.2)) {
+                                                    store.groups[idx].aiReminderEnabled = newVal
+                                                }
+                                                store.saveGroupProSettings(for: resolvedId)
+                                                if newVal {
+                                                    store.showToast("Agente Juntô IA ativado neste grupo!", icon: "sparkles")
+                                                }
+                                            }
+                                        }
+                                    ))
+                                    .labelsHidden()
+                                    .tint(JuntoColors.primary)
+                                }
+
+                                Text("Próximo ao vencimento, nosso agente de IA envia uma mensagem automática no próprio app para quem ainda não pagou.")
+                                    .font(.inter(13, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                                    .padding(.leading, 42)
+
+                                if group.aiReminderEnabled && store.user.isPro {
+                                    VStack(alignment: .leading, spacing: 12) {
+                                        // Dias antes do vencimento
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            Text("Avisar antes do vencimento")
+                                                .font(.inter(12, weight: .semibold))
+                                                .foregroundColor(JuntoColors.textMain)
+                                            HStack(spacing: 8) {
+                                                ForEach([1, 2, 3, 5], id: \.self) { days in
+                                                    let active = group.aiReminderDaysBefore == days
+                                                    Button {
+                                                        store.groups[idx].aiReminderDaysBefore = days
+                                                        store.saveGroupProSettings(for: resolvedId)
+                                                    } label: {
+                                                        Text(days == 1 ? "1 dia" : "\(days) dias")
+                                                            .font(.inter(12, weight: active ? .semibold : .regular))
+                                                            .foregroundColor(active ? .white : JuntoColors.textMain)
+                                                            .padding(.horizontal, 12)
+                                                            .frame(height: 30)
+                                                            .background(active ? JuntoColors.primary : JuntoColors.surfaceSubtle)
+                                                            .clipShape(Capsule())
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // Tom do Agente IA
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            Text("Estilo da mensagem")
+                                                .font(.inter(12, weight: .semibold))
+                                                .foregroundColor(JuntoColors.textMain)
+                                            HStack(spacing: 8) {
+                                                ForEach(AIReminderTone.allCases, id: \.self) { tone in
+                                                    let active = group.aiReminderTone == tone
+                                                    Button {
+                                                        store.groups[idx].aiReminderTone = tone
+                                                        store.saveGroupProSettings(for: resolvedId)
+                                                    } label: {
+                                                        Text(tone.rawValue)
+                                                            .font(.inter(12, weight: active ? .semibold : .regular))
+                                                            .foregroundColor(active ? .white : JuntoColors.textMain)
+                                                            .padding(.horizontal, 12)
+                                                            .frame(height: 30)
+                                                            .background(active ? JuntoColors.primary : JuntoColors.surfaceSubtle)
+                                                            .clipShape(Capsule())
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        // Prévia ao vivo da mensagem do agente
+                                        VStack(alignment: .leading, spacing: 6) {
+                                            Text("Prévia da Juntô IA")
+                                                .font(.inter(11, weight: .semibold))
+                                                .foregroundColor(JuntoColors.primary)
+                                            Text(previewText)
+                                                .font(.inter(12.5, weight: .regular))
+                                                .foregroundColor(JuntoColors.textMain)
+                                                .fixedSize(horizontal: false, vertical: true)
+                                        }
+                                        .padding(12)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                        .background(JuntoColors.primary.opacity(0.06))
+                                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                                        // Botão para disparar o lembrete no app imediatamente
+                                        Button {
+                                            store.triggerAIReminderNow(for: resolvedId)
+                                        } label: {
+                                            HStack(spacing: 6) {
+                                                Image(systemName: "paperplane.fill")
+                                                    .font(.system(size: 12, weight: .semibold))
+                                                Text("Enviar lembrete agora no app")
+                                                    .font(.inter(13, weight: .semibold))
+                                            }
+                                            .foregroundColor(JuntoColors.primary)
+                                            .padding(.horizontal, 14)
+                                            .frame(height: 36)
+                                            .background(JuntoColors.primary.opacity(0.10))
+                                            .clipShape(Capsule())
+                                        }
+                                    }
+                                    .padding(.leading, 42)
+                                    .padding(.top, 4)
+                                }
+                            }
+
+                            // 2. Resumo automático de fechamento pela IA (PRO)
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack(alignment: .center, spacing: 14) {
+                                    Image(systemName: "checkmark.seal")
                                         .font(.system(size: 19, weight: .regular))
+                                        .foregroundColor(JuntoColors.primary)
+                                        .frame(width: 28)
+
+                                    HStack(spacing: 6) {
+                                        Text("Fechamento automático IA")
+                                            .font(.inter(16, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMain)
+                                        proBadgePill
+                                    }
+
+                                    Spacer()
+
+                                    Toggle("", isOn: Binding(
+                                        get: { store.groups[idx].autoClosureSummaryEnabled },
+                                        set: { newVal in
+                                            if newVal && !store.user.isPro {
+                                                showProPaywall = true
+                                            } else {
+                                                store.groups[idx].autoClosureSummaryEnabled = newVal
+                                                store.saveGroupProSettings(for: resolvedId)
+                                            }
+                                        }
+                                    ))
+                                    .labelsHidden()
+                                    .tint(JuntoColors.primary)
+                                }
+
+                                Text("Quando o grupo bater 100% da meta, a Juntô IA publica automaticamente o resumo final de quitação no chat.")
+                                    .font(.inter(13, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                                    .padding(.leading, 42)
+                            }
+
+                            // 3. Chave Pix fixada nos lembretes e cobranças (PRO)
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack(alignment: .center, spacing: 14) {
+                                    Image(systemName: "qrcode")
+                                        .font(.system(size: 18, weight: .regular))
+                                        .foregroundColor(JuntoColors.primary)
+                                        .frame(width: 28)
+
+                                    HStack(spacing: 6) {
+                                        Text("Pix rápido nas cobranças")
+                                            .font(.inter(16, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMain)
+                                        proBadgePill
+                                    }
+
+                                    Spacer()
+
+                                    Toggle("", isOn: Binding(
+                                        get: { store.groups[idx].pixQuickPinEnabled },
+                                        set: { newVal in
+                                            if newVal && !store.user.isPro {
+                                                showProPaywall = true
+                                            } else {
+                                                store.groups[idx].pixQuickPinEnabled = newVal
+                                                store.saveGroupProSettings(for: resolvedId)
+                                            }
+                                        }
+                                    ))
+                                    .labelsHidden()
+                                    .tint(JuntoColors.primary)
+                                }
+
+                                Text(organizer.pixKey.isEmpty
+                                     ? "Inclui sua chave Pix automaticamente nos avisos do grupo para receber mais rápido."
+                                     : "Anexa a chave Pix (\(organizer.pixKey)) nos lembretes da IA e nas cobranças do grupo.")
+                                    .font(.inter(13, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                                    .padding(.leading, 42)
+                            }
+
+                            // 4. Trava de despesas somente para admins
+                            VStack(alignment: .leading, spacing: 6) {
+                                HStack(alignment: .center, spacing: 14) {
+                                    Image(systemName: "lock.shield")
+                                        .font(.system(size: 18, weight: .regular))
                                         .foregroundColor(JuntoColors.textMuted)
                                         .frame(width: 28)
 
-                                    Text("Simplificar dívidas do grupo")
+                                    Text("Somente admins lançam gastos")
                                         .font(.inter(16, weight: .regular))
                                         .foregroundColor(JuntoColors.textMain)
 
                                     Spacer()
 
-                                    Toggle("", isOn: $simplifyDebts)
-                                        .labelsHidden()
-                                        .tint(JuntoColors.primary)
+                                    Toggle("", isOn: Binding(
+                                        get: { store.groups[idx].restrictExpensesToAdmins },
+                                        set: { newVal in
+                                            store.groups[idx].restrictExpensesToAdmins = newVal
+                                            store.saveGroupProSettings(for: resolvedId)
+                                        }
+                                    ))
+                                    .labelsHidden()
+                                    .tint(JuntoColors.primary)
                                 }
 
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("Combina débitos automaticamente para reduzir o número total de pagamentos duplicados entre membros do grupo.")
-                                        .font(.inter(13, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMuted)
-                                    Button("Saiba mais") {
-                                        showSimplifyInfoAlert = true
-                                    }
-                                    .font(.inter(13, weight: .semibold))
-                                    .foregroundColor(JuntoColors.primary)
-                                }
-                                .padding(.leading, 42)
-                            }
-
-                            // Função PRO 1: Divisão padrão configurável
-                            Button {
-                                if store.user.isPro {
-                                    showSplitModeSheet = true
-                                } else {
-                                    showProPaywall = true
-                                }
-                            } label: {
-                                VStack(alignment: .leading, spacing: 8) {
-                                    HStack(alignment: .center, spacing: 14) {
-                                        Image(systemName: "equal")
-                                            .font(.system(size: 18, weight: .semibold))
-                                            .foregroundColor(JuntoColors.primary)
-                                            .frame(width: 28)
-
-                                        Text("Divisão padrão")
-                                            .font(.inter(16, weight: .regular))
-                                            .foregroundColor(JuntoColors.textMain)
-
-                                        Spacer()
-
-                                        Text("PRO")
-                                            .font(.inter(11, weight: .bold))
-                                            .foregroundColor(JuntoColors.primary)
-                                            .padding(.horizontal, 9)
-                                            .padding(.vertical, 3)
-                                            .background(JuntoColors.primary.opacity(0.10))
-                                            .clipShape(Capsule())
-                                    }
-
-                                    VStack(alignment: .leading, spacing: 4) {
-                                        Text(defaultSplitMode)
-                                            .font(.inter(14, weight: .regular))
-                                            .foregroundColor(JuntoColors.textMain)
-                                        Text("Defina como novas despesas serão rateadas automaticamente neste grupo.")
-                                            .font(.inter(13, weight: .regular))
-                                            .foregroundColor(JuntoColors.textMuted)
-                                    }
+                                Text("Evita lançamentos acidentais mantendo o controle das despesas apenas com dono e administradores.")
+                                    .font(.inter(13, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
                                     .padding(.leading, 42)
-                                }
-                                .contentShape(Rectangle())
                             }
-                            .buttonStyle(.plain)
 
-                            // Função PRO 2: Cobrar pendentes via Pix em 1 toque
+                            // 5. Cobrar pendentes em 1 toque no WhatsApp (PRO)
                             if store.user.isPro {
                                 ShareLink(item: pendingChargeText) {
                                     proActionRow(
                                         icon: "bell.badge",
                                         title: "Cobrar pendentes no WhatsApp",
-                                        subtitle: "Gera a lista pronta de quem falta pagar com sua chave Pix."
+                                        subtitle: "Monta a lista pronta de quem falta pagar com valor e chave Pix."
                                     )
                                 }
                                 .buttonStyle(.plain)
@@ -1902,38 +2074,7 @@ struct GroupSettingsScreen: View {
                                     proActionRow(
                                         icon: "bell.badge",
                                         title: "Cobrar pendentes no WhatsApp",
-                                        subtitle: "Gera a lista pronta de quem falta pagar com sua chave Pix."
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            }
-
-                            // Função PRO 3: Exportar fechamento do grupo em PDF
-                            if store.user.isPro, let pdfURL = generatedClosurePDF {
-                                ShareLink(item: pdfURL) {
-                                    proActionRow(
-                                        icon: "doc.richtext",
-                                        title: "Exportar fechamento em PDF",
-                                        subtitle: "Compartilhe o extrato oficial do grupo com pagos e pendentes."
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            } else {
-                                Button {
-                                    if store.user.isPro {
-                                        generatedClosurePDF = JuntoProPDFGenerator.generateGroupClosurePDF(
-                                            group: group,
-                                            ownerPixKey: organizer.pixKey
-                                        )
-                                        store.showToast("PDF pronto! Toque novamente para compartilhar.", icon: "doc.richtext")
-                                    } else {
-                                        showProPaywall = true
-                                    }
-                                } label: {
-                                    proActionRow(
-                                        icon: "doc.richtext",
-                                        title: "Exportar fechamento em PDF",
-                                        subtitle: "Compartilhe o extrato oficial do grupo com pagos e pendentes."
+                                        subtitle: "Monta a lista pronta de quem falta pagar com valor e chave Pix."
                                     )
                                 }
                                 .buttonStyle(.plain)
@@ -1964,14 +2105,6 @@ struct GroupSettingsScreen: View {
                 }
             }
             .background(Color.white.ignoresSafeArea())
-            .onAppear {
-                if store.user.isPro {
-                    generatedClosurePDF = JuntoProPDFGenerator.generateGroupClosurePDF(
-                        group: group,
-                        ownerPixKey: organizer.pixKey
-                    )
-                }
-            }
             .fullScreenCover(isPresented: $showAddMemberScreen) {
                 AddGroupMemberScreen(groupId: resolvedId)
                     .environmentObject(store)
@@ -1979,50 +2112,6 @@ struct GroupSettingsScreen: View {
             .fullScreenCover(isPresented: $showProPaywall) {
                 JuntoProSubscriptionScreen()
                     .environmentObject(store)
-            }
-            .sheet(isPresented: $showSplitModeSheet) {
-                VStack(alignment: .leading, spacing: 14) {
-                    HStack {
-                        Text("Divisão padrão (Pro)")
-                            .font(.inter(18, weight: .bold))
-                            .foregroundColor(JuntoColors.textMain)
-                        Spacer()
-                        PopupCloseButton { showSplitModeSheet = false }
-                    }
-                    .padding(.top, 20)
-
-                    ForEach([
-                        "Pago por você e dividido igualmente",
-                        "Proporcional ao consumo marcado na comanda",
-                        "Divisão por cota fixa do organizador"
-                    ], id: \.self) { option in
-                        Button {
-                            defaultSplitMode = option
-                            showSplitModeSheet = false
-                            store.showToast("Divisão padrão atualizada!", icon: "checkmark.circle")
-                        } label: {
-                            HStack {
-                                Text(option)
-                                    .font(.inter(15, weight: defaultSplitMode == option ? .semibold : .regular))
-                                    .foregroundColor(JuntoColors.textMain)
-                                Spacer()
-                                if defaultSplitMode == option {
-                                    Image(systemName: "checkmark")
-                                        .font(.system(size: 14, weight: .bold))
-                                        .foregroundColor(JuntoColors.primary)
-                                }
-                            }
-                            .padding(.vertical, 12)
-                        }
-                        .buttonStyle(.plain)
-                        Divider().opacity(0.5)
-                    }
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-                .background(Color.white.ignoresSafeArea())
-                .presentationDetents([.height(290)])
-                .presentationCornerRadius(24)
             }
             .alert("Editar nome do grupo", isPresented: $showEditGroupAlert) {
                 TextField("Nome do grupo", text: $editedTitle)
@@ -2034,11 +2123,6 @@ struct GroupSettingsScreen: View {
                         store.showToast("Nome do grupo atualizado.", icon: "checkmark.circle.fill")
                     }
                 }
-            }
-            .alert("Simplificar dívidas", isPresented: $showSimplifyInfoAlert) {
-                Button("Entendi", role: .cancel) {}
-            } message: {
-                Text("Quando ativado, o Juntô compensa automaticamente valores cruzados entre participantes para reduzir a quantidade de transferências Pix.")
             }
             .alert(isOwner ? "Excluir \"\(group.title)\"?" : "Sair de \"\(group.title)\"?", isPresented: $showLeaveOrDeleteConfirm) {
                 Button("Cancelar", role: .cancel) {}
@@ -2077,6 +2161,16 @@ struct GroupSettingsScreen: View {
         }
     }
 
+    private var proBadgePill: some View {
+        Text("PRO")
+            .font(.inter(10, weight: .bold))
+            .foregroundColor(JuntoColors.primary)
+            .padding(.horizontal, 7)
+            .padding(.vertical, 2)
+            .background(JuntoColors.primary.opacity(0.10))
+            .clipShape(Capsule())
+    }
+
     private func proActionRow(icon: String, title: String, subtitle: String) -> some View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(alignment: .center, spacing: 14) {
@@ -2091,13 +2185,7 @@ struct GroupSettingsScreen: View {
 
                 Spacer()
 
-                Text("PRO")
-                    .font(.inter(11, weight: .bold))
-                    .foregroundColor(JuntoColors.primary)
-                    .padding(.horizontal, 9)
-                    .padding(.vertical, 3)
-                    .background(JuntoColors.primary.opacity(0.10))
-                    .clipShape(Capsule())
+                proBadgePill
             }
 
             Text(subtitle)

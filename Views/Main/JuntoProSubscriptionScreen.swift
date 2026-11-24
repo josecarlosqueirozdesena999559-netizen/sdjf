@@ -18,10 +18,10 @@ struct JuntoProSubscriptionScreen: View {
     @State private var showPrivacySheet = false
 
     private let proFeatures: [(title: String, subtitle: String)] = [
-        ("Relatórios e Fechamentos em PDF", "Exporte seus gastos mensais ou o extrato oficial de qualquer grupo em PDF pronto para enviar no WhatsApp."),
-        ("Cobrança Pix em 1 toque no WhatsApp", "Gere automaticamente a lista de quem falta pagar com os valores e sua chave Pix para cobrar sem constrangimento."),
-        ("Insights Inteligentes de Gastos", "Veja sua maior categoria do mês, média por pagamento e taxa de quitação em tempo real."),
-        ("Divisão Padrão Personalizada", "Escolha como ratear despesas automaticamente por grupo: igualitária, proporcional ao consumo ou cota fixa."),
+        ("Agente Juntô IA de Lembretes", "Próximo ao vencimento, nossa IA envia mensagens automáticas no próprio app para quem ainda não pagou, no tom que você escolher."),
+        ("Fechamento Automático pela IA", "Quando o pote bater 100%, a Juntô IA publica o resumo final de quitação automaticamente no chat do grupo."),
+        ("Pix Rápido e Cobrança em 1 Toque", "Fixa sua chave Pix nos lembretes da IA e monta a cobrança pronta dos pendentes para enviar no WhatsApp."),
+        ("Insights Inteligentes de Gastos", "Acompanhe sua maior categoria do mês, média por pagamento e taxa de quitação em Meus Gastos."),
         ("Grupos ilimitados e múltiplos admins", "Crie quantos grupos, viagens e potes mensais quiser e adicione co-organizadores."),
         ("Selo de Verificado Exclusivo", "Assinante Mensal recebe o Selo Roxo e o Assinante Anual recebe o Selo Dourado em todas as conversas e grupos.")
     ]

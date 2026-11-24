@@ -125,8 +125,182 @@ final class JuntoStore: ObservableObject {
             return "Todos os participantes do grupo \"\(group.title)\" já estão quitados!"
         }
         let lines = pending.map { "• \($0.name): \(Self.formatBRL($0.quotaAmount))" }.joined(separator: "\n")
-        let pixLine = organizer.pixKey.isEmpty ? "" : "\nChave Pix: \(organizer.pixKey)"
+        let pixLine = (group.pixQuickPinEnabled && !organizer.pixKey.isEmpty) ? "\nChave Pix: \(organizer.pixKey)" : ""
         return "Lembrete do grupo *\(group.title)* no Juntô:\n\nCotas pendentes:\n\(lines)\(pixLine)\n\nAssim que pagar, marque como pago no app!"
+    }
+
+    // MARK: - Agente Juntô IA de Lembretes de Vencimento (Recurso Exclusivo Juntô Pro)
+    private struct SavedGroupProSettings: Codable {
+        var aiReminderEnabled: Bool
+        var aiReminderDaysBefore: Int
+        var aiReminderTone: AIReminderTone
+        var pixQuickPinEnabled: Bool
+        var restrictExpensesToAdmins: Bool
+        var autoClosureSummaryEnabled: Bool
+    }
+
+    private let groupProSettingsKey = "junto_group_pro_settings_v1"
+
+    func saveGroupProSettings(for groupId: UUID) {
+        guard let idx = resolvedGroupIndex(for: groupId) else { return }
+        let g = groups[idx]
+        var allMap: [String: SavedGroupProSettings] = [:]
+        if let data = UserDefaults.standard.data(forKey: groupProSettingsKey),
+           let decoded = try? JSONDecoder().decode([String: SavedGroupProSettings].self, from: data) {
+            allMap = decoded
+        }
+        allMap[g.id.uuidString.lowercased()] = SavedGroupProSettings(
+            aiReminderEnabled: g.aiReminderEnabled,
+            aiReminderDaysBefore: g.aiReminderDaysBefore,
+            aiReminderTone: g.aiReminderTone,
+            pixQuickPinEnabled: g.pixQuickPinEnabled,
+            restrictExpensesToAdmins: g.restrictExpensesToAdmins,
+            autoClosureSummaryEnabled: g.autoClosureSummaryEnabled
+        )
+        if let encoded = try? JSONEncoder().encode(allMap) {
+            UserDefaults.standard.set(encoded, forKey: groupProSettingsKey)
+        }
+    }
+
+    func applySavedGroupProSettings() {
+        guard let data = UserDefaults.standard.data(forKey: groupProSettingsKey),
+              let allMap = try? JSONDecoder().decode([String: SavedGroupProSettings].self, from: data) else {
+            return
+        }
+        for i in groups.indices {
+            let key = groups[i].id.uuidString.lowercased()
+            if let cfg = allMap[key] {
+                groups[i].aiReminderEnabled = cfg.aiReminderEnabled
+                groups[i].aiReminderDaysBefore = cfg.aiReminderDaysBefore
+                groups[i].aiReminderTone = cfg.aiReminderTone
+                groups[i].pixQuickPinEnabled = cfg.pixQuickPinEnabled
+                groups[i].restrictExpensesToAdmins = cfg.restrictExpensesToAdmins
+                groups[i].autoClosureSummaryEnabled = cfg.autoClosureSummaryEnabled
+            }
+        }
+    }
+
+    func daysUntilDue(for group: RoleGroup) -> Int {
+        let cal = Calendar.current
+        let today = cal.startOfDay(for: Date())
+        let due = cal.startOfDay(for: group.targetDate)
+        return cal.dateComponents([.day], from: today, to: due).day ?? 0
+    }
+
+    /// Monta a mensagem natural e contextual do Agente Juntô IA conforme o tom escolhido e prazo restante
+    func composeAIReminderMessage(for group: RoleGroup, pendingParticipants: [GroupParticipant], daysLeft: Int) -> String {
+        let deadlinePhrase: String
+        if daysLeft < 0 {
+            deadlinePhrase = "venceu há \(abs(daysLeft)) dia(s)"
+        } else if daysLeft == 0 {
+            deadlinePhrase = "vence hoje"
+        } else if daysLeft == 1 {
+            deadlinePhrase = "vence amanhã"
+        } else {
+            deadlinePhrase = "vence em \(daysLeft) dias"
+        }
+
+        let namesList = pendingParticipants
+            .map { $0.name.split(separator: " ").first.map(String.init) ?? $0.name }
+            .joined(separator: ", ")
+        let quotaSample = pendingParticipants.first?.quotaAmount ?? group.dynamicQuotaPerPerson
+        let quotaText = quotaSample > 0 ? Self.formatBRL(quotaSample) : "sua cota"
+        let organizer = organizerPixInfo(for: group)
+        let pixSuffix = (group.pixQuickPinEnabled && !organizer.pixKey.isEmpty)
+            ? "\nChave Pix: \(organizer.pixKey)"
+            : ""
+
+        switch group.aiReminderTone {
+        case .friendly:
+            return "Oi pessoal! Aqui é a Juntô IA passando para lembrar que a meta de \"\(group.title)\" \(deadlinePhrase). Ainda está em aberto para: \(namesList) (\(quotaText)).\(pixSuffix)"
+        case .direct:
+            return "Lembrete Juntô IA · \"\(group.title)\" \(deadlinePhrase). Pagamento pendente: \(namesList) — \(quotaText).\(pixSuffix)"
+        case .funny:
+            return "Alô galera de \"\(group.title)\"! A Juntô IA tá de olho: a meta \(deadlinePhrase) e o Pix ainda não caiu por aqui. Faltam: \(namesList) (\(quotaText)). Bora quitar!\(pixSuffix)"
+        }
+    }
+
+    /// Varredura automática do Agente Juntô IA: dispara lembretes no app próximo ao vencimento para quem ainda não pagou
+    func runAIReminderAgentScan() {
+        guard user.isPro else { return }
+        let df = DateFormatter()
+        df.dateFormat = "yyyy-MM-dd"
+        let dayKey = df.string(from: Date())
+
+        for group in groups {
+            // 1. Lembrete automático próximo ao vencimento
+            if group.aiReminderEnabled {
+                let daysLeft = daysUntilDue(for: group)
+                let pending = group.participants.filter { !$0.hasPaid && $0.quotaAmount > 0 }
+                let dedupKey = "junto_ai_reminder_\(group.id.uuidString.lowercased())_\(dayKey)"
+
+                if daysLeft <= group.aiReminderDaysBefore,
+                   !pending.isEmpty,
+                   !UserDefaults.standard.bool(forKey: dedupKey) {
+                    let messageBody = composeAIReminderMessage(for: group, pendingParticipants: pending, daysLeft: daysLeft)
+                    deliverAIReminderInApp(group: group, messageBody: messageBody)
+                    UserDefaults.standard.set(true, forKey: dedupKey)
+                }
+            }
+
+            // 2. Resumo automático de fechamento ao atingir 100%
+            if group.autoClosureSummaryEnabled && group.overallGoalPercent == 100 {
+                let closureKey = "junto_ai_closure_\(group.id.uuidString.lowercased())"
+                if !UserDefaults.standard.bool(forKey: closureKey) {
+                    let summary = "🎉 Fechamento Juntô IA: \"\(group.title)\" atingiu 100% da meta! Todos os \(group.participants.count) participantes quitaram (\(Self.formatBRL(group.potBalance)) arrecadados)."
+                    deliverAIReminderInApp(group: group, messageBody: summary, notifTitle: "Juntô IA • Grupo 100% quitado!")
+                    UserDefaults.standard.set(true, forKey: closureKey)
+                }
+            }
+        }
+    }
+
+    /// Envia imediatamente um lembrete do Agente Juntô IA no chat do grupo e nas notificações do app
+    func triggerAIReminderNow(for groupId: UUID) {
+        guard user.isPro else {
+            showToast("O Agente Juntô IA é exclusivo do plano Juntô Pro.", icon: "sparkles")
+            return
+        }
+        guard let idx = resolvedGroupIndex(for: groupId) else { return }
+        let group = groups[idx]
+        let pending = group.participants.filter { !$0.hasPaid && $0.quotaAmount > 0 }
+        guard !pending.isEmpty else {
+            showToast("Todos os participantes já estão quitados!", icon: "checkmark.circle")
+            return
+        }
+        let daysLeft = daysUntilDue(for: group)
+        let messageBody = composeAIReminderMessage(for: group, pendingParticipants: pending, daysLeft: daysLeft)
+        deliverAIReminderInApp(group: group, messageBody: messageBody)
+        showToast("Juntô IA enviou o lembrete no app!", icon: "sparkles")
+    }
+
+    private func deliverAIReminderInApp(group: RoleGroup, messageBody: String, notifTitle: String? = nil) {
+        let aiMsg = ChatMessage(
+            isFromMe: false,
+            kind: .text(messageBody),
+            timeText: currentTimeString(),
+            createdAt: Date(),
+            status: .read,
+            senderName: "Juntô IA",
+            senderUsername: "junto.ia",
+            senderProPlanType: .yearly
+        )
+        unhideGroupConversation(for: group.id)
+        groupChatMessages[group.id, default: []].append(aiMsg)
+
+        let title = notifTitle ?? "Juntô IA • Lembrete em \(group.title)"
+        notifications.insert(
+            AppNotification(
+                icon: "sparkles",
+                title: title,
+                message: messageBody,
+                timeAgo: "Agora",
+                isUnread: true
+            ),
+            at: 0
+        )
+        JuntoNotificationManager.shared.triggerLocalNotification(title: title, body: messageBody)
+        objectWillChange.send()
     }
 
     private func persistHiddenChats() {
@@ -761,6 +935,8 @@ final class JuntoStore: ObservableObject {
             .filter { Self.isMonetaryActivity($0) }
         }
 
+        applySavedGroupProSettings()
+        runAIReminderAgentScan()
         startRealtimeSync()
         await refreshRemoteDirectory(query: "")
     }
@@ -1659,6 +1835,7 @@ final class JuntoStore: ObservableObject {
             )
         }
         persistPaymentHistory()
+        runAIReminderAgentScan()
         let gidStr = groupId.uuidString.lowercased()
         Task {
             await JuntoBackendService.shared.markGroupPayment(groupId: gidStr, amount: quota, monthIndex: mIdx, kind: "QUOTA")
@@ -1714,6 +1891,7 @@ final class JuntoStore: ObservableObject {
             at: 0
         )
         persistPaymentHistory()
+        runAIReminderAgentScan()
         let gidStr = groupId.uuidString.lowercased()
         Task {
             await JuntoBackendService.shared.markGroupPayment(groupId: gidStr, amount: amount, kind: "EXPENSE")
@@ -1784,6 +1962,7 @@ final class JuntoStore: ObservableObject {
             at: 0
         )
         persistPaymentHistory()
+        runAIReminderAgentScan()
         let gidStr = groupId.uuidString.lowercased()
         Task {
             await JuntoBackendService.shared.confirmGroupPayment(groupId: gidStr, username: uname, monthIndex: mIdx)
@@ -1916,8 +2095,9 @@ final class JuntoStore: ObservableObject {
         openPixPayment(title: "Pote • \(groupTitle)", recipient: "Pote Coletivo \(groupTitle)", amount: amount)
     }
 
-    /// Apenas Dono ou Admin podem lançar novas despesas no grupo
+    /// Controla permissão para lançar despesas no grupo conforme a chave de segurança do grupo
     func canCurrentUserAddExpenses(in group: RoleGroup) -> Bool {
+        if !group.restrictExpensesToAdmins { return true }
         if let me = group.participants.first(where: { $0.name == "Você" || $0.username == user.username }) {
             return me.role == .owner || me.role == .admin
         }

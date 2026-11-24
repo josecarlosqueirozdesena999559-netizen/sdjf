@@ -10,7 +10,6 @@ struct MyExpensesAnalyticsScreen: View {
     @State private var selectedCategoryForDetail: CategorySlice? = nil
     @State private var showInfoAlert: Bool = false
     @State private var showProPaywall: Bool = false
-    @State private var generatedPDFURL: URL? = nil
 
     struct CategorySlice: Identifiable, Hashable {
         let id: String
@@ -273,12 +272,6 @@ struct MyExpensesAnalyticsScreen: View {
                 .padding(.horizontal, 18)
                 .padding(.bottom, 16)
         }
-        .onAppear {
-            refreshReportPDF()
-        }
-        .onChange(of: selectedPeriod) { _, _ in
-            refreshReportPDF()
-        }
         .fullScreenCover(isPresented: $showProPaywall) {
             JuntoProSubscriptionScreen()
                 .environmentObject(store)
@@ -315,58 +308,11 @@ struct MyExpensesAnalyticsScreen: View {
         }
     }
 
-    // MARK: - Topo limpo fiel ao modelo: X | Exportar PDF (Pro) + ?
+    // MARK: - Topo limpo fiel ao modelo: X | ?
     private var headerBar: some View {
-        HStack(spacing: 8) {
+        HStack {
             PopupCloseButton { dismiss() }
             Spacer()
-
-            if store.user.isPro, let pdfURL = generatedPDFURL {
-                ShareLink(item: pdfURL) {
-                    HStack(spacing: 5) {
-                        Image(systemName: "arrow.down.doc")
-                            .font(.system(size: 13, weight: .semibold))
-                        Text("PDF")
-                            .font(.inter(12, weight: .bold))
-                    }
-                    .foregroundColor(JuntoColors.primary)
-                    .padding(.horizontal, 12)
-                    .frame(height: 32)
-                    .background(JuntoColors.primary.opacity(0.10))
-                    .clipShape(Capsule())
-                }
-            } else {
-                Button {
-                    if store.user.isPro {
-                        refreshReportPDF()
-                        store.showToast("Relatório PDF pronto! Toque novamente para exportar.", icon: "doc.richtext")
-                    } else {
-                        showProPaywall = true
-                    }
-                } label: {
-                    HStack(spacing: 5) {
-                        Image(systemName: "arrow.down.doc")
-                            .font(.system(size: 13, weight: .semibold))
-                        Text("PDF")
-                            .font(.inter(12, weight: .bold))
-                        if !store.user.isPro {
-                            Text("PRO")
-                                .font(.inter(9, weight: .bold))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 5)
-                                .padding(.vertical, 2)
-                                .background(JuntoColors.primary)
-                                .clipShape(Capsule())
-                        }
-                    }
-                    .foregroundColor(JuntoColors.primary)
-                    .padding(.horizontal, 11)
-                    .frame(height: 32)
-                    .background(JuntoColors.primary.opacity(0.10))
-                    .clipShape(Capsule())
-                }
-            }
-
             Button {
                 showInfoAlert = true
             } label: {
@@ -381,20 +327,26 @@ struct MyExpensesAnalyticsScreen: View {
         .padding(.bottom, 8)
     }
 
-    // MARK: - Insights reais Juntô Pro / Convite Pro limpo (fiel ao Modelo 2)
+    // MARK: - Insights reais Juntô IA (Pro) / Convite Pro limpo (sem PDF)
     @ViewBuilder
     private var proInsightsOrUpsellSection: some View {
         if store.user.isPro {
             let avgTicket = periodExpenses.isEmpty ? 0 : totalAmount / Double(periodExpenses.count)
             let topCat = categorySlices.first
+            let activeAIAgents = store.groups.filter { $0.aiReminderEnabled }.count
 
             VStack(alignment: .leading, spacing: 14) {
                 Divider().opacity(0.6)
 
                 HStack {
-                    Text("Insights Juntô Pro")
-                        .font(.inter(15, weight: .bold))
-                        .foregroundColor(JuntoColors.textMain)
+                    HStack(spacing: 6) {
+                        Image(systemName: "sparkles")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundColor(JuntoColors.primary)
+                        Text("Insights Juntô IA")
+                            .font(.inter(15, weight: .bold))
+                            .foregroundColor(JuntoColors.textMain)
+                    }
                     Spacer()
                     Text("PRO")
                         .font(.inter(10, weight: .bold))
@@ -411,22 +363,8 @@ struct MyExpensesAnalyticsScreen: View {
                     insightRow(label: "Maior categoria", value: topCat.map { "\($0.category) (\(Int(round($0.percentage)))%)" } ?? "—")
                     Divider().opacity(0.5)
                     insightRow(label: "Taxa de quitação", value: totalAmount > 0 ? "\(paidPercent)% quitado" : "—")
-                }
-
-                if let pdfURL = generatedPDFURL {
-                    ShareLink(item: pdfURL) {
-                        HStack(spacing: 8) {
-                            Image(systemName: "doc.richtext")
-                                .font(.system(size: 14, weight: .semibold))
-                            Text("Exportar relatório em PDF")
-                                .font(.inter(14, weight: .semibold))
-                        }
-                        .foregroundColor(.white)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(JuntoColors.primary)
-                        .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
-                    }
+                    Divider().opacity(0.5)
+                    insightRow(label: "Grupos com Agente IA ativo", value: "\(activeAIAgents) grupo(s)")
                 }
             }
         } else {
@@ -439,7 +377,7 @@ struct MyExpensesAnalyticsScreen: View {
                         .foregroundColor(JuntoColors.textMain)
                         .multilineTextAlignment(.center)
 
-                    Text("Relatórios em PDF, insights mensais e cobrança Pix em 1 toque.")
+                    Text("Agente Juntô IA de lembretes automáticos, insights mensais e cobrança Pix em 1 toque.")
                         .font(.inter(13, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                         .multilineTextAlignment(.center)
@@ -465,22 +403,6 @@ struct MyExpensesAnalyticsScreen: View {
                 .foregroundColor(JuntoColors.textMain)
         }
         .padding(.vertical, 10)
-    }
-
-    private func refreshReportPDF() {
-        guard store.user.isPro else {
-            generatedPDFURL = nil
-            return
-        }
-        let periodText = selectedPeriod == "Geral" ? "Todos os períodos" : selectedPeriod
-        generatedPDFURL = JuntoProPDFGenerator.generateExpensesReportPDF(
-            userName: store.user.fullName,
-            periodLabel: periodText,
-            totalAmount: totalAmount,
-            paidAmount: paidAmount,
-            pendingAmount: pendingAmount,
-            items: periodExpenses
-        )
     }
 
     // MARK: - Gráfico minimalista com linhas pontilhadas e barras Juntô

@@ -328,6 +328,12 @@ struct GroupParticipant: Identifiable, Hashable {
     var proPlanType: ProPlanType = .none
 }
 
+enum AIReminderTone: String, Codable, CaseIterable, Hashable {
+    case friendly = "Amigável"
+    case direct = "Objetivo"
+    case funny = "Bem-humorado"
+}
+
 struct RoleGroup: Identifiable {
     var id: UUID = UUID()
     var title: String
@@ -347,6 +353,14 @@ struct RoleGroup: Identifiable {
     var ownerUsername: String = "lucas.andrade"
     var ownerName: String = "Lucas Andrade"
     var ownerPixKey: String = "lucas.andrade@exemplo.com"
+
+    // Recursos exclusivos Juntô Pro do grupo
+    var aiReminderEnabled: Bool = false
+    var aiReminderDaysBefore: Int = 2
+    var aiReminderTone: AIReminderTone = .friendly
+    var pixQuickPinEnabled: Bool = true
+    var restrictExpensesToAdmins: Bool = true
+    var autoClosureSummaryEnabled: Bool = false
 
     // Pote Mensal (Excursões / Viagens parceladas mês a mês)
     var potMode: PotRecurrenceMode = .single
