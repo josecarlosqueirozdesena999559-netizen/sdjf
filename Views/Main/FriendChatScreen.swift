@@ -603,12 +603,12 @@ struct FriendChatScreen: View {
                     if txt.hasPrefix("PIX:") {
                         let raw = String(txt.dropFirst(4))
                         let parts = raw.split(separator: "|")
-                        let name = parts.first.map(String.init) ?? (msg.isFromMe ? store.user.name : friend.name)
+                        let name = parts.first.map(String.init) ?? (msg.isFromMe ? store.user.fullName : friend.name)
                         let key = parts.count > 1 ? String(parts[1]) : raw
                         PixContactCardView(name: name, pixKey: key, isFromMe: msg.isFromMe)
                     } else if txt.hasPrefix("Minha chave Pix:") {
                         let key = txt.replacingOccurrences(of: "Minha chave Pix:", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
-                        PixContactCardView(name: msg.isFromMe ? store.user.name : friend.name, pixKey: key, isFromMe: msg.isFromMe)
+                        PixContactCardView(name: msg.isFromMe ? store.user.fullName : friend.name, pixKey: key, isFromMe: msg.isFromMe)
                     } else {
                         Text(txt)
                             .font(.inter(14, weight: .regular))

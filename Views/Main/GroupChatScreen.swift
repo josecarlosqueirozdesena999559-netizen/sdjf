@@ -130,29 +130,9 @@ struct GroupChatScreen: View {
                     LazyVStack(spacing: 10, pinnedViews: [.sectionHeaders]) {
                         ForEach(groupedMessagesByDate, id: \.date) { section in
                             Section(header: datePillHeader(section.date)) {
-                                ForEach(section.items) { msg in
-                                    if case .system(let infoText) = msg.kind {
-                                        systemPill(infoText)
-                                            .id(msg.id)
-                                    } else {
-                                        SwipeToReplyContainer(
-                                            onReply: {
-                                                withAnimation(.spring(response: 0.24, dampingFraction: 0.82)) {
-                                                    replyingToMessage = msg
-                                                    isInputFocused = true
-                                                }
-                                            }
-                                        ) {
-                                            groupMessageRow(msg)
-                                        }
-                                        .id(msg.id)
-                                        .onLongPressGesture(minimumDuration: 0.35) {
-                                            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                            withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
-                                                selectedMessageForMenu = msg
-                                            }
-                                        }
-                                    }
+                                 ForEach(section.items) { msg in
+                                     messageOrSystemPill(msg)
+                                 }
                                 }
                             }
                         }
@@ -674,12 +654,12 @@ struct GroupChatScreen: View {
                     if txt.hasPrefix("PIX:") {
                         let raw = String(txt.dropFirst(4))
                         let parts = raw.split(separator: "|")
-                        let name = parts.first.map(String.init) ?? (msg.isFromMe ? store.user.name : senderDisplayName)
+                        let name = parts.first.map(String.init) ?? (msg.isFromMe ? store.user.fullName : senderDisplayName)
                         let key = parts.count > 1 ? String(parts[1]) : raw
                         PixContactCardView(name: name, pixKey: key, isFromMe: msg.isFromMe)
                     } else if txt.hasPrefix("Minha chave Pix:") {
                         let key = txt.replacingOccurrences(of: "Minha chave Pix:", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
-                        PixContactCardView(name: msg.isFromMe ? store.user.name : senderDisplayName, pixKey: key, isFromMe: msg.isFromMe)
+                        PixContactCardView(name: msg.isFromMe ? store.user.fullName : senderDisplayName, pixKey: key, isFromMe: msg.isFromMe)
                     } else {
                         Text(txt)
                             .font(.inter(14, weight: .regular))
@@ -875,6 +855,32 @@ struct GroupChatScreen: View {
             .frame(maxWidth: UIScreen.main.bounds.width * 0.76, alignment: msg.isFromMe ? .trailing : .leading)
 
             if !msg.isFromMe { Spacer(minLength: 42) }
+        }
+    }
+
+    @ViewBuilder
+    private func messageOrSystemPill(_ msg: ChatMessage) -> some View {
+        if case .system(let infoText) = msg.kind {
+            systemPill(infoText)
+                .id(msg.id)
+        } else {
+            SwipeToReplyContainer(
+                onReply: {
+                    withAnimation(.spring(response: 0.24, dampingFraction: 0.82)) {
+                        replyingToMessage = msg
+                        isInputFocused = true
+                    }
+                }
+            ) {
+                groupMessageRow(msg)
+            }
+            .id(msg.id)
+            .onLongPressGesture(minimumDuration: 0.35) {
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
+                    selectedMessageForMenu = msg
+                }
+            }
         }
     }
 

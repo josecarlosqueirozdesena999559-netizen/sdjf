@@ -508,7 +508,7 @@ struct NearbyUserItem: Identifiable, Hashable {
     let id = UUID()
     let name: String
     let username: String
-    let distanceMeters: Int
+    var distanceMeters: Int
     let neighborhood: String
     let mutualFriendsCount: Int
     let interests: [String]
