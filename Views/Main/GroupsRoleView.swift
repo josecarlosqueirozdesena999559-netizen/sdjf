@@ -1948,12 +1948,12 @@ struct OrganizerPixPaymentSheet: View {
                     if timeRemaining > 0 {
                         Text("Chave Pix válida por \(formattedTime)")
                             .font(.inter(11, weight: .regular))
-                            .foregroundColor(timeRemaining < 60 ? JuntoColors.dangerRed : JuntoColors.textLight)
+                            .foregroundColor(timeRemaining < 60 ? JuntoColors.danger : JuntoColors.textLight)
                             .monospacedDigit()
                     } else {
                         Text("Chave expirada")
                             .font(.inter(11, weight: .medium))
-                            .foregroundColor(JuntoColors.dangerRed)
+                            .foregroundColor(JuntoColors.danger)
                     }
                 }
                 Spacer()

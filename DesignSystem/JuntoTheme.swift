@@ -17,6 +17,7 @@ enum JuntoColors {
     static let orangeSave = Color(hex: "#E2711D")      // Você deve / pendente
     static let linkBlue = Color(hex: "#1D4E89")
     static let danger = Color(hex: "#C62828")
+    static let dangerRed = Color(hex: "#C62828")
     static let dangerLight = Color(hex: "#FDECEC")
 
     static let bgMain = Color.white
