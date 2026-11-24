@@ -289,35 +289,36 @@ final class JuntoStore: ObservableObject {
         showToast("Mensagem enviada! Protocolo #\(protocolCode)", icon: "checkmark.circle")
     }
 
-    // MARK: - Contatos Estilo WhatsApp (Adicionar Novo Contato Nome + Telefone e abrir conversa direto)
-    func addContactAndOpenChat(name rawName: String, phone rawPhone: String) async -> FriendItem? {
+    // MARK: - Contatos Reais Estilo WhatsApp (Só abre conversa se o número tiver conta REAL no Juntô; senão apenas convite!)
+    func addContactAndOpenChat(name rawName: String, phone rawPhone: String) async -> (friend: FriendItem?, isRegistered: Bool) {
         let cleanName = rawName.trimmingCharacters(in: .whitespacesAndNewlines)
         let digits = ContactsManager.normalizeBrDigits(rawPhone)
         guard cleanName.count >= 2, digits.count >= 8 else {
             showToast("Informe o nome e um telefone válido.", icon: "exclamationmark.circle")
-            return nil
+            return (nil, false)
         }
 
         let formattedPhone = ContactsManager.formatPhone(digits)
 
-        // Se já existe na lista de contatos pelo telefone, abre direto
+        // Se já é um contato registrado na lista local, abre direto
         if let existing = friends.first(where: { ContactsManager.normalizeBrDigits($0.phone) == digits }) {
-            return existing
+            return (existing, true)
         }
 
-        // Salva/vincula o contato no PostgreSQL (cria vínculo direto ACCEPTED, sem pedido de amizade)
-        var resolvedUsername = "\(cleanName.lowercased().filter { $0.isLetter || $0.isNumber }.prefix(10)).\(digits.suffix(4))"
-        var resolvedName = cleanName
-        var resolvedPlan: ProPlanType = .none
-
-        if let contactObj = await JuntoBackendService.shared.addOrOpenContact(name: cleanName, phone: formattedPhone) {
-            if let uname = contactObj["username"] as? String, !uname.isEmpty { resolvedUsername = uname }
-            if let cname = contactObj["name"] as? String, !cname.isEmpty { resolvedName = cname }
-            if let pStr = contactObj["proPlanType"] as? String { resolvedPlan = ProPlanType(rawValue: pStr) ?? .none }
+        // Verifica no PostgreSQL se o telefone possui conta real
+        guard let res = await JuntoBackendService.shared.addOrOpenContact(name: cleanName, phone: formattedPhone),
+              (res["isRegistered"] as? Bool) == true,
+              let contactObj = res["contact"] as? [String: Any],
+              let resolvedUsername = contactObj["username"] as? String, !resolvedUsername.isEmpty else {
+            // Conta NÃO existe no Juntô -> não cria contato fake nem abre chat!
+            return (nil, false)
         }
+
+        let resolvedName = (contactObj["name"] as? String) ?? cleanName
+        let resolvedPlan = ProPlanType(rawValue: (contactObj["proPlanType"] as? String) ?? "none") ?? .none
 
         if let existingByHandle = friends.first(where: { $0.username.lowercased() == resolvedUsername.lowercased() }) {
-            return existingByHandle
+            return (existingByHandle, true)
         }
 
         let initials = resolvedName.split(separator: " ").prefix(2).map { String($0.prefix(1)) }.joined().uppercased()
@@ -334,7 +335,7 @@ final class JuntoStore: ObservableObject {
             friendsSinceText: "Contato"
         )
         friends.insert(newContact, at: 0)
-        return newContact
+        return (newContact, true)
     }
 
     // MARK: - Login & Cadastro Exclusivo via WhatsApp + Código OTP

@@ -413,7 +413,7 @@ actor JuntoBackendService {
 
     // MARK: - 7. Contatos Estilo WhatsApp & Busca Real no PostgreSQL
     func addOrOpenContact(name: String, phone: String) async -> [String: Any]? {
-        let res = await request(
+        return await request(
             path: "/v1/friends/contacts/add",
             method: "POST",
             body: [
@@ -421,7 +421,17 @@ actor JuntoBackendService {
                 "phone": phone.trimmingCharacters(in: .whitespacesAndNewlines)
             ]
         )
-        return res?["contact"] as? [String: Any]
+    }
+
+    func syncDeviceContacts(_ contacts: [[String: String]]) async -> [[String: Any]] {
+        guard let res = await request(
+            path: "/v1/friends/contacts/sync",
+            method: "POST",
+            body: ["contacts": contacts]
+        ), let matched = res["matched"] as? [[String: Any]] else {
+            return []
+        }
+        return matched
     }
 
     func searchUsers(query: String) async -> [[String: Any]] {

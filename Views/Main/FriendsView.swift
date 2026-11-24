@@ -310,11 +310,12 @@ struct FriendsView: View {
     }
 }
 
-// MARK: - Tela do botão "+": Contatos estilo WhatsApp (Agenda + Novo Contato + Mandar Mensagem direto)
+// MARK: - Tela do botão "+": Contatos Reais em Tempo Real (No Juntô -> Mensagem | Sem conta -> Apenas Convidar com link do app)
 struct AddFriendScreen: View {
     @EnvironmentObject var store: JuntoStore
     @StateObject private var contactsManager = ContactsManager.shared
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.scenePhase) private var scenePhase
     var onOpenChat: ((FriendItem) -> Void)? = nil
 
     @State private var query: String = ""
@@ -326,26 +327,36 @@ struct AddFriendScreen: View {
         query.trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
-    private var filteredSavedContacts: [FriendItem] {
-        let base = store.friends
-        guard !cleanQuery.isEmpty else { return base }
+    private func matchesSearch(name: String, phone: String) -> Bool {
+        guard !cleanQuery.isEmpty else { return true }
         let qDigits = ContactsManager.normalizeBrDigits(cleanQuery)
-        return base.filter { f in
-            f.name.localizedCaseInsensitiveContains(cleanQuery) ||
-            f.phone.localizedCaseInsensitiveContains(cleanQuery) ||
-            (!qDigits.isEmpty && ContactsManager.normalizeBrDigits(f.phone).contains(qDigits))
+        return name.localizedCaseInsensitiveContains(cleanQuery) ||
+            phone.localizedCaseInsensitiveContains(cleanQuery) ||
+            (!qDigits.isEmpty && ContactsManager.normalizeBrDigits(phone).contains(qDigits))
+    }
+
+    /// Contatos já salvos no Juntô (contas reais no PostgreSQL)
+    private var filteredRegisteredFriends: [FriendItem] {
+        store.friends.filter { matchesSearch(name: $0.name, phone: $0.phone) }
+    }
+
+    /// Contatos reais da agenda do iPhone que TÊM conta real no Juntô (mas ainda não estão em store.friends)
+    private var filteredRegisteredDeviceContacts: [PhoneContactItem] {
+        let savedPhones = Set(store.friends.map { ContactsManager.normalizeBrDigits($0.phone) }.filter { !$0.isEmpty })
+        return contactsManager.phoneContacts.filter { c in
+            !savedPhones.contains(c.normalizedDigits) &&
+            contactsManager.matchedAccount(for: c.normalizedDigits) != nil &&
+            matchesSearch(name: c.name, phone: c.phone)
         }
     }
 
-    private var filteredDeviceContacts: [PhoneContactItem] {
+    /// Contatos reais da agenda do iPhone que NÃO têm conta no Juntô -> APENAS convite via link (não pode enviar mensagem!)
+    private var filteredUnregisteredDeviceContacts: [PhoneContactItem] {
         let savedPhones = Set(store.friends.map { ContactsManager.normalizeBrDigits($0.phone) }.filter { !$0.isEmpty })
-        let nonDuplicates = contactsManager.phoneContacts.filter { !savedPhones.contains($0.normalizedDigits) }
-        guard !cleanQuery.isEmpty else { return nonDuplicates }
-        let qDigits = ContactsManager.normalizeBrDigits(cleanQuery)
-        return nonDuplicates.filter { c in
-            c.name.localizedCaseInsensitiveContains(cleanQuery) ||
-            c.phone.localizedCaseInsensitiveContains(cleanQuery) ||
-            (!qDigits.isEmpty && c.normalizedDigits.contains(qDigits))
+        return contactsManager.phoneContacts.filter { c in
+            !savedPhones.contains(c.normalizedDigits) &&
+            contactsManager.matchedAccount(for: c.normalizedDigits) == nil &&
+            matchesSearch(name: c.name, phone: c.phone)
         }
     }
 
@@ -358,7 +369,7 @@ struct AddFriendScreen: View {
                     Text("Contatos")
                         .font(.inter(17, weight: .semibold))
                         .foregroundColor(JuntoColors.textMain)
-                    let totalCount = filteredSavedContacts.count + filteredDeviceContacts.count
+                    let totalCount = filteredRegisteredFriends.count + filteredRegisteredDeviceContacts.count + filteredUnregisteredDeviceContacts.count
                     Text("\(totalCount) contato(s)")
                         .font(.inter(11, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
@@ -421,7 +432,7 @@ struct AddFriendScreen: View {
                                 Text("Novo contato")
                                     .font(.inter(15, weight: .semibold))
                                     .foregroundColor(JuntoColors.textMain)
-                                Text("Salvar nome e telefone para conversar")
+                                Text("Adicionar nome e telefone")
                                     .font(.inter(12, weight: .regular))
                                     .foregroundColor(JuntoColors.textMuted)
                             }
@@ -440,8 +451,8 @@ struct AddFriendScreen: View {
 
                     Divider().padding(.leading, 78)
 
-                    // Contatos já no Juntô
-                    if !filteredSavedContacts.isEmpty {
+                    // 1. Contatos REAIS que usam o Juntô -> podem mandar mensagem
+                    if !filteredRegisteredFriends.isEmpty || !filteredRegisteredDeviceContacts.isEmpty {
                         Text("Contatos no Juntô")
                             .font(.inter(12, weight: .semibold))
                             .foregroundColor(JuntoColors.textMuted)
@@ -449,7 +460,7 @@ struct AddFriendScreen: View {
                             .padding(.top, 16)
                             .padding(.bottom, 6)
 
-                        ForEach(filteredSavedContacts) { contact in
+                        ForEach(filteredRegisteredFriends) { contact in
                             HStack(spacing: 12) {
                                 Button {
                                     openChatAndDismiss(contact)
@@ -460,12 +471,12 @@ struct AddFriendScreen: View {
                                         VStack(alignment: .leading, spacing: 2) {
                                             HStack(spacing: 5) {
                                                 Text(contact.name)
-                                                    .font(.inter(15, weight: .medium))
+                                                    .font(.inter(15, weight: .semibold))
                                                     .foregroundColor(JuntoColors.textMain)
                                                     .lineLimit(1)
                                                 VerifiedBadgeView(type: contact.proPlanType, size: 13)
                                             }
-                                            Text(contact.phone.isEmpty ? "Disponível para mensagem" : contact.phone)
+                                            Text(contact.phone.isEmpty ? "No Juntô" : contact.phone)
                                                 .font(.inter(12, weight: .regular))
                                                 .foregroundColor(JuntoColors.textMuted)
                                                 .lineLimit(1)
@@ -499,51 +510,15 @@ struct AddFriendScreen: View {
 
                             Divider().padding(.leading, 76)
                         }
-                    }
 
-                    // Contatos da Agenda do iPhone (CNContactStore)
-                    if contactsManager.authorizationStatus == .notDetermined {
-                        Button {
-                            contactsManager.requestAndLoadContacts()
-                        } label: {
-                            HStack(spacing: 12) {
-                                Image(systemName: "person.crop.rectangle.stack")
-                                    .font(.system(size: 18, weight: .regular))
-                                    .foregroundColor(JuntoColors.primary)
-                                    .frame(width: 28)
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text("Sincronizar agenda do iPhone")
-                                        .font(.inter(14, weight: .medium))
-                                        .foregroundColor(JuntoColors.textMain)
-                                    Text("Ver seus contatos aqui como no WhatsApp")
-                                        .font(.inter(12, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMuted)
-                                }
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 12))
-                                    .foregroundColor(JuntoColors.textLight)
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.vertical, 16)
-                        }
-                        .buttonStyle(.plain)
-                    } else if !filteredDeviceContacts.isEmpty {
-                        Text("Contatos do telefone")
-                            .font(.inter(12, weight: .semibold))
-                            .foregroundColor(JuntoColors.textMuted)
-                            .padding(.horizontal, 20)
-                            .padding(.top, 16)
-                            .padding(.bottom, 6)
-
-                        ForEach(filteredDeviceContacts) { phoneContact in
+                        ForEach(filteredRegisteredDeviceContacts) { phoneContact in
                             Button {
                                 guard !isOpeningContact else { return }
                                 isOpeningContact = true
                                 Task {
-                                    let opened = await store.addContactAndOpenChat(name: phoneContact.name, phone: phoneContact.phone)
+                                    let res = await store.addContactAndOpenChat(name: phoneContact.name, phone: phoneContact.phone)
                                     isOpeningContact = false
-                                    if let f = opened {
+                                    if let f = res.friend {
                                         openChatAndDismiss(f)
                                     }
                                 }
@@ -553,7 +528,7 @@ struct AddFriendScreen: View {
 
                                     VStack(alignment: .leading, spacing: 2) {
                                         Text(phoneContact.name)
-                                            .font(.inter(15, weight: .medium))
+                                            .font(.inter(15, weight: .semibold))
                                             .foregroundColor(JuntoColors.textMain)
                                             .lineLimit(1)
                                         Text(phoneContact.phone)
@@ -580,7 +555,77 @@ struct AddFriendScreen: View {
 
                             Divider().padding(.leading, 76)
                         }
-                    } else if filteredSavedContacts.isEmpty && !cleanQuery.isEmpty {
+                    }
+
+                    // 2. Permissão de agenda ou Contatos do celular que NÃO têm conta -> APENAS Convidar (compartilhar link)
+                    if contactsManager.authorizationStatus == .notDetermined {
+                        Button {
+                            contactsManager.requestAndLoadContacts()
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: "person.crop.rectangle.stack")
+                                    .font(.system(size: 18, weight: .regular))
+                                    .foregroundColor(JuntoColors.primary)
+                                    .frame(width: 28)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Sincronizar contatos do celular")
+                                        .font(.inter(14, weight: .semibold))
+                                        .foregroundColor(JuntoColors.textMain)
+                                    Text("Puxa sua agenda real em tempo real")
+                                        .font(.inter(12, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                }
+                                Spacer()
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 12))
+                                    .foregroundColor(JuntoColors.textLight)
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 16)
+                        }
+                        .buttonStyle(.plain)
+                    } else if !filteredUnregisteredDeviceContacts.isEmpty {
+                        Text("Convidar para o Juntô")
+                            .font(.inter(12, weight: .semibold))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 16)
+                            .padding(.bottom, 6)
+
+                        ForEach(filteredUnregisteredDeviceContacts) { phoneContact in
+                            HStack(spacing: 12) {
+                                GeometricAvatarView(seed: phoneContact.normalizedDigits, displayName: phoneContact.name, size: 44)
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(phoneContact.name)
+                                        .font(.inter(15, weight: .medium))
+                                        .foregroundColor(JuntoColors.textMain)
+                                        .lineLimit(1)
+                                    Text(phoneContact.phone)
+                                        .font(.inter(12, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                        .lineLimit(1)
+                                }
+
+                                Spacer(minLength: 8)
+
+                                ShareLink(item: ContactsManager.inviteMessage(for: phoneContact.name)) {
+                                    Text("Convidar")
+                                        .font(.inter(12, weight: .semibold))
+                                        .foregroundColor(JuntoColors.textMain)
+                                        .padding(.horizontal, 12)
+                                        .frame(height: 30)
+                                        .background(JuntoColors.surfaceSubtle)
+                                        .overlay(Capsule().stroke(JuntoColors.border, lineWidth: 0.9))
+                                        .clipShape(Capsule())
+                                }
+                            }
+                            .padding(.horizontal, 20)
+                            .padding(.vertical, 10)
+
+                            Divider().padding(.leading, 76)
+                        }
+                    } else if filteredRegisteredFriends.isEmpty && filteredRegisteredDeviceContacts.isEmpty && !cleanQuery.isEmpty {
                         VStack(spacing: 10) {
                             Text("Nenhum contato encontrado.")
                                 .font(.inter(14, weight: .regular))
@@ -602,18 +647,22 @@ struct AddFriendScreen: View {
         .onAppear {
             contactsManager.requestAndLoadContacts()
         }
+        .onChange(of: scenePhase) { _, phase in
+            if phase == .active {
+                contactsManager.loadContactsFromDevice()
+            }
+        }
         .sheet(isPresented: $showNewContactPopup) {
-            NewContactPopupSheet { name, phone in
-                Task {
-                    if let created = await store.addContactAndOpenChat(name: name, phone: phone) {
-                        showNewContactPopup = false
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
-                            openChatAndDismiss(created)
-                        }
+            NewContactPopupSheet(
+                onOpenRegisteredChat: { friend in
+                    showNewContactPopup = false
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+                        openChatAndDismiss(friend)
                     }
                 }
-            }
-            .presentationDetents([.height(330), .medium])
+            )
+            .environmentObject(store)
+            .presentationDetents([.height(360), .medium])
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(24)
         }
@@ -642,14 +691,16 @@ struct AddFriendScreen: View {
     }
 }
 
-// MARK: - Popup "Novo contato" (Nome + Telefone, estilo WhatsApp, fechar apenas X)
+// MARK: - Popup "Novo contato" (Salva na agenda do iPhone; se tiver conta abre chat, senão apenas convite com link do app)
 private struct NewContactPopupSheet: View {
-    var onSave: (String, String) -> Void
+    @EnvironmentObject var store: JuntoStore
+    var onOpenRegisteredChat: (FriendItem) -> Void
     @Environment(\.dismiss) private var dismiss
 
     @State private var nameText: String = ""
     @State private var phoneText: String = ""
     @State private var isSaving: Bool = false
+    @State private var notOnJuntoYet: Bool = false
 
     private var canSave: Bool {
         nameText.trimmingCharacters(in: .whitespacesAndNewlines).count >= 2 &&
@@ -657,10 +708,10 @@ private struct NewContactPopupSheet: View {
     }
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 16) {
             HStack {
                 Text("Novo contato")
-                    .font(.inter(18, weight: .semibold))
+                    .font(.inter(18, weight: .bold))
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
                 PopupCloseButton { dismiss() }
@@ -672,45 +723,78 @@ private struct NewContactPopupSheet: View {
                 placeholder: "Ex: João Silva",
                 text: $nameText
             )
+            .onChange(of: nameText) { _, _ in notOnJuntoYet = false }
 
             CleanOutlineInput(
-                label: "Telefone (WhatsApp)",
+                label: "Telefone",
                 placeholder: "(11) 99999-9999",
                 text: $phoneText,
                 keyboardType: .phonePad,
                 leadingPrefix: "+55"
             )
             .onChange(of: phoneText) { _, newValue in
+                notOnJuntoYet = false
                 let formatted = formatLivePhoneInput(newValue)
                 if formatted != phoneText {
                     phoneText = formatted
                 }
             }
 
-            Button {
-                guard canSave, !isSaving else { return }
-                isSaving = true
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                onSave(nameText, phoneText)
-            } label: {
-                HStack(spacing: 8) {
-                    if isSaving {
-                        ProgressView().tint(.white)
-                    } else {
-                        Image(systemName: "bubble.left.fill")
-                            .font(.system(size: 13))
-                        Text("Salvar e mandar mensagem")
-                            .font(.inter(15, weight: .semibold))
+            if notOnJuntoYet {
+                VStack(alignment: .leading, spacing: 10) {
+                    Text("Este número ainda não tem conta no Juntô. Envie um convite com o link do app:")
+                        .font(.inter(12, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+
+                    ShareLink(item: ContactsManager.inviteMessage(for: nameText)) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text("Convidar e compartilhar link do app")
+                                .font(.inter(14, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 46)
+                        .background(JuntoColors.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                     }
                 }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 48)
-                .background(canSave ? JuntoColors.primary : JuntoColors.border)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+            } else {
+                Button {
+                    guard canSave, !isSaving else { return }
+                    isSaving = true
+                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                    ContactsManager.shared.saveContactToiPhone(name: nameText, phone: phoneText)
+                    Task {
+                        let result = await store.addContactAndOpenChat(name: nameText, phone: phoneText)
+                        isSaving = false
+                        if result.isRegistered, let friend = result.friend {
+                            onOpenRegisteredChat(friend)
+                        } else {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                notOnJuntoYet = true
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 8) {
+                        if isSaving {
+                            ProgressView().tint(.white)
+                        } else {
+                            Text("Salvar contato")
+                                .font(.inter(15, weight: .semibold))
+                        }
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(canSave ? JuntoColors.primary : JuntoColors.border)
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+                .disabled(!canSave || isSaving)
+                .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.97))
             }
-            .disabled(!canSave || isSaving)
-            .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.97))
 
             Spacer()
         }

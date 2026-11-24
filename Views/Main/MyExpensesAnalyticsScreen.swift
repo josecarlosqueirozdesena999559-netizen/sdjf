@@ -5,10 +5,10 @@ struct MyExpensesAnalyticsScreen: View {
     @EnvironmentObject var store: JuntoStore
     @Environment(\.dismiss) private var dismiss
 
-    @State private var selectedPeriod: String = "Geral"
-    @State private var selectedCategoryFilter: String? = nil
+    @State private var selectedPeriod: String = JuntoStore.currentMonthKey()
     @State private var selectedExpenseForDetail: PersonalExpenseRecord? = nil
     @State private var selectedCategoryForDetail: CategorySlice? = nil
+    @State private var showInfoAlert: Bool = false
 
     struct CategorySlice: Identifiable, Hashable {
         let id: String
@@ -25,11 +25,19 @@ struct MyExpensesAnalyticsScreen: View {
         var paidRatio: Double { amount > 0 ? min(1.0, paidAmount / amount) : 0 }
     }
 
+    private struct MonthlyBarPoint: Identifiable {
+        let id: String
+        let shortLabel: String
+        let fullPeriod: String
+        let total: Double
+        let paid: Double
+    }
+
     private var allExpenses: [PersonalExpenseRecord] {
         store.allTrackedPersonalExpenses
     }
 
-    private var availablePeriods: [String] {
+    private var availableMonths: [String] {
         var months: [String] = []
         for item in allExpenses {
             if !months.contains(item.monthKey) {
@@ -40,7 +48,7 @@ struct MyExpensesAnalyticsScreen: View {
         if !months.contains(current) {
             months.insert(current, at: 0)
         }
-        return ["Geral"] + months
+        return months
     }
 
     private var periodExpenses: [PersonalExpenseRecord] {
@@ -67,18 +75,6 @@ struct MyExpensesAnalyticsScreen: View {
         return Int(round((paidAmount / totalAmount) * 100))
     }
 
-    private var paidCount: Int {
-        periodExpenses.filter { $0.isPaid }.count
-    }
-
-    private var pendingCount: Int {
-        periodExpenses.filter { !$0.isPaid }.count
-    }
-
-    private var averagePerExpense: Double {
-        periodExpenses.isEmpty ? 0 : totalAmount / Double(periodExpenses.count)
-    }
-
     private var categorySlices: [CategorySlice] {
         let grouped = Dictionary(grouping: periodExpenses, by: { $0.category })
         let total = max(totalAmount, 0.01)
@@ -102,40 +98,180 @@ struct MyExpensesAnalyticsScreen: View {
         .sorted { $0.amount > $1.amount }
     }
 
-    private var filteredList: [PersonalExpenseRecord] {
-        guard let cat = selectedCategoryFilter else { return periodExpenses }
-        return periodExpenses.filter { $0.category == cat }
+    private var chartBars: [MonthlyBarPoint] {
+        if selectedPeriod == "Geral" {
+            return availableMonths.prefix(6).reversed().map { month in
+                let items = allExpenses.filter { $0.monthKey == month }
+                return MonthlyBarPoint(
+                    id: month,
+                    shortLabel: Self.shortMonthCode(from: month),
+                    fullPeriod: month,
+                    total: items.reduce(0) { $0 + $1.amount },
+                    paid: items.filter { $0.isPaid }.reduce(0) { $0 + $1.amount }
+                )
+            }
+        } else {
+            return [
+                MonthlyBarPoint(
+                    id: selectedPeriod,
+                    shortLabel: Self.shortMonthCode(from: selectedPeriod),
+                    fullPeriod: selectedPeriod,
+                    total: totalAmount,
+                    paid: paidAmount
+                )
+            ]
+        }
+    }
+
+    private var currentMonthIndex: Int {
+        availableMonths.firstIndex(of: selectedPeriod) ?? 0
     }
 
     var body: some View {
-        ZStack {
-            JuntoColors.warmBg.ignoresSafeArea()
+        ZStack(alignment: .bottom) {
+            Color.white.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 headerBar
 
-                periodSelectorBar
-
                 ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 16) {
-                        paymentProgressCard
+                    VStack(alignment: .leading, spacing: 26) {
+                        // Título e subtítulo limpos fiéis ao modelo
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("Meus gastos")
+                                .font(.inter(26, weight: .bold))
+                                .foregroundColor(JuntoColors.textMain)
 
-                        if periodExpenses.isEmpty {
-                            emptyExpensesCard
-                        } else {
-                            donutChartCard
+                            Text(selectedPeriod == "Geral"
+                                 ? "Gastos nos grupos em todos os períodos"
+                                 : "Gastos nos grupos em \(selectedPeriod.lowercased())")
+                                .font(.inter(15, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                        }
 
-                            kpiSummaryRow
+                        // Gráfico minimalista com linhas horizontais pontilhadas (sem caixa)
+                        minimalistBarChart
 
-                            categoryBreakdownCard
+                        // Métricas grandes com barra vertical colorida à esquerda (fiel ao modelo)
+                        VStack(alignment: .leading, spacing: 24) {
+                            metricBlock(
+                                title: "Total gasto",
+                                amount: totalAmount,
+                                color: JuntoColors.primary,
+                                subtitle: nil
+                            )
 
-                            expensesListCard
+                            metricBlock(
+                                title: "Já pago",
+                                amount: paidAmount,
+                                color: JuntoColors.pixGreen,
+                                subtitle: totalAmount > 0
+                                    ? "\(paidPercent)% do gasto total nos grupos"
+                                    : "--% do gasto total nos grupos"
+                            )
+
+                            if pendingAmount > 0 {
+                                metricBlock(
+                                    title: "Falta pagar",
+                                    amount: pendingAmount,
+                                    color: JuntoColors.orangeSave,
+                                    subtitle: nil,
+                                    compact: true
+                                )
+                            }
+                        }
+
+                        // Categorias limpas sem caixas (toque abre detalhamento completo)
+                        if !categorySlices.isEmpty {
+                            Divider().opacity(0.6)
+
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Por categoria")
+                                    .font(.inter(14, weight: .semibold))
+                                    .foregroundColor(JuntoColors.textMain)
+
+                                VStack(spacing: 0) {
+                                    ForEach(categorySlices) { slice in
+                                        Button {
+                                            selectedCategoryForDetail = slice
+                                        } label: {
+                                            HStack(spacing: 12) {
+                                                Image(systemName: slice.icon)
+                                                    .font(.system(size: 18, weight: .regular))
+                                                    .foregroundColor(slice.color)
+                                                    .frame(width: 26)
+
+                                                VStack(alignment: .leading, spacing: 2) {
+                                                    Text(slice.category)
+                                                        .font(.inter(15, weight: .medium))
+                                                        .foregroundColor(JuntoColors.textMain)
+                                                    Text("\(slice.count) gasto(s) · Pago \(JuntoStore.formatBRL(slice.paidAmount))")
+                                                        .font(.inter(12, weight: .regular))
+                                                        .foregroundColor(JuntoColors.textMuted)
+                                                }
+
+                                                Spacer()
+
+                                                VStack(alignment: .trailing, spacing: 2) {
+                                                    Text(JuntoStore.formatBRL(slice.amount))
+                                                        .font(.inter(15, weight: .semibold))
+                                                        .foregroundColor(JuntoColors.textMain)
+                                                    Text("\(Int(round(slice.percentage)))%")
+                                                        .font(.inter(11, weight: .medium))
+                                                        .foregroundColor(slice.color)
+                                                }
+
+                                                Image(systemName: "chevron.right")
+                                                    .font(.system(size: 11, weight: .medium))
+                                                    .foregroundColor(JuntoColors.textLight)
+                                            }
+                                            .padding(.vertical, 12)
+                                            .contentShape(Rectangle())
+                                        }
+                                        .buttonStyle(.plain)
+
+                                        if slice.id != categorySlices.last?.id {
+                                            Divider().opacity(0.5)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if !periodExpenses.isEmpty {
+                            Divider().opacity(0.6)
+
+                            VStack(alignment: .leading, spacing: 10) {
+                                Text("Pagamentos e dívidas")
+                                    .font(.inter(14, weight: .semibold))
+                                    .foregroundColor(JuntoColors.textMain)
+
+                                VStack(spacing: 0) {
+                                    ForEach(periodExpenses) { item in
+                                        expenseItemRow(item)
+                                        if item.id != periodExpenses.last?.id {
+                                            Divider().opacity(0.5)
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 40)
+                    .padding(.horizontal, 22)
+                    .padding(.top, 8)
+                    .padding(.bottom, 108)
                 }
             }
+
+            // Cápsula flutuante inferior de período (fiel ao modelo)
+            floatingPeriodCapsule
+                .padding(.horizontal, 18)
+                .padding(.bottom, 16)
+        }
+        .alert("Como calculamos seus gastos", isPresented: $showInfoAlert) {
+            Button("Entendi", role: .cancel) {}
+        } message: {
+            Text("Os valores exibidos aqui são calculados automaticamente a partir das cotas, pagamentos e dívidas dos seus grupos no Juntô.")
         }
         .sheet(item: $selectedExpenseForDetail) { expense in
             PersonalExpenseDetailSheet(
@@ -164,385 +300,196 @@ struct MyExpensesAnalyticsScreen: View {
         }
     }
 
-    // MARK: - Topo limpo (somente leitura: filtrado automaticamente dos grupos e dívidas)
+    // MARK: - Topo limpo fiel ao modelo: X | ?
     private var headerBar: some View {
         HStack {
-            CircleNavButton(icon: "chevron.left") { dismiss() }
+            PopupCloseButton { dismiss() }
             Spacer()
-            Text("Meus gastos")
-                .font(.inter(17, weight: .semibold))
-                .foregroundColor(JuntoColors.textMain)
-            Spacer()
-            Color.clear.frame(width: 40, height: 40)
+            Button {
+                showInfoAlert = true
+            } label: {
+                Image(systemName: "questionmark.circle")
+                    .font(.system(size: 19, weight: .regular))
+                    .foregroundColor(JuntoColors.textMain)
+                    .frame(width: 36, height: 36)
+            }
         }
         .padding(.horizontal, 18)
         .padding(.top, 10)
-        .padding(.bottom, 10)
+        .padding(.bottom, 8)
     }
 
-    // MARK: - Seletor de Período
-    private var periodSelectorBar: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                ForEach(availablePeriods, id: \.self) { period in
-                    let active = selectedPeriod == period
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.16)) {
-                            selectedPeriod = period
-                            selectedCategoryFilter = nil
-                        }
-                    } label: {
-                        Text(period)
-                            .font(.inter(13, weight: active ? .medium : .regular))
-                            .foregroundColor(active ? .white : JuntoColors.textMuted)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 8)
-                            .background(active ? JuntoColors.primary : Color.white)
-                            .overlay(
-                                Capsule()
-                                    .stroke(active ? Color.clear : JuntoColors.border, lineWidth: 1)
-                            )
-                            .clipShape(Capsule())
-                    }
-                }
-            }
-            .padding(.horizontal, 20)
-            .padding(.vertical, 4)
-        }
-        .padding(.bottom, 12)
-    }
+    // MARK: - Gráfico minimalista com linhas pontilhadas e barras Juntô
+    private var minimalistBarChart: some View {
+        let maxVal = max(chartBars.map(\.total).max() ?? 0, 1)
 
-    // MARK: - Card "Quanto você já pagou"
-    private var paymentProgressCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack(alignment: .top) {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Quanto você já pagou")
-                        .font(.inter(13, weight: .regular))
-                        .foregroundColor(JuntoColors.textMuted)
-
-                    Text(JuntoStore.formatBRL(paidAmount))
-                        .font(.inter(28, weight: .semibold))
-                        .foregroundColor(JuntoColors.textMain)
-                }
-
-                Spacer()
-
-                Text("\(paidPercent)% pago")
-                    .font(.inter(12, weight: .semibold))
-                    .foregroundColor(JuntoColors.pixGreen)
-                    .padding(.horizontal, 10)
-                    .padding(.vertical, 5)
-                    .background(JuntoColors.pixGreenLight)
-                    .clipShape(Capsule())
-            }
-
-            // Barra de progresso Pago vs Total
-            GeometryReader { geo in
-                let ratio = totalAmount > 0 ? min(1.0, paidAmount / totalAmount) : 0
-                ZStack(alignment: .leading) {
-                    RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .fill(JuntoColors.surfaceSubtle)
-                    RoundedRectangle(cornerRadius: 5, style: .continuous)
-                        .fill(JuntoColors.pixGreen)
-                        .frame(width: max(ratio > 0 ? 8 : 0, geo.size.width * CGFloat(ratio)))
-                }
-            }
-            .frame(height: 8)
-
-            Divider().opacity(0.6)
-
-            HStack(spacing: 0) {
-                summaryMetricColumn(
-                    title: "Total",
-                    value: JuntoStore.formatBRL(totalAmount),
-                    subtitle: "\(periodExpenses.count) itens",
-                    valueColor: JuntoColors.textMain
-                )
-
-                Divider().frame(height: 34)
-
-                summaryMetricColumn(
-                    title: "Já pago",
-                    value: JuntoStore.formatBRL(paidAmount),
-                    subtitle: "\(paidCount) pagos",
-                    valueColor: JuntoColors.pixGreen
-                )
-
-                Divider().frame(height: 34)
-
-                summaryMetricColumn(
-                    title: "Falta pagar",
-                    value: JuntoStore.formatBRL(pendingAmount),
-                    subtitle: "\(pendingCount) abertos",
-                    valueColor: pendingAmount > 0 ? JuntoColors.orangeSave : JuntoColors.textMuted
-                )
-            }
-        }
-        .padding(18)
-        .background(Color.white)
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(JuntoColors.border, lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-
-    private func summaryMetricColumn(title: String, value: String, subtitle: String, valueColor: Color) -> some View {
-        VStack(alignment: .center, spacing: 2) {
-            Text(title)
-                .font(.inter(11, weight: .regular))
-                .foregroundColor(JuntoColors.textMuted)
-            Text(value)
-                .font(.inter(14, weight: .semibold))
-                .foregroundColor(valueColor)
-                .lineLimit(1)
-                .minimumScaleFactor(0.75)
-            Text(subtitle)
-                .font(.inter(10, weight: .regular))
-                .foregroundColor(JuntoColors.textLight)
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    // MARK: - Estado Vazio
-    private var emptyExpensesCard: some View {
-        VStack(spacing: 12) {
-            Image(systemName: "chart.pie")
-                .font(.system(size: 34, weight: .thin))
-                .foregroundColor(JuntoColors.textLight)
-
-            Text("Nenhum gasto registrado")
-                .font(.inter(16, weight: .medium))
-                .foregroundColor(JuntoColors.textMain)
-
-            Text("Os pagamentos e dívidas dos seus grupos de viagens, churrascos e rolês aparecerão aqui automaticamente.")
-                .font(.inter(13, weight: .regular))
-                .foregroundColor(JuntoColors.textMuted)
-                .multilineTextAlignment(.center)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, 32)
-        .padding(.horizontal, 20)
-        .background(Color.white)
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(JuntoColors.border, lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-
-    // MARK: - Card Gráfico de Rosca
-    private var donutChartCard: some View {
-        let activeSlice = categorySlices.first(where: { $0.category == selectedCategoryFilter })
-        let centerValue = activeSlice?.amount ?? totalAmount
-        let centerCount = activeSlice?.count ?? periodExpenses.count
-
-        return VStack(spacing: 18) {
-            HStack {
-                Text("Distribuição por categoria")
-                    .font(.inter(15, weight: .semibold))
-                    .foregroundColor(JuntoColors.textMain)
-                Spacer()
-                if selectedCategoryFilter != nil {
-                    Button("Limpar filtro") {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            selectedCategoryFilter = nil
-                        }
-                    }
-                    .font(.inter(12, weight: .medium))
-                    .foregroundColor(JuntoColors.primary)
-                }
-            }
-
-            ZStack {
-                DonutChartView(slices: categorySlices, selectedCategory: selectedCategoryFilter)
-                    .frame(width: 188, height: 188)
-
-                VStack(spacing: 3) {
-                    Text(selectedCategoryFilter ?? "Total")
-                        .font(.inter(12, weight: .regular))
-                        .foregroundColor(JuntoColors.textMuted)
-                    Text(JuntoStore.formatBRL(centerValue))
-                        .font(.inter(20, weight: .semibold))
-                        .foregroundColor(JuntoColors.textMain)
-                    Text("\(centerCount) gasto(s)")
-                        .font(.inter(11, weight: .regular))
-                        .foregroundColor(JuntoColors.textLight)
-                }
-            }
-            .padding(.top, 2)
-
-            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
-                ForEach(categorySlices) { slice in
-                    let isSelected = selectedCategoryFilter == slice.category
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            selectedCategoryFilter = isSelected ? nil : slice.category
-                        }
-                    } label: {
-                        HStack(spacing: 8) {
-                            Circle()
-                                .fill(slice.color)
-                                .frame(width: 9, height: 9)
-                            Text(slice.category)
-                                .font(.inter(13, weight: .regular))
-                                .foregroundColor(JuntoColors.textMain)
-                                .lineLimit(1)
+        return VStack(spacing: 8) {
+            ZStack(alignment: .bottom) {
+                // 4 linhas horizontais pontilhadas sutis
+                VStack(spacing: 0) {
+                    ForEach(0..<4, id: \.self) { idx in
+                        DashedHorizontalLine()
+                            .stroke(style: StrokeStyle(lineWidth: 1, dash: [3, 4]))
+                            .foregroundColor(JuntoColors.border.opacity(0.8))
+                            .frame(height: 1)
+                        if idx < 3 {
                             Spacer()
-                            Text("\(Int(round(slice.percentage)))%")
-                                .font(.inter(13, weight: .semibold))
-                                .foregroundColor(JuntoColors.textMain)
                         }
-                        .padding(.horizontal, 10)
-                        .padding(.vertical, 8)
-                        .background(isSelected ? slice.color.opacity(0.14) : JuntoColors.surfaceSubtle)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                .stroke(isSelected ? slice.color : Color.clear, lineWidth: 1.2)
-                        )
-                        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
                     }
                 }
-            }
-        }
-        .padding(18)
-        .background(Color.white)
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(JuntoColors.border, lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
+                .frame(height: 132)
 
-    // MARK: - KPIs Rápidos
-    private var kpiSummaryRow: some View {
-        HStack(spacing: 12) {
-            kpiCard(
-                icon: "chart.bar",
-                title: "Média por gasto",
-                value: JuntoStore.formatBRL(averagePerExpense),
-                accent: JuntoColors.primary
-            )
+                // Barras verticais limpas
+                HStack(alignment: .bottom, spacing: 20) {
+                    ForEach(chartBars) { point in
+                        let totalH: CGFloat = point.total > 0 ? max(10, CGFloat(point.total / maxVal) * 124) : 3
+                        let paidH: CGFloat = point.paid > 0 ? max(6, CGFloat(point.paid / maxVal) * 124) : 0
 
-            kpiCard(
-                icon: categorySlices.first?.icon ?? "star",
-                title: "Maior categoria",
-                value: categorySlices.first?.category ?? "—",
-                accent: categorySlices.first?.color ?? JuntoColors.accent
-            )
-        }
-    }
+                        ZStack(alignment: .bottom) {
+                            RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                .fill(JuntoColors.primary.opacity(point.total > 0 ? 0.28 : 0.65))
+                                .frame(width: chartBars.count == 1 ? 36 : 24, height: totalH)
 
-    // MARK: - Análise Detalhada por Categoria (clicável para abrir detalhamento)
-    private var categoryBreakdownCard: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text("Análise por categoria")
-                    .font(.inter(15, weight: .semibold))
-                    .foregroundColor(JuntoColors.textMain)
-                Spacer()
-                Text("Toque para detalhar")
-                    .font(.inter(11, weight: .regular))
-                    .foregroundColor(JuntoColors.textLight)
-            }
-
-            ForEach(categorySlices) { slice in
-                Button {
-                    selectedCategoryForDetail = slice
-                } label: {
-                    VStack(spacing: 8) {
-                        HStack(spacing: 10) {
-                            ZStack {
-                                RoundedRectangle(cornerRadius: 9, style: .continuous)
-                                    .fill(slice.color.opacity(0.12))
-                                    .frame(width: 34, height: 34)
-                                Image(systemName: slice.icon)
-                                    .font(.system(size: 15, weight: .regular))
-                                    .foregroundColor(slice.color)
-                            }
-
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(slice.category)
-                                    .font(.inter(14, weight: .semibold))
-                                    .foregroundColor(JuntoColors.textMain)
-                                Text("\(slice.count) gasto(s) · Pago: \(JuntoStore.formatBRL(slice.paidAmount))")
-                                    .font(.inter(12, weight: .regular))
-                                    .foregroundColor(JuntoColors.textMuted)
-                                    .lineLimit(1)
-                            }
-
-                            Spacer(minLength: 6)
-
-                            VStack(alignment: .trailing, spacing: 2) {
-                                Text(JuntoStore.formatBRL(slice.amount))
-                                    .font(.inter(14, weight: .semibold))
-                                    .foregroundColor(JuntoColors.textMain)
-                                Text(String(format: "%.1f%%", slice.percentage))
-                                    .font(.inter(11, weight: .medium))
-                                    .foregroundColor(slice.color)
-                            }
-
-                            Image(systemName: "chevron.right")
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundColor(JuntoColors.textLight)
-                        }
-
-                        GeometryReader { geo in
-                            ZStack(alignment: .leading) {
-                                RoundedRectangle(cornerRadius: 4).fill(JuntoColors.surfaceSubtle)
-                                RoundedRectangle(cornerRadius: 4)
-                                    .fill(slice.color)
-                                    .frame(width: max(6, geo.size.width * CGFloat(slice.percentage / 100.0)))
+                            if paidH > 0 {
+                                RoundedRectangle(cornerRadius: 4, style: .continuous)
+                                    .fill(JuntoColors.primary)
+                                    .frame(width: chartBars.count == 1 ? 36 : 24, height: min(paidH, totalH))
                             }
                         }
-                        .frame(height: 6)
+                        .frame(maxWidth: .infinity)
                     }
-                    .padding(.vertical, 4)
-                    .contentShape(Rectangle())
                 }
-                .buttonStyle(.plain)
+                .padding(.horizontal, 16)
+            }
 
-                if slice.id != categorySlices.last?.id {
-                    Divider().opacity(0.6)
+            // Rótulos dos meses abaixo (ex: NOV.)
+            HStack(spacing: 20) {
+                ForEach(chartBars) { point in
+                    Text(point.shortLabel)
+                        .font(.inter(12, weight: .semibold))
+                        .foregroundColor(JuntoColors.textMain)
+                        .frame(maxWidth: .infinity)
                 }
             }
+            .padding(.horizontal, 16)
         }
-        .padding(18)
-        .background(Color.white)
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(JuntoColors.border, lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .padding(.vertical, 8)
     }
 
-    // MARK: - Lista de Pagamentos e Dívidas dos Grupos
-    private var expensesListCard: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                Text(selectedCategoryFilter == nil ? "Pagamentos e dívidas nos grupos" : "Gastos de \(selectedCategoryFilter!)")
-                    .font(.inter(15, weight: .semibold))
+    // MARK: - Bloco de métrica fiel ao modelo (barra vertical + valor grande)
+    private func metricBlock(title: String, amount: Double, color: Color, subtitle: String?, compact: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(spacing: 5) {
+                Text(title)
+                    .font(.inter(13, weight: .semibold))
                     .foregroundColor(JuntoColors.textMain)
-                Spacer()
-                Text("\(filteredList.count)")
-                    .font(.inter(12, weight: .medium))
+                Image(systemName: "questionmark.circle")
+                    .font(.system(size: 13, weight: .regular))
                     .foregroundColor(JuntoColors.textMuted)
-                    .padding(.horizontal, 8)
-                    .padding(.vertical, 3)
-                    .background(JuntoColors.surfaceSubtle)
-                    .clipShape(Capsule())
             }
 
-            if filteredList.isEmpty {
-                Text("Nenhum registro nesta categoria.")
+            HStack(alignment: .center, spacing: 10) {
+                Capsule()
+                    .fill(color)
+                    .frame(width: 5, height: compact ? 18 : 24)
+
+                Text(JuntoStore.formatBRL(amount))
+                    .font(.inter(compact ? 24 : 34, weight: .semibold))
+                    .foregroundColor(color)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.75)
+            }
+
+            if let subtitle {
+                Text(subtitle)
                     .font(.inter(13, weight: .regular))
                     .foregroundColor(JuntoColors.textMuted)
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 16)
-            } else {
-                VStack(spacing: 0) {
-                    ForEach(filteredList) { item in
-                        expenseItemRow(item)
-                        if item.id != filteredList.last?.id {
-                            Divider().opacity(0.6)
-                        }
-                    }
-                }
+                    .padding(.leading, 15)
             }
         }
-        .padding(18)
-        .background(Color.white)
-        .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(JuntoColors.border, lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+
+    // MARK: - Cápsula flutuante inferior de período (Todos | < mês >)
+    private var floatingPeriodCapsule: some View {
+        HStack(spacing: 8) {
+            Button {
+                withAnimation(.easeInOut(duration: 0.16)) {
+                    selectedPeriod = selectedPeriod == "Geral"
+                        ? (availableMonths.first ?? JuntoStore.currentMonthKey())
+                        : "Geral"
+                }
+            } label: {
+                Text("Todos")
+                    .font(.inter(13, weight: selectedPeriod == "Geral" ? .bold : .medium))
+                    .foregroundColor(selectedPeriod == "Geral" ? JuntoColors.primary : JuntoColors.textMain)
+                    .padding(.horizontal, 12)
+                    .frame(height: 36)
+            }
+
+            HStack(spacing: 6) {
+                Button {
+                    stepPeriod(older: true)
+                } label: {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(canStepOlder ? JuntoColors.textMain : JuntoColors.textLight)
+                        .frame(width: 28, height: 28)
+                }
+                .disabled(!canStepOlder)
+
+                Text(selectedPeriod == "Geral" ? "Todos os períodos" : selectedPeriod.lowercased())
+                    .font(.inter(14, weight: .semibold))
+                    .foregroundColor(JuntoColors.textMain)
+                    .lineLimit(1)
+                    .frame(maxWidth: .infinity)
+
+                Button {
+                    stepPeriod(older: false)
+                } label: {
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(canStepNewer ? JuntoColors.textMain : JuntoColors.textLight)
+                        .frame(width: 28, height: 28)
+                }
+                .disabled(!canStepNewer)
+            }
+            .padding(.horizontal, 10)
+            .frame(height: 38)
+            .background(Color.white)
+            .clipShape(Capsule())
+            .shadow(color: Color.black.opacity(0.05), radius: 4, x: 0, y: 1)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(JuntoColors.surfaceSubtle)
+        .clipShape(Capsule())
+        .shadow(color: Color.black.opacity(0.08), radius: 12, x: 0, y: 4)
+    }
+
+    private var canStepOlder: Bool {
+        guard !availableMonths.isEmpty else { return false }
+        if selectedPeriod == "Geral" { return true }
+        return currentMonthIndex < availableMonths.count - 1
+    }
+
+    private var canStepNewer: Bool {
+        guard !availableMonths.isEmpty else { return false }
+        if selectedPeriod == "Geral" { return true }
+        return currentMonthIndex > 0
+    }
+
+    private func stepPeriod(older: Bool) {
+        guard !availableMonths.isEmpty else { return }
+        withAnimation(.easeInOut(duration: 0.16)) {
+            if selectedPeriod == "Geral" {
+                selectedPeriod = availableMonths[0]
+                return
+            }
+            let nextIdx = older ? currentMonthIndex + 1 : currentMonthIndex - 1
+            if availableMonths.indices.contains(nextIdx) {
+                selectedPeriod = availableMonths[nextIdx]
+            }
+        }
     }
 
     private func expenseItemRow(_ item: PersonalExpenseRecord) -> some View {
@@ -551,21 +498,17 @@ struct MyExpensesAnalyticsScreen: View {
             selectedExpenseForDetail = item
         } label: {
             HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(catColor.opacity(0.12))
-                        .frame(width: 36, height: 36)
-                    Image(systemName: Self.iconForCategory(item.category))
-                        .font(.system(size: 15, weight: .regular))
-                        .foregroundColor(catColor)
-                }
+                Image(systemName: Self.iconForCategory(item.category))
+                    .font(.system(size: 17, weight: .regular))
+                    .foregroundColor(catColor)
+                    .frame(width: 24)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text(item.title)
                         .font(.inter(14, weight: .medium))
                         .foregroundColor(JuntoColors.textMain)
                         .lineLimit(1)
-                    Text("\(item.groupName) · \(item.category) · \(item.dateText)")
+                    Text("\(item.groupName) · \(item.dateText)")
                         .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                         .lineLimit(1)
@@ -573,23 +516,15 @@ struct MyExpensesAnalyticsScreen: View {
 
                 Spacer(minLength: 6)
 
-                VStack(alignment: .trailing, spacing: 3) {
+                VStack(alignment: .trailing, spacing: 2) {
                     Text(JuntoStore.formatBRL(item.amount))
                         .font(.inter(14, weight: .semibold))
                         .foregroundColor(JuntoColors.textMain)
 
                     Text(item.isPaid ? "Pago" : "Pendente")
-                        .font(.inter(10, weight: .medium))
+                        .font(.inter(11, weight: .medium))
                         .foregroundColor(item.isPaid ? JuntoColors.pixGreen : JuntoColors.orangeSave)
-                        .padding(.horizontal, 7)
-                        .padding(.vertical, 2)
-                        .background(item.isPaid ? JuntoColors.pixGreenLight : JuntoColors.orangeSave.opacity(0.12))
-                        .clipShape(Capsule())
                 }
-
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 11, weight: .medium))
-                    .foregroundColor(JuntoColors.textLight)
             }
             .padding(.vertical, 10)
             .contentShape(Rectangle())
@@ -597,29 +532,9 @@ struct MyExpensesAnalyticsScreen: View {
         .buttonStyle(.plain)
     }
 
-    private func kpiCard(icon: String, title: String, value: String, accent: Color) -> some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Image(systemName: icon)
-                .font(.system(size: 15, weight: .regular))
-                .foregroundColor(accent)
-                .frame(width: 30, height: 30)
-                .background(accent.opacity(0.12))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-
-            Text(title)
-                .font(.inter(12, weight: .regular))
-                .foregroundColor(JuntoColors.textMuted)
-
-            Text(value)
-                .font(.inter(16, weight: .semibold))
-                .foregroundColor(JuntoColors.textMain)
-                .lineLimit(1)
-        }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(14)
-        .background(Color.white)
-        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(JuntoColors.border, lineWidth: 1))
-        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+    private static func shortMonthCode(from period: String) -> String {
+        let prefix = period.trimmingCharacters(in: .whitespacesAndNewlines).prefix(3).uppercased()
+        return prefix.isEmpty ? "MÊS" : "\(prefix)."
     }
 
     static func colorHexForCategory(_ category: String) -> String {
@@ -649,6 +564,15 @@ struct MyExpensesAnalyticsScreen: View {
         case "Dívidas": return "arrow.left.arrow.right"
         default: return "tag"
         }
+    }
+}
+
+private struct DashedHorizontalLine: Shape {
+    func path(in rect: CGRect) -> Path {
+        var path = Path()
+        path.move(to: CGPoint(x: 0, y: rect.midY))
+        path.addLine(to: CGPoint(x: rect.width, y: rect.midY))
+        return path
     }
 }
 
