@@ -53,6 +53,15 @@ final class JuntoStore: ObservableObject {
             UserDefaults.standard.set(encoded, forKey: savedProfileKey)
             UserDefaults.standard.set(true, forKey: sessionActiveKey)
         }
+        let u = user
+        Task {
+            _ = await JuntoBackendService.shared.updateProfile(
+                fullName: u.fullName,
+                email: u.email,
+                phone: u.phone,
+                pixKey: u.pixKey
+            )
+        }
     }
 
     func loadSavedUserSession() {
@@ -70,13 +79,14 @@ final class JuntoStore: ObservableObject {
         UserDefaults.standard.removeObject(forKey: savedProfileKey)
         UserDefaults.standard.set(false, forKey: sessionActiveKey)
         UserDefaults.standard.removeObject(forKey: "junto_access_token")
+        KeychainHelper.delete(forKey: "junto_access_token")
+        KeychainHelper.delete(forKey: "junto_refresh_token")
     }
 
     init() {
         // Solicita permissão real de notificações do iOS e carrega sessão salva (Auto-Login)
         JuntoNotificationManager.shared.requestAuthorization()
         loadSavedUserSession()
-        setupSeedData()
         Task {
             await syncWithBackendDatabase()
         }
@@ -300,6 +310,9 @@ final class JuntoStore: ObservableObject {
             if let pix = uDict["pixKey"] as? String, !pix.isEmpty { user.pixKey = pix }
             if let pro = uDict["isPro"] as? Bool { user.isPro = pro }
             if let plan = uDict["proPlanName"] as? String { user.proPlanName = plan }
+            if let pType = uDict["proPlanType"] as? String {
+                user.proPlanType = ProPlanType(rawValue: pType) ?? (user.isPro ? .monthly : .none)
+            }
         }
 
         // Sincroniza amigos reais do PostgreSQL
@@ -311,6 +324,7 @@ final class JuntoStore: ObservableObject {
                 let balance = (f["balance"] as? Double) ?? 0.0
                 let pending = (f["isPendingInvite"] as? Bool) ?? false
                 let muted = (f["isMuted"] as? Bool) ?? false
+                let pTypeStr = (f["proPlanType"] as? String) ?? "none"
                 let initials = name.split(separator: " ").prefix(2).map { String($0.prefix(1)) }.joined().uppercased()
                 loadedFriends.append(
                     FriendItem(
@@ -318,6 +332,7 @@ final class JuntoStore: ObservableObject {
                         username: uname,
                         initials: initials.isEmpty ? "AM" : initials,
                         balance: balance,
+                        proPlanType: ProPlanType(rawValue: pTypeStr) ?? .none,
                         isPendingInvite: pending,
                         isOnline: true,
                         lastSeenText: "online",
@@ -329,10 +344,14 @@ final class JuntoStore: ObservableObject {
             self.friends = loadedFriends
         }
 
-        // Sincroniza grupos e Pote Mensal (Excursões) do PostgreSQL
+        let isoParser = ISO8601DateFormatter()
+        isoParser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        // Sincroniza grupos e Pote Mensal do PostgreSQL (preservando UUID exato do banco!)
         if let groupsArr = payload["groups"] as? [[String: Any]] {
             var loadedGroups: [RoleGroup] = []
             for g in groupsArr {
+                let serverGroupId = (g["id"] as? String).flatMap(UUID.init(uuidString:)) ?? UUID()
                 let title = (g["title"] as? String) ?? "Grupo"
                 let category = (g["category"] as? String) ?? "Viagem"
                 let cover = (g["coverImage"] as? String) ?? "GroupPraia"
@@ -341,6 +360,11 @@ final class JuntoStore: ObservableObject {
                 let totalSpent = (g["totalSpent"] as? Double) ?? 0.0
                 let potModeStr = (g["potMode"] as? String) ?? "SINGLE"
                 let totalMonths = (g["totalMonths"] as? Int) ?? 1
+                let ownerUsername = (g["ownerUsername"] as? String) ?? user.username
+                let ownerName = (g["ownerName"] as? String) ?? user.fullName
+                let ownerPixKey = (g["ownerPixKey"] as? String) ?? user.pixKey
+                let startDate = (g["startDate"] as? String).flatMap { isoParser.date(from: $0) } ?? Date()
+                let targetDate = (g["targetDate"] as? String).flatMap { isoParser.date(from: $0) } ?? (Calendar.current.date(byAdding: .day, value: 15, to: Date()) ?? Date())
 
                 var loadedParticipants: [GroupParticipant] = []
                 var loadedInitials: [String] = []
@@ -352,6 +376,7 @@ final class JuntoStore: ObservableObject {
                         let quota = (p["quotaAmount"] as? Double) ?? 0.0
                         let hasPaid = (p["hasPaid"] as? Bool) ?? false
                         let markedPaid = (p["markedPaidByMember"] as? Bool) ?? false
+                        let pTypeStr = (p["proPlanType"] as? String) ?? "none"
                         let role: GroupParticipantRole = roleStr == "OWNER" ? .owner : (roleStr == "ADMIN" ? .admin : .member)
                         loadedParticipants.append(
                             GroupParticipant(
@@ -360,7 +385,8 @@ final class JuntoStore: ObservableObject {
                                 quotaAmount: quota,
                                 hasPaid: hasPaid,
                                 markedPaidByMember: markedPaid,
-                                role: role
+                                role: role,
+                                proPlanType: ProPlanType(rawValue: pTypeStr) ?? .none
                             )
                         )
                         let initStr = pName.split(separator: " ").prefix(2).map { String($0.prefix(1)) }.joined().uppercased()
@@ -387,9 +413,12 @@ final class JuntoStore: ObservableObject {
                 }
 
                 let roleGroup = RoleGroup(
+                    id: serverGroupId,
                     title: title,
                     category: category,
                     coverImageName: cover,
+                    startDate: startDate,
+                    targetDate: targetDate,
                     potBalance: potBalance,
                     potTarget: potTarget,
                     totalSpent: totalSpent,
@@ -398,23 +427,34 @@ final class JuntoStore: ObservableObject {
                     participants: loadedParticipants,
                     hasCollectivePot: true,
                     comandaItems: [],
+                    ownerUsername: ownerUsername,
+                    ownerName: ownerName,
+                    ownerPixKey: ownerPixKey,
                     potMode: potModeStr == "MONTHLY" ? .monthly : .single,
                     totalMonths: totalMonths,
                     selectedMonthIndex: 0,
                     monthlyCycles: loadedCycles
                 )
                 loadedGroups.append(roleGroup)
-                if groupChatMessages[roleGroup.id] == nil {
-                    groupChatMessages[roleGroup.id] = [
-                        ChatMessage(
-                            isFromMe: false,
-                            kind: .system("Grupo \"\(title)\" sincronizado com o banco de dados."),
-                            timeText: currentTimeString()
-                        )
-                    ]
-                }
             }
             self.groups = loadedGroups
+        }
+
+        // Sincroniza histórico persistido de conversas 1-a-1 do PostgreSQL
+        if let friendChatsDict = payload["friendChats"] as? [String: [[String: Any]]] {
+            for (handle, rawMsgs) in friendChatsDict {
+                let parsed = rawMsgs.compactMap { parseWireChatMessage($0) }
+                self.chatMessages[handle.lowercased()] = parsed
+            }
+        }
+
+        // Sincroniza histórico persistido de conversas em grupo do PostgreSQL
+        if let groupChatsDict = payload["groupChats"] as? [String: [[String: Any]]] {
+            for (gidStr, rawMsgs) in groupChatsDict {
+                guard let gid = UUID(uuidString: gidStr) else { continue }
+                let parsed = rawMsgs.compactMap { parseWireChatMessage($0) }
+                self.groupChatMessages[gid] = parsed
+            }
         }
 
         // Sincroniza Potes Pessoais (Caixinhas) do PostgreSQL
@@ -454,15 +494,17 @@ final class JuntoStore: ObservableObject {
             self.personalPots = loadedPots
         }
 
-        // Sincroniza Despesas Pessoais do PostgreSQL
+        // Sincroniza Despesas Pessoais do PostgreSQL (preservando UUID real!)
         if let expArr = payload["personalExpenses"] as? [[String: Any]] {
             self.personalExpenses = expArr.map { e in
-                PersonalExpenseRecord(
+                let eid = (e["id"] as? String).flatMap(UUID.init(uuidString:)) ?? UUID()
+                return PersonalExpenseRecord(
+                    id: eid,
                     title: (e["title"] as? String) ?? "Despesa",
                     category: (e["category"] as? String) ?? "Outros",
                     amount: (e["amount"] as? Double) ?? 0.0,
                     dateText: (e["dateText"] as? String) ?? "Hoje",
-                    monthKey: (e["monthKey"] as? String) ?? "Novembro 2026",
+                    monthKey: (e["monthKey"] as? String) ?? Self.currentMonthKey(),
                     groupName: (e["groupName"] as? String) ?? "Pessoal",
                     isPaid: (e["isPaid"] as? Bool) ?? false
                 )
@@ -496,6 +538,243 @@ final class JuntoStore: ObservableObject {
                     amountText: a["amountText"] as? String,
                     isPositive: (a["isPositive"] as? Bool) ?? true
                 )
+            }
+        }
+
+        startRealtimeSync()
+        await refreshRemoteDirectory(query: "")
+    }
+
+    // MARK: - Realtime SSE + Hidratação de Mensagens e Diretório Real do PostgreSQL
+    func startRealtimeSync() {
+        Task {
+            await JuntoBackendService.shared.startRealtimeStream { [weak self] eventName, rawJson in
+                Task { @MainActor [weak self] in
+                    guard let data = rawJson.data(using: .utf8),
+                          let obj = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
+                        return
+                    }
+                    self?.handleRealtimeEvent(eventName: eventName, payload: obj)
+                }
+            }
+        }
+    }
+
+    private func handleRealtimeEvent(eventName: String, payload: [String: Any]) {
+        switch eventName {
+        case "chat:friend_message":
+            if let msg = parseWireChatMessage(payload),
+               let senderHandle = msg.senderUsername?.lowercased(), !senderHandle.isEmpty {
+                if !(chatMessages[senderHandle]?.contains(where: { $0.id == msg.id }) ?? false) {
+                    chatMessages[senderHandle, default: []].append(msg)
+                    objectWillChange.send()
+                    JuntoNotificationManager.shared.triggerLocalNotification(
+                        title: msg.senderName ?? "@\(senderHandle)",
+                        body: msg.previewText
+                    )
+                }
+            }
+
+        case "chat:group_message":
+            if let gidStr = payload["groupId"] as? String,
+               let gid = UUID(uuidString: gidStr),
+               let msg = parseWireChatMessage(payload) {
+                if !(groupChatMessages[gid]?.contains(where: { $0.id == msg.id }) ?? false) {
+                    groupChatMessages[gid, default: []].append(msg)
+                    objectWillChange.send()
+                    let gTitle = groups.first(where: { $0.id == gid })?.title ?? "Grupo"
+                    JuntoNotificationManager.shared.triggerLocalNotification(
+                        title: "\(msg.senderName ?? "Membro") em \(gTitle)",
+                        body: msg.previewText
+                    )
+                }
+            }
+
+        case "chat:message_deleted":
+            if let midStr = payload["messageId"] as? String, let mid = UUID(uuidString: midStr) {
+                for key in chatMessages.keys {
+                    chatMessages[key]?.removeAll { $0.id == mid }
+                }
+                for gid in groupChatMessages.keys {
+                    groupChatMessages[gid]?.removeAll { $0.id == mid }
+                }
+                objectWillChange.send()
+            }
+
+        case "groups:updated", "groups:deleted", "friends:updated", "pot:updated", "notification:new":
+            if eventName == "notification:new",
+               let title = payload["title"] as? String,
+               let body = payload["message"] as? String {
+                JuntoNotificationManager.shared.triggerLocalNotification(title: title, body: body)
+            }
+            Task { await syncWithBackendDatabase() }
+
+        default:
+            break
+        }
+    }
+
+    func refreshRemoteDirectory(query: String) async {
+        let rows = await JuntoBackendService.shared.searchUsers(query: query)
+        guard !rows.isEmpty else { return }
+        self.directoryUsers = rows.compactMap { row in
+            guard let name = row["name"] as? String,
+                  let uname = row["username"] as? String else { return nil }
+            let pType = ProPlanType(rawValue: (row["proPlanType"] as? String) ?? "none") ?? .none
+            return SearchableUser(name: name, username: uname, proPlanType: pType)
+        }
+    }
+
+    private func parseWireChatMessage(_ dict: [String: Any]) -> ChatMessage? {
+        let msgId = (dict["id"] as? String).flatMap(UUID.init(uuidString:)) ?? UUID()
+        let senderUname = dict["senderUsername"] as? String
+        let senderName = dict["senderName"] as? String
+        let isFromMe = (dict["isFromMe"] as? Bool) ?? (senderUname?.lowercased() == user.username.lowercased())
+        let kindStr = (dict["kind"] as? String) ?? "TEXT"
+        let content = (dict["content"] as? String) ?? ""
+        let isEdited = (dict["isEdited"] as? Bool) ?? false
+        let isListened = (dict["isListened"] as? Bool) ?? false
+        let replyToAuthor = dict["replyToAuthor"] as? String
+        let replyToPreview = dict["replyToPreview"] as? String
+        let statusStr = (dict["status"] as? String) ?? "DELIVERED"
+        let pTypeStr = (dict["senderProPlanType"] as? String) ?? "none"
+
+        let iso = ISO8601DateFormatter()
+        iso.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let createdDate = (dict["createdAt"] as? String).flatMap { iso.date(from: $0) } ?? Date()
+        let tf = DateFormatter()
+        tf.dateFormat = "HH:mm"
+        let timeText = tf.string(from: createdDate)
+
+        let status: MessageDeliveryStatus
+        switch statusStr {
+        case "SENT": status = .sent
+        case "READ": status = .read
+        default: status = .delivered
+        }
+
+        let kind: ChatMessageKind
+        switch kindStr {
+        case "SYSTEM":
+            kind = .system(content)
+        case "AUDIO":
+            let dur = (dict["audioDurationSec"] as? Int) ?? 3
+            let wf = (dict["waveform"] as? [Double]) ?? []
+            kind = .audio(duration: dur, waveform: wf, fileURL: nil)
+        case "DOCUMENT":
+            kind = .document(content.isEmpty ? "Documento" : content, "Arquivo")
+        case "PHOTO":
+            kind = .photo(nil, content)
+        case "RECEIPT":
+            kind = .receipt(amount: 0, imageData: nil, fileName: content.isEmpty ? "comprovante.jpg" : content, status: .pending)
+        default:
+            kind = .text(content)
+        }
+
+        return ChatMessage(
+            id: msgId,
+            isFromMe: isFromMe,
+            kind: kind,
+            timeText: timeText,
+            createdAt: createdDate,
+            isEdited: isEdited,
+            isListened: isListened,
+            status: status,
+            senderName: senderName,
+            senderUsername: senderUname,
+            senderProPlanType: ProPlanType(rawValue: pTypeStr) ?? .none,
+            replyToAuthor: replyToAuthor,
+            replyToPreview: replyToPreview
+        )
+    }
+
+    private func persistChatMessageToServer(
+        localId: UUID,
+        friendUsername: String?,
+        groupId: UUID?,
+        kind: ChatMessageKind,
+        replyToAuthor: String?,
+        replyToPreview: String?
+    ) {
+        Task {
+            var kindStr = "TEXT"
+            var content = ""
+            var mediaUrl: String? = nil
+            var audioDur: Int? = nil
+            var waveform: [Double]? = nil
+
+            switch kind {
+            case .text(let t):
+                kindStr = "TEXT"
+                content = t
+            case .system(let s):
+                kindStr = "SYSTEM"
+                content = s
+            case .document(let name, _):
+                kindStr = "DOCUMENT"
+                content = name
+            case .photo(let data, let caption):
+                kindStr = "PHOTO"
+                content = caption
+                if let imgData = data {
+                    mediaUrl = await JuntoBackendService.shared.uploadMedia(data: imgData, filename: "photo.jpg", mimeType: "image/jpeg")
+                }
+            case .audio(let dur, let wf, let fileURL):
+                kindStr = "AUDIO"
+                content = "Áudio (\(dur)s)"
+                audioDur = dur
+                waveform = wf
+                if let url = fileURL, let audioData = try? Data(contentsOf: url) {
+                    mediaUrl = await JuntoBackendService.shared.uploadMedia(data: audioData, filename: "audio.m4a", mimeType: "audio/mp4")
+                }
+            case .receipt(_, let imgData, let fileName, _):
+                kindStr = "RECEIPT"
+                content = fileName ?? "comprovante.jpg"
+                if let d = imgData {
+                    mediaUrl = await JuntoBackendService.shared.uploadMedia(data: d, filename: content, mimeType: "image/jpeg")
+                }
+            case .poll(let p):
+                kindStr = "POLL"
+                content = p.question
+            }
+
+            let serverIdStr: String?
+            if let uname = friendUsername {
+                serverIdStr = await JuntoBackendService.shared.sendFriendMessage(
+                    to: uname,
+                    kind: kindStr,
+                    content: content,
+                    mediaUrl: mediaUrl,
+                    audioDurationSec: audioDur,
+                    waveform: waveform,
+                    replyToAuthor: replyToAuthor,
+                    replyToPreview: replyToPreview
+                )
+            } else if let gid = groupId {
+                serverIdStr = await JuntoBackendService.shared.sendGroupMessage(
+                    groupId: gid.uuidString.lowercased(),
+                    kind: kindStr,
+                    content: content,
+                    mediaUrl: mediaUrl,
+                    audioDurationSec: audioDur,
+                    waveform: waveform,
+                    replyToAuthor: replyToAuthor,
+                    replyToPreview: replyToPreview
+                )
+            } else {
+                serverIdStr = nil
+            }
+
+            if let sidStr = serverIdStr, let serverUUID = UUID(uuidString: sidStr) {
+                if let uname = friendUsername?.lowercased(),
+                   let idx = chatMessages[uname]?.firstIndex(where: { $0.id == localId }) {
+                    chatMessages[uname]?[idx].id = serverUUID
+                    chatMessages[uname]?[idx].status = .delivered
+                } else if let gid = groupId,
+                          let idx = groupChatMessages[gid]?.firstIndex(where: { $0.id == localId }) {
+                    groupChatMessages[gid]?[idx].id = serverUUID
+                    groupChatMessages[gid]?[idx].status = .delivered
+                }
             }
         }
     }
@@ -622,14 +901,15 @@ final class JuntoStore: ObservableObject {
         }
         objectWillChange.send()
 
-        // Ciclo real de entrega (2 traços) e leitura (2 traços coloridos) no grupo
-        Task {
-            try? await Task.sleep(nanoseconds: 500_000_000)
-            updateGroupMessageStatus(groupId: groupId, messageId: msgId, status: .delivered)
-
-            try? await Task.sleep(nanoseconds: 1_100_000_000)
-            updateGroupMessageStatus(groupId: groupId, messageId: msgId, status: .read)
-        }
+        // Persiste mensagem no PostgreSQL + broadcast em tempo real para o grupo
+        persistChatMessageToServer(
+            localId: msgId,
+            friendUsername: nil,
+            groupId: groupId,
+            kind: kind,
+            replyToAuthor: replyToAuthor,
+            replyToPreview: replyToPreview
+        )
     }
 
     func updateGroupMessageStatus(groupId: UUID, messageId: UUID, status: MessageDeliveryStatus) {
@@ -692,15 +972,21 @@ final class JuntoStore: ObservableObject {
         guard let idx = groupChatMessages[groupId]?.firstIndex(where: { $0.id == messageId }) else { return }
         groupChatMessages[groupId]?[idx].kind = .text(clean)
         groupChatMessages[groupId]?[idx].isEdited = true
+        let mid = messageId.uuidString.lowercased()
+        Task { await JuntoBackendService.shared.editChatMessage(messageId: mid, newText: clean) }
     }
 
     func deleteGroupChatMessage(groupId: UUID, messageId: UUID) {
         groupChatMessages[groupId]?.removeAll { $0.id == messageId }
+        let mid = messageId.uuidString.lowercased()
+        Task { await JuntoBackendService.shared.deleteChatMessage(messageId: mid) }
     }
 
     func markGroupAudioListened(groupId: UUID, messageId: UUID) {
         guard let idx = groupChatMessages[groupId]?.firstIndex(where: { $0.id == messageId }) else { return }
         groupChatMessages[groupId]?[idx].isListened = true
+        let mid = messageId.uuidString.lowercased()
+        Task { await JuntoBackendService.shared.markMessageListened(messageId: mid) }
     }
 
     private func currentTimeString() -> String {
@@ -735,24 +1021,15 @@ final class JuntoStore: ObservableObject {
         }
         objectWillChange.send()
 
-        // Simulação em tempo real do ciclo de entrega/leitura (no servidor via Socket.IO chat:status)
-        let isFriendOnline = friends.first(where: { $0.username.lowercased() == key })?.isOnline ?? false
-        if isFriendOnline {
-            Task {
-                // 1 traço (sent) -> 2 traços (delivered) em 0.6s
-                try? await Task.sleep(nanoseconds: 600_000_000)
-                updateMessageStatus(username: key, messageId: msgId, status: .delivered)
-
-                // 2 traços (delivered) -> 2 traços coloridos (read) em +1.2s
-                try? await Task.sleep(nanoseconds: 1_200_000_000)
-                updateMessageStatus(username: key, messageId: msgId, status: .read)
-
-                // Indicador "digitando..." em tempo real por 2s
-                setFriendTyping(username: key, typing: true)
-                try? await Task.sleep(nanoseconds: 2_000_000_000)
-                setFriendTyping(username: key, typing: false)
-            }
-        }
+        // Persiste mensagem 1-a-1 no PostgreSQL + entrega em tempo real via SSE
+        persistChatMessageToServer(
+            localId: msgId,
+            friendUsername: key,
+            groupId: nil,
+            kind: kind,
+            replyToAuthor: replyToAuthor,
+            replyToPreview: replyToPreview
+        )
     }
 
     func updateMessageStatus(username: String, messageId: UUID, status: MessageDeliveryStatus) {
@@ -777,12 +1054,16 @@ final class JuntoStore: ObservableObject {
         guard let idx = chatMessages[key]?.firstIndex(where: { $0.id == messageId }) else { return }
         chatMessages[key]?[idx].kind = .text(clean)
         chatMessages[key]?[idx].isEdited = true
+        let mid = messageId.uuidString.lowercased()
+        Task { await JuntoBackendService.shared.editChatMessage(messageId: mid, newText: clean) }
     }
 
     /// Excluir uma mensagem específica da conversa
     func deleteChatMessage(username: String, messageId: UUID) {
         let key = username.lowercased()
         chatMessages[key]?.removeAll { $0.id == messageId }
+        let mid = messageId.uuidString.lowercased()
+        Task { await JuntoBackendService.shared.deleteChatMessage(messageId: mid) }
     }
 
     /// Aceitar convite de amizade vindo do sino de notificações
@@ -829,6 +1110,7 @@ final class JuntoStore: ObservableObject {
             ),
             at: 0
         )
+        Task { _ = await JuntoBackendService.shared.acceptFriend(username: reqUsername) }
         showToast("Você e \(reqName) agora são amigos!", icon: "checkmark.circle")
     }
 
@@ -843,6 +1125,7 @@ final class JuntoStore: ObservableObject {
     func clearConversation(for username: String) {
         let key = username.lowercased()
         chatMessages[key] = []
+        Task { await JuntoBackendService.shared.clearFriendConversation(username: key) }
         showToast("Conversa apagada.", icon: "trash")
     }
 
@@ -918,6 +1201,8 @@ final class JuntoStore: ObservableObject {
         let key = username.lowercased()
         guard let idx = chatMessages[key]?.firstIndex(where: { $0.id == messageId }) else { return }
         chatMessages[key]?[idx].isListened = true
+        let mid = messageId.uuidString.lowercased()
+        Task { await JuntoBackendService.shared.markMessageListened(messageId: mid) }
     }
 
     static func currentMonthKey(for date: Date = Date()) -> String {
@@ -1015,6 +1300,8 @@ final class JuntoStore: ObservableObject {
         if let idx = personalExpenses.firstIndex(where: { $0.id == id }) {
             personalExpenses[idx].isPaid.toggle()
             let paid = personalExpenses[idx].isPaid
+            let eid = id.uuidString.lowercased()
+            Task { await JuntoBackendService.shared.togglePersonalExpensePaid(expenseId: eid) }
             showToast(paid ? "Despesa marcada como paga." : "Despesa marcada como pendente.", icon: paid ? "checkmark.circle" : "clock")
         }
     }
@@ -1105,6 +1392,10 @@ final class JuntoStore: ObservableObject {
                 at: 0
             )
         }
+        let gidStr = groupId.uuidString.lowercased()
+        Task {
+            await JuntoBackendService.shared.markGroupPayment(groupId: gidStr, amount: quota, monthIndex: mIdx, kind: "QUOTA")
+        }
         showToast("Marcado como pago! Aguardando o dono do grupo confirmar.", icon: "checkmark.circle")
     }
 
@@ -1153,6 +1444,10 @@ final class JuntoStore: ObservableObject {
             ),
             at: 0
         )
+        let gidStr = groupId.uuidString.lowercased()
+        Task {
+            await JuntoBackendService.shared.markGroupPayment(groupId: gidStr, amount: amount, kind: "EXPENSE")
+        }
         showToast("Marcado como pago! O organizador já pode conferir.", icon: "checkmark.circle")
     }
 
@@ -1214,6 +1509,10 @@ final class JuntoStore: ObservableObject {
             ),
             at: 0
         )
+        let gidStr = groupId.uuidString.lowercased()
+        Task {
+            await JuntoBackendService.shared.confirmGroupPayment(groupId: gidStr, username: uname, monthIndex: mIdx)
+        }
         showToast("Pagamento de \(personName) confirmado!", icon: "checkmark.circle")
     }
 
@@ -1234,6 +1533,14 @@ final class JuntoStore: ObservableObject {
             groupChatMessages[groupId] = []
         }
         groupChatMessages[groupId]?.append(msg)
+        persistChatMessageToServer(
+            localId: msg.id,
+            friendUsername: nil,
+            groupId: groupId,
+            kind: msg.kind,
+            replyToAuthor: nil,
+            replyToPreview: nil
+        )
 
         let cleanUser = user.username.lowercased()
         if let pIdx = groups[gIdx].participants.firstIndex(where: { $0.username.lowercased() == cleanUser }) {
@@ -1304,6 +1611,7 @@ final class JuntoStore: ObservableObject {
             ),
             at: 0
         )
+        Task { _ = await JuntoBackendService.shared.inviteFriend(username: clean) }
         showToast("Convite enviado para @\(clean).", icon: "paperplane")
     }
 
@@ -1319,6 +1627,7 @@ final class JuntoStore: ObservableObject {
         if let idx = nearbyUsers.firstIndex(where: { $0.username.lowercased() == clean }) {
             nearbyUsers[idx].isInvited = false
         }
+        Task { _ = await JuntoBackendService.shared.removeFriend(username: clean) }
         showToast("Convite para @\(clean) cancelado.", icon: "xmark.circle")
     }
 
@@ -1359,11 +1668,15 @@ final class JuntoStore: ObservableObject {
         guard groups[gIdx].participants[pIdx].role != .owner else { return }
 
         let name = groups[gIdx].participants[pIdx].name
+        let targetUsername = groups[gIdx].participants[pIdx].username
+        let gidStr = groupId.uuidString.lowercased()
         if groups[gIdx].participants[pIdx].role == .admin {
             groups[gIdx].participants[pIdx].role = .member
+            Task { await JuntoBackendService.shared.updateGroupMemberRole(groupId: gidStr, username: targetUsername, isAdmin: false) }
             showToast("\(name) não é mais admin.", icon: "person")
         } else {
             groups[gIdx].participants[pIdx].role = .admin
+            Task { await JuntoBackendService.shared.updateGroupMemberRole(groupId: gidStr, username: targetUsername, isAdmin: true) }
             showToast("\(name) agora é admin do grupo.", icon: "checkmark.shield")
         }
     }
@@ -1386,6 +1699,8 @@ final class JuntoStore: ObservableObject {
                 groups[gIdx].participants[i].quotaAmount = newQuota
             }
         }
+        let gidStr = groupId.uuidString.lowercased()
+        Task { await JuntoBackendService.shared.removeGroupMember(groupId: gidStr, username: removed.username) }
         showToast("\(removed.name) foi removido do grupo.", icon: "person.badge.minus")
     }
 
@@ -1563,6 +1878,8 @@ final class JuntoStore: ObservableObject {
             ),
             at: 0
         )
+        let gidStr = groupId.uuidString.lowercased()
+        Task { await JuntoBackendService.shared.addGroupMember(groupId: gidStr, username: clean) }
         showToast("@\(clean) adicionado e cotas recalculadas!", icon: "person.badge.plus")
     }
 
@@ -1696,8 +2013,37 @@ final class JuntoStore: ObservableObject {
             at: 0
         )
 
+        let localGroupId = newGroup.id
+        let memberHandles = invitedPeople.map { $0.username }
+        let modeString = potMode == .monthly ? "MONTHLY" : "SINGLE"
+        let cyclesPayload: [[String: Any]] = cycles.map { c in
+            [
+                "monthNumber": c.monthNumber,
+                "label": c.label,
+                "paidUsernames": Array(c.paidUsernames),
+                "markedPaidUsernames": Array(c.markedPaidUsernames)
+            ]
+        }
         Task {
-            await JuntoBackendService.shared.createGroupOnServer(title: cleanTitle, category: category, potTarget: potTarget)
+            if let serverIdStr = await JuntoBackendService.shared.createGroupOnServer(
+                title: cleanTitle,
+                category: category,
+                coverImage: cover,
+                potTarget: potTarget,
+                potMode: modeString,
+                totalMonths: monthsCount,
+                monthlyCycles: cyclesPayload,
+                startDate: startDate,
+                targetDate: targetDate,
+                memberUsernames: memberHandles
+            ), let serverUUID = UUID(uuidString: serverIdStr) {
+                if let idx = self.groups.firstIndex(where: { $0.id == localGroupId }) {
+                    self.groups[idx].id = serverUUID
+                    if let existingMsgs = self.groupChatMessages.removeValue(forKey: localGroupId) {
+                        self.groupChatMessages[serverUUID] = existingMsgs
+                    }
+                }
+            }
         }
         JuntoNotificationManager.shared.triggerLocalNotification(
             title: "Grupo \"\(cleanTitle)\" criado",
@@ -1807,6 +2153,8 @@ final class JuntoStore: ObservableObject {
             ),
             at: 0
         )
+        let gidStr = groupId.uuidString.lowercased()
+        Task { await JuntoBackendService.shared.deleteGroupOnServer(groupId: gidStr) }
         showToast("Grupo \"\(title)\" e sua conversa foram excluídos.", icon: "trash")
     }
 
@@ -1898,18 +2246,23 @@ final class JuntoStore: ObservableObject {
             ),
             at: 0
         )
+        let localExpenseId = personalExpenses.first?.id
         let uname = user.username
         let gName = groupTitle.isEmpty ? "Pessoal" : groupTitle
         Task {
-            await JuntoBackendService.shared.createPersonalExpense(
+            if let serverIdStr = await JuntoBackendService.shared.createPersonalExpense(
                 username: uname,
                 title: cleanDesc,
                 category: category,
                 amount: amount,
                 dateText: "Hoje",
-                monthKey: "Novembro 2026",
+                monthKey: currentMonth,
                 groupName: gName
-            )
+            ), let serverUUID = UUID(uuidString: serverIdStr),
+               let lid = localExpenseId,
+               let idx = self.personalExpenses.firstIndex(where: { $0.id == lid }) {
+                self.personalExpenses[idx].id = serverUUID
+            }
         }
         JuntoNotificationManager.shared.triggerLocalNotification(
             title: "Nova despesa registrada",
@@ -1959,6 +2312,7 @@ final class JuntoStore: ObservableObject {
                 notifications[i].isUnread = false
             }
         }
+        Task { await JuntoBackendService.shared.markAllNotificationsReadOnServer() }
     }
 
     func unblockUser(_ username: String) {
@@ -1979,7 +2333,17 @@ final class JuntoStore: ObservableObject {
     }
 
     func deleteAccountPermanently() {
+        Task {
+            _ = await JuntoBackendService.shared.deleteAccount(reason: "Solicitado pelo usuário no app iOS")
+        }
         clearUserSession()
+        friends = []
+        groups = []
+        chatMessages = [:]
+        groupChatMessages = [:]
+        personalExpenses = []
+        activities = []
+        notifications = []
         draftEmail = ""
         draftUsername = ""
         draftPassword = ""
@@ -1988,7 +2352,7 @@ final class JuntoStore: ObservableObject {
         withAnimation(.easeInOut(duration: 0.25)) {
             route = .welcomeAuth
         }
-        showToast("Conta desativada. Dados retidos por 90 dias (LGPD).", icon: "trash")
+        showToast("Conta desativada no servidor. Dados retidos por 90 dias (LGPD).", icon: "trash")
     }
 
     // MARK: - Gestão da Assinatura Juntô Pro
@@ -2282,6 +2646,7 @@ final class JuntoStore: ObservableObject {
     }
 
     func logout() {
+        Task { await JuntoBackendService.shared.clearSessionTokens() }
         clearUserSession()
         withAnimation(.easeInOut(duration: 0.25)) {
             route = .welcomeAuth

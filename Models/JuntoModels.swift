@@ -199,7 +199,7 @@ enum ChatMessageKind: Hashable {
 }
 
 struct ChatMessage: Identifiable, Hashable {
-    let id = UUID()
+    var id: UUID = UUID()
     let isFromMe: Bool
     var kind: ChatMessageKind
     let timeText: String
@@ -243,7 +243,7 @@ struct FriendItem: Identifiable {
 }
 
 struct PersonalExpenseRecord: Identifiable {
-    let id = UUID()
+    var id: UUID = UUID()
     let title: String
     let category: String
     let amount: Double
@@ -325,7 +325,7 @@ struct GroupParticipant: Identifiable, Hashable {
 }
 
 struct RoleGroup: Identifiable {
-    let id = UUID()
+    var id: UUID = UUID()
     var title: String
     var category: String
     var coverImageName: String

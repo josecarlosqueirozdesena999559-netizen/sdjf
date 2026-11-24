@@ -8,6 +8,7 @@ final class JuntoNotificationManager: NSObject, ObservableObject, UNUserNotifica
     static let shared = JuntoNotificationManager()
 
     @Published var isAuthorized: Bool = false
+    @Published var apnsDeviceToken: String? = nil
 
     private override init() {
         super.init()
@@ -41,6 +42,9 @@ final class JuntoNotificationManager: NSObject, ObservableObject, UNUserNotifica
         center.requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
             Task { @MainActor in
                 self.isAuthorized = granted
+                if granted {
+                    UIApplication.shared.registerForRemoteNotifications()
+                }
             }
         }
     }

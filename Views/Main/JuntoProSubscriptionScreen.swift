@@ -10,9 +10,12 @@ struct JuntoProSubscriptionScreen: View {
         case yearly = "Anual"
     }
 
+    @StateObject private var storeKit = JuntoStoreKitManager.shared
     @State private var selectedPeriod: PlanPeriod = .monthly
     @State private var isProcessing = false
     @State private var showCancelConfirm = false
+    @State private var showTermsSheet = false
+    @State private var showPrivacySheet = false
 
     private let proFeatures: [(title: String, subtitle: String)] = [
         ("Selo de Verificado Exclusivo", "Assinante Mensal recebe o Selo Roxo e o Assinante Anual recebe o Selo Dourado em todas as telas, grupos e conversas."),
@@ -63,11 +66,11 @@ struct JuntoProSubscriptionScreen: View {
                     }
                     .padding(.top, 4)
 
-                    // Seletor Mensal / Anual limpo
+                    // Seletor Mensal / Anual limpo (preços reais do StoreKit 2 quando disponíveis)
                     HStack(spacing: 12) {
                         planCard(
                             title: "Mensal",
-                            price: "R$ 19,90",
+                            price: storeKit.monthlyProduct?.displayPrice ?? "R$ 19,90",
                             periodText: "por mês",
                             badgeType: .monthly,
                             badgeLabel: "Selo Roxo",
@@ -80,8 +83,8 @@ struct JuntoProSubscriptionScreen: View {
 
                         planCard(
                             title: "Anual",
-                            price: "R$ 14,90",
-                            periodText: "por mês (R$ 178,80/ano)",
+                            price: storeKit.yearlyProduct?.displayPrice ?? "R$ 178,80",
+                            periodText: "por ano (economize 25%)",
                             badgeType: .yearly,
                             badgeLabel: "Selo Dourado",
                             isSelected: selectedPeriod == .yearly
@@ -163,10 +166,13 @@ struct JuntoProSubscriptionScreen: View {
                                 subscribeAction()
                             } label: {
                                 HStack(spacing: 8) {
-                                    if isProcessing {
+                                    if isProcessing || storeKit.isPurchasing {
                                         ProgressView().tint(.white)
                                     } else {
-                                        Text("Assinar por \(selectedPeriod == .monthly ? "R$ 19,90 / mês" : "R$ 178,80 / ano")")
+                                        let priceLabel = selectedPeriod == .monthly
+                                            ? "\(storeKit.monthlyProduct?.displayPrice ?? "R$ 19,90") / mês"
+                                            : "\(storeKit.yearlyProduct?.displayPrice ?? "R$ 178,80") / ano"
+                                        Text("Assinar por \(priceLabel)")
                                             .font(.inter(16, weight: .medium))
                                     }
                                 }
@@ -176,13 +182,34 @@ struct JuntoProSubscriptionScreen: View {
                                 .background(JuntoColors.primary)
                                 .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                             }
-                            .disabled(isProcessing)
+                            .disabled(isProcessing || storeKit.isPurchasing)
 
-                            Text("Cancele quando quiser nas configurações da sua conta.")
-                                .font(.inter(12, weight: .regular))
+                            Button {
+                                restoreAction()
+                            } label: {
+                                Text("Restaurar compras")
+                                    .font(.inter(13, weight: .medium))
+                                    .foregroundColor(JuntoColors.primary)
+                                    .padding(.vertical, 6)
+                            }
+                            .disabled(isProcessing || storeKit.isPurchasing)
+
+                            Text("Assinatura com renovação automática pela App Store. Cancele a qualquer momento em Ajustes > Conta Apple > Assinaturas.")
+                                .font(.inter(11, weight: .regular))
                                 .foregroundColor(JuntoColors.textMuted)
                                 .multilineTextAlignment(.center)
                                 .frame(maxWidth: .infinity)
+
+                            HStack(spacing: 14) {
+                                Button("Termos de Uso") { showTermsSheet = true }
+                                    .font(.inter(12, weight: .medium))
+                                    .foregroundColor(JuntoColors.textMuted)
+                                Text("·").foregroundColor(JuntoColors.textLight)
+                                Button("Política de Privacidade") { showPrivacySheet = true }
+                                    .font(.inter(12, weight: .medium))
+                                    .foregroundColor(JuntoColors.textMuted)
+                            }
+                            .padding(.top, 2)
                         }
                     }
                     .padding(.top, 4)
@@ -192,6 +219,15 @@ struct JuntoProSubscriptionScreen: View {
             }
         }
         .background(Color.white.ignoresSafeArea())
+        .task {
+            await storeKit.loadProducts()
+        }
+        .sheet(isPresented: $showTermsSheet) {
+            TermsOfUsePopupSheet()
+        }
+        .sheet(isPresented: $showPrivacySheet) {
+            PrivacyPolicyPopupSheet()
+        }
         .confirmationDialog(
             "Deseja cancelar o Juntô Pro?",
             isPresented: $showCancelConfirm,
@@ -207,14 +243,44 @@ struct JuntoProSubscriptionScreen: View {
     private func subscribeAction() {
         isProcessing = true
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
-
-        let planName = selectedPeriod == .monthly ? "Mensal (R$ 19,90)" : "Anual (R$ 178,80)"
         let planType: ProPlanType = selectedPeriod == .monthly ? .monthly : .yearly
 
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.8) {
+        Task {
+            let outcome = await storeKit.purchase(planType: planType, username: store.user.username)
             isProcessing = false
-            store.subscribeToPro(plan: planName, planType: planType)
-            dismiss()
+            if outcome.success {
+                store.subscribeToPro(
+                    plan: outcome.planName ?? (planType == .yearly ? "Anual (R$ 178,80)" : "Mensal (R$ 19,90)"),
+                    planType: planType
+                )
+                if let exp = outcome.expiresDateText {
+                    store.user.proExpiresDateText = exp
+                }
+                dismiss()
+            } else if let err = outcome.errorMessage {
+                store.showToast(err, icon: "exclamationmark.triangle")
+            }
+        }
+    }
+
+    private func restoreAction() {
+        isProcessing = true
+        Task {
+            let result = await storeKit.restorePurchases(username: store.user.username)
+            isProcessing = false
+            if result.restored {
+                store.subscribeToPro(
+                    plan: result.planName ?? "Juntô Pro",
+                    planType: result.planType
+                )
+                if let exp = result.expiresDateText {
+                    store.user.proExpiresDateText = exp
+                }
+                store.showToast("Assinatura restaurada com sucesso!", icon: "checkmark.seal.fill")
+                dismiss()
+            } else {
+                store.showToast("Nenhuma assinatura ativa encontrada na sua Conta Apple.", icon: "info.circle")
+            }
         }
     }
 

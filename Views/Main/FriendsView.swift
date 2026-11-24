@@ -365,6 +365,13 @@ struct AddFriendScreen: View {
                     .foregroundColor(JuntoColors.textMain)
                     .textInputAutocapitalization(.never)
                     .autocorrectionDisabled()
+                    .onChange(of: query) { _, newValue in
+                        let q = newValue.trimmingCharacters(in: .whitespacesAndNewlines)
+                        Task { await store.refreshRemoteDirectory(query: q) }
+                    }
+                    .onAppear {
+                        Task { await store.refreshRemoteDirectory(query: "") }
+                    }
 
                 if !query.isEmpty {
                     Button {

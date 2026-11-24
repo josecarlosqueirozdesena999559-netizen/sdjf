@@ -45,9 +45,6 @@ targets:
         NSPhotoLibraryUsageDescription: "O Juntô acessa sua biblioteca de fotos para escolher a foto do perfil e capas dos seus rolês."
         NSMicrophoneUsageDescription: "O Juntô utiliza o microfone para gravar e enviar mensagens de áudio no chat com seus amigos."
         NSLocationWhenInUseUsageDescription: "O Juntô utiliza sua localização aproximada para exibir pessoas e grupos públicos próximos na sua região."
-        NSAppTransportSecurity:
-          NSAllowsArbitraryLoads: true
-          NSAllowsLocalNetworking: true
         UIAppFonts:
           - Inter-Regular.ttf
           - Inter-Medium.ttf
@@ -57,7 +54,7 @@ targets:
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.achou.com
-        CURRENT_PROJECT_VERSION: 146
+        CURRENT_PROJECT_VERSION: 147
         MARKETING_VERSION: "1.0.20"
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         TARGETED_DEVICE_FAMILY: "1,2"

@@ -1,7 +1,30 @@
 import SwiftUI
+import UIKit
+
+final class JuntoAppDelegate: NSObject, UIApplicationDelegate {
+    func application(
+        _ application: UIApplication,
+        didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
+    ) -> Bool {
+        return true
+    }
+
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        let tokenHex = deviceToken.map { String(format: "%02.2hhx", $0) }.joined()
+        Task { @MainActor in
+            JuntoNotificationManager.shared.apnsDeviceToken = tokenHex
+            await JuntoBackendService.shared.registerDeviceToken(tokenHex)
+        }
+    }
+
+    func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {
+        // Silencioso no Simulador ou sem entitlement APNs; push remoto ativa automaticamente quando assinado com APNs
+    }
+}
 
 @main
 struct JuntoApp: App {
+    @UIApplicationDelegateAdaptor(JuntoAppDelegate.self) var appDelegate
     @StateObject private var store = JuntoStore()
 
     var body: some Scene {
