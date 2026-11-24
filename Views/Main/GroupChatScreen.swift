@@ -19,6 +19,7 @@ struct GroupChatScreen: View {
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var showDocumentImporter = false
     @State private var showCreatePollSheet = false
+    @State private var showMembersSheet = false
     @State private var recMicPulse = false
 
     // Desfazer exclusão com cronômetro de 5 segundos estilo WhatsApp
@@ -80,7 +81,7 @@ struct GroupChatScreen: View {
 
                 if let g = group {
                     Button {
-                        onOpenGroupDetails?()
+                        showMembersSheet = true
                     } label: {
                         HStack(spacing: 10) {
                             groupCoverThumb(g)
@@ -551,6 +552,14 @@ struct GroupChatScreen: View {
                 store.sendGroupChatMessage(groupId: groupId, kind: .document(url.lastPathComponent, "Arquivo"))
             }
         }
+        .sheet(isPresented: $showMembersSheet) {
+            if let g = group {
+                GroupMembersSheet(group: g)
+                    .environmentObject(store)
+                    .presentationDetents([.fraction(0.68), .large])
+                    .presentationCornerRadius(24)
+            }
+        }
     }
 
     // MARK: - Bolha de Mensagem do Grupo (Avatar + Nome colorido do participante + Citação de Resposta)
@@ -696,6 +705,77 @@ struct GroupChatScreen: View {
                     ) { optionId in
                         store.voteInGroupPoll(groupId: groupId, messageId: msg.id, optionId: optionId)
                     }
+
+                case .receipt(let amount, let imageData, let fileName, let status):
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack(spacing: 5) {
+                            Image(systemName: status == .approved ? "checkmark.circle.fill" : "hourglass.circle.fill")
+                                .font(.system(size: 13, weight: .bold))
+                                .foregroundColor(status == .approved ? JuntoColors.pixGreen : JuntoColors.accent)
+                            Text(status == .approved ? "PAGAMENTO CONFIRMADO" : "COMPROVANTE PENDENTE")
+                                .font(.inter(11, weight: .bold))
+                                .foregroundColor(status == .approved ? JuntoColors.pixGreen : JuntoColors.accent)
+                        }
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(status == .approved ? JuntoColors.pixGreen.opacity(0.12) : JuntoColors.accent.opacity(0.12))
+                        .clipShape(Capsule())
+
+                        Text(JuntoStore.formatBRL(amount))
+                            .font(.inter(22, weight: .bold))
+                            .foregroundColor(msg.isFromMe ? .white : JuntoColors.textMain)
+
+                        if let data = imageData, let uiImg = UIImage(data: data) {
+                            Image(uiImage: uiImg)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(minWidth: 160, maxWidth: 220, minHeight: 120, maxHeight: 160)
+                                .clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                        } else if let docName = fileName {
+                            HStack(spacing: 8) {
+                                Image(systemName: "doc.text.fill")
+                                    .font(.system(size: 20))
+                                    .foregroundColor(JuntoColors.primary)
+                                VStack(alignment: .leading, spacing: 1) {
+                                    Text(docName)
+                                        .font(.inter(12, weight: .medium))
+                                        .foregroundColor(msg.isFromMe ? .white : JuntoColors.textMain)
+                                        .lineLimit(1)
+                                    Text("Comprovante PDF")
+                                        .font(.inter(10, weight: .regular))
+                                        .foregroundColor(msg.isFromMe ? .white.opacity(0.7) : JuntoColors.textMuted)
+                                }
+                            }
+                            .padding(8)
+                            .background(msg.isFromMe ? Color.white.opacity(0.15) : JuntoColors.surfaceSubtle)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        }
+
+                        // Ação de confirmar para Dono ou Admin
+                        if let g = group, store.isCurrentUserGroupOwnerOrAdmin(in: g), status == .pending {
+                            Button {
+                                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                if let sender = msg.senderUsername {
+                                    store.markParticipantPaid(groupId: g.id, participantUsername: sender)
+                                }
+                            } label: {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "checkmark.seal.fill")
+                                        .font(.system(size: 13, weight: .bold))
+                                    Text("Conferir e Marcar Pago")
+                                        .font(.inter(12, weight: .bold))
+                                }
+                                .foregroundColor(.white)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 36)
+                                .background(JuntoColors.pixGreen)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                            }
+                            .padding(.top, 4)
+                        }
+                    }
+                    .padding(4)
 
                 case .system:
                     EmptyView()

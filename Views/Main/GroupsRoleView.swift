@@ -1008,6 +1008,7 @@ struct GroupDetailSheet: View {
     @State private var selectedParticipantForAction: GroupParticipant? = nil
     @State private var pendingPaymentSheet: GroupPaymentRequest? = nil
     @State private var showGroupChat = false
+    @State private var showMembersSheet = false
     @State private var showDeleteGroupConfirm = false
 
     struct GroupPaymentRequest: Identifiable {
@@ -1042,10 +1043,19 @@ struct GroupDetailSheet: View {
                     HStack {
                         CircleNavButton(icon: "xmark") { dismiss() }
                         Spacer()
-                        Text(group.title)
-                            .font(.inter(17, weight: .medium))
-                            .foregroundColor(JuntoColors.textMain)
-                            .lineLimit(1)
+                        Button {
+                            showMembersSheet = true
+                        } label: {
+                            HStack(spacing: 5) {
+                                Text(group.title)
+                                    .font(.inter(17, weight: .medium))
+                                    .foregroundColor(JuntoColors.textMain)
+                                    .lineLimit(1)
+                                Image(systemName: "person.2.fill")
+                                    .font(.system(size: 11))
+                                    .foregroundColor(JuntoColors.primary)
+                            }
+                        }
                         Spacer()
                         CircleNavButton(icon: "bubble.left.and.bubble.right", bgColor: JuntoColors.primary, fgColor: .white) {
                             showGroupChat = true
@@ -1654,17 +1664,27 @@ struct GroupDetailSheet: View {
                     title: request.title,
                     organizerName: organizer.name,
                     organizerPixKey: organizer.pixKey,
-                    amount: request.amount
-                ) {
-                    if let pid = request.participantId {
-                        store.memberMarkQuotaAsPaid(groupId: groupId, participantId: pid, monthIndex: activeMonthIdx)
-                    } else {
-                        store.memberMarkGroupExpensesAsPaid(groupId: groupId, amount: request.amount)
+                    amount: request.amount,
+                    onMarkAsPaid: {
+                        if let pid = request.participantId {
+                            store.memberMarkQuotaAsPaid(groupId: groupId, participantId: pid, monthIndex: activeMonthIdx)
+                        } else {
+                            store.memberMarkGroupExpensesAsPaid(groupId: groupId, amount: request.amount)
+                        }
+                        pendingPaymentSheet = nil
+                    },
+                    onSendReceipt: { imgData, fileName in
+                        store.sendGroupReceipt(groupId: groupId, amount: request.amount, imageData: imgData, fileName: fileName)
                     }
-                    pendingPaymentSheet = nil
-                }
-                .presentationDetents([.height(500)])
+                )
+                .presentationDetents([.height(540), .large])
                 .presentationCornerRadius(20)
+            }
+            .sheet(isPresented: $showMembersSheet) {
+                GroupMembersSheet(group: group)
+                    .environmentObject(store)
+                    .presentationDetents([.fraction(0.68), .large])
+                    .presentationCornerRadius(24)
             }
             .sheet(isPresented: $showGroupReceiptScanner) {
                 ReceiptScannerModal { items, total in
@@ -1685,13 +1705,174 @@ struct GroupDetailSheet: View {
     }
 }
 
-// MARK: - Sheet de Pagamento Direto ao Organizador (Aba QR Code Pix + Aba Copiar Chave Pix + Marcar como pago)
+// MARK: - Sheet de Visualização e Gestão de Membros do Grupo
+struct GroupMembersSheet: View {
+    let group: RoleGroup
+    @EnvironmentObject var store: JuntoStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var searchText = ""
+
+    private var currentGroup: RoleGroup {
+        store.groups.first(where: { $0.id == group.id }) ?? group
+    }
+
+    private var filteredParticipants: [GroupParticipant] {
+        if searchText.isEmpty { return currentGroup.participants }
+        let clean = searchText.lowercased()
+        return currentGroup.participants.filter {
+            $0.name.lowercased().contains(clean) || $0.username.lowercased().contains(clean)
+        }
+    }
+
+    private var isCurrentUserOwnerOrAdmin: Bool {
+        store.isCurrentUserGroupOwnerOrAdmin(in: currentGroup)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Topo do Sheet
+            HStack {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Membros do Grupo")
+                        .font(.inter(18, weight: .bold))
+                        .foregroundColor(JuntoColors.textMain)
+                    Text("\(currentGroup.participants.count) participante(s) · \(currentGroup.title)")
+                        .font(.inter(12, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                }
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(JuntoColors.textMuted)
+                        .frame(width: 32, height: 32)
+                        .background(JuntoColors.surfaceSubtle)
+                        .clipShape(Circle())
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
+            .padding(.bottom, 12)
+
+            // Barra de busca
+            HStack(spacing: 8) {
+                Image(systemName: "magnifyingglass")
+                    .foregroundColor(JuntoColors.textMuted)
+                    .font(.system(size: 14))
+                TextField("Buscar membro...", text: $searchText)
+                    .font(.inter(14, weight: .regular))
+            }
+            .padding(.horizontal, 14)
+            .frame(height: 38)
+            .background(JuntoColors.surfaceSubtle)
+            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .padding(.horizontal, 20)
+            .padding(.bottom, 12)
+
+            // Lista de participantes
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    ForEach(filteredParticipants) { participant in
+                        let isMe = participant.username.lowercased() == store.user.username.lowercased()
+
+                        HStack(spacing: 12) {
+                            GeometricAvatarView(seed: participant.username, displayName: participant.name, size: 42)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                HStack(spacing: 4) {
+                                    Text(isMe ? "\(participant.name) (Você)" : participant.name)
+                                        .font(.inter(14, weight: .medium))
+                                        .foregroundColor(JuntoColors.textMain)
+
+                                    VerifiedBadgeView(type: participant.proPlanType, size: 13)
+
+                                    if participant.role == .owner {
+                                        Text("Dono")
+                                            .font(.inter(10, weight: .bold))
+                                            .foregroundColor(.white)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 1.5)
+                                            .background(JuntoColors.primary)
+                                            .clipShape(Capsule())
+                                    } else if participant.role == .admin {
+                                        Text("Admin")
+                                            .font(.inter(10, weight: .bold))
+                                            .foregroundColor(JuntoColors.primary)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 1.5)
+                                            .background(JuntoColors.surfaceSubtle)
+                                            .clipShape(Capsule())
+                                    }
+                                }
+
+                                Text("@\(participant.username)")
+                                    .font(.inter(12, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                            }
+
+                            Spacer()
+
+                            // Status de Pagamento
+                            if participant.hasPaid {
+                                HStack(spacing: 4) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 13))
+                                    Text("Pago")
+                                        .font(.inter(12, weight: .bold))
+                                }
+                                .foregroundColor(JuntoColors.pixGreen)
+                                .padding(.horizontal, 10)
+                                .padding(.vertical, 4)
+                                .background(JuntoColors.pixGreen.opacity(0.12))
+                                .clipShape(Capsule())
+                            } else {
+                                Text("Pendente")
+                                    .font(.inter(12, weight: .medium))
+                                    .foregroundColor(JuntoColors.orangeSave)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(JuntoColors.orangeSave.opacity(0.12))
+                                    .clipShape(Capsule())
+                            }
+
+                            // Ação rápida para Dono/Admin
+                            if isCurrentUserOwnerOrAdmin {
+                                Button {
+                                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                                    store.ownerConfirmParticipantPaid(
+                                        groupId: currentGroup.id,
+                                        participantId: participant.id,
+                                        monthIndex: currentGroup.selectedMonthIndex
+                                    )
+                                } label: {
+                                    Image(systemName: participant.hasPaid ? "arrow.uturn.backward.circle" : "checkmark.seal")
+                                        .font(.system(size: 18))
+                                        .foregroundColor(participant.hasPaid ? JuntoColors.textMuted : JuntoColors.primary)
+                                }
+                                .padding(.leading, 4)
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 10)
+
+                        Divider().padding(.leading, 74)
+                    }
+                }
+            }
+        }
+        .background(Color.white.ignoresSafeArea())
+    }
+}
+
+// MARK: - Sheet de Pagamento Direto ao Organizador (Vencimento de 5 minutos + Anexo de comprovante)
 struct OrganizerPixPaymentSheet: View {
     let title: String
     let organizerName: String
     let organizerPixKey: String
     let amount: Double
     let onMarkAsPaid: () -> Void
+    var onSendReceipt: ((Data?, String?) -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
 
     enum PixTab: String, CaseIterable {
@@ -1704,6 +1885,12 @@ struct OrganizerPixPaymentSheet: View {
     @State private var copiedPayload = false
     @State private var timeRemaining = 300 // 5 minutos = 300 segundos
     @State private var timer: Timer? = nil
+
+    // Anexo de comprovante (Foto ou PDF)
+    @State private var selectedPhotoItem: PhotosPickerItem? = nil
+    @State private var showFileImporter = false
+    @State private var attachedData: Data? = nil
+    @State private var attachedFileName: String? = nil
 
     private var formattedTime: String {
         let mins = timeRemaining / 60
@@ -1729,7 +1916,7 @@ struct OrganizerPixPaymentSheet: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            // Cabeçalho limpo sem tags coloridas
+            // Cabeçalho limpo
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Pagar via Pix")
@@ -1752,17 +1939,21 @@ struct OrganizerPixPaymentSheet: View {
             }
             .padding(.top, 18)
 
-            // Valor a transferir e tempo (sem bolinha verde)
+            // Valor a transferir e tempo (5 minutos de vencimento)
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Valor a transferir")
                         .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                     if timeRemaining > 0 {
-                        Text("Expira em \(formattedTime)")
+                        Text("Chave Pix válida por \(formattedTime)")
                             .font(.inter(11, weight: .regular))
-                            .foregroundColor(JuntoColors.textLight)
+                            .foregroundColor(timeRemaining < 60 ? JuntoColors.dangerRed : JuntoColors.textLight)
                             .monospacedDigit()
+                    } else {
+                        Text("Chave expirada")
+                            .font(.inter(11, weight: .medium))
+                            .foregroundColor(JuntoColors.dangerRed)
                     }
                 }
                 Spacer()
@@ -1810,8 +2001,8 @@ struct OrganizerPixPaymentSheet: View {
                             .interpolation(.none)
                             .resizable()
                             .scaledToFit()
-                            .frame(width: 165, height: 165)
-                            .padding(10)
+                            .frame(width: 155, height: 155)
+                            .padding(8)
                             .background(Color.white)
                             .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
                             .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -1862,7 +2053,7 @@ struct OrganizerPixPaymentSheet: View {
                         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedKey = false }
                     }
 
-                    Text("Transfira o valor no seu banco e depois toque em \"Marcar como pago\" abaixo.")
+                    Text("Transfira o valor no seu banco e anexe o comprovante abaixo para o organizador.")
                         .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                 }
@@ -1871,19 +2062,102 @@ struct OrganizerPixPaymentSheet: View {
 
             Spacer(minLength: 4)
 
-            // Botão final: Marcar como pago
-            JuntoPillButton(
-                title: "Marcar como pago",
-                icon: "checkmark",
-                color: JuntoColors.primary
-            ) {
-                onMarkAsPaid()
-                dismiss()
+            // Comprovante anexado (se houver)
+            if let fName = attachedFileName {
+                HStack(spacing: 8) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .foregroundColor(JuntoColors.pixGreen)
+                    Text("Comprovante: \(fName)")
+                        .font(.inter(12, weight: .medium))
+                        .foregroundColor(JuntoColors.pixGreen)
+                        .lineLimit(1)
+                    Spacer()
+                    Button {
+                        attachedData = nil
+                        attachedFileName = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundColor(JuntoColors.textMuted)
+                    }
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(JuntoColors.pixGreen.opacity(0.10))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+
+            // Botões de Ação: Anexar Comprovante (Foto ou PDF) + Já Paguei
+            HStack(spacing: 10) {
+                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                    HStack(spacing: 4) {
+                        Image(systemName: "photo")
+                            .font(.system(size: 13))
+                        Text("Foto")
+                            .font(.inter(13, weight: .medium))
+                    }
+                    .foregroundColor(JuntoColors.primary)
+                    .frame(height: 48)
+                    .padding(.horizontal, 12)
+                    .background(JuntoColors.surfaceSubtle)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+
+                Button {
+                    showFileImporter = true
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "doc.fill")
+                            .font(.system(size: 13))
+                        Text("PDF")
+                            .font(.inter(13, weight: .medium))
+                    }
+                    .foregroundColor(JuntoColors.primary)
+                    .frame(height: 48)
+                    .padding(.horizontal, 12)
+                    .background(JuntoColors.surfaceSubtle)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
+
+                Button {
+                    onSendReceipt?(attachedData, attachedFileName ?? (attachedData != nil ? "comprovante.jpg" : nil))
+                    onMarkAsPaid()
+                    dismiss()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark")
+                            .font(.system(size: 14, weight: .semibold))
+                        Text(attachedData != nil || attachedFileName != nil ? "Enviar e Confirmar" : "Já paguei via Pix")
+                            .font(.inter(14, weight: .medium))
+                    }
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(JuntoColors.primary)
+                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                }
             }
             .padding(.bottom, 10)
         }
         .padding(.horizontal, 20)
         .background(Color.white.ignoresSafeArea())
+        .onChange(of: selectedPhotoItem) { _, newItem in
+            Task {
+                if let data = try? await newItem?.loadTransferable(type: Data.self) {
+                    attachedData = data
+                    attachedFileName = "comprovante_pix.jpg"
+                }
+            }
+        }
+        .fileImporter(
+            isPresented: $showFileImporter,
+            allowedContentTypes: [.pdf, .image],
+            allowsMultipleSelection: false
+        ) { result in
+            if case .success(let urls) = result, let url = urls.first {
+                attachedData = try? Data(contentsOf: url)
+                attachedFileName = url.lastPathComponent
+            }
+        }
         .onAppear {
             timeRemaining = 300
             timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in

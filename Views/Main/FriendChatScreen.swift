@@ -485,12 +485,14 @@ struct FriendChatScreen: View {
             audioManager.stopPlayback()
             audioManager.cancelRecording()
         }
-        .fullScreenCover(isPresented: $showProfileScreen) {
+        .sheet(isPresented: $showProfileScreen) {
             FriendProfileScreen(friend: currentFriend) {
                 // Se o usuário foi bloqueado, fecha o chat também
                 dismiss()
             }
             .environmentObject(store)
+            .presentationDetents([.fraction(0.72), .large])
+            .presentationCornerRadius(24)
         }
         .sheet(isPresented: $showAttachmentMenu) {
             ChatAttachmentMenuSheet(
@@ -865,29 +867,27 @@ struct FriendProfileScreen: View {
 
     var body: some View {
         ZStack {
-            JuntoColors.warmBg.ignoresSafeArea()
+            Color.white.ignoresSafeArea()
 
             VStack(spacing: 0) {
-                // Topo estilo WhatsApp: apenas botão voltar para a conversa + título
+                // Topo Popup Sheet limpo
                 HStack {
-                    Button { dismiss() } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "chevron.left")
-                                .font(.system(size: 17, weight: .medium))
-                            Text("Conversa")
-                                .font(.inter(15, weight: .regular))
-                        }
-                        .foregroundColor(JuntoColors.primary)
-                    }
-                    Spacer()
-                    Text("Dados do contato")
-                        .font(.inter(16, weight: .medium))
+                    Text("Perfil")
+                        .font(.inter(18, weight: .bold))
                         .foregroundColor(JuntoColors.textMain)
                     Spacer()
-                    Spacer().frame(width: 78)
+                    Button { dismiss() } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .semibold))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .frame(width: 32, height: 32)
+                            .background(JuntoColors.surfaceSubtle)
+                            .clipShape(Circle())
+                    }
                 }
-                .padding(.horizontal, 16)
-                .padding(.vertical, 12)
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 10)
                 .background(Color.white)
                 .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.7), alignment: .bottom)
 

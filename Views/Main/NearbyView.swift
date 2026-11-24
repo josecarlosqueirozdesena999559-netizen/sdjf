@@ -22,8 +22,7 @@ struct NearbyView: View {
         return store.nearbyUsers.filter {
             $0.name.lowercased().contains(clean) ||
             $0.username.lowercased().contains(clean) ||
-            $0.neighborhood.lowercased().contains(clean) ||
-            $0.interests.contains { $0.lowercased().contains(clean) }
+            $0.neighborhood.lowercased().contains(clean)
         }
     }
 
@@ -213,26 +212,11 @@ struct NearbyView: View {
                         .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                 }
-
-                if !person.interests.isEmpty {
-                    HStack(spacing: 4) {
-                        ForEach(person.interests.prefix(3), id: \.self) { interest in
-                            Text(interest)
-                                .font(.inter(10, weight: .regular))
-                                .foregroundColor(JuntoColors.primary)
-                                .padding(.horizontal, 6)
-                                .padding(.vertical, 2)
-                                .background(JuntoColors.surfaceSubtle)
-                                .clipShape(Capsule())
-                        }
-                    }
-                    .padding(.top, 2)
-                }
             }
 
             Spacer(minLength: 8)
 
-            // Botão "+ Adicionar" / "Convidado"
+            // Botão "+ Adicionar" / "Enviado" (toque desfaz o convite)
             Button {
                 withAnimation {
                     store.addNearbyUserAsFriend(userItem: person)
@@ -264,7 +248,6 @@ struct NearbyView: View {
                     .clipShape(Capsule())
                 }
             }
-            .disabled(person.isInvited)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
@@ -492,39 +475,26 @@ struct NearbyUserProfileSheet: View {
                     .padding(.top, 2)
             }
 
-            if !person.interests.isEmpty {
-                VStack(spacing: 6) {
-                    Text("Interesses em comum")
-                        .font(.inter(12, weight: .medium))
-                        .foregroundColor(JuntoColors.textMuted)
-
-                    HStack(spacing: 6) {
-                        ForEach(person.interests, id: \.self) { tag in
-                            Text(tag)
-                                .font(.inter(12, weight: .regular))
-                                .foregroundColor(JuntoColors.primary)
-                                .padding(.horizontal, 10)
-                                .padding(.vertical, 4)
-                                .background(JuntoColors.surfaceSubtle)
-                                .clipShape(Capsule())
-                        }
-                    }
-                }
-            }
-
             Spacer()
 
             if person.isInvited {
-                HStack(spacing: 6) {
-                    Image(systemName: "checkmark")
-                    Text("Convite já enviado")
+                Button {
+                    withAnimation {
+                        store.addNearbyUserAsFriend(userItem: person)
+                    }
+                    dismiss()
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: "checkmark")
+                        Text("Convite enviado • Toque para cancelar")
+                    }
+                    .font(.inter(13, weight: .medium))
+                    .foregroundColor(JuntoColors.textMuted)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 48)
+                    .background(JuntoColors.surfaceSubtle)
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
-                .font(.inter(14, weight: .medium))
-                .foregroundColor(JuntoColors.textMuted)
-                .frame(maxWidth: .infinity)
-                .frame(height: 48)
-                .background(JuntoColors.surfaceSubtle)
-                .clipShape(RoundedRectangle(cornerRadius: 10))
             } else {
                 JuntoPillButton(title: "Adicionar aos amigos", icon: "person.badge.plus") {
                     store.addNearbyUserAsFriend(userItem: person)
@@ -534,7 +504,7 @@ struct NearbyUserProfileSheet: View {
         }
         .padding(.horizontal, 24)
         .padding(.bottom, 24)
-        .presentationDetents([.fraction(0.55)])
+        .presentationDetents([.fraction(0.42)])
     }
 }
 

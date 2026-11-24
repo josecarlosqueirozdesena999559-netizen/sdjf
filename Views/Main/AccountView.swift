@@ -42,6 +42,7 @@ struct AccountView: View {
                             Task {
                                 if let data = try? await newItem?.loadTransferable(type: Data.self) {
                                     store.user.avatarData = data
+                                    store.saveUserSession()
                                     store.showToast("Foto atualizada.", icon: "camera")
                                 }
                             }
@@ -355,6 +356,7 @@ struct AccountSettingsScreen: View {
                                 store.user.phone = draftPhone
                                 store.user.pixKey = draftPixKey
                                 store.user.avatarData = draftAvatarData
+                                store.saveUserSession()
                                 passwordChanged = false
                                 store.showToast("Alterações salvas.", icon: "checkmark.circle")
                                 dismiss()

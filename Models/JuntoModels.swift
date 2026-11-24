@@ -56,7 +56,7 @@ enum UsernameCheckState {
     case unavailable
 }
 
-struct CountryOption: Identifiable, Hashable {
+struct CountryOption: Identifiable, Hashable, Codable {
     let id: String
     let name: String
     let flag: String
@@ -70,7 +70,7 @@ struct CountryOption: Identifiable, Hashable {
     ]
 }
 
-struct UserProfile {
+struct UserProfile: Codable {
     var fullName: String
     var username: String
     var email: String
@@ -78,7 +78,7 @@ struct UserProfile {
     var phone: String
     var pixKey: String
     var timezone: String = "(GMT-03:00) Brasília"
-    let currency: String = "BRL"
+    var currency: String = "BRL"
     var language: String = "Português (Brasil)"
     var allowRecommendations: Bool = true
     var avatarData: Data? = nil
@@ -144,6 +144,12 @@ struct ChatPollData: Hashable {
     }
 }
 
+enum ReceiptStatus: String, Codable, Hashable {
+    case pending = "Pendente de conferência"
+    case approved = "Confirmado pelo Dono"
+    case rejected = "Recusado"
+}
+
 enum ChatMessageKind: Hashable {
     case text(String)
     case photo(Data?, String)
@@ -151,6 +157,7 @@ enum ChatMessageKind: Hashable {
     case document(String, String)
     case poll(ChatPollData)
     case system(String)
+    case receipt(amount: Double, imageData: Data?, fileName: String?, status: ReceiptStatus)
 }
 
 struct ChatMessage: Identifiable, Hashable {
@@ -176,6 +183,7 @@ struct ChatMessage: Identifiable, Hashable {
         case .document(let name, _): return "Documento: \(name)"
         case .poll(let poll): return "Enquete: \(poll.question)"
         case .system(let info): return info
+        case .receipt(let amt, _, _, let status): return "Comprovante Pix (R$ \(String(format: "%.2f", amt))) • \(status.rawValue)"
         }
     }
 }
@@ -293,6 +301,9 @@ struct RoleGroup: Identifiable {
     var participants: [GroupParticipant]
     var hasCollectivePot: Bool
     var comandaItems: [ComandaItem]
+    var ownerUsername: String = "lucas.andrade"
+    var ownerName: String = "Lucas Andrade"
+    var ownerPixKey: String = "lucas.andrade@exemplo.com"
 
     // Pote Mensal (Excursões / Viagens parceladas mês a mês)
     var potMode: PotRecurrenceMode = .single

@@ -44,9 +44,38 @@ final class JuntoStore: ObservableObject {
     @Published var supportEmail: String = "suporte@junto.app"
     @Published var isDatabaseSynced: Bool = false
 
+    // MARK: - Persistência Real de Sessão do Usuário (Auto-Login Sem Tela de Cadastro)
+    private let savedProfileKey = "junto_user_profile_data"
+    private let sessionActiveKey = "junto_session_is_active"
+
+    func saveUserSession() {
+        if let encoded = try? JSONEncoder().encode(user) {
+            UserDefaults.standard.set(encoded, forKey: savedProfileKey)
+            UserDefaults.standard.set(true, forKey: sessionActiveKey)
+        }
+    }
+
+    func loadSavedUserSession() {
+        let isSessionActive = UserDefaults.standard.bool(forKey: sessionActiveKey)
+        guard isSessionActive,
+              let data = UserDefaults.standard.data(forKey: savedProfileKey),
+              let savedUser = try? JSONDecoder().decode(UserProfile.self, from: data) else {
+            return
+        }
+        self.user = savedUser
+        self.route = .main
+    }
+
+    func clearUserSession() {
+        UserDefaults.standard.removeObject(forKey: savedProfileKey)
+        UserDefaults.standard.set(false, forKey: sessionActiveKey)
+        UserDefaults.standard.removeObject(forKey: "junto_access_token")
+    }
+
     init() {
-        // Solicita permissão real de notificações do iOS e sincroniza com o banco PostgreSQL do Docker
+        // Solicita permissão real de notificações do iOS e carrega sessão salva (Auto-Login)
         JuntoNotificationManager.shared.requestAuthorization()
+        loadSavedUserSession()
         setupSeedData()
         Task {
             await syncWithBackendDatabase()
@@ -97,8 +126,12 @@ final class JuntoStore: ObservableObject {
         expectedWhatsAppOTP = code
         let phone = draftPhone
         Task {
-            _ = await JuntoBackendService.shared.sendWhatsAppVerificationCode(phone: phone, code: code)
+            let sent = await WhatsAppCloudAPIService.shared.sendOTP(to: phone, code: code)
+            if !sent {
+                _ = await JuntoBackendService.shared.sendWhatsAppVerificationCode(phone: phone, code: code)
+            }
         }
+        showToast("Código WhatsApp enviado! (\(code))", icon: "message.fill")
     }
 
     private let takenUsernames: Set<String> = ["admin", "pedro", "matheus", "camila", "junto", "teste", "suporte"]
@@ -154,6 +187,7 @@ final class JuntoStore: ObservableObject {
         if !clean.isEmpty {
             if clean.contains("@") { user.email = clean } else { user.username = clean.lowercased() }
         }
+        saveUserSession()
         Task {
             if let res = await JuntoBackendService.shared.login(identifier: clean.isEmpty ? user.username : clean, password: password),
                let uDict = res["user"] as? [String: Any] {
@@ -163,6 +197,7 @@ final class JuntoStore: ObservableObject {
                 if let phone = uDict["phone"] as? String { user.phone = phone }
                 if let pix = uDict["pixKey"] as? String { user.pixKey = pix }
                 if let pro = uDict["isPro"] as? Bool { user.isPro = pro }
+                saveUserSession()
                 await syncWithBackendDatabase()
             }
         }
@@ -186,6 +221,7 @@ final class JuntoStore: ObservableObject {
             phone: draftPhone,
             pixKey: finalPix
         )
+        saveUserSession()
 
         let pwd = draftPassword
         Task {
@@ -199,11 +235,6 @@ final class JuntoStore: ObservableObject {
             )
             await syncWithBackendDatabase()
         }
-
-        JuntoNotificationManager.shared.triggerLocalNotification(
-            title: "Bem-vindo ao Juntô, \(user.firstName)!",
-            body: "Sua conta @\(user.username) foi criada e sincronizada com sucesso."
-        )
 
         withAnimation(.easeInOut(duration: 0.28)) {
             route = .welcomeSlides
@@ -779,7 +810,17 @@ final class JuntoStore: ObservableObject {
 
     /// Verifica se o usuário atual é o Dono (responsável) do grupo
     func isCurrentUserOwner(in group: RoleGroup) -> Bool {
-        group.participants.first(where: { $0.name == "Você" || $0.username == user.username })?.role == .owner
+        if group.ownerUsername.lowercased() == user.username.lowercased() { return true }
+        return group.participants.first(where: { $0.name == "Você" || $0.username.lowercased() == user.username.lowercased() })?.role == .owner
+    }
+
+    /// Verifica se o usuário atual é Dono ou Admin do grupo (tem permissão de gerenciar pagamentos e membros)
+    func isCurrentUserGroupOwnerOrAdmin(in group: RoleGroup) -> Bool {
+        if group.ownerUsername.lowercased() == user.username.lowercased() { return true }
+        if let me = group.participants.first(where: { $0.name == "Você" || $0.username.lowercased() == user.username.lowercased() }) {
+            return me.role == .owner || me.role == .admin
+        }
+        return false
     }
 
     /// Marca um áudio como escutado (ondas ficam laranja para quem escutou e para quem enviou)
@@ -918,6 +959,26 @@ final class JuntoStore: ObservableObject {
             ? " • \(groups[gIdx].monthlyCycles[mIdx].label)"
             : ""
 
+        // Atualiza comprovantes pendentes desse participante no chat para aprovados
+        if let msgs = groupChatMessages[groupId] {
+            for i in msgs.indices {
+                if msgs[i].senderUsername?.lowercased() == uname,
+                   case .receipt(let amt, let img, let file, _) = msgs[i].kind {
+                    groupChatMessages[groupId]?[i].kind = .receipt(amount: amt, imageData: img, fileName: file, status: .approved)
+                }
+            }
+        }
+
+        // Adiciona mensagem automática de confirmação no chat do grupo
+        if groupChatMessages[groupId] == nil { groupChatMessages[groupId] = [] }
+        groupChatMessages[groupId]?.append(
+            ChatMessage(
+                isFromMe: false,
+                kind: .system("✅ @\(user.username) confirmou o pagamento de @\(uname)."),
+                timeText: currentTimeString()
+            )
+        )
+
         activities.insert(
             ActivityEvent(
                 icon: "checkmark.circle",
@@ -930,6 +991,44 @@ final class JuntoStore: ObservableObject {
             at: 0
         )
         showToast("Pagamento de \(personName) confirmado!", icon: "checkmark.circle")
+    }
+
+    /// Envia o comprovante de pagamento Pix (imagem ou arquivo PDF) diretamente no chat do grupo
+    func sendGroupReceipt(groupId: UUID, amount: Double, imageData: Data?, fileName: String?) {
+        guard let gIdx = groups.firstIndex(where: { $0.id == groupId }) else { return }
+
+        let msg = ChatMessage(
+            isFromMe: true,
+            kind: .receipt(amount: amount, imageData: imageData, fileName: fileName, status: .pending),
+            timeText: currentTimeString(),
+            senderName: user.fullName,
+            senderUsername: user.username,
+            senderProPlanType: user.proPlanType
+        )
+
+        if groupChatMessages[groupId] == nil {
+            groupChatMessages[groupId] = []
+        }
+        groupChatMessages[groupId]?.append(msg)
+
+        let cleanUser = user.username.lowercased()
+        if let pIdx = groups[gIdx].participants.firstIndex(where: { $0.username.lowercased() == cleanUser }) {
+            groups[gIdx].participants[pIdx].markedPaidByMember = true
+            let mIdx = groups[gIdx].selectedMonthIndex
+            if groups[gIdx].potMode == .monthly, groups[gIdx].monthlyCycles.indices.contains(mIdx) {
+                groups[gIdx].monthlyCycles[mIdx].markedPaidUsernames.insert(cleanUser)
+            }
+        }
+
+        showToast("Comprovante enviado no chat para o organizador conferir!", icon: "doc.text.fill")
+    }
+
+    func markParticipantPaid(groupId: UUID, participantUsername: String, monthIndex: Int? = nil) {
+        guard let gIdx = groups.firstIndex(where: { $0.id == groupId }) else { return }
+        let clean = participantUsername.lowercased()
+        if let p = groups[gIdx].participants.first(where: { $0.username.lowercased() == clean }) {
+            ownerConfirmParticipantPaid(groupId: groupId, participantId: p.id, monthIndex: monthIndex)
+        }
     }
 
     func isInviteSent(for username: String) -> Bool {
@@ -993,6 +1092,9 @@ final class JuntoStore: ObservableObject {
 
         sentInviteUsernames.remove(clean)
         friends.removeAll { $0.username.lowercased() == clean && $0.isPendingInvite }
+        if let idx = nearbyUsers.firstIndex(where: { $0.username.lowercased() == clean }) {
+            nearbyUsers[idx].isInvited = false
+        }
         showToast("Convite para @\(clean) cancelado.", icon: "xmark.circle")
     }
 
@@ -1652,6 +1754,7 @@ final class JuntoStore: ObservableObject {
     }
 
     func deleteAccountPermanently() {
+        clearUserSession()
         draftEmail = ""
         draftUsername = ""
         draftPassword = ""
@@ -1669,6 +1772,7 @@ final class JuntoStore: ObservableObject {
         user.proPlanType = planType
         user.proPlanName = plan
         user.proExpiresDateText = planType == .yearly ? "Renovação em 23 de nov. de 2027" : "Renovação em 23 de dez. de 2026"
+        saveUserSession()
         let uname = user.username
         Task {
             await JuntoBackendService.shared.syncProStatus(username: uname, isPro: true, planName: plan)
@@ -1716,9 +1820,16 @@ final class JuntoStore: ObservableObject {
 
     func addNearbyUserAsFriend(userItem: NearbyUserItem) {
         guard let idx = nearbyUsers.firstIndex(where: { $0.id == userItem.id }) else { return }
-        nearbyUsers[idx].isInvited = true
-        sendFriendInvite(username: userItem.username, displayName: userItem.name)
-        showToast("Convite enviado para \(userItem.name)!", icon: "person.badge.plus")
+        if nearbyUsers[idx].isInvited {
+            nearbyUsers[idx].isInvited = false
+            friends.removeAll { $0.username.lowercased() == userItem.username.lowercased() && $0.isPendingInvite }
+            sentInviteUsernames.remove(userItem.username.lowercased())
+            showToast("Convite cancelado para \(userItem.name).", icon: "arrow.uturn.backward")
+        } else {
+            nearbyUsers[idx].isInvited = true
+            sendFriendInvite(username: userItem.username, displayName: userItem.name)
+            showToast("Convite enviado para \(userItem.name)!", icon: "person.badge.plus")
+        }
     }
 
     // MARK: - Dados Iniciais / Seed para Próximos e Grupos Públicos
@@ -1898,6 +2009,7 @@ final class JuntoStore: ObservableObject {
     }
 
     func logout() {
+        clearUserSession()
         withAnimation(.easeInOut(duration: 0.25)) {
             route = .welcomeAuth
         }
