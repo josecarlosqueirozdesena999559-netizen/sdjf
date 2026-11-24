@@ -44,18 +44,18 @@ struct WelcomeAuthView: View {
                 Spacer().frame(height: 52)
 
                 VStack(spacing: 12) {
-                    JuntoPillButton(title: "Cadastrar", color: JuntoColors.primary) {
+                    JuntoPillButton(title: "Entrar", color: JuntoColors.primary) {
                         withAnimation(.easeInOut(duration: 0.22)) {
-                            store.route = .registerFlow
+                            store.route = .login
                         }
                     }
 
                     Button {
                         withAnimation(.easeInOut(duration: 0.22)) {
-                            store.route = .login
+                            store.route = .registerFlow
                         }
                     } label: {
-                        Text("Entrar")
+                        Text("Cadastre-se")
                             .font(.inter(16, weight: .semibold))
                             .foregroundColor(JuntoColors.primary)
                             .frame(maxWidth: .infinity)

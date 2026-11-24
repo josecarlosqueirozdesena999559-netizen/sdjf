@@ -62,10 +62,10 @@ struct LoginView: View {
                     switch step {
                     case .phone:
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Entrar com WhatsApp")
+                            Text("Entrar")
                                 .font(.inter(26, weight: .bold))
                                 .foregroundColor(JuntoColors.textMain)
-                            Text("Informe seu número cadastrado. Enviaremos um código de 6 dígitos no seu WhatsApp.")
+                            Text("Informe seu número cadastrado. Enviaremos um código de 6 dígitos para confirmar seu acesso.")
                                 .font(.inter(14, weight: .regular))
                                 .foregroundColor(JuntoColors.textMuted)
                                 .lineSpacing(3)
@@ -73,7 +73,7 @@ struct LoginView: View {
                         .padding(.top, 20)
 
                         CleanOutlineInput(
-                            label: "Número do WhatsApp",
+                            label: "Número de telefone",
                             placeholder: "(11) 99999-9999",
                             text: $phoneText,
                             keyboardType: .phonePad,
