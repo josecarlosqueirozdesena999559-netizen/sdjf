@@ -570,6 +570,32 @@ final class JuntoStore: ObservableObject {
         }
     }
 
+    /// Lista unificada de todas as conversas estilo WhatsApp:
+    /// amigos e grupos competem na mesma lista por atividade recente.
+    /// Quem tiver mensagem mais recente SEMPRE sobe para o topo!
+    var unifiedChatsSortedByRecent: [UnifiedChatItem] {
+        var list: [UnifiedChatItem] = []
+
+        for f in friends {
+            let d = lastMessageDate(for: f.username)
+            list.append(.friend(f, d))
+        }
+
+        for g in groups {
+            let d = lastGroupMessageDate(for: g.id)
+            list.append(.group(g, d))
+        }
+
+        return list.sorted { item1, item2 in
+            let d1 = item1.lastActivityDate
+            let d2 = item2.lastActivityDate
+            if d1 != d2 {
+                return d1 > d2
+            }
+            return item1.title.localizedStandardCompare(item2.title) == .orderedAscending
+        }
+    }
+
     func sendGroupChatMessage(
         groupId: UUID,
         kind: ChatMessageKind,

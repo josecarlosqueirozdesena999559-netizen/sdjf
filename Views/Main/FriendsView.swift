@@ -10,23 +10,12 @@ struct FriendsView: View {
     @State private var selectedGroupChatId: UUID? = nil
     @State private var searchText = ""
 
-    /// Conversas com amigos organizadas por ordem de mensagens recentes (estilo WhatsApp)
-    private var activeDebtFriends: [FriendItem] {
-        let list = store.friendsSortedByRecent
+    /// Todas as conversas unificadas estilo WhatsApp: quem mandar recente fica no topo (grupos ou amigos)
+    private var recentChats: [UnifiedChatItem] {
+        let list = store.unifiedChatsSortedByRecent
         if searchText.isEmpty { return list }
         return list.filter {
-            $0.name.localizedCaseInsensitiveContains(searchText) ||
-            $0.username.localizedCaseInsensitiveContains(searchText)
-        }
-    }
-
-    /// Conversas de grupos organizadas por ordem de mensagens recentes (estilo WhatsApp)
-    private var activeGroupChats: [RoleGroup] {
-        let list = store.groupsSortedByRecent
-        if searchText.isEmpty { return list }
-        return list.filter {
-            $0.title.localizedCaseInsensitiveContains(searchText) ||
-            $0.category.localizedCaseInsensitiveContains(searchText)
+            $0.searchKeywords.localizedCaseInsensitiveContains(searchText)
         }
     }
 
@@ -96,7 +85,7 @@ struct FriendsView: View {
                     .font(.inter(16, weight: .medium))
                     .foregroundColor(JuntoColors.textMain)
 
-                if !activeDebtFriends.isEmpty {
+                if !recentChats.isEmpty {
                     HStack(spacing: 4) {
                         Text(store.netBalance >= 0 ? "No total, você recebe" : "No total, você deve")
                             .font(.inter(13, weight: .regular))
@@ -112,7 +101,7 @@ struct FriendsView: View {
 
             Divider().opacity(0.6)
 
-            if activeDebtFriends.isEmpty && activeGroupChats.isEmpty {
+            if recentChats.isEmpty {
                 Spacer()
                 VStack(spacing: 14) {
                     if searchText.isEmpty {
@@ -141,7 +130,7 @@ struct FriendsView: View {
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 28)
                     } else {
-                        Text("Nenhum amigo encontrado.")
+                        Text("Nenhuma conversa encontrada.")
                             .font(.inter(15, weight: .regular))
                             .foregroundColor(JuntoColors.textMuted)
                     }
@@ -150,120 +139,15 @@ struct FriendsView: View {
                 Spacer()
                 Spacer().frame(height: 110)
             } else {
-                // Lista estilo WhatsApp: Mensagens de Amigos no topo + Grupos abaixo
+                // Lista estilo WhatsApp Real: conversas unificadas onde quem mandar recente fica sempre no topo!
                 List {
-                    // 1. Mensagens de amigos individuais (ordenadas por recentes)
-                    ForEach(activeDebtFriends) { friend in
-                        Button {
-                            selectedChatFriend = friend
-                        } label: {
-                            HStack(spacing: 14) {
-                                // Bolinha verde online SOMENTE aqui na tela inicial quando online
-                                ZStack(alignment: .bottomTrailing) {
-                                    GeometricAvatarView(seed: friend.username, displayName: friend.name, size: 50)
-                                    if friend.isOnline {
-                                        Circle()
-                                            .fill(JuntoColors.pixGreen)
-                                            .frame(width: 13, height: 13)
-                                            .overlay(Circle().stroke(Color.white, lineWidth: 2))
-                                    }
-                                }
-
-                                VStack(alignment: .leading, spacing: 3) {
-                                    HStack(spacing: 5) {
-                                        Text(friend.name)
-                                            .font(.inter(15, weight: .medium))
-                                            .foregroundColor(JuntoColors.textMain)
-                                            .lineLimit(1)
-                                        VerifiedBadgeView(type: friend.proPlanType, size: 13)
-                                    }
-
-                                    Text(store.lastMessagePreview(for: friend.username))
-                                        .font(.inter(13, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMuted)
-                                        .lineLimit(1)
-                                }
-
-                                Spacer()
-
-                                if friend.balance > 0 {
-                                    VStack(alignment: .trailing, spacing: 2) {
-                                        Text("te deve")
-                                            .font(.inter(11, weight: .regular))
-                                            .foregroundColor(JuntoColors.pixGreen)
-                                        Text(JuntoStore.formatBRL(friend.balance))
-                                            .font(.inter(15, weight: .medium))
-                                            .foregroundColor(JuntoColors.pixGreen)
-                                    }
-                                } else if friend.balance < 0 {
-                                    VStack(alignment: .trailing, spacing: 2) {
-                                        Text("você deve")
-                                            .font(.inter(11, weight: .regular))
-                                            .foregroundColor(JuntoColors.orangeSave)
-                                        Text(JuntoStore.formatBRL(abs(friend.balance)))
-                                            .font(.inter(15, weight: .medium))
-                                            .foregroundColor(JuntoColors.orangeSave)
-                                    }
-                                }
-                            }
-                            .padding(.vertical, 6)
+                    ForEach(recentChats) { item in
+                        switch item {
+                        case .friend(let friend, _):
+                            friendRow(friend)
+                        case .group(let group, _):
+                            groupRow(group)
                         }
-                        .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
-                        .listRowBackground(Color.white)
-                        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-                            Button(role: .destructive) {
-                                // Se tiver dívida, o amigo continua na lista porém sem mensagens
-                                store.clearConversation(for: friend.username)
-                            } label: {
-                                Label("Apagar conversa", systemImage: "trash")
-                            }
-                        }
-                    }
-
-                    // 2. Grupos de rolê (abaixo das conversas de amigos)
-                    ForEach(activeGroupChats) { group in
-                        Button {
-                            selectedGroupChatId = group.id
-                        } label: {
-                            HStack(spacing: 14) {
-                                Group {
-                                    if let data = group.coverImageData, let uiImg = UIImage(data: data) {
-                                        Image(uiImage: uiImg).resizable().scaledToFill()
-                                    } else {
-                                        Image(group.coverImageName).resizable().scaledToFill()
-                                    }
-                                }
-                                .frame(width: 50, height: 50)
-                                .clipped()
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                                VStack(alignment: .leading, spacing: 3) {
-                                    HStack(spacing: 5) {
-                                        Text(group.title)
-                                            .font(.inter(15, weight: .medium))
-                                            .foregroundColor(JuntoColors.textMain)
-                                            .lineLimit(1)
-                                        Text("· \(group.participants.count)")
-                                            .font(.inter(12, weight: .regular))
-                                            .foregroundColor(JuntoColors.textMuted)
-                                    }
-
-                                    Text(store.lastGroupMessagePreview(for: group.id))
-                                        .font(.inter(13, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMuted)
-                                        .lineLimit(1)
-                                }
-
-                                Spacer()
-
-                                Image(systemName: "person.2")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(JuntoColors.textLight)
-                            }
-                            .padding(.vertical, 6)
-                        }
-                        .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
-                        .listRowBackground(Color.white)
                     }
 
                     // Espaço para a barra flutuante inferior
@@ -313,6 +197,120 @@ struct FriendsView: View {
                     .environmentObject(store)
             }
         }
+    }
+
+    // MARK: - Linha de Conversa com Amigo (Estilo WhatsApp)
+    private func friendRow(_ friend: FriendItem) -> some View {
+        Button {
+            selectedChatFriend = friend
+        } label: {
+            HStack(spacing: 14) {
+                // Bolinha verde online SOMENTE aqui na tela inicial quando online
+                ZStack(alignment: .bottomTrailing) {
+                    GeometricAvatarView(seed: friend.username, displayName: friend.name, size: 50)
+                    if friend.isOnline {
+                        Circle()
+                            .fill(JuntoColors.pixGreen)
+                            .frame(width: 13, height: 13)
+                            .overlay(Circle().stroke(Color.white, lineWidth: 2))
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 5) {
+                        Text(friend.name)
+                            .font(.inter(15, weight: .medium))
+                            .foregroundColor(JuntoColors.textMain)
+                            .lineLimit(1)
+                        VerifiedBadgeView(type: friend.proPlanType, size: 13)
+                    }
+
+                    Text(store.lastMessagePreview(for: friend.username))
+                        .font(.inter(13, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                if friend.balance > 0 {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("te deve")
+                            .font(.inter(11, weight: .regular))
+                            .foregroundColor(JuntoColors.pixGreen)
+                        Text(JuntoStore.formatBRL(friend.balance))
+                            .font(.inter(15, weight: .medium))
+                            .foregroundColor(JuntoColors.pixGreen)
+                    }
+                } else if friend.balance < 0 {
+                    VStack(alignment: .trailing, spacing: 2) {
+                        Text("você deve")
+                            .font(.inter(11, weight: .regular))
+                            .foregroundColor(JuntoColors.orangeSave)
+                        Text(JuntoStore.formatBRL(abs(friend.balance)))
+                            .font(.inter(15, weight: .medium))
+                            .foregroundColor(JuntoColors.orangeSave)
+                    }
+                }
+            }
+            .padding(.vertical, 6)
+        }
+        .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+        .listRowBackground(Color.white)
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive) {
+                // Se tiver dívida, o amigo continua na lista porém sem mensagens
+                store.clearConversation(for: friend.username)
+            } label: {
+                Label("Apagar conversa", systemImage: "trash")
+            }
+        }
+    }
+
+    // MARK: - Linha de Conversa de Grupo (Estilo WhatsApp)
+    private func groupRow(_ group: RoleGroup) -> some View {
+        Button {
+            selectedGroupChatId = group.id
+        } label: {
+            HStack(spacing: 14) {
+                Group {
+                    if let data = group.coverImageData, let uiImg = UIImage(data: data) {
+                        Image(uiImage: uiImg).resizable().scaledToFill()
+                    } else {
+                        Image(group.coverImageName).resizable().scaledToFill()
+                    }
+                }
+                .frame(width: 50, height: 50)
+                .clipped()
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                VStack(alignment: .leading, spacing: 3) {
+                    HStack(spacing: 5) {
+                        Text(group.title)
+                            .font(.inter(15, weight: .medium))
+                            .foregroundColor(JuntoColors.textMain)
+                            .lineLimit(1)
+                        Text("· \(group.participants.count)")
+                            .font(.inter(12, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                    }
+
+                    Text(store.lastGroupMessagePreview(for: group.id))
+                        .font(.inter(13, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                Image(systemName: "person.2")
+                    .font(.system(size: 13))
+                    .foregroundColor(JuntoColors.textLight)
+            }
+            .padding(.vertical, 6)
+        }
+        .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+        .listRowBackground(Color.white)
     }
 }
 

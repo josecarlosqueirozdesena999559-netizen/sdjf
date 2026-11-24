@@ -48,6 +48,44 @@ enum MainTab: Int, CaseIterable {
     }
 }
 
+// MARK: - Conversa Unificada (WhatsApp Real: amigos e grupos ordenados juntos por atividade mais recente)
+enum UnifiedChatItem: Identifiable, Equatable {
+    case friend(FriendItem, Date)
+    case group(RoleGroup, Date)
+
+    var id: String {
+        switch self {
+        case .friend(let f, _): return "f_\(f.id.uuidString)"
+        case .group(let g, _): return "g_\(g.id.uuidString)"
+        }
+    }
+
+    var lastActivityDate: Date {
+        switch self {
+        case .friend(_, let d): return d
+        case .group(_, let d): return d
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .friend(let f, _): return f.name
+        case .group(let g, _): return g.title
+        }
+    }
+
+    var searchKeywords: String {
+        switch self {
+        case .friend(let f, _): return "\(f.name) \(f.username)"
+        case .group(let g, _): return "\(g.title) \(g.category)"
+        }
+    }
+
+    static func == (lhs: UnifiedChatItem, rhs: UnifiedChatItem) -> Bool {
+        lhs.id == rhs.id && lhs.lastActivityDate == rhs.lastActivityDate
+    }
+}
+
 enum UsernameCheckState {
     case idle
     case tooShort
