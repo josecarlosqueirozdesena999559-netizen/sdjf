@@ -213,27 +213,26 @@ private struct ActivityDetailSheet: View {
 
             VStack(spacing: 0) {
                 detailLine(label: "Descrição", value: activity.title)
-                Divider().padding(.leading, 14)
+                Divider().opacity(0.5)
                 detailLine(label: "Grupo / Origem", value: activity.subtitle)
-                Divider().padding(.leading, 14)
+                Divider().opacity(0.5)
+                detailLine(label: "Data do pagamento", value: activity.displayDateText)
+                Divider().opacity(0.5)
                 detailLine(label: "Status", value: activity.isPositive ? "Pago / Confirmado" : "Registrado")
                 if let amt = activity.amountText {
-                    Divider().padding(.leading, 14)
+                    Divider().opacity(0.5)
                     HStack {
                         Text("Valor")
                             .font(.inter(13, weight: .regular))
                             .foregroundColor(JuntoColors.textMuted)
                         Spacer()
                         Text(amt)
-                            .font(.inter(17, weight: .semibold))
+                            .font(.inter(17, weight: .bold))
                             .foregroundColor(activity.isPositive ? JuntoColors.pixGreen : JuntoColors.textMain)
                     }
-                    .padding(.horizontal, 14)
                     .padding(.vertical, 12)
                 }
             }
-            .background(JuntoColors.surfaceSubtle.opacity(0.6))
-            .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
             Button(action: onOpenExpensesAnalytics) {
                 HStack(spacing: 8) {

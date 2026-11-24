@@ -43,6 +43,10 @@ final class JuntoStore: ObservableObject {
     /// Conversas apagadas pelo usuário na tela inicial (ocultas até nova mensagem ou reabertura pelos contatos)
     @Published var hiddenChatUsernames: Set<String> = []
     @Published var hiddenGroupChatIds: Set<UUID> = []
+    /// Mapeamento de UUID local -> UUID do servidor para nunca perder referência ao criar grupo
+    var groupIdAliases: [UUID: UUID] = [:]
+    /// Histórico permanente de pagamentos arquivados de grupos excluídos ou encerrados
+    @Published var archivedGroupPayments: [PersonalExpenseRecord] = []
 
     /// E-mail oficial de suporte / Fale Conosco / Ouvidoria LGPD (pronto para atualizar quando você enviar o definitivo)
     @Published var supportEmail: String = "suporte@junto.app"
@@ -53,6 +57,77 @@ final class JuntoStore: ObservableObject {
     private let sessionActiveKey = "junto_session_is_active"
     private let hiddenChatsKey = "junto_hidden_chat_usernames"
     private let hiddenGroupChatsKey = "junto_hidden_group_chat_ids"
+    private let archivedPaymentsKey = "junto_archived_group_payments"
+    private let savedActivitiesKey = "junto_saved_monetary_activities"
+
+    static func formattedCurrentDateTime(_ date: Date = Date()) -> String {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "pt_BR")
+        f.dateFormat = "dd/MM/yyyy 'às' HH:mm"
+        return f.string(from: date)
+    }
+
+    func resolvedGroupIndex(for id: UUID) -> Int? {
+        if let idx = groups.firstIndex(where: { $0.id == id }) {
+            return idx
+        }
+        if let mapped = groupIdAliases[id],
+           let idx = groups.firstIndex(where: { $0.id == mapped }) {
+            return idx
+        }
+        return nil
+    }
+
+    func resolvedGroupId(for id: UUID) -> UUID {
+        groupIdAliases[id] ?? id
+    }
+
+    func persistPaymentHistory() {
+        if let encoded = try? JSONEncoder().encode(archivedGroupPayments) {
+            UserDefaults.standard.set(encoded, forKey: archivedPaymentsKey)
+        }
+        let monetary = activities.filter { Self.isMonetaryActivity($0) }
+        if let encodedAct = try? JSONEncoder().encode(monetary) {
+            UserDefaults.standard.set(encodedAct, forKey: savedActivitiesKey)
+        }
+    }
+
+    private func loadPaymentHistory() {
+        if let data = UserDefaults.standard.data(forKey: archivedPaymentsKey),
+           let decoded = try? JSONDecoder().decode([PersonalExpenseRecord].self, from: data) {
+            archivedGroupPayments = decoded
+        }
+        if let actData = UserDefaults.standard.data(forKey: savedActivitiesKey),
+           let decodedAct = try? JSONDecoder().decode([ActivityEvent].self, from: actData) {
+            if activities.isEmpty {
+                activities = decodedAct.filter { Self.isMonetaryActivity($0) }
+            }
+        }
+    }
+
+    func groupMessageCount(for groupId: UUID) -> Int {
+        let realId = resolvedGroupId(for: groupId)
+        return (groupChatMessages[realId] ?? []).filter { msg in
+            if case .system = msg.kind { return false }
+            return true
+        }.count
+    }
+
+    func friendMessageCount(for username: String) -> Int {
+        return (chatMessages[username.lowercased()] ?? []).count
+    }
+
+    /// Gera mensagem pronta de cobrança Pix para os pendentes do grupo (Recurso Juntô Pro)
+    func pendingChargeMessage(for group: RoleGroup) -> String {
+        let pending = group.participants.filter { !$0.hasPaid && $0.quotaAmount > 0 }
+        let organizer = organizerPixInfo(for: group)
+        if pending.isEmpty {
+            return "Todos os participantes do grupo \"\(group.title)\" já estão quitados!"
+        }
+        let lines = pending.map { "• \($0.name): \(Self.formatBRL($0.quotaAmount))" }.joined(separator: "\n")
+        let pixLine = organizer.pixKey.isEmpty ? "" : "\nChave Pix: \(organizer.pixKey)"
+        return "Lembrete do grupo *\(group.title)* no Juntô:\n\nCotas pendentes:\n\(lines)\(pixLine)\n\nAssim que pagar, marque como pago no app!"
+    }
 
     private func persistHiddenChats() {
         UserDefaults.standard.set(Array(hiddenChatUsernames), forKey: hiddenChatsKey)
@@ -99,6 +174,7 @@ final class JuntoStore: ObservableObject {
 
     func loadSavedUserSession() {
         loadHiddenChats()
+        loadPaymentHistory()
         let isSessionActive = UserDefaults.standard.bool(forKey: sessionActiveKey)
         guard isSessionActive,
               let data = UserDefaults.standard.data(forKey: savedProfileKey),
@@ -114,8 +190,12 @@ final class JuntoStore: ObservableObject {
         UserDefaults.standard.set(false, forKey: sessionActiveKey)
         UserDefaults.standard.removeObject(forKey: hiddenChatsKey)
         UserDefaults.standard.removeObject(forKey: hiddenGroupChatsKey)
+        UserDefaults.standard.removeObject(forKey: archivedPaymentsKey)
+        UserDefaults.standard.removeObject(forKey: savedActivitiesKey)
         hiddenChatUsernames = []
         hiddenGroupChatIds = []
+        archivedGroupPayments = []
+        groupIdAliases = [:]
         UserDefaults.standard.removeObject(forKey: "junto_access_token")
         KeychainHelper.delete(forKey: "junto_access_token")
         KeychainHelper.delete(forKey: "junto_refresh_token")
@@ -1281,13 +1361,25 @@ final class JuntoStore: ObservableObject {
         showToast("Conversa apagada.", icon: "trash")
     }
 
-    /// Apaga a conversa de grupo da lista inicial (mantém o grupo na aba Grupos e não vai para Lançamentos)
+    /// Apaga as mensagens da conversa do grupo.
+    /// Se o grupo ainda estiver ativo e dentro do prazo, limpa apenas as mensagens e mantém o grupo na tela inicial.
+    /// Se o usuário saiu do grupo ou o prazo acabou, oculta a conversa da lista inicial.
     func clearGroupConversation(for groupId: UUID) {
-        groupChatMessages[groupId] = []
-        hiddenGroupChatIds.insert(groupId)
-        persistHiddenChats()
+        let realId = resolvedGroupId(for: groupId)
+        groupChatMessages[realId] = []
+        let myHandle = user.username.lowercased()
+        let group = groups.first(where: { $0.id == realId })
+        let isExpired = group.map { Date() > $0.targetDate } ?? true
+        let isStillMember = group?.participants.contains(where: { $0.username.lowercased() == myHandle || $0.name == "Você" }) ?? false
+
+        if isExpired || !isStillMember {
+            hiddenGroupChatIds.insert(realId)
+            persistHiddenChats()
+            showToast("Conversa removida.", icon: "trash")
+        } else {
+            showToast("Mensagens da conversa limpas.", icon: "trash")
+        }
         objectWillChange.send()
-        showToast("Conversa apagada.", icon: "trash")
     }
 
     /// Adiciona diretamente como amigo
@@ -1390,7 +1482,7 @@ final class JuntoStore: ObservableObject {
                                 title: cycle.label,
                                 category: g.category,
                                 amount: me.quotaAmount,
-                                dateText: isCyclePaid ? "Parcela paga" : "Parcela em aberto",
+                                dateText: isCyclePaid ? (me.paidDateText ?? "Parcela paga") : "Parcela em aberto",
                                 monthKey: monthKey,
                                 groupName: g.title,
                                 isPaid: isCyclePaid
@@ -1404,7 +1496,7 @@ final class JuntoStore: ObservableObject {
                             title: paid ? "Cota paga" : "Cota em aberto",
                             category: g.category,
                             amount: me.quotaAmount,
-                            dateText: "Pote do grupo",
+                            dateText: paid ? (me.paidDateText ?? "Pote do grupo") : "Pote do grupo",
                             monthKey: monthKey,
                             groupName: g.title,
                             isPaid: paid
@@ -1432,6 +1524,11 @@ final class JuntoStore: ObservableObject {
         // Pagamentos de despesas de comanda já quitados em grupos (sem lançamentos pessoais avulsos)
         for exp in personalExpenses where exp.isPaid && exp.groupName.lowercased() != "pessoal" && exp.title == "Pagamento no grupo" {
             result.append(exp)
+        }
+
+        // Histórico permanente de pagamentos de grupos já excluídos ou encerrados
+        for archived in archivedGroupPayments {
+            result.append(archived)
         }
 
         // Dívidas em aberto com amigos
@@ -1531,6 +1628,9 @@ final class JuntoStore: ObservableObject {
             at: 0
         )
 
+        let nowDateText = Self.formattedCurrentDateTime()
+        groups[gIdx].participants[pIdx].paidDateText = nowDateText
+
         activities.insert(
             ActivityEvent(
                 icon: "clock.badge.checkmark",
@@ -1538,7 +1638,8 @@ final class JuntoStore: ObservableObject {
                 subtitle: "\(groupTitle)\(monthSuffix) • Aguardando confirmação do dono",
                 timeAgo: "Agora",
                 amountText: Self.formatBRL(quota),
-                isPositive: true
+                isPositive: true,
+                dateText: nowDateText
             ),
             at: 0
         )
@@ -1549,7 +1650,7 @@ final class JuntoStore: ObservableObject {
                     title: "Cota paga\(monthSuffix)",
                     category: groups[gIdx].category,
                     amount: quota,
-                    dateText: "Hoje",
+                    dateText: nowDateText,
                     monthKey: Self.currentMonthKey(),
                     groupName: groupTitle,
                     isPaid: true
@@ -1557,6 +1658,7 @@ final class JuntoStore: ObservableObject {
                 at: 0
             )
         }
+        persistPaymentHistory()
         let gidStr = groupId.uuidString.lowercased()
         Task {
             await JuntoBackendService.shared.markGroupPayment(groupId: gidStr, amount: quota, monthIndex: mIdx, kind: "QUOTA")
@@ -1566,7 +1668,7 @@ final class JuntoStore: ObservableObject {
 
     /// Participante informa que pagou as despesas selecionadas da comanda do grupo
     func memberMarkGroupExpensesAsPaid(groupId: UUID, amount: Double) {
-        guard amount > 0, let gIdx = groups.firstIndex(where: { $0.id == groupId }) else { return }
+        guard amount > 0, let gIdx = resolvedGroupIndex(for: groupId) else { return }
         let groupTitle = groups[gIdx].title
         let organizer = organizerPixInfo(for: groups[gIdx])
         groups[gIdx].myShare = max(0, groups[gIdx].myShare - amount)
@@ -1585,6 +1687,7 @@ final class JuntoStore: ObservableObject {
             ),
             at: 0
         )
+        let nowDateText = Self.formattedCurrentDateTime()
         activities.insert(
             ActivityEvent(
                 icon: "checkmark.circle",
@@ -1592,7 +1695,8 @@ final class JuntoStore: ObservableObject {
                 subtitle: "\(groupTitle) • Pix enviado ao organizador",
                 timeAgo: "Agora",
                 amountText: Self.formatBRL(amount),
-                isPositive: true
+                isPositive: true,
+                dateText: nowDateText
             ),
             at: 0
         )
@@ -1602,13 +1706,14 @@ final class JuntoStore: ObservableObject {
                 title: "Pagamento no grupo",
                 category: groups[gIdx].category,
                 amount: amount,
-                dateText: "Hoje",
+                dateText: nowDateText,
                 monthKey: Self.currentMonthKey(),
                 groupName: groupTitle,
                 isPaid: true
             ),
             at: 0
         )
+        persistPaymentHistory()
         let gidStr = groupId.uuidString.lowercased()
         Task {
             await JuntoBackendService.shared.markGroupPayment(groupId: gidStr, amount: amount, kind: "EXPENSE")
@@ -1618,7 +1723,7 @@ final class JuntoStore: ObservableObject {
 
     /// Dono do grupo confere o Pix na conta dele e confirma o pagamento do participante (suporta Pote Mensal por mês)
     func ownerConfirmParticipantPaid(groupId: UUID, participantId: UUID, monthIndex: Int? = nil) {
-        guard let gIdx = groups.firstIndex(where: { $0.id == groupId }),
+        guard let gIdx = resolvedGroupIndex(for: groupId),
               let pIdx = groups[gIdx].participants.firstIndex(where: { $0.id == participantId }) else { return }
 
         let quota = groups[gIdx].participants[pIdx].quotaAmount
@@ -1663,6 +1768,9 @@ final class JuntoStore: ObservableObject {
             )
         )
 
+        let nowDateText = Self.formattedCurrentDateTime()
+        groups[gIdx].participants[pIdx].paidDateText = nowDateText
+
         activities.insert(
             ActivityEvent(
                 icon: "checkmark.circle",
@@ -1670,10 +1778,12 @@ final class JuntoStore: ObservableObject {
                 subtitle: "\(groupTitle)\(monthSuffix) • Arrecadado \(Self.formatBRL(groups[gIdx].potBalance))",
                 timeAgo: "Agora",
                 amountText: "+ \(Self.formatBRL(quota))",
-                isPositive: true
+                isPositive: true,
+                dateText: nowDateText
             ),
             at: 0
         )
+        persistPaymentHistory()
         let gidStr = groupId.uuidString.lowercased()
         Task {
             await JuntoBackendService.shared.confirmGroupPayment(groupId: gidStr, username: uname, monthIndex: mIdx)
@@ -2168,6 +2278,7 @@ final class JuntoStore: ObservableObject {
                 targetDate: targetDate,
                 memberUsernames: memberHandles
             ), let serverUUID = UUID(uuidString: serverIdStr) {
+                self.groupIdAliases[localGroupId] = serverUUID
                 if let idx = self.groups.firstIndex(where: { $0.id == localGroupId }) {
                     self.groups[idx].id = serverUUID
                     if let existingMsgs = self.groupChatMessages.removeValue(forKey: localGroupId) {
@@ -2256,17 +2367,74 @@ final class JuntoStore: ObservableObject {
         showToast("Caixinha \"\(title)\" excluída.", icon: "trash")
     }
 
-    /// Exclui o grupo e apaga automaticamente toda a conversa em grupo (não registra em Lançamentos)
+    /// Arquiva permanentemente o histórico de pagamentos do usuário antes de sair ou excluir um grupo
+    private func archivePaymentsFromGroup(_ group: RoleGroup) {
+        let myUsername = user.username.lowercased()
+        let monthKey = Self.currentMonthKey()
+        let fallbackDate = Self.formattedCurrentDateTime()
+
+        if let me = group.participants.first(where: { $0.username.lowercased() == myUsername || $0.name == "Você" }) {
+            if group.potMode == .monthly && !group.monthlyCycles.isEmpty && me.quotaAmount > 0 {
+                for cycle in group.monthlyCycles {
+                    let isCyclePaid = cycle.paidUsernames.contains(myUsername) || cycle.markedPaidUsernames.contains(myUsername)
+                    guard isCyclePaid else { continue }
+                    archivedGroupPayments.insert(
+                        PersonalExpenseRecord(
+                            title: cycle.label,
+                            category: group.category,
+                            amount: me.quotaAmount,
+                            dateText: me.paidDateText ?? fallbackDate,
+                            monthKey: monthKey,
+                            groupName: group.title,
+                            isPaid: true
+                        ),
+                        at: 0
+                    )
+                }
+            } else if me.quotaAmount > 0 && (me.hasPaid || me.markedPaidByMember) {
+                archivedGroupPayments.insert(
+                    PersonalExpenseRecord(
+                        title: "Cota paga",
+                        category: group.category,
+                        amount: me.quotaAmount,
+                        dateText: me.paidDateText ?? fallbackDate,
+                        monthKey: monthKey,
+                        groupName: group.title,
+                        isPaid: true
+                    ),
+                    at: 0
+                )
+            }
+        }
+        persistPaymentHistory()
+    }
+
+    /// Exclui o grupo preservando integralmente o histórico de pagamentos do usuário em Meus Gastos e Lançamentos
     func deleteGroup(groupId: UUID) {
-        guard let idx = groups.firstIndex(where: { $0.id == groupId }) else { return }
-        let title = groups[idx].title
+        guard let idx = resolvedGroupIndex(for: groupId) else { return }
+        let group = groups[idx]
+        let realId = group.id
+        archivePaymentsFromGroup(group)
         groups.remove(at: idx)
-        groupChatMessages.removeValue(forKey: groupId)
-        hiddenGroupChatIds.remove(groupId)
+        groupChatMessages.removeValue(forKey: realId)
+        hiddenGroupChatIds.remove(realId)
         persistHiddenChats()
-        let gidStr = groupId.uuidString.lowercased()
+        let gidStr = realId.uuidString.lowercased()
         Task { await JuntoBackendService.shared.deleteGroupOnServer(groupId: gidStr) }
-        showToast("Grupo \"\(title)\" excluído.", icon: "trash")
+        showToast("Grupo \"\(group.title)\" excluído. Histórico de pagamentos preservado.", icon: "trash")
+    }
+
+    /// Sai do grupo preservando o histórico de pagamentos e removendo a conversa da lista
+    func leaveGroup(groupId: UUID) {
+        guard let idx = resolvedGroupIndex(for: groupId) else { return }
+        let group = groups[idx]
+        let realId = group.id
+        archivePaymentsFromGroup(group)
+        groups.remove(at: idx)
+        groupChatMessages.removeValue(forKey: realId)
+        hiddenGroupChatIds.insert(realId)
+        persistHiddenChats()
+        showToast("Você saiu de \"\(group.title)\". Histórico de pagamentos mantido.", icon: "rectangle.portrait.and.arrow.right")
     }
 
     /// Paga a cota de um participante no Pote Coletivo (atualiza saldo e status automaticamente)

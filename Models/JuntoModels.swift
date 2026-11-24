@@ -245,7 +245,7 @@ struct FriendItem: Identifiable {
     var isMuted: Bool = false
 }
 
-struct PersonalExpenseRecord: Identifiable {
+struct PersonalExpenseRecord: Identifiable, Codable, Hashable {
     var id: UUID = UUID()
     let title: String
     let category: String
@@ -323,6 +323,7 @@ struct GroupParticipant: Identifiable, Hashable {
     var quotaAmount: Double
     var hasPaid: Bool
     var markedPaidByMember: Bool = false
+    var paidDateText: String? = nil
     var role: GroupParticipantRole = .member
     var proPlanType: ProPlanType = .none
 }
@@ -476,14 +477,19 @@ struct PersonalPotDeposit: Identifiable, Hashable {
     let dateText: String
 }
 
-struct ActivityEvent: Identifiable {
-    let id = UUID()
+struct ActivityEvent: Identifiable, Codable {
+    var id: UUID = UUID()
     let icon: String
     let title: String
     let subtitle: String
     let timeAgo: String
     let amountText: String?
     let isPositive: Bool
+    var dateText: String = ""
+
+    var displayDateText: String {
+        dateText.isEmpty ? timeAgo : dateText
+    }
 }
 
 struct AppNotification: Identifiable {

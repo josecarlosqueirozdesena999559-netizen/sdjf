@@ -18,10 +18,12 @@ struct JuntoProSubscriptionScreen: View {
     @State private var showPrivacySheet = false
 
     private let proFeatures: [(title: String, subtitle: String)] = [
-        ("Selo de Verificado Exclusivo", "Assinante Mensal recebe o Selo Roxo e o Assinante Anual recebe o Selo Dourado em todas as telas, grupos e conversas."),
-        ("Grupos, viagens e rolês ilimitados", "No plano gratuito você tem 1 grupo ativo. No Pro, crie quantos rolês, viagens e grupos mensais quiser."),
-        ("Múltiplos administradores por grupo", "Adicione amigos como co-organizadores para ajudar a lançar gastos e confirmar pagamentos."),
-        ("Alertas e lembretes prioritários", "Notificações automáticas de prazos de metas e confirmações em tempo real quando participantes pagam.")
+        ("Relatórios e Fechamentos em PDF", "Exporte seus gastos mensais ou o extrato oficial de qualquer grupo em PDF pronto para enviar no WhatsApp."),
+        ("Cobrança Pix em 1 toque no WhatsApp", "Gere automaticamente a lista de quem falta pagar com os valores e sua chave Pix para cobrar sem constrangimento."),
+        ("Insights Inteligentes de Gastos", "Veja sua maior categoria do mês, média por pagamento e taxa de quitação em tempo real."),
+        ("Divisão Padrão Personalizada", "Escolha como ratear despesas automaticamente por grupo: igualitária, proporcional ao consumo ou cota fixa."),
+        ("Grupos ilimitados e múltiplos admins", "Crie quantos grupos, viagens e potes mensais quiser e adicione co-organizadores."),
+        ("Selo de Verificado Exclusivo", "Assinante Mensal recebe o Selo Roxo e o Assinante Anual recebe o Selo Dourado em todas as conversas e grupos.")
     ]
 
     var body: some View {

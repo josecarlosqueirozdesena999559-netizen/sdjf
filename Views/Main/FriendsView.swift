@@ -267,6 +267,17 @@ struct FriendsView: View {
                             .font(.inter(16, weight: .bold))
                             .foregroundColor(JuntoColors.orangeSave)
                     }
+                } else {
+                    let msgCount = store.friendMessageCount(for: friend.username)
+                    if msgCount > 0 {
+                        Text("\(msgCount)")
+                            .font(.inter(12, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .frame(minWidth: 24, minHeight: 24)
+                            .background(JuntoColors.primary)
+                            .clipShape(Capsule())
+                    }
                 }
             }
             .padding(.vertical, 6)
@@ -275,7 +286,6 @@ struct FriendsView: View {
         .listRowBackground(Color.white)
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
-                // Se tiver dívida, o amigo continua na lista porém sem mensagens
                 store.clearConversation(for: friend.username)
             } label: {
                 Label("Apagar conversa", systemImage: "trash")
@@ -283,33 +293,20 @@ struct FriendsView: View {
         }
     }
 
-    // MARK: - Linha de Conversa de Grupo (Estilo WhatsApp)
+    // MARK: - Linha de Conversa de Grupo (Estilo WhatsApp com contador de mensagens)
     private func groupRow(_ group: RoleGroup) -> some View {
-        Button {
+        let msgCount = store.groupMessageCount(for: group.id)
+        return Button {
             selectedGroupChatId = group.id
         } label: {
             HStack(spacing: 14) {
-                if let data = group.coverImageData, let uiImg = UIImage(data: data) {
-                    Image(uiImage: uiImg)
-                        .resizable()
-                        .scaledToFill()
-                        .frame(width: 50, height: 50)
-                        .clipped()
-                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                } else {
-                    GroupCategoryIconTile(category: group.category, size: 50)
-                }
+                GroupCategoryIconTile(category: group.category, size: 50)
 
                 VStack(alignment: .leading, spacing: 3) {
-                    HStack(spacing: 5) {
-                        Text(group.title)
-                            .font(.inter(15, weight: .semibold))
-                            .foregroundColor(JuntoColors.textMain)
-                            .lineLimit(1)
-                        Text("· \(group.participants.count)")
-                            .font(.inter(12, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
-                    }
+                    Text(group.title)
+                        .font(.inter(15, weight: .semibold))
+                        .foregroundColor(JuntoColors.textMain)
+                        .lineLimit(1)
 
                     Text(store.lastGroupMessagePreview(for: group.id))
                         .font(.inter(13, weight: .regular))
@@ -319,9 +316,15 @@ struct FriendsView: View {
 
                 Spacer()
 
-                Image(systemName: "person.2")
-                    .font(.system(size: 13))
-                    .foregroundColor(JuntoColors.textLight)
+                if msgCount > 0 {
+                    Text("\(msgCount)")
+                        .font(.inter(12, weight: .bold))
+                        .foregroundColor(.white)
+                        .padding(.horizontal, 8)
+                        .frame(minWidth: 24, minHeight: 24)
+                        .background(JuntoColors.primary)
+                        .clipShape(Capsule())
+                }
             }
             .padding(.vertical, 6)
         }

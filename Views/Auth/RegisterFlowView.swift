@@ -70,10 +70,7 @@ struct RegisterFlowView: View {
                 }
                 .frame(height: 5)
 
-                Text("\(step.rawValue)/5")
-                    .font(.inter(12, weight: .semibold))
-                    .foregroundColor(JuntoColors.textMuted)
-                    .monospacedDigit()
+                Spacer().frame(width: 24)
             }
             .padding(.horizontal, 18)
             .padding(.top, 12)

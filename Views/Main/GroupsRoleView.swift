@@ -457,57 +457,22 @@ struct CreateGroupScreen: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 26) {
-                    // Foto tracejada + Nome do grupo com linha inferior limpa
-                    HStack(alignment: .center, spacing: 16) {
-                        PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                            Group {
-                                if let data = coverImageData, let uiImg = UIImage(data: data) {
-                                    Image(uiImage: uiImg)
-                                        .resizable()
-                                        .scaledToFill()
-                                        .frame(width: 64, height: 64)
-                                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                } else {
-                                    RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                        .fill(JuntoColors.surfaceSubtle.opacity(0.65))
-                                        .frame(width: 64, height: 64)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                                .stroke(style: StrokeStyle(lineWidth: 1.2, dash: [4, 3]))
-                                                .foregroundColor(JuntoColors.border)
-                                        )
-                                        .overlay(
-                                            Image(systemName: "camera.badge.ellipsis")
-                                                .font(.system(size: 20, weight: .regular))
-                                                .foregroundColor(JuntoColors.textMuted)
-                                        )
-                                }
-                            }
-                        }
-                        .onChange(of: selectedPhotoItem) { _, newItem in
-                            Task {
-                                if let data = try? await newItem?.loadTransferable(type: Data.self) {
-                                    coverImageData = data
-                                }
-                            }
-                        }
+                    // Nome do grupo limpo com linha inferior (grupos usam ícone da categoria, sem foto)
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("Nome do grupo")
+                            .font(.inter(13, weight: .semibold))
+                            .foregroundColor(JuntoColors.textMain)
 
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Nome do grupo")
-                                .font(.inter(13, weight: .semibold))
-                                .foregroundColor(JuntoColors.textMain)
+                        TextField("Viagem a SP", text: $groupName)
+                            .font(.inter(17, weight: .regular))
+                            .foregroundColor(JuntoColors.textMain)
 
-                            TextField("Viagem a SP", text: $groupName)
-                                .font(.inter(17, weight: .regular))
-                                .foregroundColor(JuntoColors.textMain)
-
-                            Rectangle()
-                                .fill(groupName.isEmpty ? JuntoColors.border : JuntoColors.primary)
-                                .frame(height: 1.2)
-                        }
+                        Rectangle()
+                            .fill(groupName.isEmpty ? JuntoColors.border : JuntoColors.primary)
+                            .frame(height: 1.2)
                     }
 
-                    // Seção "Tipo" com 4 cards quadrados limpos lado a lado
+                    // Seção "Tipo" com 4 cards quadrados limpos lado a lado (sem formato balão)
                     VStack(alignment: .leading, spacing: 12) {
                         Text("Tipo")
                             .font(.inter(14, weight: .semibold))
@@ -522,33 +487,22 @@ struct CreateGroupScreen: View {
                                         selectedType = item.name
                                     }
                                 } label: {
-                                    VStack(spacing: 0) {
-                                        VStack(spacing: 7) {
-                                            Image(systemName: item.icon)
-                                                .font(.system(size: 21, weight: .regular))
-                                            Text(item.name)
-                                                .font(.inter(13, weight: isSelected ? .semibold : .medium))
-                                                .lineLimit(1)
-                                        }
-                                        .foregroundColor(isSelected ? JuntoColors.primary : JuntoColors.textMain)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 76)
-                                        .background(isSelected ? JuntoColors.primary.opacity(0.09) : Color.white)
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                                .stroke(isSelected ? JuntoColors.primary : JuntoColors.border, lineWidth: isSelected ? 1.5 : 1)
-                                        )
-                                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                                        if isSelected {
-                                            GroupTypePointerTriangle()
-                                                .fill(JuntoColors.primary)
-                                                .frame(width: 10, height: 6)
-                                                .offset(y: -1)
-                                        } else {
-                                            Color.clear.frame(width: 10, height: 6)
-                                        }
+                                    VStack(spacing: 7) {
+                                        Image(systemName: item.icon)
+                                            .font(.system(size: 21, weight: .regular))
+                                        Text(item.name)
+                                            .font(.inter(13, weight: isSelected ? .semibold : .medium))
+                                            .lineLimit(1)
                                     }
+                                    .foregroundColor(isSelected ? JuntoColors.primary : JuntoColors.textMain)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 76)
+                                    .background(isSelected ? JuntoColors.primary.opacity(0.09) : Color.white)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                            .stroke(isSelected ? JuntoColors.primary : JuntoColors.border, lineWidth: isSelected ? 1.5 : 1)
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -660,30 +614,42 @@ struct CreateGroupScreen: View {
 
                     Divider().opacity(0.6)
 
-                    // Meta do pote e membros (enxuto e limpo, sem caixas pesadas)
+                    // Modelo de cobrança do pote (seletor segmentado limpo sem ícones) + valor e membros
                     VStack(alignment: .leading, spacing: 18) {
-                        HStack(spacing: 10) {
-                            ForEach(PotRecurrenceMode.allCases, id: \.self) { mode in
-                                let active = potMode == mode
-                                Button {
-                                    withAnimation(.easeInOut(duration: 0.16)) {
-                                        potMode = mode
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text("Frequência da meta")
+                                .font(.inter(13, weight: .semibold))
+                                .foregroundColor(JuntoColors.textMain)
+
+                            HStack(spacing: 4) {
+                                ForEach(PotRecurrenceMode.allCases, id: \.self) { mode in
+                                    let active = potMode == mode
+                                    Button {
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        withAnimation(.spring(response: 0.24, dampingFraction: 0.82)) {
+                                            potMode = mode
+                                        }
+                                    } label: {
+                                        VStack(spacing: 2) {
+                                            Text(mode == .single ? "Valor único" : "Mensal")
+                                                .font(.inter(14, weight: active ? .semibold : .medium))
+                                                .foregroundColor(active ? JuntoColors.primary : JuntoColors.textMuted)
+                                            Text(mode == .single ? "Dividido uma vez" : "Parcelas por mês")
+                                                .font(.inter(11, weight: .regular))
+                                                .foregroundColor(JuntoColors.textMuted)
+                                        }
+                                        .frame(maxWidth: .infinity)
+                                        .padding(.vertical, 10)
+                                        .background(active ? Color.white : Color.clear)
+                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                                        .shadow(color: active ? Color.black.opacity(0.06) : .clear, radius: 4, y: 1)
                                     }
-                                } label: {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: mode == .single ? "flag.checkered" : "calendar")
-                                            .font(.system(size: 13, weight: .medium))
-                                        Text(mode.rawValue)
-                                            .font(.inter(13, weight: .medium))
-                                    }
-                                    .foregroundColor(active ? .white : JuntoColors.textMain)
-                                    .padding(.horizontal, 14)
-                                    .frame(height: 34)
-                                    .background(active ? JuntoColors.primary : JuntoColors.surfaceSubtle)
-                                    .clipShape(Capsule())
+                                    .buttonStyle(.plain)
                                 }
                             }
-                            Spacer()
+                            .padding(4)
+                            .background(JuntoColors.surfaceSubtle)
+                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                         }
 
                         HStack(alignment: .bottom, spacing: 14) {
@@ -733,7 +699,7 @@ struct CreateGroupScreen: View {
                             }
                         }
 
-                        // Membros
+                        // Membros (botão somente ícone sem texto)
                         VStack(alignment: .leading, spacing: 10) {
                             HStack {
                                 Text("Membros (\(totalPeopleCount))")
@@ -743,9 +709,12 @@ struct CreateGroupScreen: View {
                                 Button {
                                     showSelectFriendsScreen = true
                                 } label: {
-                                    Label("Adicionar", systemImage: "person.badge.plus")
-                                        .font(.inter(13, weight: .semibold))
+                                    Image(systemName: "person.badge.plus")
+                                        .font(.system(size: 18, weight: .medium))
                                         .foregroundColor(JuntoColors.primary)
+                                        .frame(width: 36, height: 36)
+                                        .background(JuntoColors.primary.opacity(0.09))
+                                        .clipShape(Circle())
                                 }
                             }
 
@@ -997,12 +966,13 @@ struct GroupDetailSheet: View {
     }()
 
     private var groupIndex: Int? {
-        store.groups.firstIndex(where: { $0.id == groupId })
+        store.resolvedGroupIndex(for: groupId)
     }
 
     var body: some View {
         if let idx = groupIndex {
             let group = store.groups[idx]
+            let resolvedId = group.id
             let canAddExpenses = store.canCurrentUserAddExpenses(in: group)
             let activeMonthIdx = min(max(0, group.selectedMonthIndex), max(0, group.monthlyCycles.count - 1))
             let monthPercent = group.monthCompletionPercent(at: activeMonthIdx)
@@ -1040,57 +1010,22 @@ struct GroupDetailSheet: View {
                     }
                     .padding(.top, 16)
 
-                    // Se o grupo tiver foto escolhida, exibe a capa; se não tiver, mostra apenas a descrição compacta
-                    if let data = group.coverImageData, let uiImg = UIImage(data: data) {
-                        ZStack(alignment: .bottomLeading) {
-                            Image(uiImage: uiImg)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 195)
-                                .clipped()
-
-                            LinearGradient(
-                                colors: [Color.clear, Color.black.opacity(0.65)],
-                                startPoint: .top,
-                                endPoint: .bottom
-                            )
-
-                            HStack {
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(group.category)
-                                        .font(.inter(11, weight: .medium))
-                                        .foregroundColor(.white.opacity(0.85))
-                                    Text("Total gasto: \(JuntoStore.formatBRL(group.totalSpent))")
-                                        .font(.inter(15, weight: .medium))
-                                        .foregroundColor(.white)
-                                }
-                                Spacer()
-                                Text("\(group.participants.count) pessoa(s)")
-                                    .font(.inter(12, weight: .regular))
-                                    .foregroundColor(.white.opacity(0.9))
-                            }
-                            .padding(14)
+                    // Cabeçalho limpo sem foto de capa (sempre ícone da categoria + resumo)
+                    HStack(spacing: 12) {
+                        GroupCategoryIconTile(category: group.category, size: 46)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(group.category) · \(group.participants.count) pessoa(s)")
+                                .font(.inter(12, weight: .medium))
+                                .foregroundColor(JuntoColors.textMuted)
+                            Text("Total gasto: \(JuntoStore.formatBRL(group.totalSpent))")
+                                .font(.inter(16, weight: .bold))
+                                .foregroundColor(JuntoColors.textMain)
                         }
-                        .frame(height: 145)
-                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    } else {
-                        HStack(spacing: 12) {
-                            GroupCategoryIconTile(category: group.category, size: 46)
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text("\(group.category) · \(group.participants.count) pessoa(s)")
-                                    .font(.inter(12, weight: .medium))
-                                    .foregroundColor(JuntoColors.textMuted)
-                                Text("Total gasto: \(JuntoStore.formatBRL(group.totalSpent))")
-                                    .font(.inter(16, weight: .bold))
-                                    .foregroundColor(JuntoColors.textMain)
-                            }
-                            Spacer()
-                        }
-                        .padding(.vertical, 4)
+                        Spacer()
                     }
+                    .padding(.vertical, 4)
 
-                    // Lista de participantes rolável para o lado (toque abre Sheet claro customizado!)
+                    // Lista de participantes rolável para o lado (botão adicionar somente ícone!)
                     VStack(alignment: .leading, spacing: 10) {
                         HStack {
                             Text("Participantes (\(group.participants.count))")
@@ -1100,9 +1035,12 @@ struct GroupDetailSheet: View {
                             Button {
                                 showAddMemberScreen = true
                             } label: {
-                                Label("Adicionar membro", systemImage: "person.badge.plus")
-                                    .font(.inter(12, weight: .medium))
+                                Image(systemName: "person.badge.plus")
+                                    .font(.system(size: 18, weight: .medium))
                                     .foregroundColor(JuntoColors.primary)
+                                    .frame(width: 36, height: 36)
+                                    .background(JuntoColors.primary.opacity(0.09))
+                                    .clipShape(Circle())
                             }
                         }
 
@@ -1610,7 +1548,7 @@ struct GroupDetailSheet: View {
             }
             .background(Color.white)
             .fullScreenCover(isPresented: $showGroupChat) {
-                GroupChatScreen(groupId: groupId)
+                GroupChatScreen(groupId: resolvedId)
                     .environmentObject(store)
             }
             .alert("Excluir \"\(group.title)\"?", isPresented: $showDeleteGroupConfirm) {
@@ -1618,14 +1556,14 @@ struct GroupDetailSheet: View {
                 Button("Excluir grupo", role: .destructive) {
                     dismiss()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        store.deleteGroup(groupId: groupId)
+                        store.deleteGroup(groupId: resolvedId)
                     }
                 }
             } message: {
-                Text("Ao excluir este grupo, todas as cotas e toda a conversa em grupo serão apagadas permanentemente.")
+                Text("O grupo será excluído, mas seu histórico de pagamentos em Meus Gastos continuará salvo.")
             }
             .fullScreenCover(isPresented: $showAddMemberScreen) {
-                AddGroupMemberScreen(groupId: groupId)
+                AddGroupMemberScreen(groupId: resolvedId)
                     .environmentObject(store)
             }
             // Sheet customizado claro na paleta do sistema (sem popup padrão do iOS!)
@@ -1667,7 +1605,7 @@ struct GroupDetailSheet: View {
                 .presentationCornerRadius(20)
             }
             .fullScreenCover(isPresented: $showGroupSettings) {
-                GroupSettingsScreen(groupId: groupId, onLeaveOrDelete: {
+                GroupSettingsScreen(groupId: resolvedId, onLeaveOrDelete: {
                     showGroupSettings = false
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
                         dismiss()
@@ -1688,7 +1626,7 @@ struct GroupDetailSheet: View {
             }
             .sheet(item: $selectedItemForConsumers) { itm in
                 AssignItemConsumersSheet(group: group, item: itm) { updatedItem in
-                    if let gIdx = store.groups.firstIndex(where: { $0.id == groupId }),
+                    if let gIdx = store.resolvedGroupIndex(for: resolvedId),
                        let iIdx = store.groups[gIdx].comandaItems.firstIndex(where: { $0.id == itm.id }) {
                         store.groups[gIdx].comandaItems[iIdx] = updatedItem
                     }
@@ -1696,11 +1634,15 @@ struct GroupDetailSheet: View {
                 }
                 .presentationDetents([.medium])
             }
+        } else {
+            Color.white
+                .ignoresSafeArea()
+                .onAppear { dismiss() }
         }
     }
 }
 
-// MARK: - Tela "Configurações de grupo" (Fiel ao modelo limpo com cores Juntô)
+// MARK: - Tela "Configurações de grupo" (Fiel ao modelo limpo com funções reais Juntô Pro)
 struct GroupSettingsScreen: View {
     @EnvironmentObject var store: JuntoStore
     let groupId: UUID
@@ -1708,22 +1650,29 @@ struct GroupSettingsScreen: View {
     @Environment(\.dismiss) private var dismiss
 
     @State private var simplifyDebts: Bool = true
+    @State private var defaultSplitMode: String = "Pago por você e dividido igualmente"
     @State private var showAddMemberScreen: Bool = false
     @State private var showEditGroupAlert: Bool = false
     @State private var editedTitle: String = ""
     @State private var selectedParticipantForAction: GroupParticipant? = nil
     @State private var showLeaveOrDeleteConfirm: Bool = false
     @State private var showSimplifyInfoAlert: Bool = false
+    @State private var showProPaywall: Bool = false
+    @State private var showSplitModeSheet: Bool = false
+    @State private var generatedClosurePDF: URL? = nil
 
     private var groupIndex: Int? {
-        store.groups.firstIndex(where: { $0.id == groupId })
+        store.resolvedGroupIndex(for: groupId)
     }
 
     var body: some View {
         if let idx = groupIndex {
             let group = store.groups[idx]
+            let resolvedId = group.id
             let isOwner = store.isCurrentUserOwner(in: group)
             let inviteText = "Entre no grupo \"\(group.title)\" no Juntô para dividir gastos e pagar no Pix: https://junto.app/baixar"
+            let pendingChargeText = store.pendingChargeMessage(for: group)
+            let organizer = store.organizerPixInfo(for: group)
 
             VStack(alignment: .leading, spacing: 0) {
                 // Topo fiel ao modelo: < | Configurações de grupo
@@ -1744,17 +1693,9 @@ struct GroupSettingsScreen: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {
-                        // Cabeçalho do grupo: ícone + nome + Editar
+                        // Cabeçalho do grupo: ícone da categoria + nome + Editar (sem foto de capa)
                         HStack(spacing: 14) {
-                            if let data = group.coverImageData, let uiImg = UIImage(data: data) {
-                                Image(uiImage: uiImg)
-                                    .resizable()
-                                    .scaledToFill()
-                                    .frame(width: 52, height: 52)
-                                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                            } else {
-                                GroupCategoryIconTile(category: group.category, size: 52)
-                            }
+                            GroupCategoryIconTile(category: group.category, size: 52)
 
                             Text(group.title)
                                 .font(.inter(17, weight: .semibold))
@@ -1861,7 +1802,7 @@ struct GroupSettingsScreen: View {
                             }
                         }
 
-                        // Seção: Configurações avançadas
+                        // Seção: Configurações avançadas e recursos reais Juntô Pro
                         VStack(alignment: .leading, spacing: 18) {
                             Text("Configurações avançadas")
                                 .font(.inter(13, weight: .semibold))
@@ -1900,38 +1841,102 @@ struct GroupSettingsScreen: View {
                                 .padding(.leading, 42)
                             }
 
-                            // Divisão padrão (PRO)
-                            VStack(alignment: .leading, spacing: 8) {
-                                HStack(alignment: .center, spacing: 14) {
-                                    Image(systemName: "equal")
-                                        .font(.system(size: 18, weight: .semibold))
-                                        .foregroundColor(JuntoColors.primary)
-                                        .frame(width: 28)
-
-                                    Text("Divisão padrão")
-                                        .font(.inter(16, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMain)
-
-                                    Spacer()
-
-                                    Text("PRO")
-                                        .font(.inter(11, weight: .bold))
-                                        .foregroundColor(JuntoColors.primary)
-                                        .padding(.horizontal, 9)
-                                        .padding(.vertical, 3)
-                                        .background(JuntoColors.primary.opacity(0.10))
-                                        .clipShape(Capsule())
+                            // Função PRO 1: Divisão padrão configurável
+                            Button {
+                                if store.user.isPro {
+                                    showSplitModeSheet = true
+                                } else {
+                                    showProPaywall = true
                                 }
+                            } label: {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    HStack(alignment: .center, spacing: 14) {
+                                        Image(systemName: "equal")
+                                            .font(.system(size: 18, weight: .semibold))
+                                            .foregroundColor(JuntoColors.primary)
+                                            .frame(width: 28)
 
-                                VStack(alignment: .leading, spacing: 6) {
-                                    Text("Pago por você e dividido igualmente")
-                                        .font(.inter(14, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMain)
-                                    Text("Despesas novas que você adicionar ao grupo terão essa configuração por padrão, que é pessoal e não do grupo todo.")
-                                        .font(.inter(13, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMuted)
+                                        Text("Divisão padrão")
+                                            .font(.inter(16, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMain)
+
+                                        Spacer()
+
+                                        Text("PRO")
+                                            .font(.inter(11, weight: .bold))
+                                            .foregroundColor(JuntoColors.primary)
+                                            .padding(.horizontal, 9)
+                                            .padding(.vertical, 3)
+                                            .background(JuntoColors.primary.opacity(0.10))
+                                            .clipShape(Capsule())
+                                    }
+
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(defaultSplitMode)
+                                            .font(.inter(14, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMain)
+                                        Text("Defina como novas despesas serão rateadas automaticamente neste grupo.")
+                                            .font(.inter(13, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                    }
+                                    .padding(.leading, 42)
                                 }
-                                .padding(.leading, 42)
+                                .contentShape(Rectangle())
+                            }
+                            .buttonStyle(.plain)
+
+                            // Função PRO 2: Cobrar pendentes via Pix em 1 toque
+                            if store.user.isPro {
+                                ShareLink(item: pendingChargeText) {
+                                    proActionRow(
+                                        icon: "bell.badge",
+                                        title: "Cobrar pendentes no WhatsApp",
+                                        subtitle: "Gera a lista pronta de quem falta pagar com sua chave Pix."
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                Button {
+                                    showProPaywall = true
+                                } label: {
+                                    proActionRow(
+                                        icon: "bell.badge",
+                                        title: "Cobrar pendentes no WhatsApp",
+                                        subtitle: "Gera a lista pronta de quem falta pagar com sua chave Pix."
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+
+                            // Função PRO 3: Exportar fechamento do grupo em PDF
+                            if store.user.isPro, let pdfURL = generatedClosurePDF {
+                                ShareLink(item: pdfURL) {
+                                    proActionRow(
+                                        icon: "doc.richtext",
+                                        title: "Exportar fechamento em PDF",
+                                        subtitle: "Compartilhe o extrato oficial do grupo com pagos e pendentes."
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            } else {
+                                Button {
+                                    if store.user.isPro {
+                                        generatedClosurePDF = JuntoProPDFGenerator.generateGroupClosurePDF(
+                                            group: group,
+                                            ownerPixKey: organizer.pixKey
+                                        )
+                                        store.showToast("PDF pronto! Toque novamente para compartilhar.", icon: "doc.richtext")
+                                    } else {
+                                        showProPaywall = true
+                                    }
+                                } label: {
+                                    proActionRow(
+                                        icon: "doc.richtext",
+                                        title: "Exportar fechamento em PDF",
+                                        subtitle: "Compartilhe o extrato oficial do grupo com pagos e pendentes."
+                                    )
+                                }
+                                .buttonStyle(.plain)
                             }
                         }
                         .padding(.horizontal, 20)
@@ -1959,9 +1964,65 @@ struct GroupSettingsScreen: View {
                 }
             }
             .background(Color.white.ignoresSafeArea())
+            .onAppear {
+                if store.user.isPro {
+                    generatedClosurePDF = JuntoProPDFGenerator.generateGroupClosurePDF(
+                        group: group,
+                        ownerPixKey: organizer.pixKey
+                    )
+                }
+            }
             .fullScreenCover(isPresented: $showAddMemberScreen) {
-                AddGroupMemberScreen(groupId: groupId)
+                AddGroupMemberScreen(groupId: resolvedId)
                     .environmentObject(store)
+            }
+            .fullScreenCover(isPresented: $showProPaywall) {
+                JuntoProSubscriptionScreen()
+                    .environmentObject(store)
+            }
+            .sheet(isPresented: $showSplitModeSheet) {
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack {
+                        Text("Divisão padrão (Pro)")
+                            .font(.inter(18, weight: .bold))
+                            .foregroundColor(JuntoColors.textMain)
+                        Spacer()
+                        PopupCloseButton { showSplitModeSheet = false }
+                    }
+                    .padding(.top, 20)
+
+                    ForEach([
+                        "Pago por você e dividido igualmente",
+                        "Proporcional ao consumo marcado na comanda",
+                        "Divisão por cota fixa do organizador"
+                    ], id: \.self) { option in
+                        Button {
+                            defaultSplitMode = option
+                            showSplitModeSheet = false
+                            store.showToast("Divisão padrão atualizada!", icon: "checkmark.circle")
+                        } label: {
+                            HStack {
+                                Text(option)
+                                    .font(.inter(15, weight: defaultSplitMode == option ? .semibold : .regular))
+                                    .foregroundColor(JuntoColors.textMain)
+                                Spacer()
+                                if defaultSplitMode == option {
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 14, weight: .bold))
+                                        .foregroundColor(JuntoColors.primary)
+                                }
+                            }
+                            .padding(.vertical, 12)
+                        }
+                        .buttonStyle(.plain)
+                        Divider().opacity(0.5)
+                    }
+                    Spacer()
+                }
+                .padding(.horizontal, 20)
+                .background(Color.white.ignoresSafeArea())
+                .presentationDetents([.height(290)])
+                .presentationCornerRadius(24)
             }
             .alert("Editar nome do grupo", isPresented: $showEditGroupAlert) {
                 TextField("Nome do grupo", text: $editedTitle)
@@ -1982,30 +2043,69 @@ struct GroupSettingsScreen: View {
             .alert(isOwner ? "Excluir \"\(group.title)\"?" : "Sair de \"\(group.title)\"?", isPresented: $showLeaveOrDeleteConfirm) {
                 Button("Cancelar", role: .cancel) {}
                 Button(isOwner ? "Excluir grupo" : "Sair do grupo", role: .destructive) {
-                    store.deleteGroup(groupId: groupId)
+                    if isOwner {
+                        store.deleteGroup(groupId: resolvedId)
+                    } else {
+                        store.leaveGroup(groupId: resolvedId)
+                    }
                     onLeaveOrDelete?()
                 }
             } message: {
                 Text(isOwner
-                     ? "Todas as cotas e mensagens deste grupo serão apagadas permanentemente."
-                     : "Você sairá deste grupo e não receberá mais atualizações.")
+                     ? "O grupo será excluído, mas seu histórico de pagamentos continuará salvo em Meus Gastos."
+                     : "Você sairá deste grupo e seu histórico de pagamentos continuará salvo em Meus Gastos.")
             }
             .sheet(item: $selectedParticipantForAction) { participant in
                 ParticipantActionSheet(
                     participant: participant,
                     onToggleAdmin: {
-                        store.toggleParticipantAdmin(groupId: groupId, participantId: participant.id)
+                        store.toggleParticipantAdmin(groupId: resolvedId, participantId: participant.id)
                         selectedParticipantForAction = nil
                     },
                     onRemove: {
-                        store.removeParticipantFromGroup(groupId: groupId, participantId: participant.id)
+                        store.removeParticipantFromGroup(groupId: resolvedId, participantId: participant.id)
                         selectedParticipantForAction = nil
                     }
                 )
                 .presentationDetents([.height(270)])
                 .presentationCornerRadius(20)
             }
+        } else {
+            Color.white
+                .ignoresSafeArea()
+                .onAppear { dismiss() }
         }
+    }
+
+    private func proActionRow(icon: String, title: String, subtitle: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            HStack(alignment: .center, spacing: 14) {
+                Image(systemName: icon)
+                    .font(.system(size: 18, weight: .regular))
+                    .foregroundColor(JuntoColors.primary)
+                    .frame(width: 28)
+
+                Text(title)
+                    .font(.inter(16, weight: .regular))
+                    .foregroundColor(JuntoColors.textMain)
+
+                Spacer()
+
+                Text("PRO")
+                    .font(.inter(11, weight: .bold))
+                    .foregroundColor(JuntoColors.primary)
+                    .padding(.horizontal, 9)
+                    .padding(.vertical, 3)
+                    .background(JuntoColors.primary.opacity(0.10))
+                    .clipShape(Capsule())
+            }
+
+            Text(subtitle)
+                .font(.inter(13, weight: .regular))
+                .foregroundColor(JuntoColors.textMuted)
+                .padding(.leading, 42)
+        }
+        .contentShape(Rectangle())
     }
 }
 
