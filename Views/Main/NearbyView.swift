@@ -115,6 +115,7 @@ struct NearbyView: View {
         }
         .onAppear {
             locationManager.requestAuthorization()
+            store.refreshNearbyUsers()
         }
         .sheet(item: $selectedGroupForDetail) { group in
             PublicGroupDetailSheet(group: group)
@@ -297,7 +298,6 @@ struct NearbyView: View {
 
     private func publicGroupCard(_ group: RoleGroup) -> some View {
         let isAlreadyMember = group.participants.contains { $0.username.lowercased() == store.user.username.lowercased() }
-        let quota = group.dynamicQuotaPerPerson
         let remaining = group.remainingSlots
 
         return Button {
@@ -338,17 +338,6 @@ struct NearbyView: View {
                     }
 
                     Spacer()
-
-                    // Preço da cota por pessoa
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text(JuntoStore.formatBRL(quota))
-                            .font(.inter(14, weight: .semibold))
-                            .foregroundColor(JuntoColors.primary)
-
-                        Text("por pessoa")
-                            .font(.inter(10, weight: .regular))
-                            .foregroundColor(JuntoColors.textLight)
-                    }
                 }
 
                 HStack {
@@ -541,16 +530,6 @@ struct PublicGroupDetailSheet: View {
                         Text("\(group.participants.count) de \(group.maxParticipants)")
                             .font(.inter(13, weight: .medium))
                             .foregroundColor(JuntoColors.textMain)
-                    }
-
-                    HStack {
-                        Text("Cota por pessoa")
-                            .font(.inter(13, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
-                        Spacer()
-                        Text(JuntoStore.formatBRL(group.dynamicQuotaPerPerson))
-                            .font(.inter(14, weight: .semibold))
-                            .foregroundColor(JuntoColors.primary)
                     }
                 }
                 .padding(14)

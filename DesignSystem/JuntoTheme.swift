@@ -143,38 +143,104 @@ struct PixOfficialIcon: View {
         Canvas { ctx, sz in
             let w = sz.width
             let h = sz.height
+            let cx = w / 2
+            let cy = h / 2
             let s = min(w, h)
+            let strokeWidth = max(2.0, s * 0.13)
 
-            // Losango arredondado do Pix rotacionado 45°
-            var outer = Path()
-            let r = s * 0.34
-            let rect = CGRect(x: -r, y: -r, width: r * 2, height: r * 2)
-            outer.addRoundedRect(in: rect, cornerSize: CGSize(width: s * 0.11, height: s * 0.11))
+            // Top chevron do símbolo Pix
+            var topChevron = Path()
+            topChevron.move(to: CGPoint(x: cx - s * 0.31, y: cy - s * 0.025))
+            topChevron.addLine(to: CGPoint(x: cx, y: cy - s * 0.33))
+            topChevron.addLine(to: CGPoint(x: cx + s * 0.31, y: cy - s * 0.025))
 
-            let transform = CGAffineTransform(translationX: w / 2, y: h / 2)
-                .rotated(by: .pi / 4)
-            let diamond = outer.applying(transform)
-            ctx.stroke(diamond, with: .color(color), style: StrokeStyle(lineWidth: s * 0.085, lineCap: .round, lineJoin: .round))
+            // Bottom chevron do símbolo Pix
+            var bottomChevron = Path()
+            bottomChevron.move(to: CGPoint(x: cx - s * 0.31, y: cy + s * 0.025))
+            bottomChevron.addLine(to: CGPoint(x: cx, y: cy + s * 0.33))
+            bottomChevron.addLine(to: CGPoint(x: cx + s * 0.31, y: cy + s * 0.025))
 
-            // Linhas internas características do símbolo do Pix (duas chaves opostas que se encontram no centro)
-            var inner = Path()
-            // Curva superior interna
-            inner.move(to: CGPoint(x: w * 0.27, y: h * 0.38))
-            inner.addLine(to: CGPoint(x: w * 0.41, y: h * 0.38))
-            inner.addQuadCurve(to: CGPoint(x: w * 0.50, y: h * 0.45), control: CGPoint(x: w * 0.46, y: h * 0.38))
-            inner.addQuadCurve(to: CGPoint(x: w * 0.59, y: h * 0.38), control: CGPoint(x: w * 0.54, y: h * 0.38))
-            inner.addLine(to: CGPoint(x: w * 0.73, y: h * 0.38))
-
-            // Curva inferior interna
-            inner.move(to: CGPoint(x: w * 0.27, y: h * 0.62))
-            inner.addLine(to: CGPoint(x: w * 0.41, y: h * 0.62))
-            inner.addQuadCurve(to: CGPoint(x: w * 0.50, y: h * 0.55), control: CGPoint(x: w * 0.46, y: h * 0.62))
-            inner.addQuadCurve(to: CGPoint(x: w * 0.59, y: h * 0.62), control: CGPoint(x: w * 0.54, y: h * 0.62))
-            inner.addLine(to: CGPoint(x: w * 0.73, y: h * 0.62))
-
-            ctx.stroke(inner, with: .color(color), style: StrokeStyle(lineWidth: s * 0.075, lineCap: .round, lineJoin: .round))
+            let style = StrokeStyle(lineWidth: strokeWidth, lineCap: .round, lineJoin: .round)
+            ctx.stroke(topChevron, with: .color(color), style: style)
+            ctx.stroke(bottomChevron, with: .color(color), style: style)
         }
         .frame(width: size, height: size)
+    }
+}
+
+// MARK: - Cartão de Chave Pix no Chat (Estilo Cartão de Contato com Toque para Copiar)
+struct PixContactCardView: View {
+    let name: String
+    let pixKey: String
+    let isFromMe: Bool
+
+    @State private var copied = false
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            // Header estilo cartão bancário
+            HStack(spacing: 8) {
+                ZStack {
+                    Circle()
+                        .fill(Color(hex: "#00B494"))
+                        .frame(width: 32, height: 32)
+                    PixOfficialIcon(size: 16, color: .white)
+                }
+
+                VStack(alignment: .leading, spacing: 1) {
+                    Text("Chave Pix")
+                        .font(.inter(13, weight: .semibold))
+                        .foregroundColor(isFromMe ? .white : JuntoColors.textMain)
+                    Text(name)
+                        .font(.inter(11, weight: .regular))
+                        .foregroundColor(isFromMe ? .white.opacity(0.80) : JuntoColors.textMuted)
+                        .lineLimit(1)
+                }
+
+                Spacer(minLength: 4)
+            }
+
+            // Caixa com a chave Pix
+            VStack(alignment: .leading, spacing: 3) {
+                Text("Chave")
+                    .font(.inter(10, weight: .medium))
+                    .foregroundColor(isFromMe ? .white.opacity(0.70) : JuntoColors.textLight)
+                Text(pixKey)
+                    .font(.system(size: 13, weight: .medium, design: .monospaced))
+                    .foregroundColor(isFromMe ? .white : JuntoColors.textMain)
+                    .lineLimit(1)
+                    .textSelection(.enabled)
+            }
+            .padding(.horizontal, 10)
+            .padding(.vertical, 8)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(isFromMe ? Color.white.opacity(0.12) : JuntoColors.surfaceSubtle)
+            .clipShape(RoundedRectangle(cornerRadius: 8))
+
+            // Botão Copiar Chave Pix
+            Button {
+                UIPasteboard.general.string = pixKey
+                copied = true
+                UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                    copied = false
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Image(systemName: copied ? "checkmark" : "doc.on.doc")
+                        .font(.system(size: 12, weight: .semibold))
+                    Text(copied ? "Chave Pix copiada!" : "Copiar chave Pix")
+                        .font(.inter(12, weight: .semibold))
+                }
+                .foregroundColor(isFromMe ? JuntoColors.primary : .white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 36)
+                .background(isFromMe ? Color.white : Color(hex: "#00B494"))
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+            }
+            .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.96))
+        }
+        .frame(minWidth: 190, maxWidth: 245)
     }
 }
 

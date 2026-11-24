@@ -11,7 +11,6 @@ struct AccountView: View {
     @State private var showInviteFriends = false
     @State private var showPrivacyPolicy = false
     @State private var showProSubscription = false
-    @State private var showServerConfig = false
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -144,11 +143,6 @@ struct AccountView: View {
                     }
                     Divider().padding(.leading, 20)
 
-                    accountRow(icon: "server.rack", title: "Servidor & Docker") {
-                        showServerConfig = true
-                    }
-                    Divider().padding(.leading, 20)
-
                     accountRow(icon: "rectangle.portrait.and.arrow.right", iconColor: JuntoColors.danger, title: "Sair da conta", textColor: JuntoColors.danger) {
                         store.logout()
                     }
@@ -179,13 +173,6 @@ struct AccountView: View {
         .fullScreenCover(isPresented: $showProSubscription) {
             JuntoProSubscriptionScreen()
                 .environmentObject(store)
-        }
-        .sheet(isPresented: $showServerConfig) {
-            ServerConfigSheet()
-                .environmentObject(store)
-                .presentationDetents([.fraction(0.55)])
-                .presentationDragIndicator(.visible)
-                .presentationCornerRadius(24)
         }
     }
 
@@ -1306,159 +1293,5 @@ Fica eleito o foro da legislação brasileira, com aplicação integral das norm
                 .lineSpacing(4)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-    }
-}
-
-// MARK: - Modal de Conexão com Servidor Docker Real
-struct ServerConfigSheet: View {
-    @EnvironmentObject var store: JuntoStore
-    @Environment(\.dismiss) private var dismiss
-
-    @State private var serverURLText: String = UserDefaults.standard.string(forKey: "junto_api_base_url") ?? "http://localhost:3000"
-    @State private var isTesting = false
-    @State private var testResult: String? = nil
-    @State private var isSuccess = false
-
-    var body: some View {
-        ZStack {
-            Color.white.ignoresSafeArea()
-
-            VStack(spacing: 16) {
-                HStack {
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("Servidor & Docker")
-                            .font(.inter(17, weight: .semibold))
-                            .foregroundColor(JuntoColors.textMain)
-                        Text("Conecte ao banco PostgreSQL + Redis real")
-                            .font(.inter(12, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
-                    }
-                    Spacer()
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(JuntoColors.textMuted)
-                            .frame(width: 32, height: 32)
-                            .background(JuntoColors.surfaceSubtle)
-                            .clipShape(Circle())
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("URL da API (Backend)")
-                        .font(.inter(13, weight: .medium))
-                        .foregroundColor(JuntoColors.textMain)
-
-                    HStack {
-                        TextField("http://localhost:3000 ou https://...", text: $serverURLText)
-                            .font(.inter(14, weight: .regular))
-                            .foregroundColor(JuntoColors.textMain)
-                            .autocorrectionDisabled()
-                            .textInputAutocapitalization(.never)
-                            .keyboardType(.URL)
-
-                        if !serverURLText.isEmpty {
-                            Button {
-                                serverURLText = ""
-                            } label: {
-                                Image(systemName: "xmark.circle.fill")
-                                    .foregroundColor(JuntoColors.textLight)
-                            }
-                        }
-                    }
-                    .padding(12)
-                    .background(JuntoColors.surfaceSubtle)
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-
-                    Text("Padrão: http://localhost:3000 (ou URL pública do Cloudflare Tunnel/IP da máquina)")
-                        .font(.inter(11, weight: .regular))
-                        .foregroundColor(JuntoColors.textLight)
-                }
-                .padding(.horizontal, 20)
-
-                if let res = testResult {
-                    HStack(spacing: 6) {
-                        Image(systemName: isSuccess ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                            .foregroundColor(isSuccess ? JuntoColors.pixGreen : JuntoColors.danger)
-                        Text(res)
-                            .font(.inter(12, weight: .medium))
-                            .foregroundColor(isSuccess ? JuntoColors.pixGreen : JuntoColors.danger)
-                    }
-                    .padding(.horizontal, 20)
-                }
-
-                Spacer()
-
-                VStack(spacing: 10) {
-                    Button {
-                        testConnection()
-                    } label: {
-                        HStack(spacing: 6) {
-                            if isTesting {
-                                ProgressView()
-                                    .tint(JuntoColors.primary)
-                            } else {
-                                Image(systemName: "antenna.radiowaves.left.and.right")
-                            }
-                            Text(isTesting ? "Testando..." : "Testar Conexão")
-                        }
-                        .font(.inter(14, weight: .medium))
-                        .foregroundColor(JuntoColors.primary)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 44)
-                        .background(JuntoColors.surfaceSubtle)
-                        .clipShape(RoundedRectangle(cornerRadius: 10))
-                    }
-                    .disabled(isTesting)
-
-                    JuntoPillButton(title: "Salvar e Conectar", icon: "checkmark") {
-                        saveAndApply()
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 24)
-            }
-        }
-    }
-
-    private func testConnection() {
-        let clean = serverURLText.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let url = URL(string: clean) else {
-            testResult = "URL inválida"
-            isSuccess = false
-            return
-        }
-        isTesting = true
-        testResult = nil
-
-        Task {
-            let pingURL = url.appendingPathComponent("v1/auth/check-username/pingtest")
-            var req = URLRequest(url: pingURL)
-            req.timeoutInterval = 4.0
-            do {
-                let (_, response) = try await URLSession.shared.data(for: req)
-                if let http = response as? HTTPURLResponse, (200...499).contains(http.statusCode) {
-                    testResult = "Conexão com Docker estabelecida com sucesso! (HTTP \(http.statusCode))"
-                    isSuccess = true
-                } else {
-                    testResult = "Servidor respondeu, mas com erro de rota."
-                    isSuccess = false
-                }
-            } catch {
-                testResult = "Não foi possível conectar: \(error.localizedDescription)"
-                isSuccess = false
-            }
-            isTesting = false
-        }
-    }
-
-    private func saveAndApply() {
-        let clean = serverURLText.trimmingCharacters(in: .whitespacesAndNewlines)
-        UserDefaults.standard.set(clean.isEmpty ? "http://localhost:3000" : clean, forKey: "junto_api_base_url")
-        store.showToast("Servidor atualizado!", icon: "checkmark.circle")
-        store.refreshDatabaseSync()
-        dismiss()
     }
 }

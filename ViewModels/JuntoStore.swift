@@ -1906,6 +1906,18 @@ final class JuntoStore: ObservableObject {
         }
     }
 
+    /// Algoritmo dinâmico que rotaciona e embaralha pessoas próximas conforme localização e tempo
+    func refreshNearbyUsers() {
+        guard nearbyUsers.count > 1 else { return }
+        withAnimation(.easeInOut(duration: 0.25)) {
+            nearbyUsers.shuffle()
+            for i in 0..<nearbyUsers.count {
+                let jitter = Int.random(in: -90...130)
+                nearbyUsers[i].distanceMeters = max(160, nearbyUsers[i].distanceMeters + jitter)
+            }
+        }
+    }
+
     // MARK: - Dados Iniciais / Seed para Próximos e Grupos Públicos
     func setupSeedData() {
         if nearbyUsers.isEmpty {
@@ -1963,6 +1975,42 @@ final class JuntoStore: ObservableObject {
                     mutualFriendsCount: 6,
                     interests: ["Festa", "Rolezinho"],
                     proPlanType: .none
+                ),
+                NearbyUserItem(
+                    name: "Larissa Duarte",
+                    username: "lari.duarte",
+                    distanceMeters: 620,
+                    neighborhood: "Bela Vista, SP",
+                    mutualFriendsCount: 4,
+                    interests: ["Cinema", "Cafés"],
+                    proPlanType: .monthly
+                ),
+                NearbyUserItem(
+                    name: "Thiago Prado",
+                    username: "thiago.prado",
+                    distanceMeters: 1540,
+                    neighborhood: "Moema, SP",
+                    mutualFriendsCount: 3,
+                    interests: ["Beach Tennis", "Corrida"],
+                    proPlanType: .yearly
+                ),
+                NearbyUserItem(
+                    name: "Camila Nogueira",
+                    username: "camila.nog",
+                    distanceMeters: 2100,
+                    neighborhood: "Perdizes, SP",
+                    mutualFriendsCount: 2,
+                    interests: ["Gastronomia", "Shows"],
+                    proPlanType: .none
+                ),
+                NearbyUserItem(
+                    name: "Lucas Brandão",
+                    username: "lucas.brandao",
+                    distanceMeters: 980,
+                    neighborhood: "Vila Mariana, SP",
+                    mutualFriendsCount: 5,
+                    interests: ["Churrasco", "Futebol"],
+                    proPlanType: .monthly
                 )
             ]
         }

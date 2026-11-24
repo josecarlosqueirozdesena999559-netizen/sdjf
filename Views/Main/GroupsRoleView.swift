@@ -737,13 +737,6 @@ struct CreateGroupScreen: View {
                                             .environment(\.locale, Locale(identifier: "pt_BR"))
                                     }
                                     .padding(.vertical, 4)
-
-                                    Text("💡 O valor por pessoa é recalculado dinamicamente conforme novos membros entram no grupo.")
-                                        .font(.inter(12, weight: .regular))
-                                        .foregroundColor(JuntoColors.primary)
-                                        .padding(10)
-                                        .background(JuntoColors.primaryLight.opacity(0.5))
-                                        .clipShape(RoundedRectangle(cornerRadius: 8))
                                 }
                             }
                         }
@@ -1920,15 +1913,8 @@ struct OrganizerPixPaymentSheet: View {
     var onSendReceipt: ((Data?, String?) -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
 
-    enum PixTab: String, CaseIterable {
-        case qrCode = "QR Code Pix"
-        case copyKey = "Copiar chave Pix"
-    }
-
-    @State private var selectedTab: PixTab = .qrCode
     @State private var copiedKey = false
-    @State private var copiedPayload = false
-    @State private var timeRemaining = 300 // 5 minutos = 300 segundos
+    @State private var timeRemaining = 300 // 5 minutos
     @State private var timer: Timer? = nil
 
     // Anexo de comprovante (Foto ou PDF)
@@ -1943,29 +1929,13 @@ struct OrganizerPixPaymentSheet: View {
         return String(format: "%02d:%02d", mins, secs)
     }
 
-    private var pixPayload: String {
-        let formattedValue = String(format: "%.2f", amount)
-        return "00020126420014br.gov.bcb.pix0120\(organizerPixKey)520400005303986540\(formattedValue.count)\(formattedValue)5802BR5914\(organizerName.prefix(14).uppercased())6009SAO PAULO62070503***6304E1F9"
-    }
-
-    private func generateQRCodeImage(from string: String) -> UIImage? {
-        let context = CIContext()
-        let filter = CIFilter.qrCodeGenerator()
-        filter.message = Data(string.utf8)
-        filter.correctionLevel = "M"
-        guard let outputImage = filter.outputImage else { return nil }
-        let scaled = outputImage.transformed(by: CGAffineTransform(scaleX: 8, y: 8))
-        guard let cgImage = context.createCGImage(scaled, from: scaled.extent) else { return nil }
-        return UIImage(cgImage: cgImage)
-    }
-
     var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
+        VStack(alignment: .leading, spacing: 16) {
             // Cabeçalho limpo
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Pagar via Pix")
-                        .font(.inter(18, weight: .medium))
+                        .font(.inter(18, weight: .semibold))
                         .foregroundColor(JuntoColors.textMain)
                     Text("\(title) · Para: \(organizerName)")
                         .font(.inter(12, weight: .regular))
@@ -1984,16 +1954,16 @@ struct OrganizerPixPaymentSheet: View {
             }
             .padding(.top, 18)
 
-            // Valor a transferir e tempo (5 minutos de vencimento)
+            // Valor a transferir e tempo de expiração
             HStack {
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Valor a transferir")
                         .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                     if timeRemaining > 0 {
-                        Text("Chave Pix válida por \(formattedTime)")
-                            .font(.inter(11, weight: .regular))
-                            .foregroundColor(timeRemaining < 60 ? JuntoColors.danger : JuntoColors.textLight)
+                        Text("Chave válida por \(formattedTime)")
+                            .font(.inter(11, weight: .medium))
+                            .foregroundColor(timeRemaining < 60 ? JuntoColors.danger : JuntoColors.pixGreen)
                             .monospacedDigit()
                     } else {
                         Text("Chave expirada")
@@ -2003,107 +1973,66 @@ struct OrganizerPixPaymentSheet: View {
                 }
                 Spacer()
                 Text(JuntoStore.formatBRL(amount))
-                    .font(.inter(20, weight: .medium))
+                    .font(.inter(22, weight: .semibold))
                     .foregroundColor(JuntoColors.textMain)
             }
-            .padding(.horizontal, 14)
-            .padding(.vertical, 12)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 14)
             .background(Color.white)
-            .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
-            .clipShape(RoundedRectangle(cornerRadius: 10))
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
 
-            // Abas: QR Code Pix | Copiar chave Pix
-            HStack(spacing: 8) {
-                ForEach(PixTab.allCases, id: \.self) { tab in
-                    let active = selectedTab == tab
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.16)) { selectedTab = tab }
-                    } label: {
-                        Text(tab.rawValue)
-                            .font(.inter(13, weight: .medium))
-                            .foregroundColor(active ? .white : JuntoColors.textMain)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 38)
-                            .background(active ? JuntoColors.primary : Color.white)
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(active ? JuntoColors.primary : JuntoColors.border, lineWidth: 1)
-                            )
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
+            // Card da Chave Pix com Toque para Copiar
+            VStack(alignment: .leading, spacing: 12) {
+                HStack(spacing: 8) {
+                    ZStack {
+                        Circle()
+                            .fill(Color(hex: "#00B494"))
+                            .frame(width: 28, height: 28)
+                        PixOfficialIcon(size: 14, color: .white)
                     }
+                    Text("Chave Pix de \(organizerName)")
+                        .font(.inter(13, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
                 }
-            }
 
-            // Conteúdo da aba selecionada
-            if selectedTab == .qrCode {
-                VStack(spacing: 10) {
-                    Text("Aponte a câmera do celular ou leitor Pix do seu banco")
-                        .font(.inter(12, weight: .regular))
-                        .foregroundColor(JuntoColors.textMuted)
-
-                    if let qrImg = generateQRCodeImage(from: pixPayload) {
-                        Image(uiImage: qrImg)
-                            .interpolation(.none)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(width: 155, height: 155)
-                            .padding(8)
-                            .background(Color.white)
-                            .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-                            .clipShape(RoundedRectangle(cornerRadius: 12))
-                    }
-
-                    Button {
-                        UIPasteboard.general.string = pixPayload
-                        copiedPayload = true
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedPayload = false }
-                    } label: {
-                        HStack(spacing: 6) {
-                            Image(systemName: copiedPayload ? "checkmark" : "doc.on.doc")
-                                .font(.system(size: 13, weight: .medium))
-                            Text(copiedPayload ? "Código Pix copiado" : "Copiar código Pix Copia e Cola")
-                                .font(.inter(13, weight: .medium))
-                        }
-                        .foregroundColor(JuntoColors.primary)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 4)
-            } else {
-                VStack(alignment: .leading, spacing: 10) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text("Chave Pix de \(organizerName)")
-                            .font(.inter(12, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
-                        Text(organizerPixKey)
-                            .font(.inter(16, weight: .medium))
-                            .foregroundColor(JuntoColors.textMain)
-                            .textSelection(.enabled)
-                    }
+                Text(organizerPixKey)
+                    .font(.system(size: 16, weight: .medium, design: .monospaced))
+                    .foregroundColor(JuntoColors.textMain)
+                    .textSelection(.enabled)
+                    .padding(12)
                     .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
-                    .background(Color.white)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
+                    .background(JuntoColors.surfaceSubtle)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
 
-                    JuntoOutlineButton(
-                        title: copiedKey ? "Chave Pix copiada" : "Copiar chave Pix",
-                        icon: copiedKey ? "checkmark" : "doc.on.doc",
-                        color: JuntoColors.primary
-                    ) {
-                        UIPasteboard.general.string = organizerPixKey
-                        copiedKey = true
-                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedKey = false }
+                Button {
+                    UIPasteboard.general.string = organizerPixKey
+                    copiedKey = true
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedKey = false }
+                } label: {
+                    HStack(spacing: 6) {
+                        Image(systemName: copiedKey ? "checkmark" : "doc.on.doc")
+                            .font(.system(size: 13, weight: .medium))
+                        Text(copiedKey ? "Chave Pix copiada!" : "Copiar Chave Pix")
+                            .font(.inter(13, weight: .semibold))
                     }
-
-                    Text("Transfira o valor no seu banco e anexe o comprovante abaixo para o organizador.")
-                        .font(.inter(12, weight: .regular))
-                        .foregroundColor(JuntoColors.textMuted)
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 42)
+                    .background(Color(hex: "#00B494"))
+                    .clipShape(RoundedRectangle(cornerRadius: 10))
                 }
-                .padding(.vertical, 4)
+                .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.97))
+
+                Text("Transfira pelo app do seu banco e anexe o comprovante abaixo.")
+                    .font(.inter(11, weight: .regular))
+                    .foregroundColor(JuntoColors.textMuted)
             }
+            .padding(14)
+            .background(Color.white)
+            .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
+            .clipShape(RoundedRectangle(cornerRadius: 12))
 
             Spacer(minLength: 4)
 

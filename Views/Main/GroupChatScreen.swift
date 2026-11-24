@@ -517,7 +517,7 @@ struct GroupChatScreen: View {
                     showAttachmentMenu = false
                     store.sendGroupChatMessage(
                         groupId: groupId,
-                        kind: .text("Minha chave Pix: \(store.user.pixKey)")
+                        kind: .text("PIX:\(store.user.name)|\(store.user.pixKey)")
                     )
                 },
                 onSelectDocument: {
@@ -663,7 +663,7 @@ struct GroupChatScreen: View {
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 6)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .frame(maxWidth: 240, alignment: .leading)
                     .background(msg.isFromMe ? Color.white.opacity(0.10) : JuntoColors.surfaceSubtle)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                 }
@@ -671,13 +671,24 @@ struct GroupChatScreen: View {
                 // Conteúdo da mensagem responsivo para qualquer tamanho de tela
                 switch msg.kind {
                 case .text(let txt):
-                    Text(txt)
-                        .font(.inter(14, weight: .regular))
-                        .foregroundColor(msg.isFromMe ? .white : JuntoColors.textMain)
-                        .lineSpacing(2)
-                        .multilineTextAlignment(.leading)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .textSelection(.enabled)
+                    if txt.hasPrefix("PIX:") {
+                        let raw = String(txt.dropFirst(4))
+                        let parts = raw.split(separator: "|")
+                        let name = parts.first.map(String.init) ?? (msg.isFromMe ? store.user.name : senderDisplayName)
+                        let key = parts.count > 1 ? String(parts[1]) : raw
+                        PixContactCardView(name: name, pixKey: key, isFromMe: msg.isFromMe)
+                    } else if txt.hasPrefix("Minha chave Pix:") {
+                        let key = txt.replacingOccurrences(of: "Minha chave Pix:", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+                        PixContactCardView(name: msg.isFromMe ? store.user.name : senderDisplayName, pixKey: key, isFromMe: msg.isFromMe)
+                    } else {
+                        Text(txt)
+                            .font(.inter(14, weight: .regular))
+                            .foregroundColor(msg.isFromMe ? .white : JuntoColors.textMain)
+                            .lineSpacing(2)
+                            .multilineTextAlignment(.leading)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .textSelection(.enabled)
+                    }
 
                 case .photo(let data, let caption):
                     VStack(alignment: .leading, spacing: 6) {
@@ -839,7 +850,6 @@ struct GroupChatScreen: View {
 
                 // Rodapé: editada + hora + traços de entregue / lido no grupo
                 HStack(spacing: 4) {
-                    Spacer()
                     if msg.isEdited {
                         Text("editada")
                             .font(.inter(10, weight: .regular))
@@ -862,6 +872,7 @@ struct GroupChatScreen: View {
                     .stroke(msg.isFromMe ? Color.clear : JuntoColors.border, lineWidth: 0.8)
             )
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+            .frame(maxWidth: UIScreen.main.bounds.width * 0.76, alignment: msg.isFromMe ? .trailing : .leading)
 
             if !msg.isFromMe { Spacer(minLength: 42) }
         }

@@ -150,53 +150,9 @@ struct FriendsView: View {
                 Spacer()
                 Spacer().frame(height: 110)
             } else {
-                // Lista estilo WhatsApp: Conversas de Grupos (automáticas) + Amigos com saldo ativo
+                // Lista estilo WhatsApp: Mensagens de Amigos no topo + Grupos abaixo
                 List {
-                    ForEach(activeGroupChats) { group in
-                        Button {
-                            selectedGroupChatId = group.id
-                        } label: {
-                            HStack(spacing: 14) {
-                                Group {
-                                    if let data = group.coverImageData, let uiImg = UIImage(data: data) {
-                                        Image(uiImage: uiImg).resizable().scaledToFill()
-                                    } else {
-                                        Image(group.coverImageName).resizable().scaledToFill()
-                                    }
-                                }
-                                .frame(width: 50, height: 50)
-                                .clipped()
-                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-
-                                VStack(alignment: .leading, spacing: 3) {
-                                    HStack(spacing: 5) {
-                                        Text(group.title)
-                                            .font(.inter(15, weight: .medium))
-                                            .foregroundColor(JuntoColors.textMain)
-                                            .lineLimit(1)
-                                        Text("· \(group.participants.count)")
-                                            .font(.inter(12, weight: .regular))
-                                            .foregroundColor(JuntoColors.textMuted)
-                                    }
-
-                                    Text(store.lastGroupMessagePreview(for: group.id))
-                                        .font(.inter(13, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMuted)
-                                        .lineLimit(1)
-                                }
-
-                                Spacer()
-
-                                Image(systemName: "person.2")
-                                    .font(.system(size: 13))
-                                    .foregroundColor(JuntoColors.textLight)
-                            }
-                            .padding(.vertical, 6)
-                        }
-                        .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
-                        .listRowBackground(Color.white)
-                    }
-
+                    // 1. Mensagens de amigos individuais (ordenadas por recentes)
                     ForEach(activeDebtFriends) { friend in
                         Button {
                             selectedChatFriend = friend
@@ -262,6 +218,52 @@ struct FriendsView: View {
                                 Label("Apagar conversa", systemImage: "trash")
                             }
                         }
+                    }
+
+                    // 2. Grupos de rolê (abaixo das conversas de amigos)
+                    ForEach(activeGroupChats) { group in
+                        Button {
+                            selectedGroupChatId = group.id
+                        } label: {
+                            HStack(spacing: 14) {
+                                Group {
+                                    if let data = group.coverImageData, let uiImg = UIImage(data: data) {
+                                        Image(uiImage: uiImg).resizable().scaledToFill()
+                                    } else {
+                                        Image(group.coverImageName).resizable().scaledToFill()
+                                    }
+                                }
+                                .frame(width: 50, height: 50)
+                                .clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+
+                                VStack(alignment: .leading, spacing: 3) {
+                                    HStack(spacing: 5) {
+                                        Text(group.title)
+                                            .font(.inter(15, weight: .medium))
+                                            .foregroundColor(JuntoColors.textMain)
+                                            .lineLimit(1)
+                                        Text("· \(group.participants.count)")
+                                            .font(.inter(12, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                    }
+
+                                    Text(store.lastGroupMessagePreview(for: group.id))
+                                        .font(.inter(13, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                        .lineLimit(1)
+                                }
+
+                                Spacer()
+
+                                Image(systemName: "person.2")
+                                    .font(.system(size: 13))
+                                    .foregroundColor(JuntoColors.textLight)
+                            }
+                            .padding(.vertical, 6)
+                        }
+                        .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
+                        .listRowBackground(Color.white)
                     }
 
                     // Espaço para a barra flutuante inferior
