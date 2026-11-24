@@ -279,6 +279,12 @@ final class JuntoStore: ObservableObject {
         showToast("Mensagem enviada! Protocolo #\(protocolCode)", icon: "checkmark.circle")
     }
 
+    func refreshDatabaseSync() {
+        Task {
+            await syncWithBackendDatabase()
+        }
+    }
+
     /// Sincroniza todos os dados reais com o banco PostgreSQL do Docker (usuário, amigos, grupos, potes pessoais, despesas, notificações e atividades)
     func syncWithBackendDatabase() async {
         guard let payload = await JuntoBackendService.shared.fetchBootstrap(username: user.username) else {
