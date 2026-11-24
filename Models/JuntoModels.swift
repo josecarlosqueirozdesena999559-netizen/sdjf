@@ -166,6 +166,7 @@ struct ChatMessage: Identifiable, Hashable {
     var kind: ChatMessageKind
     let timeText: String
     var dateLabel: String = "Hoje" // ex: "Ontem", "Hoje", "18 de nov."
+    var createdAt: Date = Date()
     var isEdited: Bool = false
     var isListened: Bool = false
     var status: MessageDeliveryStatus = .sent

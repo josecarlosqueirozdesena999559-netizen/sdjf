@@ -253,7 +253,7 @@ struct GroupChatScreen: View {
             // Barra Inferior: estilo WhatsApp com cronômetro em cima, "Gravando" ao lado das ondas e "Excluir" para cancelar
             HStack(alignment: .center, spacing: 10) {
                 if audioManager.isRecording {
-                    // Botão Excluir para cancelar antes de enviar (estilo WhatsApp)
+                    // Botão Excluir limpo (SEM fundo, estilo nativo WhatsApp)
                     Button {
                         withAnimation(.easeInOut(duration: 0.18)) {
                             recMicPulse = false
@@ -261,47 +261,46 @@ struct GroupChatScreen: View {
                             audioManager.cancelRecording()
                         }
                     } label: {
-                        HStack(spacing: 4) {
-                            Image(systemName: "trash")
-                                .font(.system(size: 14, weight: .medium))
-                            Text("Excluir")
-                                .font(.inter(13, weight: .medium))
-                        }
-                        .foregroundColor(JuntoColors.danger)
-                        .padding(.horizontal, 10)
-                        .frame(height: 40)
-                        .background(JuntoColors.dangerLight)
-                        .clipShape(Capsule())
+                        Image(systemName: "trash")
+                            .font(.system(size: 19, weight: .regular))
+                            .foregroundColor(JuntoColors.danger)
+                            .frame(width: 40, height: 40)
                     }
 
-                    // Cronômetro em cima + "Gravando" ao lado das ondas (SEM bola vermelha)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text("0:\(String(format: "%02d", audioManager.recordingSeconds))")
-                            .font(.inter(11, weight: .semibold))
-                            .foregroundColor(JuntoColors.primary)
+                    // Animação de gravação fluida estilo WhatsApp com ponto vermelho pulsante e ondas
+                    HStack(spacing: 8) {
+                        Circle()
+                            .fill(Color(hex: "#EF4444"))
+                            .frame(width: 9, height: 9)
+                            .opacity(recMicPulse ? 1.0 : 0.25)
+
+                        Text(String(format: "%02d:%02d", audioManager.recordingSeconds / 60, audioManager.recordingSeconds % 60))
+                            .font(.inter(13, weight: .semibold))
+                            .foregroundColor(JuntoColors.textMain)
                             .monospacedDigit()
 
-                        HStack(spacing: 8) {
-                            Text("Gravando")
-                                .font(.inter(12, weight: .medium))
-                                .foregroundColor(JuntoColors.textMuted)
+                        Spacer(minLength: 4)
 
-                            HStack(spacing: 2.5) {
-                                let bars = Array(audioManager.liveLevels.suffix(18))
-                                ForEach(Array(bars.enumerated()), id: \.offset) { _, lvl in
-                                    Capsule()
-                                        .fill(JuntoColors.primary.opacity(0.75))
-                                        .frame(width: 2.4, height: max(4, lvl * 18))
-                                }
+                        HStack(spacing: 2.2) {
+                            let bars = Array(audioManager.liveLevels.suffix(16))
+                            ForEach(Array(bars.enumerated()), id: \.offset) { _, lvl in
+                                Capsule()
+                                    .fill(Color(hex: "#EF4444").opacity(0.85))
+                                    .frame(width: 2.2, height: max(4, CGFloat(lvl) * 18))
                             }
-                            .animation(.easeOut(duration: 0.12), value: audioManager.liveLevels)
+                        }
+                        .animation(.easeOut(duration: 0.1), value: audioManager.liveLevels)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.horizontal, 14)
+                    .frame(height: 40)
+                    .background(JuntoColors.surfaceSubtle)
+                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .onAppear {
+                        withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
+                            recMicPulse = true
                         }
                     }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(.horizontal, 14)
-                    .padding(.vertical, 6)
-                    .background(JuntoColors.surfaceSubtle)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                     // Enviar áudio gravado
                     Button {

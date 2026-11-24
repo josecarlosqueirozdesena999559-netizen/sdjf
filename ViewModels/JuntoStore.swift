@@ -131,7 +131,7 @@ final class JuntoStore: ObservableObject {
                 _ = await JuntoBackendService.shared.sendWhatsAppVerificationCode(phone: phone, code: code)
             }
         }
-        showToast("Código WhatsApp enviado! (\(code))", icon: "message.fill")
+        showToast("Código enviado para seu WhatsApp!", icon: "message.fill")
     }
 
     private let takenUsernames: Set<String> = ["admin", "pedro", "matheus", "camila", "junto", "teste", "suporte"]
@@ -536,6 +536,32 @@ final class JuntoStore: ObservableObject {
         if case .system(let txt) = last.kind { return txt }
         let prefix = last.isFromMe ? "Você: " : ((last.senderName?.split(separator: " ").first.map(String.init) ?? "") + ": ")
         return "\(prefix)\(last.previewText)"
+    }
+
+    func lastMessageDate(for username: String) -> Date {
+        messages(for: username).last?.createdAt ?? Date.distantPast
+    }
+
+    func lastGroupMessageDate(for groupId: UUID) -> Date {
+        groupMessages(for: groupId).last?.createdAt ?? Date.distantPast
+    }
+
+    var friendsSortedByRecent: [FriendItem] {
+        friends.sorted { f1, f2 in
+            let d1 = lastMessageDate(for: f1.username)
+            let d2 = lastMessageDate(for: f2.username)
+            if d1 != d2 { return d1 > d2 }
+            return f1.name.localizedStandardCompare(f2.name) == .orderedAscending
+        }
+    }
+
+    var groupsSortedByRecent: [RoleGroup] {
+        groups.sorted { g1, g2 in
+            let d1 = lastGroupMessageDate(for: g1.id)
+            let d2 = lastGroupMessageDate(for: g2.id)
+            if d1 != d2 { return d1 > d2 }
+            return g1.title.localizedStandardCompare(g2.title) == .orderedAscending
+        }
     }
 
     func sendGroupChatMessage(

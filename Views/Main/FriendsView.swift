@@ -10,20 +10,21 @@ struct FriendsView: View {
     @State private var selectedGroupChatId: UUID? = nil
     @State private var searchText = ""
 
-    /// Na tela inicial aparecem SOMENTE amigos que te devem ou a quem você deve (balance != 0)
+    /// Conversas com amigos organizadas por ordem de mensagens recentes (estilo WhatsApp)
     private var activeDebtFriends: [FriendItem] {
-        let withDebt = store.friends.filter { $0.balance != 0 }
-        if searchText.isEmpty { return withDebt }
-        return withDebt.filter {
+        let list = store.friendsSortedByRecent
+        if searchText.isEmpty { return list }
+        return list.filter {
             $0.name.localizedCaseInsensitiveContains(searchText) ||
             $0.username.localizedCaseInsensitiveContains(searchText)
         }
     }
 
-    /// Conversas automáticas de todos os grupos criados (desaparecem automaticamente ao excluir o grupo)
+    /// Conversas de grupos organizadas por ordem de mensagens recentes (estilo WhatsApp)
     private var activeGroupChats: [RoleGroup] {
-        if searchText.isEmpty { return store.groups }
-        return store.groups.filter {
+        let list = store.groupsSortedByRecent
+        if searchText.isEmpty { return list }
+        return list.filter {
             $0.title.localizedCaseInsensitiveContains(searchText) ||
             $0.category.localizedCaseInsensitiveContains(searchText)
         }

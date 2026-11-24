@@ -56,5 +56,9 @@ struct JuntoRootView: View {
                 .zIndex(999)
             }
         }
+        .onAppear {
+            JuntoNotificationManager.shared.requestAuthorization()
+            LocationManager.shared.requestAuthorization()
+        }
     }
 }
