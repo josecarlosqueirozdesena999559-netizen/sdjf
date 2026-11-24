@@ -17,7 +17,7 @@ struct AccountView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
                     Text("Conta")
-                        .font(.inter(24, weight: .medium))
+                        .font(.inter(26, weight: .bold))
                         .foregroundColor(JuntoColors.textMain)
                         .padding(.horizontal, 20)
                         .padding(.top, 16)

@@ -18,7 +18,7 @@ struct ActivitiesView: View {
             // Topo limpo: "Lançamentos" + botão "Meus gastos" ao lado (sem botão de adicionar e sem filtros)
             HStack(spacing: 10) {
                 Text("Lançamentos")
-                    .font(.inter(24, weight: .medium))
+                    .font(.inter(26, weight: .bold))
                     .foregroundColor(JuntoColors.textMain)
 
                 Spacer()

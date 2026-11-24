@@ -393,6 +393,158 @@ struct PopupCloseButton: View {
     }
 }
 
+// MARK: - Ícone Quadrado Arredondado por Categoria de Grupo (Cores Juntô, sem imagem genérica)
+struct GroupCategoryIconTile: View {
+    let category: String
+    var size: CGFloat = 50
+
+    private var iconName: String {
+        switch category {
+        case "Viagem": return "airplane"
+        case "Churrasco": return "flame.fill"
+        case "Casa": return "house.fill"
+        case "Casal": return "heart.fill"
+        case "Bar & Drinks": return "wineglass.fill"
+        case "Festa": return "sparkles"
+        case "Esporte": return "sportscourt.fill"
+        case "Presente": return "gift.fill"
+        case "Trabalho": return "briefcase.fill"
+        default: return "list.bullet.rectangle"
+        }
+    }
+
+    private var gradientColors: [Color] {
+        switch category {
+        case "Viagem": return [JuntoColors.primary, Color(hex: "#2563EB")]
+        case "Churrasco": return [JuntoColors.orangeSave, Color(hex: "#FCA311")]
+        case "Casa": return [JuntoColors.pixGreen, Color(hex: "#0D9488")]
+        case "Casal": return [Color(hex: "#DB2777"), Color(hex: "#F43F5E")]
+        case "Bar & Drinks": return [Color(hex: "#7C3AED"), Color(hex: "#4F46E5")]
+        case "Festa": return [Color(hex: "#9333EA"), Color(hex: "#EC4899")]
+        case "Esporte": return [Color(hex: "#0284C7"), Color(hex: "#0EA5E9")]
+        default: return [JuntoColors.primary, Color(hex: "#334155")]
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: size * 0.24, style: .continuous)
+                .fill(
+                    LinearGradient(
+                        colors: gradientColors,
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+            Image(systemName: iconName)
+                .font(.system(size: size * 0.44, weight: .semibold))
+                .foregroundColor(.white)
+        }
+        .frame(width: size, height: size)
+    }
+}
+
+// MARK: - Barra de Gravação de Áudio Estilo WhatsApp (2 linhas limpas nas cores Juntô)
+struct WhatsAppAudioRecordingBar: View {
+    let recordingSeconds: Int
+    let liveLevels: [CGFloat]
+    let onCancel: () -> Void
+    let onSend: () -> Void
+
+    @State private var pulseActive = false
+
+    private var formattedTimer: String {
+        let mins = recordingSeconds / 60
+        let secs = recordingSeconds % 60
+        return String(format: "%d:%02d", mins, secs)
+    }
+
+    private var symmetricBars: [CGFloat] {
+        let count = 24
+        let raw = Array(liveLevels.suffix(count))
+        var result: [CGFloat] = []
+        for i in 0..<count {
+            let level: Double = i < raw.count ? Double(raw[i]) : 0.16
+            // Envelope suave nas pontas (estilo onda simétrica do WhatsApp)
+            let progress = Double(i) / Double(max(1, count - 1))
+            let envelope = sin(progress * .pi)
+            let height = 3.5 + CGFloat(level * (0.28 + 0.72 * envelope)) * 22.0
+            result.append(min(26, max(3.5, height)))
+        }
+        return result
+    }
+
+    var body: some View {
+        VStack(spacing: 14) {
+            // Linha 1: Cronômetro à esquerda + Onda simétrica animada à direita
+            HStack(alignment: .center, spacing: 12) {
+                Text(formattedTimer)
+                    .font(.inter(20, weight: .semibold))
+                    .foregroundColor(JuntoColors.textMain)
+                    .monospacedDigit()
+
+                Spacer(minLength: 12)
+
+                HStack(alignment: .center, spacing: 2.5) {
+                    ForEach(Array(symmetricBars.enumerated()), id: \.offset) { _, h in
+                        Capsule()
+                            .fill(JuntoColors.primary.opacity(0.82))
+                            .frame(width: 2.6, height: h)
+                    }
+                }
+                .frame(height: 28)
+                .animation(.easeOut(duration: 0.10), value: liveLevels)
+            }
+            .padding(.horizontal, 6)
+
+            // Linha 2: Lixeira (sem fundo) à esquerda | Indicador de gravação vermelho no centro | Enviar circular nas cores Juntô à direita
+            HStack(alignment: .center) {
+                Button(action: onCancel) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 21, weight: .regular))
+                        .foregroundColor(JuntoColors.textMain)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.90))
+
+                Spacer()
+
+                ZStack {
+                    Circle()
+                        .stroke(Color(hex: "#E11D48"), lineWidth: 2.2)
+                        .frame(width: 34, height: 34)
+                        .scaleEffect(pulseActive ? 1.10 : 0.96)
+                        .opacity(pulseActive ? 1.0 : 0.65)
+                    Image(systemName: "pause.fill")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundColor(Color(hex: "#E11D48"))
+                }
+                .onAppear {
+                    withAnimation(.easeInOut(duration: 0.65).repeatForever(autoreverses: true)) {
+                        pulseActive = true
+                    }
+                }
+
+                Spacer()
+
+                Button(action: onSend) {
+                    Image(systemName: "paperplane.fill")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 44, height: 44)
+                        .background(JuntoColors.primary)
+                        .clipShape(Circle())
+                }
+                .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.92))
+            }
+        }
+        .padding(.top, 4)
+        .padding(.bottom, 2)
+        .frame(maxWidth: .infinity)
+    }
+}
+
 // MARK: - Estilo de Toque Fluido e Responsivo (efeito mola suave em qualquer botão)
 struct JuntoTapBounceStyle: ButtonStyle {
     var scaleAmount: CGFloat = 0.96

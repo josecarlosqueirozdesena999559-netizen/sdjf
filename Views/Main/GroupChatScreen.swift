@@ -231,69 +231,23 @@ struct GroupChatScreen: View {
                 .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.8), alignment: .top)
             }
 
-            // Barra Inferior: estilo WhatsApp com cronômetro em cima, "Gravando" ao lado das ondas e "Excluir" para cancelar
+            // Barra Inferior: gravação de áudio 2 linhas estilo WhatsApp nas cores Juntô
             HStack(alignment: .center, spacing: 10) {
                 if audioManager.isRecording {
-                    // Botão Excluir limpo (SEM fundo, estilo nativo WhatsApp)
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.18)) {
-                            recMicPulse = false
-                            isMicLocked = false
-                            audioManager.cancelRecording()
-                        }
-                    } label: {
-                        Image(systemName: "trash")
-                            .font(.system(size: 19, weight: .regular))
-                            .foregroundColor(JuntoColors.danger)
-                            .frame(width: 40, height: 40)
-                    }
-
-                    // Animação de gravação fluida estilo WhatsApp com ponto vermelho pulsante e ondas
-                    HStack(spacing: 8) {
-                        Circle()
-                            .fill(Color(hex: "#EF4444"))
-                            .frame(width: 9, height: 9)
-                            .opacity(recMicPulse ? 1.0 : 0.25)
-
-                        Text(String(format: "%02d:%02d", audioManager.recordingSeconds / 60, audioManager.recordingSeconds % 60))
-                            .font(.inter(13, weight: .semibold))
-                            .foregroundColor(JuntoColors.textMain)
-                            .monospacedDigit()
-
-                        Spacer(minLength: 4)
-
-                        HStack(spacing: 2.2) {
-                            let bars = Array(audioManager.liveLevels.suffix(16))
-                            ForEach(Array(bars.enumerated()), id: \.offset) { _, lvl in
-                                Capsule()
-                                    .fill(Color(hex: "#EF4444").opacity(0.85))
-                                    .frame(width: 2.2, height: max(4, CGFloat(lvl) * 18))
+                    WhatsAppAudioRecordingBar(
+                        recordingSeconds: audioManager.recordingSeconds,
+                        liveLevels: audioManager.liveLevels,
+                        onCancel: {
+                            withAnimation(.easeInOut(duration: 0.18)) {
+                                recMicPulse = false
+                                isMicLocked = false
+                                audioManager.cancelRecording()
                             }
+                        },
+                        onSend: {
+                            sendRecordedAudio()
                         }
-                        .animation(.easeOut(duration: 0.1), value: audioManager.liveLevels)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .padding(.horizontal, 14)
-                    .frame(height: 40)
-                    .background(JuntoColors.surfaceSubtle)
-                    .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
-                    .onAppear {
-                        withAnimation(.easeInOut(duration: 0.6).repeatForever(autoreverses: true)) {
-                            recMicPulse = true
-                        }
-                    }
-
-                    // Enviar áudio gravado
-                    Button {
-                        sendRecordedAudio()
-                    } label: {
-                        Image(systemName: "arrow.up")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.white)
-                            .frame(width: 40, height: 40)
-                            .background(JuntoColors.primary)
-                            .clipShape(Circle())
-                    }
+                    )
                 } else {
                     Button {
                         UIImpactFeedbackGenerator(style: .light).impactOccurred()

@@ -16,10 +16,10 @@ struct GroupsRoleView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Topo: "Grupos" + botão "+" que cria diretamente um novo grupo/viagem/rolê
+            // Topo: "Grupos" em Bold + botão "+"
             HStack {
                 Text("Grupos")
-                    .font(.inter(24, weight: .medium))
+                    .font(.inter(26, weight: .bold))
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
                 Button {
@@ -47,7 +47,24 @@ struct GroupsRoleView: View {
                 placeholders: ["Pesquisar grupos"]
             )
             .padding(.horizontal, 20)
-            .padding(.bottom, 12)
+            .padding(.bottom, 10)
+
+            if !filteredGroups.isEmpty {
+                let totalPending = store.totalPersonalPendingAmount
+                let totalPaid = store.totalPersonalPaidAmount
+                VStack(alignment: .leading, spacing: 2) {
+                    HStack(spacing: 5) {
+                        Text(totalPending > 0 ? "Nos grupos, falta pagar" : "Nos grupos, você já pagou")
+                            .font(.inter(15, weight: .semibold))
+                            .foregroundColor(JuntoColors.textMain)
+                        Text(JuntoStore.formatBRL(totalPending > 0 ? totalPending : totalPaid))
+                            .font(.inter(16, weight: .bold))
+                            .foregroundColor(totalPending > 0 ? JuntoColors.orangeSave : JuntoColors.pixGreen)
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 12)
+            }
 
             Divider().opacity(0.6)
 
@@ -84,20 +101,14 @@ struct GroupsRoleView: View {
                             Button {
                                 selectedGroupId = group.id
                             } label: {
-                                HStack(spacing: 12) {
-                                    if let data = group.coverImageData, let uiImg = UIImage(data: data) {
-                                        Image(uiImage: uiImg)
-                                            .resizable()
-                                            .scaledToFill()
-                                            .frame(width: 52, height: 52)
-                                            .clipped()
-                                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                                    }
+                                HStack(spacing: 14) {
+                                    // Sem imagens genéricas: sempre ícone limpo da categoria (ou foto se o usuário escolheu)
+                                    GroupCategoryIconTile(category: group.category, size: 50)
 
-                                    VStack(alignment: .leading, spacing: 4) {
+                                    VStack(alignment: .leading, spacing: 3) {
                                         HStack(spacing: 6) {
                                             Text(group.title)
-                                                .font(.inter(15, weight: .medium))
+                                                .font(.inter(16, weight: .semibold))
                                                 .foregroundColor(JuntoColors.textMain)
                                                 .lineLimit(1)
                                                 .truncationMode(.tail)
@@ -105,51 +116,57 @@ struct GroupsRoleView: View {
                                             if group.hasCollectivePot && group.potTarget > 0 {
                                                 let pct = group.overallGoalPercent
                                                 Text("· \(pct)%")
-                                                    .font(.inter(12, weight: .medium))
+                                                    .font(.inter(12, weight: .bold))
                                                     .foregroundColor(JuntoColors.pixGreen)
                                             }
                                         }
 
+                                        // Breve descrição limpa do grupo
                                         if group.potMode == .monthly && group.potTarget > 0 {
                                             let mIdx = min(max(0, group.selectedMonthIndex), max(0, group.monthlyCycles.count - 1))
-                                            let mPct = group.monthCompletionPercent(at: mIdx)
                                             let mLabel = group.monthlyCycles.indices.contains(mIdx) ? group.monthlyCycles[mIdx].label : "Mês \(mIdx + 1)"
-                                            Text("\(mLabel): \(mPct)% · Meta: \(JuntoStore.formatBRL(group.potBalance)) de \(JuntoStore.formatBRL(group.potTarget))")
+                                            Text("\(group.category) · \(group.participants.count) pessoas · \(mLabel)")
                                                 .font(.inter(12, weight: .regular))
                                                 .foregroundColor(JuntoColors.textMuted)
                                                 .lineLimit(1)
-                                                .minimumScaleFactor(0.85)
-                                        } else if group.hasCollectivePot && group.potTarget > 0 {
-                                            Text("\(JuntoStore.formatBRL(group.potBalance)) de \(JuntoStore.formatBRL(group.potTarget))")
-                                                .font(.inter(13, weight: .regular))
-                                                .foregroundColor(JuntoColors.textMuted)
-                                                .lineLimit(1)
-                                                .minimumScaleFactor(0.85)
                                         } else {
                                             Text("\(group.category) · \(group.participants.count) pessoas")
                                                 .font(.inter(13, weight: .regular))
                                                 .foregroundColor(JuntoColors.textMuted)
                                                 .lineLimit(1)
                                         }
-
-                                        if group.myShare > 0 {
-                                            Text("Sua parte: \(JuntoStore.formatBRL(group.myShare))")
-                                                .font(.inter(12, weight: .regular))
-                                                .foregroundColor(JuntoColors.orangeSave)
-                                                .lineLimit(1)
-                                        }
                                     }
                                     .frame(maxWidth: .infinity, alignment: .leading)
 
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 13, weight: .regular))
-                                        .foregroundColor(JuntoColors.textLight)
+                                    if group.myShare > 0 {
+                                        VStack(alignment: .trailing, spacing: 1) {
+                                            Text("você deve")
+                                                .font(.inter(11, weight: .regular))
+                                                .foregroundColor(JuntoColors.orangeSave)
+                                            Text(JuntoStore.formatBRL(group.myShare))
+                                                .font(.inter(15, weight: .bold))
+                                                .foregroundColor(JuntoColors.orangeSave)
+                                        }
+                                    } else if group.hasCollectivePot && group.potTarget > 0 {
+                                        VStack(alignment: .trailing, spacing: 1) {
+                                            Text("arrecadado")
+                                                .font(.inter(11, weight: .regular))
+                                                .foregroundColor(JuntoColors.pixGreen)
+                                            Text(JuntoStore.formatBRL(group.potBalance))
+                                                .font(.inter(15, weight: .bold))
+                                                .foregroundColor(JuntoColors.pixGreen)
+                                        }
+                                    } else {
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 13, weight: .regular))
+                                            .foregroundColor(JuntoColors.textLight)
+                                    }
                                 }
                                 .padding(.horizontal, 20)
-                                .padding(.vertical, 12)
+                                .padding(.vertical, 13)
                             }
 
-                            Divider().padding(.leading, 20)
+                            Divider().padding(.leading, 84)
                         }
                     }
                     .padding(.bottom, 140)
@@ -1046,19 +1063,17 @@ struct GroupDetailSheet: View {
                         .frame(height: 145)
                         .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
                     } else {
-                        HStack {
+                        HStack(spacing: 12) {
+                            GroupCategoryIconTile(category: group.category, size: 46)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(group.category)
+                                Text("\(group.category) · \(group.participants.count) pessoa(s)")
                                     .font(.inter(12, weight: .medium))
                                     .foregroundColor(JuntoColors.textMuted)
                                 Text("Total gasto: \(JuntoStore.formatBRL(group.totalSpent))")
-                                    .font(.inter(15, weight: .medium))
+                                    .font(.inter(16, weight: .bold))
                                     .foregroundColor(JuntoColors.textMain)
                             }
                             Spacer()
-                            Text("\(group.participants.count) pessoa(s)")
-                                .font(.inter(12, weight: .regular))
-                                .foregroundColor(JuntoColors.textMuted)
                         }
                         .padding(.vertical, 4)
                     }

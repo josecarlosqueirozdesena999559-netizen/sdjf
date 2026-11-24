@@ -21,10 +21,10 @@ struct FriendsView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Cabeçalho estilo WhatsApp: Título | Sino + Botão "+"
+            // Cabeçalho estilo WhatsApp: Título em Bold | Sino + Botão "+"
             HStack(spacing: 10) {
                 Text("Amigos")
-                    .font(.inter(24, weight: .medium))
+                    .font(.inter(26, weight: .bold))
                     .foregroundColor(JuntoColors.textMain)
 
                 Spacer()
@@ -75,25 +75,25 @@ struct FriendsView: View {
             .padding(.horizontal, 20)
             .padding(.bottom, 14)
 
-            // Saudação limpa + resumo do saldo
-            VStack(alignment: .leading, spacing: 3) {
+            // Saudação em Bold + resumo do saldo em destaque (fonte mais grossa)
+            VStack(alignment: .leading, spacing: 4) {
                 Text("Olá, \(store.user.firstName)")
-                    .font(.inter(16, weight: .medium))
+                    .font(.inter(20, weight: .bold))
                     .foregroundColor(JuntoColors.textMain)
 
                 if !recentChats.isEmpty {
-                    HStack(spacing: 4) {
+                    HStack(spacing: 5) {
                         Text(store.netBalance >= 0 ? "No total, você recebe" : "No total, você deve")
-                            .font(.inter(13, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
+                            .font(.inter(15, weight: .semibold))
+                            .foregroundColor(JuntoColors.textMain)
                         Text(JuntoStore.formatBRL(abs(store.netBalance)))
-                            .font(.inter(13, weight: .medium))
+                            .font(.inter(16, weight: .bold))
                             .foregroundColor(store.netBalance >= 0 ? JuntoColors.pixGreen : JuntoColors.orangeSave)
                     }
                 }
             }
             .padding(.horizontal, 20)
-            .padding(.bottom, 10)
+            .padding(.bottom, 12)
 
             Divider().opacity(0.6)
 
@@ -215,7 +215,7 @@ struct FriendsView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 5) {
                         Text(friend.name)
-                            .font(.inter(15, weight: .medium))
+                            .font(.inter(15, weight: .semibold))
                             .foregroundColor(JuntoColors.textMain)
                             .lineLimit(1)
                         VerifiedBadgeView(type: friend.proPlanType, size: 13)
@@ -231,11 +231,11 @@ struct FriendsView: View {
 
                 if friend.balance > 0 {
                     VStack(alignment: .trailing, spacing: 2) {
-                        Text("te deve")
+                        Text("deve a você")
                             .font(.inter(11, weight: .regular))
                             .foregroundColor(JuntoColors.pixGreen)
                         Text(JuntoStore.formatBRL(friend.balance))
-                            .font(.inter(15, weight: .medium))
+                            .font(.inter(16, weight: .bold))
                             .foregroundColor(JuntoColors.pixGreen)
                     }
                 } else if friend.balance < 0 {
@@ -244,7 +244,7 @@ struct FriendsView: View {
                             .font(.inter(11, weight: .regular))
                             .foregroundColor(JuntoColors.orangeSave)
                         Text(JuntoStore.formatBRL(abs(friend.balance)))
-                            .font(.inter(15, weight: .medium))
+                            .font(.inter(16, weight: .bold))
                             .foregroundColor(JuntoColors.orangeSave)
                     }
                 }
@@ -269,21 +269,21 @@ struct FriendsView: View {
             selectedGroupChatId = group.id
         } label: {
             HStack(spacing: 14) {
-                Group {
-                    if let data = group.coverImageData, let uiImg = UIImage(data: data) {
-                        Image(uiImage: uiImg).resizable().scaledToFill()
-                    } else {
-                        Image(group.coverImageName).resizable().scaledToFill()
-                    }
+                if let data = group.coverImageData, let uiImg = UIImage(data: data) {
+                    Image(uiImage: uiImg)
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: 50, height: 50)
+                        .clipped()
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                } else {
+                    GroupCategoryIconTile(category: group.category, size: 50)
                 }
-                .frame(width: 50, height: 50)
-                .clipped()
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
 
                 VStack(alignment: .leading, spacing: 3) {
                     HStack(spacing: 5) {
                         Text(group.title)
-                            .font(.inter(15, weight: .medium))
+                            .font(.inter(15, weight: .semibold))
                             .foregroundColor(JuntoColors.textMain)
                             .lineLimit(1)
                         Text("· \(group.participants.count)")
