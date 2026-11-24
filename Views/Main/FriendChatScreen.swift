@@ -690,6 +690,30 @@ struct FriendChatScreen: View {
                     Text(info)
                         .font(.inter(12, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
+
+                case .receipt(let amount, _, let fileName, let status):
+                    HStack(spacing: 10) {
+                        Image(systemName: status == .approved ? "checkmark.seal.fill" : "doc.richtext")
+                            .font(.system(size: 20))
+                            .foregroundColor(status == .approved ? .green : (msg.isFromMe ? JuntoColors.accent : JuntoColors.primary))
+                            .frame(width: 36, height: 36)
+                            .background(msg.isFromMe ? Color.white.opacity(0.14) : JuntoColors.primaryLight)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(fileName ?? "Comprovante")
+                                .font(.inter(13, weight: .medium))
+                                .foregroundColor(msg.isFromMe ? .white : JuntoColors.textMain)
+                                .lineLimit(1)
+                            Text(JuntoStore.formatBRL(amount))
+                                .font(.inter(11, weight: .regular))
+                                .foregroundColor(msg.isFromMe ? .white.opacity(0.75) : JuntoColors.textMuted)
+                        }
+                        if status == .approved {
+                            Text("Pago ✓")
+                                .font(.inter(11, weight: .semibold))
+                                .foregroundColor(.green)
+                        }
+                    }
                 }
 
                 HStack(spacing: 4) {

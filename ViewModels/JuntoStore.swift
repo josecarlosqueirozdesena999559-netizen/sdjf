@@ -840,8 +840,18 @@ final class JuntoStore: ObservableObject {
 
     /// Retorna nome e chave Pix do organizador (dono) do grupo
     func organizerPixInfo(for group: RoleGroup) -> (name: String, pixKey: String) {
+        // Use ownerPixKey / ownerName fields if set (non-placeholder)
+        let hasRealOwnerKey = !group.ownerPixKey.isEmpty && group.ownerPixKey != "lucas.andrade@exemplo.com"
+        if hasRealOwnerKey {
+            let isCurrentUser = group.ownerUsername.lowercased() == user.username.lowercased()
+            if isCurrentUser {
+                return (user.fullName, user.pixKey.isEmpty ? group.ownerPixKey : user.pixKey)
+            }
+            return (group.ownerName, group.ownerPixKey)
+        }
+        // Fallback: scan participants for .owner role
         if let owner = group.participants.first(where: { $0.role == .owner }) {
-            if owner.name == "Você" || owner.username.lowercased() == user.username.lowercased() {
+            if owner.username.lowercased() == user.username.lowercased() {
                 return (user.fullName, user.pixKey)
             }
             return (owner.name, "\(owner.username)@pix.com.br")
