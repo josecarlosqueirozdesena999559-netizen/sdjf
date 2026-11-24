@@ -44,11 +44,7 @@ struct GroupsRoleView: View {
 
             AnimatedSearchBar(
                 text: $searchText,
-                placeholders: [
-                    "Pesquisar Viagem",
-                    "Pesquisar Churrasco",
-                    "Pesquisar Rolê"
-                ]
+                placeholders: ["Pesquisar grupos"]
             )
             .padding(.horizontal, 20)
             .padding(.bottom, 12)
@@ -245,7 +241,7 @@ struct CreateGroupOrPotChoiceSheet: View {
                         Text("Grupo / Pote Coletivo")
                             .font(.inter(15, weight: .medium))
                             .foregroundColor(JuntoColors.textMain)
-                        Text("Para viagens, rolês, excursões mensais ou casa")
+                        Text("Para viagens, rolês, rateios mensais ou casa")
                             .font(.inter(12, weight: .regular))
                             .foregroundColor(JuntoColors.textMuted)
                     }
@@ -522,35 +518,64 @@ struct CreateGroupScreen: View {
                     // Pote Coletivo / Pote Mensal organizado em formato nativo iOS
                     VStack(alignment: .leading, spacing: 16) {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("Pote do grupo")
-                                .font(.inter(16, weight: .medium))
+                            Text("Modelo do pote")
+                                .font(.inter(16, weight: .semibold))
                                 .foregroundColor(JuntoColors.textMain)
-                            Text("Defina uma meta única para o rolê ou parcelas mensais para excursões.")
+                            Text("Escolha entre uma meta única ou parcelas mensais.")
                                 .font(.inter(13, weight: .regular))
                                 .foregroundColor(JuntoColors.textMuted)
                         }
 
-                        // Seletor segmentado nativo iOS: Meta única vs Mensal (Excursão)
-                        HStack(spacing: 4) {
+                        // Seletor moderno em 2 cards: Meta única vs Mensal
+                        HStack(spacing: 10) {
                             ForEach(PotRecurrenceMode.allCases, id: \.self) { mode in
                                 let active = potMode == mode
+                                let iconName = mode == .single ? "target" : "calendar.badge.clock"
+                                let subtitle = mode == .single ? "Valor único dividido" : "Parcelas mês a mês"
                                 Button {
-                                    withAnimation(.easeInOut(duration: 0.16)) { potMode = mode }
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    withAnimation(.spring(response: 0.24, dampingFraction: 0.82)) {
+                                        potMode = mode
+                                    }
                                 } label: {
-                                    Text(mode.rawValue)
-                                        .font(.inter(13, weight: .medium))
-                                        .foregroundColor(active ? JuntoColors.textMain : JuntoColors.textMuted)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 34)
-                                        .background(active ? Color.white : Color.clear)
-                                        .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                                        .shadow(color: active ? Color.black.opacity(0.06) : .clear, radius: 2, y: 1)
+                                    VStack(alignment: .leading, spacing: 8) {
+                                        HStack {
+                                            ZStack {
+                                                Circle()
+                                                    .fill(active ? JuntoColors.primary : JuntoColors.surfaceSubtle)
+                                                    .frame(width: 32, height: 32)
+                                                Image(systemName: iconName)
+                                                    .font(.system(size: 14, weight: .medium))
+                                                    .foregroundColor(active ? .white : JuntoColors.textMuted)
+                                            }
+                                            Spacer()
+                                            Image(systemName: active ? "checkmark.circle.fill" : "circle")
+                                                .font(.system(size: 18, weight: .regular))
+                                                .foregroundColor(active ? JuntoColors.primary : JuntoColors.border)
+                                        }
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(mode.rawValue)
+                                                .font(.inter(14, weight: .semibold))
+                                                .foregroundColor(JuntoColors.textMain)
+                                            Text(subtitle)
+                                                .font(.inter(11, weight: .regular))
+                                                .foregroundColor(JuntoColors.textMuted)
+                                                .lineLimit(1)
+                                        }
+                                    }
+                                    .padding(12)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(active ? JuntoColors.primary.opacity(0.06) : Color.white)
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 13, style: .continuous)
+                                            .stroke(active ? JuntoColors.primary : JuntoColors.border, lineWidth: active ? 1.5 : 1)
+                                    )
+                                    .clipShape(RoundedRectangle(cornerRadius: 13, style: .continuous))
                                 }
+                                .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.97))
                             }
                         }
-                        .padding(3)
-                        .background(JuntoColors.surfaceSubtle)
-                        .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
 
                         HStack(alignment: .bottom, spacing: 10) {
                             CleanOutlineInput(
@@ -681,7 +706,7 @@ struct CreateGroupScreen: View {
                                         Image(systemName: "globe.americas.fill")
                                             .font(.system(size: 15))
                                             .foregroundColor(isPublicGroup ? JuntoColors.primary : JuntoColors.textMuted)
-                                        Text("Grupo Público (Próximos)")
+                                        Text("Grupo Público")
                                             .font(.inter(15, weight: .medium))
                                             .foregroundColor(JuntoColors.textMain)
                                     }

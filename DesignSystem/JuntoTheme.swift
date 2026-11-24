@@ -331,29 +331,15 @@ struct GeometricAvatarView: View {
     }
 }
 
-// MARK: - Barra de Pesquisa com Animação "Digitando" (efeito máquina de escrever)
+// MARK: - Barra de Pesquisa Limpa (Nativa iOS, sem animação de digitação)
 struct AnimatedSearchBar: View {
     @Binding var text: String
-    var placeholders: [String] = [
-        "Pesquisar @ana123",
-        "Pesquisar @lucas123",
-        "Pesquisar @pedro123"
-    ]
+    var placeholders: [String] = ["Pesquisar"]
 
     @FocusState private var isFocused: Bool
-    @State private var phraseIndex = 0
-    @State private var charCount = 0
-    @State private var isDeleting = false
-    @State private var pauseTicks = 0
-    @State private var showCursor = true
 
-    private let typingTimer = Timer.publish(every: 0.085, on: .main, in: .common).autoconnect()
-    private let cursorTimer = Timer.publish(every: 0.5, on: .main, in: .common).autoconnect()
-
-    private var displayedPlaceholder: String {
-        guard !placeholders.isEmpty else { return "" }
-        let phrase = placeholders[phraseIndex % placeholders.count]
-        return String(phrase.prefix(min(charCount, phrase.count)))
+    private var placeholderText: String {
+        placeholders.first ?? "Pesquisar"
     }
 
     var body: some View {
@@ -362,26 +348,12 @@ struct AnimatedSearchBar: View {
                 .font(.system(size: 15, weight: .regular))
                 .foregroundColor(isFocused ? JuntoColors.primary : JuntoColors.textMuted)
 
-            ZStack(alignment: .leading) {
-                if text.isEmpty && !isFocused {
-                    HStack(spacing: 1) {
-                        Text(displayedPlaceholder)
-                            .font(.inter(14, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
-                        Rectangle()
-                            .fill(JuntoColors.primary.opacity(showCursor ? 0.65 : 0))
-                            .frame(width: 1.5, height: 15)
-                    }
-                }
-
-                TextField("", text: $text)
-                    .font(.inter(14, weight: .regular))
-                    .foregroundColor(JuntoColors.textMain)
-                    .autocorrectionDisabled()
-                    .textInputAutocapitalization(.never)
-                    .focused($isFocused)
-            }
-            .clipped()
+            TextField(placeholderText, text: $text)
+                .font(.inter(14, weight: .regular))
+                .foregroundColor(JuntoColors.textMain)
+                .autocorrectionDisabled()
+                .textInputAutocapitalization(.never)
+                .focused($isFocused)
 
             if !text.isEmpty || isFocused {
                 Button {
@@ -402,36 +374,6 @@ struct AnimatedSearchBar: View {
                 .stroke(isFocused ? JuntoColors.primary : Color.clear, lineWidth: 1.2)
         )
         .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-        .onReceive(cursorTimer) { _ in
-            guard text.isEmpty && !isFocused else { return }
-            showCursor.toggle()
-        }
-        .onReceive(typingTimer) { _ in
-            guard text.isEmpty && !isFocused, !placeholders.isEmpty else { return }
-            let phrase = placeholders[phraseIndex % placeholders.count]
-
-            if pauseTicks > 0 {
-                pauseTicks -= 1
-                return
-            }
-
-            if !isDeleting {
-                if charCount < phrase.count {
-                    charCount += 1
-                } else {
-                    isDeleting = true
-                    pauseTicks = 14 // pausa exibindo o texto completo
-                }
-            } else {
-                if charCount > 0 {
-                    charCount -= 1
-                } else {
-                    isDeleting = false
-                    phraseIndex = (phraseIndex + 1) % placeholders.count
-                    pauseTicks = 4
-                }
-            }
-        }
     }
 }
 

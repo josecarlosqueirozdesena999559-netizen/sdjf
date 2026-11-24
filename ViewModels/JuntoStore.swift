@@ -920,12 +920,108 @@ final class JuntoStore: ObservableObject {
         chatMessages[key]?[idx].isListened = true
     }
 
-    /// Alterna status Pago / Pendente de uma despesa em "Minhas despesas"
+    static func currentMonthKey(for date: Date = Date()) -> String {
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "pt_BR")
+        df.dateFormat = "LLLL yyyy"
+        let raw = df.string(from: date)
+        return raw.prefix(1).uppercased() + raw.dropFirst()
+    }
+
+    /// Todos os gastos pessoais: lançamentos manuais + cotas reais dos grupos em que você participa
+    var allTrackedPersonalExpenses: [PersonalExpenseRecord] {
+        var result = personalExpenses
+        let myUsername = user.username.lowercased()
+        let monthKey = Self.currentMonthKey()
+
+        for g in groups {
+            let alreadyLoggedForGroup = result.contains {
+                $0.groupName.lowercased() == g.title.lowercased()
+            }
+            if alreadyLoggedForGroup { continue }
+
+            if let me = g.participants.first(where: { $0.username.lowercased() == myUsername }) {
+                if g.potMode == .monthly && !g.monthlyCycles.isEmpty {
+                    let paidMonthsCount = g.monthlyCycles.filter {
+                        $0.paidUsernames.contains(myUsername) || $0.markedPaidUsernames.contains(myUsername)
+                    }.count
+                    let pendingMonthsCount = max(0, g.monthlyCycles.count - paidMonthsCount)
+                    if paidMonthsCount > 0 && me.quotaAmount > 0 {
+                        result.append(
+                            PersonalExpenseRecord(
+                                title: "Cotas pagas (\(paidMonthsCount)/\(g.monthlyCycles.count) mês)",
+                                category: g.category,
+                                amount: me.quotaAmount * Double(paidMonthsCount),
+                                dateText: "Grupo mensal",
+                                monthKey: monthKey,
+                                groupName: g.title,
+                                isPaid: true
+                            )
+                        )
+                    }
+                    if pendingMonthsCount > 0 && me.quotaAmount > 0 {
+                        result.append(
+                            PersonalExpenseRecord(
+                                title: "Cotas restantes (\(pendingMonthsCount) mês)",
+                                category: g.category,
+                                amount: me.quotaAmount * Double(pendingMonthsCount),
+                                dateText: "Grupo mensal",
+                                monthKey: monthKey,
+                                groupName: g.title,
+                                isPaid: false
+                            )
+                        )
+                    }
+                } else if me.quotaAmount > 0 {
+                    result.append(
+                        PersonalExpenseRecord(
+                            title: "Cota do grupo",
+                            category: g.category,
+                            amount: me.quotaAmount,
+                            dateText: "Pote coletivo",
+                            monthKey: monthKey,
+                            groupName: g.title,
+                            isPaid: me.hasPaid || me.markedPaidByMember
+                        )
+                    )
+                }
+            } else if g.myShare > 0 {
+                result.append(
+                    PersonalExpenseRecord(
+                        title: "Sua parte no grupo",
+                        category: g.category,
+                        amount: g.myShare,
+                        dateText: "Rateio",
+                        monthKey: monthKey,
+                        groupName: g.title,
+                        isPaid: false
+                    )
+                )
+            }
+        }
+        return result
+    }
+
+    var totalPersonalPaidAmount: Double {
+        allTrackedPersonalExpenses.filter { $0.isPaid }.reduce(0) { $0 + $1.amount }
+    }
+
+    var totalPersonalPendingAmount: Double {
+        allTrackedPersonalExpenses.filter { !$0.isPaid }.reduce(0) { $0 + $1.amount }
+    }
+
+    /// Alterna status Pago / Pendente de uma despesa em "Gastos pessoais"
     func togglePersonalExpensePaid(id: UUID) {
-        guard let idx = personalExpenses.firstIndex(where: { $0.id == id }) else { return }
-        personalExpenses[idx].isPaid.toggle()
-        let paid = personalExpenses[idx].isPaid
-        showToast(paid ? "Despesa marcada como paga." : "Despesa marcada como pendente.", icon: paid ? "checkmark.circle" : "clock")
+        if let idx = personalExpenses.firstIndex(where: { $0.id == id }) {
+            personalExpenses[idx].isPaid.toggle()
+            let paid = personalExpenses[idx].isPaid
+            showToast(paid ? "Despesa marcada como paga." : "Despesa marcada como pendente.", icon: paid ? "checkmark.circle" : "clock")
+        }
+    }
+
+    /// Verifica se uma despesa é editável diretamente em personalExpenses
+    func isManualPersonalExpense(id: UUID) -> Bool {
+        personalExpenses.contains(where: { $0.id == id })
     }
 
     /// Retorna nome e chave Pix do organizador (dono) do grupo
@@ -994,6 +1090,21 @@ final class JuntoStore: ObservableObject {
             ),
             at: 0
         )
+
+        if quota > 0 {
+            personalExpenses.insert(
+                PersonalExpenseRecord(
+                    title: "Cota paga\(monthSuffix)",
+                    category: groups[gIdx].category,
+                    amount: quota,
+                    dateText: "Hoje",
+                    monthKey: Self.currentMonthKey(),
+                    groupName: groupTitle,
+                    isPaid: true
+                ),
+                at: 0
+            )
+        }
         showToast("Marcado como pago! Aguardando o dono do grupo confirmar.", icon: "checkmark.circle")
     }
 
@@ -1026,6 +1137,19 @@ final class JuntoStore: ObservableObject {
                 timeAgo: "Agora",
                 amountText: Self.formatBRL(amount),
                 isPositive: true
+            ),
+            at: 0
+        )
+
+        personalExpenses.insert(
+            PersonalExpenseRecord(
+                title: "Pagamento no grupo",
+                category: groups[gIdx].category,
+                amount: amount,
+                dateText: "Hoje",
+                monthKey: Self.currentMonthKey(),
+                groupName: groupTitle,
+                isPaid: true
             ),
             at: 0
         )
@@ -1725,13 +1849,14 @@ final class JuntoStore: ObservableObject {
             return
         }
 
+        let currentMonth = Self.currentMonthKey()
         personalExpenses.insert(
             PersonalExpenseRecord(
                 title: cleanDesc,
                 category: category,
                 amount: amount,
                 dateText: "Hoje",
-                monthKey: "Novembro 2026",
+                monthKey: currentMonth,
                 groupName: groupTitle.isEmpty ? "Pessoal" : groupTitle
             ),
             at: 0
@@ -1748,7 +1873,7 @@ final class JuntoStore: ObservableObject {
             at: 0
         )
 
-        let monthTotal = personalExpenses.filter { $0.monthKey == "Novembro 2026" }.reduce(0) { $0 + $1.amount }
+        let monthTotal = personalExpenses.filter { $0.monthKey == currentMonth }.reduce(0) { $0 + $1.amount }
         if monthTotal >= 1500 {
             notifications.insert(
                 AppNotification(
@@ -1981,7 +2106,7 @@ final class JuntoStore: ObservableObject {
                     distanceMeters: 2400,
                     neighborhood: "Itaim Bibi, SP",
                     mutualFriendsCount: 4,
-                    interests: ["Excursão", "Trilha"],
+                    interests: ["Viagem", "Trilha"],
                     proPlanType: .yearly
                 ),
                 NearbyUserItem(

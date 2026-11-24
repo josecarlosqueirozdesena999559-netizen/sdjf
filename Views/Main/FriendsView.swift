@@ -67,14 +67,10 @@ struct FriendsView: View {
             .padding(.top, 12)
             .padding(.bottom, 12)
 
-            // Barra de pesquisa com animação digitando letra por letra
+            // Barra de pesquisa limpa
             AnimatedSearchBar(
                 text: $searchText,
-                placeholders: [
-                    "Pesquisar @ana123",
-                    "Pesquisar @lucas123",
-                    "Pesquisar @pedro123"
-                ]
+                placeholders: ["Pesquisar conversas"]
             )
             .padding(.horizontal, 20)
             .padding(.bottom, 14)

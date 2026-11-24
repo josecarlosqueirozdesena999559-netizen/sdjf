@@ -16,8 +16,8 @@ struct JuntoProSubscriptionScreen: View {
 
     private let proFeatures: [(title: String, subtitle: String)] = [
         ("Selo de Verificado Exclusivo", "Assinante Mensal recebe o Selo Roxo e o Assinante Anual recebe o Selo Dourado em todas as telas, grupos e conversas."),
-        ("Grupos, viagens e rolês ilimitados", "No plano gratuito você tem 1 grupo ativo. No Pro, crie quantos rolês, viagens e excursões quiser."),
-        ("Criar Grupos Públicos na aba Próximos", "Organize encontros, piscina no clube ou futebol com limite de até 100 vagas e cotas recalculadas dinamicamente."),
+        ("Grupos, viagens e rolês ilimitados", "No plano gratuito você tem 1 grupo ativo. No Pro, crie quantos rolês, viagens e grupos mensais quiser."),
+        ("Criar Grupos Públicos", "Organize encontros, piscina no clube ou futebol com limite de até 100 vagas e gestão simplificada."),
         ("Múltiplos administradores por grupo", "Adicione amigos como co-organizadores para ajudar a lançar gastos e confirmar pagamentos."),
         ("Alertas e lembretes prioritários", "Notificações automáticas de prazos de metas e confirmações em tempo real quando participantes pagam.")
     ]
@@ -57,7 +57,7 @@ struct JuntoProSubscriptionScreen: View {
                             .font(.inter(22, weight: .medium))
                             .foregroundColor(JuntoColors.textMain)
 
-                        Text("Crie grupos ilimitados com seus amigos, organize excursões mensais e decida tudo pelo bate-papo.")
+                        Text("Crie grupos ilimitados com seus amigos, organize metas mensais e decida tudo pelo bate-papo.")
                             .font(.inter(14, weight: .regular))
                             .foregroundColor(JuntoColors.textMuted)
                     }

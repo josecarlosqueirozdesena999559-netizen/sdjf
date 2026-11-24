@@ -26,14 +26,14 @@ enum ProPlanType: String, Codable, Hashable {
 enum MainTab: Int, CaseIterable {
     case friends = 0
     case groups = 1
-    case nearby = 2
+    case activities = 2
     case account = 3
 
     var title: String {
         switch self {
         case .friends: return "Amigos"
         case .groups: return "Grupos"
-        case .nearby: return "Próximos"
+        case .activities: return "Lançamentos"
         case .account: return "Conta"
         }
     }
@@ -42,7 +42,7 @@ enum MainTab: Int, CaseIterable {
         switch self {
         case .friends: return "person"
         case .groups: return "person.2"
-        case .nearby: return "location.circle"
+        case .activities: return "list.bullet.rectangle.portrait"
         case .account: return "person.crop.circle"
         }
     }
@@ -302,7 +302,7 @@ enum GroupParticipantRole: String, Hashable {
 
 enum PotRecurrenceMode: String, CaseIterable, Hashable {
     case single = "Meta única"
-    case monthly = "Mensal (Excursão)"
+    case monthly = "Mensal"
 }
 
 struct PotMonthCycle: Identifiable, Hashable {
