@@ -37,11 +37,12 @@ struct GroupChatScreen: View {
     @StateObject private var audioManager = AudioChatManager()
 
     private var group: RoleGroup? {
-        store.groups.first(where: { $0.id == groupId })
+        guard let idx = store.resolvedGroupIndex(for: groupId) else { return nil }
+        return store.groups[idx]
     }
 
     private var messages: [ChatMessage] {
-        store.groupMessages(for: groupId)
+        store.groupMessages(for: store.resolvedGroupId(for: groupId))
     }
 
     /// Paleta curada de cores distintas e legíveis para os nomes dos participantes no grupo
@@ -179,6 +180,27 @@ struct GroupChatScreen: View {
                 UndoDeleteSnackbar(secondsRemaining: undoCountdown) {
                     undoDelete()
                 }
+            }
+
+            // Banner de Edição de Mensagem no Grupo
+            if editingMessageId != nil {
+                HStack(spacing: 10) {
+                    Image(systemName: "pencil")
+                        .font(.system(size: 13, weight: .semibold))
+                        .foregroundColor(JuntoColors.primary)
+                    Text("Editando mensagem")
+                        .font(.inter(13, weight: .semibold))
+                        .foregroundColor(JuntoColors.primary)
+                    Spacer()
+                    PopupCloseButton {
+                        editingMessageId = nil
+                        inputText = ""
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Color.white)
+                .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.8), alignment: .top)
             }
 
             // Banner de Resposta (Reply) com visual amplo e nítido
@@ -379,19 +401,30 @@ struct GroupChatScreen: View {
             .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.8), alignment: .top)
             }
 
-            // Menu customizado ao segurar mensagem no grupo (visual do app estilo WhatsApp)
+            // Menu flat ao segurar mensagem no grupo (Responder · Copiar · Editar · Excluir para todos)
             if let menuMsg = selectedMessageForMenu {
                 let canEdit: Bool = {
                     if menuMsg.isFromMe, case .text = menuMsg.kind { return true }
                     return false
                 }()
+                let copyText: String? = {
+                    if case .text(let t) = menuMsg.kind { return t }
+                    return nil
+                }()
                 CustomMessageMenuOverlay(
                     previewText: menuMsg.previewText,
                     authorName: menuMsg.isFromMe ? "Você" : (menuMsg.senderName ?? "Participante"),
                     canEdit: canEdit,
+                    canDelete: menuMsg.isFromMe,
+                    onCopy: copyText != nil ? {
+                        UIPasteboard.general.string = copyText
+                        withAnimation(.easeInOut(duration: 0.15)) { selectedMessageForMenu = nil }
+                        store.showToast("Mensagem copiada!", icon: "doc.on.doc")
+                    } : nil,
                     onReply: {
                         withAnimation(.spring(response: 0.24, dampingFraction: 0.82)) {
                             replyingToMessage = menuMsg
+                            editingMessageId = nil
                             selectedMessageForMenu = nil
                             isInputFocused = true
                         }
@@ -417,6 +450,7 @@ struct GroupChatScreen: View {
             }
         }
         .onAppear {
+            store.markGroupChatAsRead(groupId: groupId)
             audioManager.onPlaybackFinished = { finishedId in
                 store.markGroupAudioListened(groupId: groupId, messageId: finishedId)
                 let list = store.groupMessages(for: groupId)
@@ -462,7 +496,7 @@ struct GroupChatScreen: View {
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { showCreatePollSheet = true }
                 }
             )
-            .presentationDetents([.height(230)])
+            .presentationDetents([.height(255)])
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(24)
         }
@@ -618,7 +652,6 @@ struct GroupChatScreen: View {
                             .lineSpacing(2)
                             .multilineTextAlignment(.leading)
                             .fixedSize(horizontal: false, vertical: true)
-                            .textSelection(.enabled)
                     }
 
                 case .photo(let data, let caption):
@@ -989,10 +1022,6 @@ struct GroupChatScreen: View {
 
     @ViewBuilder
     private func groupCoverThumb(_ g: RoleGroup) -> some View {
-        if let data = g.coverImageData, let uiImg = UIImage(data: data) {
-            Image(uiImage: uiImg).resizable().scaledToFill()
-        } else {
-            Image(g.coverImageName).resizable().scaledToFill()
-        }
+        GroupCategoryIconTile(category: g.category, size: 40)
     }
 }

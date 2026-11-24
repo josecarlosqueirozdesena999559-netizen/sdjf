@@ -43,6 +43,9 @@ final class JuntoStore: ObservableObject {
     /// Conversas apagadas pelo usuário na tela inicial (ocultas até nova mensagem ou reabertura pelos contatos)
     @Published var hiddenChatUsernames: Set<String> = []
     @Published var hiddenGroupChatIds: Set<UUID> = []
+    /// Contadores reais de mensagens NÃO LIDAS recebidas (zeram ao abrir ou responder na conversa)
+    @Published var unreadFriendCounts: [String: Int] = [:]
+    @Published var unreadGroupCounts: [UUID: Int] = [:]
     /// Mapeamento de UUID local -> UUID do servidor para nunca perder referência ao criar grupo
     var groupIdAliases: [UUID: UUID] = [:]
     /// Histórico permanente de pagamentos arquivados de grupos excluídos ou encerrados
@@ -105,16 +108,39 @@ final class JuntoStore: ObservableObject {
         }
     }
 
-    func groupMessageCount(for groupId: UUID) -> Int {
-        let realId = resolvedGroupId(for: groupId)
-        return (groupChatMessages[realId] ?? []).filter { msg in
-            if case .system = msg.kind { return false }
-            return true
-        }.count
+    func unreadCount(forGroup groupId: UUID) -> Int {
+        unreadGroupCounts[resolvedGroupId(for: groupId)] ?? 0
     }
 
-    func friendMessageCount(for username: String) -> Int {
-        return (chatMessages[username.lowercased()] ?? []).count
+    func unreadCount(forFriend username: String) -> Int {
+        unreadFriendCounts[username.lowercased()] ?? 0
+    }
+
+    func markFriendChatAsRead(username: String) {
+        let key = username.lowercased()
+        if (unreadFriendCounts[key] ?? 0) > 0 {
+            unreadFriendCounts[key] = 0
+        }
+    }
+
+    func markGroupChatAsRead(groupId: UUID) {
+        let realId = resolvedGroupId(for: groupId)
+        if (unreadGroupCounts[realId] ?? 0) > 0 {
+            unreadGroupCounts[realId] = 0
+        }
+    }
+
+    /// Exclui o contato da lista de contatos e do servidor (sem bloquear)
+    func deleteContact(username raw: String) {
+        let clean = raw.lowercased().replacingOccurrences(of: "@", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
+        friends.removeAll { $0.username.lowercased() == clean }
+        sentInviteUsernames.remove(clean)
+        chatMessages.removeValue(forKey: clean)
+        unreadFriendCounts.removeValue(forKey: clean)
+        hiddenChatUsernames.remove(clean)
+        persistHiddenChats()
+        Task { _ = await JuntoBackendService.shared.removeFriend(username: clean) }
+        showToast("Contato excluído.", icon: "trash")
     }
 
     /// Gera mensagem pronta de cobrança Pix para os pendentes do grupo (Recurso Juntô Pro)
@@ -287,6 +313,7 @@ final class JuntoStore: ObservableObject {
         )
         unhideGroupConversation(for: group.id)
         groupChatMessages[group.id, default: []].append(aiMsg)
+        unreadGroupCounts[group.id, default: 0] += 1
 
         let title = notifTitle ?? "Juntô IA • Lembrete em \(group.title)"
         notifications.insert(
@@ -978,6 +1005,9 @@ final class JuntoStore: ObservableObject {
                 unhideConversation(for: senderHandle)
                 if !(chatMessages[senderHandle]?.contains(where: { $0.id == msg.id }) ?? false) {
                     chatMessages[senderHandle, default: []].append(msg)
+                    if !msg.isFromMe {
+                        unreadFriendCounts[senderHandle, default: 0] += 1
+                    }
                     objectWillChange.send()
                     JuntoNotificationManager.shared.triggerLocalNotification(
                         title: msg.senderName ?? "@\(senderHandle)",
@@ -993,6 +1023,9 @@ final class JuntoStore: ObservableObject {
                 unhideGroupConversation(for: gid)
                 if !(groupChatMessages[gid]?.contains(where: { $0.id == msg.id }) ?? false) {
                     groupChatMessages[gid, default: []].append(msg)
+                    if !msg.isFromMe {
+                        unreadGroupCounts[gid, default: 0] += 1
+                    }
                     objectWillChange.send()
                     let gTitle = groups.first(where: { $0.id == gid })?.title ?? "Grupo"
                     JuntoNotificationManager.shared.triggerLocalNotification(
@@ -1295,7 +1328,9 @@ final class JuntoStore: ObservableObject {
         replyToAuthor: String? = nil,
         replyToPreview: String? = nil
     ) {
-        unhideGroupConversation(for: groupId)
+        let realId = resolvedGroupId(for: groupId)
+        unhideGroupConversation(for: realId)
+        markGroupChatAsRead(groupId: realId)
         let msg = ChatMessage(
             isFromMe: true,
             kind: kind,
@@ -1418,6 +1453,7 @@ final class JuntoStore: ObservableObject {
     ) {
         let key = username.lowercased()
         unhideConversation(for: key)
+        markFriendChatAsRead(username: key)
         let msg = ChatMessage(
             isFromMe: true,
             kind: kind,

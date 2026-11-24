@@ -385,10 +385,20 @@ struct FriendChatScreen: View {
                     if menuMsg.isFromMe, case .text = menuMsg.kind { return true }
                     return false
                 }()
+                let copyText: String? = {
+                    if case .text(let t) = menuMsg.kind { return t }
+                    return nil
+                }()
                 CustomMessageMenuOverlay(
                     previewText: menuMsg.previewText,
                     authorName: menuMsg.isFromMe ? "Você" : currentFriend.name,
                     canEdit: canEdit,
+                    canDelete: menuMsg.isFromMe,
+                    onCopy: copyText != nil ? {
+                        UIPasteboard.general.string = copyText
+                        withAnimation(.easeInOut(duration: 0.15)) { selectedMessageForMenu = nil }
+                        store.showToast("Mensagem copiada!", icon: "doc.on.doc")
+                    } : nil,
                     onReply: {
                         withAnimation(.spring(response: 0.24, dampingFraction: 0.82)) {
                             replyingToMessage = menuMsg
@@ -417,6 +427,7 @@ struct FriendChatScreen: View {
             }
         }
         .onAppear {
+            store.markFriendChatAsRead(username: friend.username)
             // Marca áudio como escutado (ondas ficam laranja) e toca o próximo áudio consecutivo automaticamente
             audioManager.onPlaybackFinished = { finishedId in
                 store.markAudioListened(username: friend.username, messageId: finishedId)
@@ -480,7 +491,7 @@ struct FriendChatScreen: View {
                     }
                 }
             )
-            .presentationDetents([.height(230)])
+            .presentationDetents([.height(255)])
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(24)
         }
@@ -570,7 +581,6 @@ struct FriendChatScreen: View {
                             .lineSpacing(2)
                             .multilineTextAlignment(.leading)
                             .fixedSize(horizontal: false, vertical: true)
-                            .textSelection(.enabled)
                     }
 
                 case .photo(let data, let caption):
@@ -1047,64 +1057,68 @@ struct ChatAttachmentMenuSheet: View {
             }
             .padding(.top, 16)
 
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 16) {
-                    attachmentOption(icon: "camera.fill", label: "Câmera", bg: Color(hex: "#E11D48"), action: onSelectCamera)
-                    attachmentOption(icon: "photo.fill", label: "Galeria", bg: Color(hex: "#8B5CF6"), action: onSelectPhoto)
-                    pixAttachmentOption(action: onSelectPix)
-                    attachmentOption(icon: "doc.fill", label: "Documento", bg: Color(hex: "#2563EB"), action: onSelectDocument)
-                    if let onPoll = onSelectPoll {
-                        attachmentOption(icon: "chart.bar.xaxis", label: "Enquete", bg: Color(hex: "#F59E0B"), action: onPoll)
-                    }
+            LazyVGrid(
+                columns: Array(repeating: GridItem(.flexible(), spacing: 12), count: 4),
+                spacing: 18
+            ) {
+                attachmentOption(icon: "photo.on.rectangle.angled", label: "Fotos", iconColor: Color(hex: "#2563EB"), action: onSelectPhoto)
+                attachmentOption(icon: "camera.fill", label: "Câmera", iconColor: Color(hex: "#374151"), action: onSelectCamera)
+                attachmentOption(icon: "doc.fill", label: "Documento", iconColor: Color(hex: "#0284C7"), action: onSelectDocument)
+                if let onPoll = onSelectPoll {
+                    attachmentOption(icon: "text.alignleft", label: "Enquete", iconColor: Color(hex: "#F59E0B"), action: onPoll)
                 }
-                .padding(.horizontal, 4)
-                .padding(.vertical, 8)
+                pixAttachmentOption(action: onSelectPix)
             }
+            .padding(.top, 8)
 
             Spacer()
         }
         .padding(.horizontal, 20)
-        .background(Color.white.ignoresSafeArea())
+        .background(JuntoColors.warmBg.ignoresSafeArea())
     }
 
-    private func attachmentOption(icon: String, label: String, bg: Color, action: @escaping () -> Void) -> some View {
+    private func attachmentOption(icon: String, label: String, iconColor: Color, action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(spacing: 8) {
+            VStack(spacing: 7) {
                 ZStack {
-                    Circle()
-                        .fill(bg)
-                        .frame(width: 56, height: 56)
+                    Capsule()
+                        .fill(Color.white)
+                        .frame(width: 68, height: 48)
+                        .overlay(Capsule().stroke(JuntoColors.border.opacity(0.65), lineWidth: 0.8))
                     Image(systemName: icon)
-                        .font(.system(size: 24, weight: .medium))
-                        .foregroundColor(.white)
+                        .font(.system(size: 22, weight: .medium))
+                        .foregroundColor(iconColor)
                 }
-                .shadow(color: bg.opacity(0.28), radius: 4, x: 0, y: 2)
 
                 Text(label)
                     .font(.inter(12, weight: .medium))
                     .foregroundColor(JuntoColors.textMain)
+                    .lineLimit(1)
             }
-            .frame(width: 66)
+            .frame(maxWidth: .infinity)
         }
+        .buttonStyle(.plain)
     }
 
     private func pixAttachmentOption(action: @escaping () -> Void) -> some View {
         Button(action: action) {
-            VStack(spacing: 8) {
+            VStack(spacing: 7) {
                 ZStack {
-                    Circle()
-                        .fill(Color(hex: "#00B494"))
-                        .frame(width: 56, height: 56)
-                    PixOfficialIcon(size: 28, color: .white)
+                    Capsule()
+                        .fill(Color.white)
+                        .frame(width: 68, height: 48)
+                        .overlay(Capsule().stroke(JuntoColors.border.opacity(0.65), lineWidth: 0.8))
+                    PixOfficialIcon(size: 26, color: Color(hex: "#32BCAD"))
                 }
-                .shadow(color: Color(hex: "#00B494").opacity(0.28), radius: 4, x: 0, y: 2)
 
-                Text("Chave Pix")
+                Text("Pix")
                     .font(.inter(12, weight: .medium))
                     .foregroundColor(JuntoColors.textMain)
+                    .lineLimit(1)
             }
-            .frame(width: 66)
+            .frame(maxWidth: .infinity)
         }
+        .buttonStyle(.plain)
     }
 }
 
@@ -1504,11 +1518,13 @@ struct SwipeToReplyContainer<Content: View>: View {
     }
 }
 
-// MARK: - Menu Customizado ao Segurar Mensagem (visual do app estilo WhatsApp, sem cara nativa)
+// MARK: - Menu Flat ao Segurar Mensagem (Responder · Copiar · Editar · Excluir para todos — fundo flat sem glass)
 struct CustomMessageMenuOverlay: View {
     let previewText: String
     let authorName: String
     let canEdit: Bool
+    var canDelete: Bool = true
+    var onCopy: (() -> Void)? = nil
     let onReply: () -> Void
     let onEdit: () -> Void
     let onDelete: () -> Void
@@ -1520,11 +1536,11 @@ struct CustomMessageMenuOverlay: View {
                 .ignoresSafeArea()
                 .onTapGesture { onDismiss() }
 
-            VStack(spacing: 12) {
-                // Prévia da mensagem selecionada
+            VStack(spacing: 10) {
+                // Prévia limpa flat da mensagem selecionada
                 VStack(alignment: .leading, spacing: 4) {
                     Text(authorName)
-                        .font(.inter(12, weight: .medium))
+                        .font(.inter(12, weight: .semibold))
                         .foregroundColor(JuntoColors.primary)
                     Text(previewText)
                         .font(.inter(14, weight: .regular))
@@ -1534,28 +1550,34 @@ struct CustomMessageMenuOverlay: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(14)
                 .background(Color.white)
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(JuntoColors.border, lineWidth: 0.9))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                // Card de ações do app (Responder · Editar · Apagar)
+                // Lista flat de ações (estilo organizado sem glass)
                 VStack(spacing: 0) {
                     actionRow(icon: "arrowshape.turn.up.left", title: "Responder", color: JuntoColors.textMain, action: onReply)
+
+                    if let onCopy {
+                        Divider().padding(.leading, 48)
+                        actionRow(icon: "doc.on.doc", title: "Copiar", color: JuntoColors.textMain, action: onCopy)
+                    }
 
                     if canEdit {
                         Divider().padding(.leading, 48)
                         actionRow(icon: "pencil", title: "Editar", color: JuntoColors.textMain, action: onEdit)
                     }
 
-                    Divider().padding(.leading, 48)
-                    actionRow(icon: "trash", title: "Apagar", color: JuntoColors.danger, action: onDelete)
+                    if canDelete {
+                        Divider().padding(.leading, 48)
+                        actionRow(icon: "trash", title: "Excluir para todos", color: JuntoColors.danger, action: onDelete)
+                    }
                 }
                 .background(Color.white)
-                .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
-                .clipShape(RoundedRectangle(cornerRadius: 14))
-                .shadow(color: Color.black.opacity(0.14), radius: 18, y: 8)
+                .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(JuntoColors.border, lineWidth: 0.9))
+                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
             }
             .padding(.horizontal, 28)
-            .transition(.scale(scale: 0.94).combined(with: .opacity))
+            .transition(.scale(scale: 0.95).combined(with: .opacity))
         }
     }
 
@@ -1573,6 +1595,8 @@ struct CustomMessageMenuOverlay: View {
             }
             .padding(.horizontal, 16)
             .frame(height: 50)
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
     }
 }

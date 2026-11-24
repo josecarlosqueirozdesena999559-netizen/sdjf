@@ -136,34 +136,67 @@ struct JuntoPotIcon: View {
 
 // MARK: - Ícone Oficial do Pix (Banco Central do Brasil — Losango com encaixes internos)
 struct PixOfficialIcon: View {
-    var size: CGFloat = 22
+    var size: CGFloat = 24
     var color: Color = Color(hex: "#32BCAD")
 
     var body: some View {
         Canvas { ctx, sz in
-            let w = sz.width
-            let h = sz.height
-            let cx = w / 2
-            let cy = h / 2
-            let s = min(w, h)
-            let strokeWidth = max(2.0, s * 0.13)
+            let s = min(sz.width, sz.height)
+            let cx = sz.width / 2
+            let cy = sz.height / 2
 
-            // Top chevron do símbolo Pix
-            var topChevron = Path()
-            topChevron.move(to: CGPoint(x: cx - s * 0.31, y: cy - s * 0.025))
-            topChevron.addLine(to: CGPoint(x: cx, y: cy - s * 0.33))
-            topChevron.addLine(to: CGPoint(x: cx + s * 0.31, y: cy - s * 0.025))
+            // Desenho vetorial fiel ao símbolo oficial do Pix (4 losangos arredondados formando o diamante central)
+            func drawDiamond(center: CGPoint, radius: CGFloat, corner: CGFloat) {
+                var p = Path()
+                let top = CGPoint(x: center.x, y: center.y - radius)
+                let right = CGPoint(x: center.x + radius, y: center.y)
+                let bottom = CGPoint(x: center.x, y: center.y + radius)
+                let left = CGPoint(x: center.x - radius, y: center.y)
 
-            // Bottom chevron do símbolo Pix
-            var bottomChevron = Path()
-            bottomChevron.move(to: CGPoint(x: cx - s * 0.31, y: cy + s * 0.025))
-            bottomChevron.addLine(to: CGPoint(x: cx, y: cy + s * 0.33))
-            bottomChevron.addLine(to: CGPoint(x: cx + s * 0.31, y: cy + s * 0.025))
+                p.move(to: CGPoint(x: (left.x + top.x) / 2, y: (left.y + top.y) / 2))
+                p.addArc(tangent1End: top, tangent2End: right, radius: corner)
+                p.addArc(tangent1End: right, tangent2End: bottom, radius: corner)
+                p.addArc(tangent1End: bottom, tangent2End: left, radius: corner)
+                p.addArc(tangent1End: left, tangent2End: top, radius: corner)
+                p.closeSubpath()
+                ctx.fill(p, with: .color(color))
+            }
 
-            let style = StrokeStyle(lineWidth: strokeWidth, lineCap: .round, lineJoin: .round)
-            ctx.stroke(topChevron, with: .color(color), style: style)
-            ctx.stroke(bottomChevron, with: .color(color), style: style)
+            let d = s * 0.235
+            let r = s * 0.215
+            let corner = s * 0.065
+
+            // Losango superior e inferior
+            drawDiamond(center: CGPoint(x: cx, y: cy - d), radius: r, corner: corner)
+            drawDiamond(center: CGPoint(x: cx, y: cy + d), radius: r, corner: corner)
+            // Losango esquerdo e direito
+            drawDiamond(center: CGPoint(x: cx - d, y: cy), radius: r, corner: corner)
+            drawDiamond(center: CGPoint(x: cx + d, y: cy), radius: r, corner: corner)
+
+            // Conectores sutis em X central (identidade oficial Pix)
+            var cross1 = Path()
+            cross1.move(to: CGPoint(x: cx - d * 0.85, y: cy - d * 0.85))
+            cross1.addLine(to: CGPoint(x: cx + d * 0.85, y: cy + d * 0.85))
+            var cross2 = Path()
+            cross2.move(to: CGPoint(x: cx + d * 0.85, y: cy - d * 0.85))
+            cross2.addLine(to: CGPoint(x: cx - d * 0.85, y: cy + d * 0.85))
+
+            let bridgeStyle = StrokeStyle(lineWidth: max(1.6, s * 0.095), lineCap: .round)
+            ctx.stroke(cross1, with: .color(color), style: bridgeStyle)
+            ctx.stroke(cross2, with: .color(color), style: bridgeStyle)
+
+            // Recorte branco suave no cruzamento interno para fidelidade ao ícone oficial
+            var innerCut = Path()
+            let cr = s * 0.095
+            innerCut.move(to: CGPoint(x: cx, y: cy - cr))
+            innerCut.addLine(to: CGPoint(x: cx + cr, y: cy))
+            innerCut.addLine(to: CGPoint(x: cx, y: cy + cr))
+            innerCut.addLine(to: CGPoint(x: cx - cr, y: cy))
+            innerCut.closeSubpath()
+            ctx.blendMode = .destinationOut
+            ctx.fill(innerCut, with: .color(.black))
         }
+        .compositingGroup()
         .frame(width: size, height: size)
     }
 }

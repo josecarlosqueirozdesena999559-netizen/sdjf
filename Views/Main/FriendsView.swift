@@ -218,6 +218,7 @@ struct FriendsView: View {
     // MARK: - Linha de Conversa com Amigo (Estilo WhatsApp)
     private func friendRow(_ friend: FriendItem) -> some View {
         Button {
+            store.markFriendChatAsRead(username: friend.username)
             selectedChatFriend = friend
         } label: {
             HStack(spacing: 14) {
@@ -268,9 +269,9 @@ struct FriendsView: View {
                             .foregroundColor(JuntoColors.orangeSave)
                     }
                 } else {
-                    let msgCount = store.friendMessageCount(for: friend.username)
-                    if msgCount > 0 {
-                        Text("\(msgCount)")
+                    let unread = store.unreadCount(forFriend: friend.username)
+                    if unread > 0 {
+                        Text("\(unread)")
                             .font(.inter(12, weight: .bold))
                             .foregroundColor(.white)
                             .padding(.horizontal, 8)
@@ -293,10 +294,11 @@ struct FriendsView: View {
         }
     }
 
-    // MARK: - Linha de Conversa de Grupo (Estilo WhatsApp com contador de mensagens)
+    // MARK: - Linha de Conversa de Grupo (Estilo WhatsApp com contador real de não lidas)
     private func groupRow(_ group: RoleGroup) -> some View {
-        let msgCount = store.groupMessageCount(for: group.id)
+        let unread = store.unreadCount(forGroup: group.id)
         return Button {
+            store.markGroupChatAsRead(groupId: group.id)
             selectedGroupChatId = group.id
         } label: {
             HStack(spacing: 14) {
@@ -316,8 +318,8 @@ struct FriendsView: View {
 
                 Spacer()
 
-                if msgCount > 0 {
-                    Text("\(msgCount)")
+                if unread > 0 {
+                    Text("\(unread)")
                         .font(.inter(12, weight: .bold))
                         .foregroundColor(.white)
                         .padding(.horizontal, 8)
@@ -699,12 +701,16 @@ struct AddFriendScreen: View {
         .sheet(item: $selectedFriendForOptions) { friend in
             FriendOptionsSheet(
                 friend: friend,
+                onDeleteContact: {
+                    store.deleteContact(username: friend.username)
+                    selectedFriendForOptions = nil
+                },
                 onBlock: {
                     store.blockAndUnfriend(username: friend.username)
                     selectedFriendForOptions = nil
                 }
             )
-            .presentationDetents([.height(210)])
+            .presentationDetents([.height(255)])
             .presentationCornerRadius(20)
         }
     }
@@ -842,14 +848,15 @@ private struct NewContactPopupSheet: View {
     }
 }
 
-// MARK: - Sheet Claro Customizado (3 Pontos do Contato: Somente Bloquear)
+// MARK: - Sheet Claro Customizado (3 Pontos do Contato: Excluir contato / Bloquear)
 struct FriendOptionsSheet: View {
     let friend: FriendItem
+    let onDeleteContact: () -> Void
     let onBlock: () -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 14) {
             HStack(spacing: 12) {
                 GeometricAvatarView(seed: friend.username, displayName: friend.name, size: 46)
                 VStack(alignment: .leading, spacing: 2) {
@@ -869,6 +876,23 @@ struct FriendOptionsSheet: View {
             .padding(.top, 20)
 
             Divider().opacity(0.6)
+
+            Button(action: onDeleteContact) {
+                HStack(spacing: 12) {
+                    Image(systemName: "trash")
+                        .font(.system(size: 18, weight: .regular))
+                        .foregroundColor(JuntoColors.textMain)
+                    Text("Excluir contato")
+                        .font(.inter(15, weight: .medium))
+                        .foregroundColor(JuntoColors.textMain)
+                    Spacer()
+                }
+                .padding(.vertical, 10)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+
+            Divider().opacity(0.5)
 
             Button(action: onBlock) {
                 HStack(spacing: 12) {

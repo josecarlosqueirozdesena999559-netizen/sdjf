@@ -122,19 +122,9 @@ struct AccountView: View {
                         Divider().padding(.leading, 20)
                     }
 
-                    // Menu limpo (sem Pix no perfil — QR Code de convite para adicionar amigos!)
-                    accountRow(icon: "qrcode", title: "QR Code de convite") {
-                        showInviteQRCode = true
-                    }
-                    Divider().padding(.leading, 20)
-
+                    // Menu limpo (sem QR Code de convite; Editar fica somente no topo do perfil)
                     accountRow(icon: "person.badge.plus", title: "Convidar amigos") {
                         showInviteFriends = true
-                    }
-                    Divider().padding(.leading, 20)
-
-                    accountRow(icon: "person", title: "Editar perfil") {
-                        showAccountSettings = true
                     }
                     Divider().padding(.leading, 20)
 
@@ -461,82 +451,91 @@ struct EditDraftFieldSheet: View {
     }
 }
 
-// MARK: - Menu Exclusivo: Segurança e Privacidade (abre 3 telas próprias!)
+// MARK: - Menu Exclusivo: Segurança e Privacidade (Flat limpo sem quadrados + Suporte via Gmail/Mail)
 struct SecurityPrivacyScreen: View {
     @EnvironmentObject var store: JuntoStore
     @Environment(\.dismiss) private var dismiss
 
     @State private var showBlockedScreen = false
     @State private var showDevicesScreen = false
+    @State private var showSupportScreen = false
     @State private var showDeleteScreen = false
 
     var body: some View {
-        ZStack {
-            JuntoColors.warmBg.ignoresSafeArea()
+        VStack(spacing: 0) {
+            HStack {
+                CircleNavButton(icon: "chevron.left") { dismiss() }
+                Spacer()
+                Text("Segurança e privacidade")
+                    .font(.inter(17, weight: .semibold))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                Spacer().frame(width: 44)
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 10)
+            .padding(.bottom, 12)
 
-            VStack(spacing: 0) {
-                HStack {
-                    CircleNavButton(icon: "chevron.left") { dismiss() }
-                    Spacer()
-                    Text("Segurança e privacidade")
-                        .font(.inter(17, weight: .medium))
-                        .foregroundColor(JuntoColors.textMain)
-                    Spacer()
-                    Spacer().frame(width: 44)
-                }
-                .padding(.horizontal, 18)
-                .padding(.top, 10)
-                .padding(.bottom, 16)
+            Divider().opacity(0.6)
 
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 14) {
-                        VStack(spacing: 0) {
-                            menuCardRow(
-                                icon: "nosign",
-                                iconColor: JuntoColors.primary,
-                                title: "Lista de bloqueados",
-                                subtitle: "\(store.blockedUsers.count) usuário(s) bloqueado(s)"
-                            ) {
-                                showBlockedScreen = true
-                            }
-
-                            Divider().padding(.leading, 54)
-
-                            menuCardRow(
-                                icon: "iphone.and.arrow.forward",
-                                iconColor: JuntoColors.primary,
-                                title: "Dispositivos conectados",
-                                subtitle: "\(store.connectedDevices.count) aparelho(s) ativo(s)"
-                            ) {
-                                showDevicesScreen = true
-                            }
-
-                            Divider().padding(.leading, 54)
-
-                            menuCardRow(
-                                icon: "trash",
-                                iconColor: JuntoColors.danger,
-                                title: "Excluir conta",
-                                subtitle: "Encerrar acesso e iniciar retenção LGPD",
-                                isDestructive: true
-                            ) {
-                                showDeleteScreen = true
-                            }
-                        }
-                        .background(Color.white)
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    menuCardRow(
+                        icon: "nosign",
+                        iconColor: JuntoColors.primary,
+                        title: "Lista de bloqueados",
+                        subtitle: "\(store.blockedUsers.count) usuário(s) bloqueado(s)"
+                    ) {
+                        showBlockedScreen = true
                     }
-                    .padding(.horizontal, 20)
+
+                    Divider().padding(.leading, 58)
+
+                    menuCardRow(
+                        icon: "iphone.and.arrow.forward",
+                        iconColor: JuntoColors.primary,
+                        title: "Dispositivos conectados",
+                        subtitle: "\(store.connectedDevices.count) aparelho(s) ativo(s)"
+                    ) {
+                        showDevicesScreen = true
+                    }
+
+                    Divider().padding(.leading, 58)
+
+                    menuCardRow(
+                        icon: "envelope",
+                        iconColor: JuntoColors.primary,
+                        title: "Suporte",
+                        subtitle: "Fale com nossa equipe por e-mail (\(store.supportEmail))"
+                    ) {
+                        showSupportScreen = true
+                    }
+
+                    Divider().padding(.leading, 58)
+
+                    menuCardRow(
+                        icon: "trash",
+                        iconColor: JuntoColors.danger,
+                        title: "Excluir conta",
+                        subtitle: "Encerrar acesso e iniciar retenção LGPD",
+                        isDestructive: true
+                    ) {
+                        showDeleteScreen = true
+                    }
                 }
             }
         }
+        .background(Color.white.ignoresSafeArea())
         .fullScreenCover(isPresented: $showBlockedScreen) {
             BlockedUsersScreen()
                 .environmentObject(store)
         }
         .fullScreenCover(isPresented: $showDevicesScreen) {
             ConnectedDevicesScreen()
+                .environmentObject(store)
+        }
+        .fullScreenCover(isPresented: $showSupportScreen) {
+            SupportContactScreen()
                 .environmentObject(store)
         }
         .fullScreenCover(isPresented: $showDeleteScreen) {
@@ -577,8 +576,140 @@ struct SecurityPrivacyScreen: View {
                     .font(.system(size: 12, weight: .regular))
                     .foregroundColor(JuntoColors.textLight)
             }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
+            .padding(.horizontal, 20)
+            .padding(.vertical, 16)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - Tela de Suporte (Nome + E-mail + Mensagem -> abre Gmail ou Apple Mail endereçado ao suporte)
+struct SupportContactScreen: View {
+    @EnvironmentObject var store: JuntoStore
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var nameText: String = ""
+    @State private var emailText: String = ""
+    @State private var messageText: String = ""
+
+    private var canSend: Bool {
+        nameText.trimmingCharacters(in: .whitespacesAndNewlines).count >= 2 &&
+        emailText.contains("@") &&
+        emailText.contains(".")
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack {
+                CircleNavButton(icon: "chevron.left") { dismiss() }
+                Spacer()
+                Text("Suporte")
+                    .font(.inter(17, weight: .semibold))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                Spacer().frame(width: 44)
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 10)
+            .padding(.bottom, 12)
+
+            Divider().opacity(0.6)
+
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 20) {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Fale com o suporte")
+                            .font(.inter(22, weight: .bold))
+                            .foregroundColor(JuntoColors.textMain)
+                        Text("Ao clicar em enviar, abriremos seu aplicativo de e-mail (Gmail ou Mail) pronto para enviar para \(store.supportEmail).")
+                            .font(.inter(14, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .lineSpacing(3)
+                    }
+                    .padding(.top, 16)
+
+                    CleanOutlineInput(
+                        label: "Nome",
+                        placeholder: "Seu nome completo",
+                        text: $nameText
+                    )
+
+                    CleanOutlineInput(
+                        label: "E-mail",
+                        placeholder: "seuemail@exemplo.com",
+                        text: $emailText,
+                        keyboardType: .emailAddress,
+                        autocapitalization: .never
+                    )
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Mensagem (opcional)")
+                            .font(.inter(13, weight: .medium))
+                            .foregroundColor(JuntoColors.textMain)
+
+                        TextField("Descreva sua dúvida ou solicitação...", text: $messageText, axis: .vertical)
+                            .font(.inter(15, weight: .regular))
+                            .foregroundColor(JuntoColors.textMain)
+                            .lineLimit(4...8)
+                            .padding(14)
+                            .background(Color.white)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 11, style: .continuous)
+                                    .stroke(JuntoColors.inputBorder, lineWidth: 1)
+                            )
+                            .clipShape(RoundedRectangle(cornerRadius: 11, style: .continuous))
+                    }
+
+                    JuntoPillButton(
+                        title: "Enviar",
+                        color: canSend ? JuntoColors.primary : JuntoColors.border
+                    ) {
+                        openEmailClient()
+                    }
+                    .disabled(!canSend)
+                    .padding(.top, 6)
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 36)
+            }
+        }
+        .background(Color.white.ignoresSafeArea())
+        .onAppear {
+            if nameText.isEmpty { nameText = store.user.fullName }
+            if emailText.isEmpty && !store.user.email.hasPrefix("wa_") {
+                emailText = store.user.email
+            }
+        }
+    }
+
+    private func openEmailClient() {
+        let to = store.supportEmail
+        let cleanName = nameText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanEmail = emailText.trimmingCharacters(in: .whitespacesAndNewlines)
+        let cleanMsg = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        let subject = "Suporte Juntô — \(cleanName)"
+        let bodyLines = [
+            "Nome: \(cleanName)",
+            "E-mail: \(cleanEmail)",
+            store.user.phone.isEmpty ? nil : "Telefone: +55 \(store.user.phone)",
+            "",
+            cleanMsg.isEmpty ? "Olá equipe Juntô, preciso de ajuda com minha conta." : cleanMsg
+        ].compactMap { $0 }.joined(separator: "\n")
+
+        let encSubject = subject.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+        let encBody = bodyLines.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? ""
+
+        // Tenta abrir Gmail primeiro (se instalado); senão abre o Apple Mail nativo (mailto:)
+        if let gmailURL = URL(string: "googlegmail://co?to=\(to)&subject=\(encSubject)&body=\(encBody)"),
+           UIApplication.shared.canOpenURL(gmailURL) {
+            UIApplication.shared.open(gmailURL)
+        } else if let mailtoURL = URL(string: "mailto:\(to)?subject=\(encSubject)&body=\(encBody)") {
+            UIApplication.shared.open(mailtoURL)
+        } else {
+            UIPasteboard.general.string = to
+            store.showToast("E-mail de suporte copiado: \(to)", icon: "envelope")
         }
     }
 }
@@ -1017,123 +1148,110 @@ struct MyInviteQRCodeScreen: View {
     }
 }
 
-// MARK: - Tela "Convidar amigos" com Link Real Compartilhável
+// MARK: - Tela "Convidar amigos" limpa flat (sem quadrados, no mesmo estilo das demais telas)
 struct InviteFriendsScreen: View {
     @EnvironmentObject var store: JuntoStore
     @Environment(\.dismiss) private var dismiss
     @State private var copiedLink = false
 
     private var inviteURLString: String {
-        "https://junto.app/convite/\(store.user.username)"
+        "https://junto.app/baixar"
     }
 
     private var inviteShareMessage: String {
-        "Bora dividir os rolês e viagens sem dor de cabeça no Juntô! Me adiciona por esse link: \(inviteURLString)"
+        "Bora dividir os rolês e viagens sem dor de cabeça no Juntô! Baixe o app por esse link: \(inviteURLString)"
     }
 
     var body: some View {
-        ZStack {
-            JuntoColors.warmBg.ignoresSafeArea()
+        VStack(spacing: 0) {
+            HStack {
+                CircleNavButton(icon: "chevron.left") { dismiss() }
+                Spacer()
+                Text("Convidar amigos")
+                    .font(.inter(17, weight: .semibold))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                Spacer().frame(width: 44)
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 10)
+            .padding(.bottom, 12)
 
-            VStack(spacing: 0) {
-                HStack {
-                    CircleNavButton(icon: "chevron.left") { dismiss() }
-                    Spacer()
-                    Text("Convidar amigos")
-                        .font(.inter(17, weight: .medium))
-                        .foregroundColor(JuntoColors.textMain)
-                    Spacer()
-                    Spacer().frame(width: 44)
-                }
-                .padding(.horizontal, 18)
-                .padding(.top, 10)
-                .padding(.bottom, 18)
+            Divider().opacity(0.6)
 
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 20) {
-                        // Card de convite
-                        VStack(spacing: 14) {
-                            JuntoLogoMark(size: 56)
-                                .padding(.top, 4)
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 24) {
+                    VStack(alignment: .leading, spacing: 10) {
+                        ZStack {
+                            Circle()
+                                .fill(JuntoColors.primary.opacity(0.08))
+                                .frame(width: 60, height: 60)
+                            Image(systemName: "person.badge.plus")
+                                .font(.system(size: 24, weight: .regular))
+                                .foregroundColor(JuntoColors.primary)
+                        }
+                        .padding(.top, 18)
 
-                            Text("Chame a galera pro Juntô")
-                                .font(.inter(20, weight: .medium))
+                        Text("Chame a galera pro Juntô")
+                            .font(.inter(24, weight: .bold))
+                            .foregroundColor(JuntoColors.textMain)
+
+                        Text("Compartilhe o link do aplicativo para seus amigos entrarem nos seus grupos, racharem despesas e acertarem tudo via Pix.")
+                            .font(.inter(14, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .lineSpacing(3)
+                    }
+
+                    Divider().opacity(0.6)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text("Link do aplicativo")
+                            .font(.inter(12, weight: .semibold))
+                            .foregroundColor(JuntoColors.textMuted)
+
+                        HStack(spacing: 10) {
+                            Image(systemName: "link")
+                                .font(.system(size: 15))
+                                .foregroundColor(JuntoColors.primary)
+                            Text(inviteURLString)
+                                .font(.inter(15, weight: .medium))
                                 .foregroundColor(JuntoColors.textMain)
-                                .multilineTextAlignment(.center)
-
-                            Text("Envie seu link exclusivo para amigos entrarem direto nos seus grupos, racharem despesas e acertarem tudo via Pix.")
-                                .font(.inter(14, weight: .regular))
-                                .foregroundColor(JuntoColors.textMuted)
-                                .multilineTextAlignment(.center)
-                                .lineSpacing(3)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(24)
-                        .background(Color.white)
-                        .overlay(RoundedRectangle(cornerRadius: 16).stroke(JuntoColors.border, lineWidth: 1))
-                        .clipShape(RoundedRectangle(cornerRadius: 16))
-
-                        // Caixa com link real gerado
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("SEU LINK DE CONVITE")
-                                .font(.inter(11, weight: .medium))
-                                .tracking(0.8)
-                                .foregroundColor(JuntoColors.textMuted)
-
-                            HStack(spacing: 10) {
-                                Image(systemName: "link")
-                                    .font(.system(size: 15))
-                                    .foregroundColor(JuntoColors.primary)
-                                Text(inviteURLString)
-                                    .font(.inter(14, weight: .medium))
-                                    .foregroundColor(JuntoColors.textMain)
-                                    .lineLimit(1)
-                                    .truncationMode(.middle)
-                                Spacer()
-                            }
-                            .padding(14)
-                            .background(JuntoColors.surfaceSubtle)
-                            .overlay(RoundedRectangle(cornerRadius: 10).stroke(JuntoColors.border, lineWidth: 1))
-                            .clipShape(RoundedRectangle(cornerRadius: 10))
-                        }
-                        .padding(16)
-                        .background(Color.white)
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(JuntoColors.border, lineWidth: 1))
-                        .clipShape(RoundedRectangle(cornerRadius: 14))
-
-                        // Botões reais: ShareLink nativo iOS + Copiar link
-                        VStack(spacing: 10) {
-                            ShareLink(item: inviteShareMessage) {
-                                HStack(spacing: 8) {
-                                    Image(systemName: "square.and.arrow.up")
-                                        .font(.system(size: 16, weight: .regular))
-                                    Text("Compartilhar link de convite")
-                                        .font(.inter(16, weight: .medium))
-                                }
-                                .foregroundColor(.white)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 52)
-                                .background(JuntoColors.primary)
-                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                            }
-
-                            JuntoOutlineButton(
-                                title: copiedLink ? "Link copiado!" : "Copiar link",
-                                icon: copiedLink ? "checkmark" : "doc.on.doc",
-                                color: JuntoColors.primary
-                            ) {
+                                .lineLimit(1)
+                            Spacer()
+                            Button(copiedLink ? "Copiado" : "Copiar") {
                                 UIPasteboard.general.string = inviteURLString
                                 copiedLink = true
-                                store.showToast("Link de convite copiado!", icon: "link")
+                                store.showToast("Link copiado!", icon: "link")
                                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedLink = false }
                             }
+                            .font(.inter(14, weight: .semibold))
+                            .foregroundColor(JuntoColors.primary)
                         }
+                        .padding(.vertical, 8)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 36)
+
+                    Divider().opacity(0.6)
+
+                    ShareLink(item: inviteShareMessage) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "square.and.arrow.up")
+                                .font(.system(size: 16, weight: .medium))
+                            Text("Compartilhar link do app")
+                                .font(.inter(16, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(JuntoColors.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .padding(.top, 4)
                 }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 36)
             }
         }
+        .background(Color.white.ignoresSafeArea())
     }
 }
 
