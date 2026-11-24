@@ -20,23 +20,15 @@ struct JuntoProSubscriptionScreen: View {
     private let proFeatures: [(title: String, subtitle: String)] = [
         ("Selo de Verificado Exclusivo", "Assinante Mensal recebe o Selo Roxo e o Assinante Anual recebe o Selo Dourado em todas as telas, grupos e conversas."),
         ("Grupos, viagens e rolês ilimitados", "No plano gratuito você tem 1 grupo ativo. No Pro, crie quantos rolês, viagens e grupos mensais quiser."),
-        ("Criar Grupos Públicos", "Organize encontros, piscina no clube ou futebol com limite de até 100 vagas e gestão simplificada."),
         ("Múltiplos administradores por grupo", "Adicione amigos como co-organizadores para ajudar a lançar gastos e confirmar pagamentos."),
         ("Alertas e lembretes prioritários", "Notificações automáticas de prazos de metas e confirmações em tempo real quando participantes pagam.")
     ]
 
     var body: some View {
         VStack(spacing: 0) {
-            // Topo limpo
+            // Topo limpo (apenas X sem fundo)
             HStack {
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 15, weight: .regular))
-                        .foregroundColor(JuntoColors.textMain)
-                        .frame(width: 36, height: 36)
-                        .background(JuntoColors.surfaceSubtle)
-                        .clipShape(Circle())
-                }
+                PopupCloseButton { dismiss() }
 
                 Spacer()
 
@@ -134,7 +126,7 @@ struct JuntoProSubscriptionScreen: View {
 
                     // Ação de assinatura
                     VStack(spacing: 12) {
-                        if store.user.isPro {
+                        if store.user.isPro && !store.isProRenewalDue {
                             VStack(spacing: 10) {
                                 HStack(spacing: 8) {
                                     VerifiedBadgeView(type: store.user.proPlanType, size: 18)
@@ -148,13 +140,6 @@ struct JuntoProSubscriptionScreen: View {
                                         .font(.inter(12, weight: .regular))
                                         .foregroundColor(JuntoColors.textMuted)
                                 }
-
-                                Button("Cancelar assinatura") {
-                                    showCancelConfirm = true
-                                }
-                                .font(.inter(13, weight: .medium))
-                                .foregroundColor(JuntoColors.danger)
-                                .padding(.top, 2)
                             }
                             .padding(16)
                             .frame(maxWidth: .infinity)
@@ -172,7 +157,7 @@ struct JuntoProSubscriptionScreen: View {
                                         let priceLabel = selectedPeriod == .monthly
                                             ? "\(storeKit.monthlyProduct?.displayPrice ?? "R$ 19,90") / mês"
                                             : "\(storeKit.yearlyProduct?.displayPrice ?? "R$ 178,80") / ano"
-                                        Text("Assinar por \(priceLabel)")
+                                        Text(store.isProRenewalDue ? "Renovar por \(priceLabel)" : "Assinar por \(priceLabel)")
                                             .font(.inter(16, weight: .medium))
                                     }
                                 }

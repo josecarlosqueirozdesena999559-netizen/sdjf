@@ -377,6 +377,22 @@ struct AnimatedSearchBar: View {
     }
 }
 
+// MARK: - Botão Fechar de Popups (Apenas o X limpo, sem fundo)
+struct PopupCloseButton: View {
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Image(systemName: "xmark")
+                .font(.system(size: 16, weight: .medium))
+                .foregroundColor(JuntoColors.textMain)
+                .frame(width: 34, height: 34)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.90))
+    }
+}
+
 // MARK: - Estilo de Toque Fluido e Responsivo (efeito mola suave em qualquer botão)
 struct JuntoTapBounceStyle: ButtonStyle {
     var scaleAmount: CGFloat = 0.96

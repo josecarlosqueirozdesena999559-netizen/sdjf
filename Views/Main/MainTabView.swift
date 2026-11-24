@@ -114,7 +114,7 @@ struct MainTabView: View {
         switch tab {
         case .friends:    return selected ? "person.fill" : "person"
         case .groups:     return selected ? "person.2.fill" : "person.2"
-        case .activities: return selected ? "list.bullet.rectangle.portrait.fill" : "list.bullet.rectangle.portrait"
+        case .activities: return selected ? "arrow.up.arrow.down.circle.fill" : "arrow.up.arrow.down.circle"
         case .account:    return "person.crop.circle"
         }
     }
@@ -134,7 +134,7 @@ struct AddExpenseSheetView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack {
-                CircleNavButton(icon: "xmark") { dismiss() }
+                PopupCloseButton { dismiss() }
                 Spacer()
                 Text("Adicionar despesa")
                     .font(.inter(17, weight: .regular))
@@ -228,9 +228,7 @@ struct NotificationsSheetView: View {
                     .font(.inter(20, weight: .regular))
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
-                Button("Fechar") { dismiss() }
-                    .font(.inter(14, weight: .regular))
-                    .foregroundColor(JuntoColors.primary)
+                PopupCloseButton { dismiss() }
             }
             .padding(.top, 20)
 

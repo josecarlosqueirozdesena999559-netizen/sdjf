@@ -568,14 +568,7 @@ struct FriendOptionsSheet: View {
                         .foregroundColor(JuntoColors.textMuted)
                 }
                 Spacer()
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(JuntoColors.textMuted)
-                        .frame(width: 32, height: 32)
-                        .background(JuntoColors.surfaceSubtle)
-                        .clipShape(Circle())
-                }
+                PopupCloseButton { dismiss() }
             }
             .padding(.top, 20)
 

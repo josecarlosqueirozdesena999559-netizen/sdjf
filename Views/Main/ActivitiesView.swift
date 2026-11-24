@@ -116,14 +116,10 @@ struct ActivitiesView: View {
     private func activityRow(_ item: ActivityEvent) -> some View {
         let accent = iconAccentColor(for: item.icon)
         return HStack(spacing: 14) {
-            ZStack {
-                Circle()
-                    .fill(accent.opacity(0.10))
-                    .frame(width: 40, height: 40)
-                Image(systemName: item.icon)
-                    .font(.system(size: 17, weight: .regular))
-                    .foregroundColor(accent)
-            }
+            Image(systemName: item.icon)
+                .font(.system(size: 20, weight: .light))
+                .foregroundColor(accent)
+                .frame(width: 28, alignment: .center)
 
             VStack(alignment: .leading, spacing: 3) {
                 Text(item.title)
@@ -189,14 +185,10 @@ private struct ActivityDetailSheet: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 18) {
             HStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(accentColor.opacity(0.12))
-                        .frame(width: 44, height: 44)
-                    Image(systemName: activity.icon)
-                        .font(.system(size: 19, weight: .regular))
-                        .foregroundColor(accentColor)
-                }
+                Image(systemName: activity.icon)
+                    .font(.system(size: 22, weight: .light))
+                    .foregroundColor(accentColor)
+                    .frame(width: 30, alignment: .center)
 
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Detalhes do lançamento")
@@ -209,14 +201,7 @@ private struct ActivityDetailSheet: View {
 
                 Spacer()
 
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(JuntoColors.textMuted)
-                        .frame(width: 32, height: 32)
-                        .background(JuntoColors.surfaceSubtle)
-                        .clipShape(Circle())
-                }
+                PopupCloseButton { dismiss() }
             }
             .padding(.top, 20)
 

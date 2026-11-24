@@ -690,14 +690,7 @@ private struct CategoryBreakdownSheet: View {
 
                 Spacer()
 
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(JuntoColors.textMuted)
-                        .frame(width: 32, height: 32)
-                        .background(JuntoColors.surfaceSubtle)
-                        .clipShape(Circle())
-                }
+                PopupCloseButton { dismiss() }
             }
             .padding(.top, 20)
 
@@ -844,14 +837,7 @@ private struct PersonalExpenseDetailSheet: View {
 
                 Spacer()
 
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(JuntoColors.textMuted)
-                        .frame(width: 32, height: 32)
-                        .background(JuntoColors.surfaceSubtle)
-                        .clipShape(Circle())
-                }
+                PopupCloseButton { dismiss() }
             }
             .padding(.top, 20)
 

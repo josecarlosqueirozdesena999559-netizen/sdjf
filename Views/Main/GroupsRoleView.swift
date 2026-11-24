@@ -85,10 +85,14 @@ struct GroupsRoleView: View {
                                 selectedGroupId = group.id
                             } label: {
                                 HStack(spacing: 12) {
-                                    groupCoverImage(group)
-                                        .frame(width: 52, height: 52)
-                                        .clipped()
-                                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                    if let data = group.coverImageData, let uiImg = UIImage(data: data) {
+                                        Image(uiImage: uiImg)
+                                            .resizable()
+                                            .scaledToFill()
+                                            .frame(width: 52, height: 52)
+                                            .clipped()
+                                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                                    }
 
                                     VStack(alignment: .leading, spacing: 4) {
                                         HStack(spacing: 6) {
@@ -145,7 +149,7 @@ struct GroupsRoleView: View {
                                 .padding(.vertical, 12)
                             }
 
-                            Divider().padding(.leading, 86)
+                            Divider().padding(.leading, 20)
                         }
                     }
                     .padding(.bottom, 140)
@@ -216,14 +220,7 @@ struct CreateGroupOrPotChoiceSheet: View {
                     .font(.inter(17, weight: .medium))
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .medium))
-                        .foregroundColor(JuntoColors.textMuted)
-                        .frame(width: 30, height: 30)
-                        .background(JuntoColors.surfaceSubtle)
-                        .clipShape(Circle())
-                }
+                PopupCloseButton { dismiss() }
             }
             .padding(.top, 18)
             .padding(.bottom, 14)
@@ -376,7 +373,7 @@ struct CreateGroupScreen: View {
         VStack(alignment: .leading, spacing: 0) {
             // Topo: X | Criar um grupo | ✓
             HStack {
-                CircleNavButton(icon: "xmark") { dismiss() }
+                PopupCloseButton { dismiss() }
                 Spacer()
                 Text("Criar um grupo")
                     .font(.inter(17, weight: .medium))
@@ -530,7 +527,7 @@ struct CreateGroupScreen: View {
                         HStack(spacing: 10) {
                             ForEach(PotRecurrenceMode.allCases, id: \.self) { mode in
                                 let active = potMode == mode
-                                let iconName = mode == .single ? "target" : "calendar.badge.clock"
+                                let iconName = mode == .single ? "flag.checkered" : "calendar"
                                 let subtitle = mode == .single ? "Valor único dividido" : "Parcelas mês a mês"
                                 Button {
                                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -696,74 +693,6 @@ struct CreateGroupScreen: View {
                             }
                             .padding(.vertical, 10)
                             Divider()
-                        }
-
-                        // Configuração de Grupo Público (Próximos)
-                        VStack(alignment: .leading, spacing: 12) {
-                            Toggle(isOn: $isPublicGroup) {
-                                VStack(alignment: .leading, spacing: 3) {
-                                    HStack(spacing: 6) {
-                                        Image(systemName: "globe.americas.fill")
-                                            .font(.system(size: 15))
-                                            .foregroundColor(isPublicGroup ? JuntoColors.primary : JuntoColors.textMuted)
-                                        Text("Grupo Público")
-                                            .font(.inter(15, weight: .medium))
-                                            .foregroundColor(JuntoColors.textMain)
-                                    }
-                                    Text("Pessoas da sua cidade ou região podem encontrar e entrar no grupo.")
-                                        .font(.inter(12, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMuted)
-                                }
-                            }
-                            .tint(JuntoColors.primary)
-
-                            if isPublicGroup {
-                                VStack(alignment: .leading, spacing: 12) {
-                                    // Limite de pessoas (até 100)
-                                    VStack(alignment: .leading, spacing: 6) {
-                                        HStack {
-                                            Text("Limite de vagas")
-                                                .font(.inter(13, weight: .regular))
-                                                .foregroundColor(JuntoColors.textMain)
-                                            Spacer()
-                                            Text("\(maxParticipants) pessoas (máx. 100)")
-                                                .font(.inter(13, weight: .medium))
-                                                .foregroundColor(JuntoColors.primary)
-                                        }
-
-                                        Stepper(value: $maxParticipants, in: 2...100, step: 1) {
-                                            Text("Vagas: \(maxParticipants)")
-                                                .font(.inter(13, weight: .regular))
-                                                .foregroundColor(JuntoColors.textMuted)
-                                        }
-                                        .labelsHidden()
-
-                                        Text("Ao preencher as vagas, o grupo sai da aba pública automaticamente. Se alguém sair, fica disponível novamente.")
-                                            .font(.inter(11, weight: .regular))
-                                            .foregroundColor(JuntoColors.textMuted)
-                                    }
-                                    .padding(12)
-                                    .background(JuntoColors.surfaceSubtle)
-                                    .clipShape(RoundedRectangle(cornerRadius: 10))
-
-                                    // Fica no ar até o dia
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text("Fica no ar até o dia")
-                                                .font(.inter(13, weight: .regular))
-                                                .foregroundColor(JuntoColors.textMain)
-                                            Text("Após esta data, não aceita novos membros")
-                                                .font(.inter(11, weight: .regular))
-                                                .foregroundColor(JuntoColors.textMuted)
-                                        }
-                                        Spacer()
-                                        DatePicker("", selection: $publicUntilDate, in: Date()..., displayedComponents: .date)
-                                            .labelsHidden()
-                                            .environment(\.locale, Locale(identifier: "pt_BR"))
-                                    }
-                                    .padding(.vertical, 4)
-                                }
-                            }
                         }
 
                         // Membros
@@ -1060,7 +989,7 @@ struct GroupDetailSheet: View {
                 VStack(alignment: .leading, spacing: 18) {
                     // Topo (Fechar | Nome do Grupo | Chat do Grupo)
                     HStack {
-                        CircleNavButton(icon: "xmark") { dismiss() }
+                        PopupCloseButton { dismiss() }
                         Spacer()
                         Button {
                             showMembersSheet = true
@@ -1082,48 +1011,57 @@ struct GroupDetailSheet: View {
                     }
                     .padding(.top, 16)
 
-                    // Capa do grupo ampla (sem cortes verticais)
-                    ZStack(alignment: .bottomLeading) {
-                        if let data = group.coverImageData, let uiImg = UIImage(data: data) {
+                    // Se o grupo tiver foto escolhida, exibe a capa; se não tiver, mostra apenas a descrição compacta
+                    if let data = group.coverImageData, let uiImg = UIImage(data: data) {
+                        ZStack(alignment: .bottomLeading) {
                             Image(uiImage: uiImg)
                                 .resizable()
                                 .scaledToFill()
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 195)
                                 .clipped()
-                        } else {
-                            Image(group.coverImageName)
-                                .resizable()
-                                .scaledToFill()
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 195)
-                                .clipped()
+
+                            LinearGradient(
+                                colors: [Color.clear, Color.black.opacity(0.65)],
+                                startPoint: .top,
+                                endPoint: .bottom
+                            )
+
+                            HStack {
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(group.category)
+                                        .font(.inter(11, weight: .medium))
+                                        .foregroundColor(.white.opacity(0.85))
+                                    Text("Total gasto: \(JuntoStore.formatBRL(group.totalSpent))")
+                                        .font(.inter(15, weight: .medium))
+                                        .foregroundColor(.white)
+                                }
+                                Spacer()
+                                Text("\(group.participants.count) pessoa(s)")
+                                    .font(.inter(12, weight: .regular))
+                                    .foregroundColor(.white.opacity(0.9))
+                            }
+                            .padding(14)
                         }
-
-                        LinearGradient(
-                            colors: [Color.clear, Color.black.opacity(0.65)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
-
+                        .frame(height: 145)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    } else {
                         HStack {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text(group.category)
-                                    .font(.inter(11, weight: .medium))
-                                    .foregroundColor(.white.opacity(0.85))
+                                    .font(.inter(12, weight: .medium))
+                                    .foregroundColor(JuntoColors.textMuted)
                                 Text("Total gasto: \(JuntoStore.formatBRL(group.totalSpent))")
                                     .font(.inter(15, weight: .medium))
-                                    .foregroundColor(.white)
+                                    .foregroundColor(JuntoColors.textMain)
                             }
                             Spacer()
                             Text("\(group.participants.count) pessoa(s)")
                                 .font(.inter(12, weight: .regular))
-                                .foregroundColor(.white.opacity(0.9))
+                                .foregroundColor(JuntoColors.textMuted)
                         }
-                        .padding(14)
+                        .padding(.vertical, 4)
                     }
-                    .frame(height: 145)
-                    .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
                     // Lista de participantes rolável para o lado (toque abre Sheet claro customizado!)
                     VStack(alignment: .leading, spacing: 10) {
@@ -1763,14 +1701,7 @@ struct GroupMembersSheet: View {
                         .foregroundColor(JuntoColors.textMuted)
                 }
                 Spacer()
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(JuntoColors.textMuted)
-                        .frame(width: 32, height: 32)
-                        .background(JuntoColors.surfaceSubtle)
-                        .clipShape(Circle())
-                }
+                PopupCloseButton { dismiss() }
             }
             .padding(.horizontal, 20)
             .padding(.top, 18)
@@ -1968,14 +1899,7 @@ struct OrganizerPixPaymentSheet: View {
                         .lineLimit(1)
                 }
                 Spacer()
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(JuntoColors.textMuted)
-                        .frame(width: 32, height: 32)
-                        .background(JuntoColors.surfaceSubtle)
-                        .clipShape(Circle())
-                }
+                PopupCloseButton { dismiss() }
             }
             .padding(.top, 18)
 
@@ -2196,14 +2120,7 @@ struct ParticipantActionSheet: View {
                         .foregroundColor(JuntoColors.textMuted)
                 }
                 Spacer()
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(JuntoColors.textMuted)
-                        .frame(width: 32, height: 32)
-                        .background(JuntoColors.surfaceSubtle)
-                        .clipShape(Circle())
-                }
+                PopupCloseButton { dismiss() }
             }
             .padding(.top, 20)
             .padding(.bottom, 16)
@@ -2377,7 +2294,7 @@ struct CreatePersonalPotScreen: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                CircleNavButton(icon: "xmark") { dismiss() }
+                PopupCloseButton { dismiss() }
                 Spacer()
                 Text("Nova Caixinha Pessoal")
                     .font(.inter(17, weight: .medium))

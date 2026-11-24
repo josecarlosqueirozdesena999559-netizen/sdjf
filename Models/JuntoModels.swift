@@ -42,7 +42,7 @@ enum MainTab: Int, CaseIterable {
         switch self {
         case .friends: return "person"
         case .groups: return "person.2"
-        case .activities: return "list.bullet.rectangle.portrait"
+        case .activities: return "arrow.up.arrow.down.circle"
         case .account: return "person.crop.circle"
         }
     }
@@ -124,6 +124,7 @@ struct UserProfile: Codable {
     var proPlanType: ProPlanType = .none
     var proPlanName: String? = nil
     var proExpiresDateText: String? = nil
+    var proExpiresAt: Date? = nil
 
     var firstName: String {
         fullName.split(separator: " ").first.map(String.init) ?? "Amigo"

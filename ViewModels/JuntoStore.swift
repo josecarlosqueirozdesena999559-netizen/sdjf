@@ -2359,12 +2359,26 @@ final class JuntoStore: ObservableObject {
         showToast("Conta desativada no servidor. Dados retidos por 90 dias (LGPD).", icon: "trash")
     }
 
+    /// Exibe opção de renovação apenas quando o plano está perto de vencer (últimos 5 dias) ou vencido
+    var isProRenewalDue: Bool {
+        guard user.isPro else { return false }
+        guard let exp = user.proExpiresAt else { return false }
+        let renewalWindow = Calendar.current.date(byAdding: .day, value: -5, to: exp) ?? exp
+        return Date() >= renewalWindow
+    }
+
     // MARK: - Gestão da Assinatura Juntô Pro
     func subscribeToPro(plan: String = "Mensal (R$ 19,90)", planType: ProPlanType = .monthly) {
         user.isPro = true
         user.proPlanType = planType
         user.proPlanName = plan
-        user.proExpiresDateText = planType == .yearly ? "Renovação em 23 de nov. de 2027" : "Renovação em 23 de dez. de 2026"
+        let days = planType == .yearly ? 365 : 30
+        let expDate = Calendar.current.date(byAdding: .day, value: days, to: Date()) ?? Date()
+        user.proExpiresAt = expDate
+        let df = DateFormatter()
+        df.locale = Locale(identifier: "pt_BR")
+        df.dateFormat = "dd/MM/yyyy"
+        user.proExpiresDateText = "Renovação em \(df.string(from: expDate))"
         saveUserSession()
         let uname = user.username
         Task {

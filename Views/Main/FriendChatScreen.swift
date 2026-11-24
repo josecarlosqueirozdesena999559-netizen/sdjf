@@ -928,14 +928,7 @@ struct FriendProfileScreen: View {
                         .font(.inter(18, weight: .bold))
                         .foregroundColor(JuntoColors.textMain)
                     Spacer()
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(JuntoColors.textMuted)
-                            .frame(width: 32, height: 32)
-                            .background(JuntoColors.surfaceSubtle)
-                            .clipShape(Circle())
-                    }
+                    PopupCloseButton { dismiss() }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 16)
@@ -1097,14 +1090,7 @@ struct ChatAttachmentMenuSheet: View {
                     .font(.inter(16, weight: .semibold))
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(JuntoColors.textMuted)
-                        .frame(width: 30, height: 30)
-                        .background(JuntoColors.surfaceSubtle)
-                        .clipShape(Circle())
-                }
+                PopupCloseButton { dismiss() }
             }
             .padding(.top, 16)
 
@@ -1285,14 +1271,7 @@ struct CreateChatPollSheet: View {
                             .foregroundColor(JuntoColors.textMuted)
                     }
                     Spacer()
-                    Button { dismiss() } label: {
-                        Image(systemName: "xmark")
-                            .font(.system(size: 13, weight: .semibold))
-                            .foregroundColor(JuntoColors.textMuted)
-                            .frame(width: 32, height: 32)
-                            .background(JuntoColors.surfaceSubtle)
-                            .clipShape(Circle())
-                    }
+                    PopupCloseButton { dismiss() }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 18)

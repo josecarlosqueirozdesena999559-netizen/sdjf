@@ -85,37 +85,39 @@ struct AccountView: View {
                     .padding(.horizontal, 20)
                     .padding(.bottom, 18)
 
-                    // Card Juntô Pro minimalista (sem texto de funções — as funções só aparecem ao clicar)
-                    HStack(spacing: 12) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(store.user.isPro ? "Juntô Pro Ativo" : "Juntô Pro")
-                                .font(.inter(16, weight: .medium))
-                                .foregroundColor(JuntoColors.textMain)
-                            Text("R$ 19,90 / mês")
-                                .font(.inter(13, weight: .regular))
-                                .foregroundColor(JuntoColors.textMuted)
-                        }
+                    // Card Juntô Pro: ao assinar, some daqui e reaparece somente na renovação
+                    if !store.user.isPro || store.isProRenewalDue {
+                        HStack(spacing: 12) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(store.isProRenewalDue ? "Renovar Juntô Pro" : "Juntô Pro")
+                                    .font(.inter(16, weight: .medium))
+                                    .foregroundColor(JuntoColors.textMain)
+                                Text(store.isProRenewalDue ? (store.user.proExpiresDateText ?? "Renovação disponível") : "R$ 19,90 / mês")
+                                    .font(.inter(13, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                            }
 
-                        Spacer()
+                            Spacer()
 
-                        Button {
-                            showProSubscription = true
-                        } label: {
-                            Text(store.user.isPro ? "Ver plano" : "Conhecer")
-                                .font(.inter(14, weight: .medium))
-                                .foregroundColor(.white)
-                                .padding(.horizontal, 18)
-                                .frame(height: 40)
-                                .background(JuntoColors.primary)
-                                .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                            Button {
+                                showProSubscription = true
+                            } label: {
+                                Text(store.isProRenewalDue ? "Renovar" : "Conhecer")
+                                    .font(.inter(14, weight: .medium))
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 18)
+                                    .frame(height: 40)
+                                    .background(JuntoColors.primary)
+                                    .clipShape(RoundedRectangle(cornerRadius: 9, style: .continuous))
+                            }
                         }
+                        .padding(16)
+                        .background(Color.white)
+                        .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
+                        .clipShape(RoundedRectangle(cornerRadius: 12))
+                        .padding(.horizontal, 20)
+                        .padding(.bottom, 20)
                     }
-                    .padding(16)
-                    .background(Color.white)
-                    .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .padding(.horizontal, 20)
-                    .padding(.bottom, 20)
 
                     // Menu limpo (sem Pix no perfil — QR Code de convite para adicionar amigos!)
                     accountRow(icon: "qrcode", title: "QR Code de convite") {
