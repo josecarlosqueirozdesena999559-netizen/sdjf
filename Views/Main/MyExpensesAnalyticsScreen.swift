@@ -7,16 +7,8 @@ struct MyExpensesAnalyticsScreen: View {
 
     @State private var selectedPeriod: String = "Geral"
     @State private var selectedCategoryFilter: String? = nil
-    @State private var selectedStatusFilter: ExpenseStatusFilter = .all
     @State private var selectedExpenseForDetail: PersonalExpenseRecord? = nil
     @State private var selectedCategoryForDetail: CategorySlice? = nil
-    @State private var showAddExpenseSheet = false
-
-    enum ExpenseStatusFilter: String, CaseIterable {
-        case all = "Todos"
-        case paid = "Pagos"
-        case pending = "Pendentes"
-    }
 
     struct CategorySlice: Identifiable, Hashable {
         let id: String
@@ -111,16 +103,8 @@ struct MyExpensesAnalyticsScreen: View {
     }
 
     private var filteredList: [PersonalExpenseRecord] {
-        periodExpenses.filter { item in
-            let matchesCategory = selectedCategoryFilter == nil || item.category == selectedCategoryFilter
-            let matchesStatus: Bool
-            switch selectedStatusFilter {
-            case .all: matchesStatus = true
-            case .paid: matchesStatus = item.isPaid
-            case .pending: matchesStatus = !item.isPaid
-            }
-            return matchesCategory && matchesStatus
-        }
+        guard let cat = selectedCategoryFilter else { return periodExpenses }
+        return periodExpenses.filter { $0.category == cat }
     }
 
     var body: some View {
@@ -157,14 +141,9 @@ struct MyExpensesAnalyticsScreen: View {
             PersonalExpenseDetailSheet(
                 expense: expense,
                 categoryTotal: categorySlices.first(where: { $0.category == expense.category })?.amount ?? expense.amount,
-                periodTotal: totalAmount,
-                canToggleDirectly: store.isManualPersonalExpense(id: expense.id),
-                onTogglePaid: {
-                    store.togglePersonalExpensePaid(id: expense.id)
-                    selectedExpenseForDetail = nil
-                }
+                periodTotal: totalAmount
             )
-            .presentationDetents([.height(430), .medium])
+            .presentationDetents([.height(380), .medium])
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(24)
         }
@@ -183,34 +162,18 @@ struct MyExpensesAnalyticsScreen: View {
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(24)
         }
-        .sheet(isPresented: $showAddExpenseSheet) {
-            AddExpenseSheetView()
-                .environmentObject(store)
-                .presentationDetents([.medium, .large])
-        }
     }
 
-    // MARK: - Topo
+    // MARK: - Topo limpo (somente leitura: filtrado automaticamente dos grupos e dívidas)
     private var headerBar: some View {
         HStack {
             CircleNavButton(icon: "chevron.left") { dismiss() }
             Spacer()
-            Text("Gastos pessoais")
+            Text("Meus gastos")
                 .font(.inter(17, weight: .semibold))
                 .foregroundColor(JuntoColors.textMain)
             Spacer()
-            Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                showAddExpenseSheet = true
-            } label: {
-                Image(systemName: "plus")
-                    .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(.white)
-                    .frame(width: 40, height: 40)
-                    .background(JuntoColors.primary)
-                    .clipShape(Circle())
-            }
-            .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.92))
+            Color.clear.frame(width: 40, height: 40)
         }
         .padding(.horizontal, 18)
         .padding(.top, 10)
@@ -350,27 +313,10 @@ struct MyExpensesAnalyticsScreen: View {
                 .font(.inter(16, weight: .medium))
                 .foregroundColor(JuntoColors.textMain)
 
-            Text("Seus pagamentos de viagens, churrascos e despesas pessoais aparecem aqui com gráficos detalhados.")
+            Text("Os pagamentos e dívidas dos seus grupos de viagens, churrascos e rolês aparecerão aqui automaticamente.")
                 .font(.inter(13, weight: .regular))
                 .foregroundColor(JuntoColors.textMuted)
                 .multilineTextAlignment(.center)
-
-            Button {
-                showAddExpenseSheet = true
-            } label: {
-                HStack(spacing: 6) {
-                    Image(systemName: "plus")
-                        .font(.system(size: 13, weight: .semibold))
-                    Text("Registrar gasto")
-                        .font(.inter(14, weight: .medium))
-                }
-                .foregroundColor(.white)
-                .padding(.horizontal, 18)
-                .padding(.vertical, 10)
-                .background(JuntoColors.primary)
-                .clipShape(Capsule())
-            }
-            .padding(.top, 4)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 32)
@@ -559,11 +505,11 @@ struct MyExpensesAnalyticsScreen: View {
         .clipShape(RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
-    // MARK: - Lista de Gastos Detalhada
+    // MARK: - Lista de Pagamentos e Dívidas dos Grupos
     private var expensesListCard: some View {
         VStack(alignment: .leading, spacing: 12) {
             HStack {
-                Text(selectedCategoryFilter == nil ? "Todos os gastos" : "Gastos de \(selectedCategoryFilter!)")
+                Text(selectedCategoryFilter == nil ? "Pagamentos e dívidas nos grupos" : "Gastos de \(selectedCategoryFilter!)")
                     .font(.inter(15, weight: .semibold))
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
@@ -576,28 +522,8 @@ struct MyExpensesAnalyticsScreen: View {
                     .clipShape(Capsule())
             }
 
-            HStack(spacing: 8) {
-                ForEach(ExpenseStatusFilter.allCases, id: \.self) { status in
-                    let active = selectedStatusFilter == status
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.16)) {
-                            selectedStatusFilter = status
-                        }
-                    } label: {
-                        Text(status.rawValue)
-                            .font(.inter(12, weight: active ? .medium : .regular))
-                            .foregroundColor(active ? .white : JuntoColors.textMuted)
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 6)
-                            .background(active ? JuntoColors.primary : JuntoColors.surfaceSubtle)
-                            .clipShape(Capsule())
-                    }
-                }
-                Spacer()
-            }
-
             if filteredList.isEmpty {
-                Text("Nenhum gasto com este filtro.")
+                Text("Nenhum registro nesta categoria.")
                     .font(.inter(13, weight: .regular))
                     .foregroundColor(JuntoColors.textMuted)
                     .frame(maxWidth: .infinity)
@@ -705,6 +631,7 @@ struct MyExpensesAnalyticsScreen: View {
         case "Festa": return "#7C3AED"
         case "Esporte": return "#0284C7"
         case "Presente": return "#DB2777"
+        case "Dívidas": return "#DC2626"
         default: return "#2563EB"
         }
     }
@@ -719,6 +646,7 @@ struct MyExpensesAnalyticsScreen: View {
         case "Esporte": return "sportscourt"
         case "Presente": return "gift"
         case "Trabalho": return "briefcase"
+        case "Dívidas": return "arrow.left.arrow.right"
         default: return "tag"
         }
     }
@@ -873,13 +801,11 @@ private struct CategoryBreakdownSheet: View {
     }
 }
 
-// MARK: - Detalhes Completos de um Gasto Pessoal
+// MARK: - Detalhes Completos de um Pagamento ou Dívida de Grupo
 private struct PersonalExpenseDetailSheet: View {
     let expense: PersonalExpenseRecord
     let categoryTotal: Double
     let periodTotal: Double
-    let canToggleDirectly: Bool
-    var onTogglePaid: () -> Void
     @Environment(\.dismiss) private var dismiss
 
     private var catColor: Color {
@@ -951,7 +877,7 @@ private struct PersonalExpenseDetailSheet: View {
             }
 
             VStack(spacing: 0) {
-                infoRow(label: "Origem / Grupo", value: expense.groupName)
+                infoRow(label: "Grupo / Origem", value: expense.groupName)
                 Divider().padding(.leading, 14)
                 infoRow(label: "Período", value: "\(expense.dateText) · \(expense.monthKey)")
                 Divider().padding(.leading, 14)
@@ -961,23 +887,6 @@ private struct PersonalExpenseDetailSheet: View {
             }
             .background(JuntoColors.surfaceSubtle.opacity(0.65))
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-
-            if canToggleDirectly {
-                Button(action: onTogglePaid) {
-                    HStack(spacing: 8) {
-                        Image(systemName: expense.isPaid ? "arrow.uturn.backward.circle" : "checkmark.circle.fill")
-                            .font(.system(size: 15))
-                        Text(expense.isPaid ? "Marcar como pendente" : "Marcar como pago")
-                            .font(.inter(14, weight: .semibold))
-                    }
-                    .foregroundColor(expense.isPaid ? JuntoColors.textMain : .white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 46)
-                    .background(expense.isPaid ? JuntoColors.surfaceSubtle : JuntoColors.pixGreen)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                }
-                .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.97))
-            }
 
             Spacer()
         }

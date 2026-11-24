@@ -1213,70 +1213,53 @@ final class JuntoStore: ObservableObject {
         return raw.prefix(1).uppercased() + raw.dropFirst()
     }
 
-    /// Todos os gastos pessoais: lançamentos manuais + cotas reais dos grupos em que você participa
+    /// Todos os gastos filtrados automaticamente das dívidas e pagamentos feitos nos grupos (nada manual/pessoal)
     var allTrackedPersonalExpenses: [PersonalExpenseRecord] {
-        var result = personalExpenses
+        var result: [PersonalExpenseRecord] = []
         let myUsername = user.username.lowercased()
         let monthKey = Self.currentMonthKey()
 
         for g in groups {
-            let alreadyLoggedForGroup = result.contains {
-                $0.groupName.lowercased() == g.title.lowercased()
-            }
-            if alreadyLoggedForGroup { continue }
-
-            if let me = g.participants.first(where: { $0.username.lowercased() == myUsername }) {
-                if g.potMode == .monthly && !g.monthlyCycles.isEmpty {
-                    let paidMonthsCount = g.monthlyCycles.filter {
-                        $0.paidUsernames.contains(myUsername) || $0.markedPaidUsernames.contains(myUsername)
-                    }.count
-                    let pendingMonthsCount = max(0, g.monthlyCycles.count - paidMonthsCount)
-                    if paidMonthsCount > 0 && me.quotaAmount > 0 {
+            if let me = g.participants.first(where: { $0.username.lowercased() == myUsername || $0.name == "Você" }) {
+                if g.potMode == .monthly && !g.monthlyCycles.isEmpty && me.quotaAmount > 0 {
+                    for cycle in g.monthlyCycles {
+                        let isCyclePaid = cycle.paidUsernames.contains(myUsername) || cycle.markedPaidUsernames.contains(myUsername)
                         result.append(
                             PersonalExpenseRecord(
-                                title: "Cotas pagas (\(paidMonthsCount)/\(g.monthlyCycles.count) mês)",
+                                title: cycle.label,
                                 category: g.category,
-                                amount: me.quotaAmount * Double(paidMonthsCount),
-                                dateText: "Grupo mensal",
+                                amount: me.quotaAmount,
+                                dateText: isCyclePaid ? "Parcela paga" : "Parcela em aberto",
                                 monthKey: monthKey,
                                 groupName: g.title,
-                                isPaid: true
-                            )
-                        )
-                    }
-                    if pendingMonthsCount > 0 && me.quotaAmount > 0 {
-                        result.append(
-                            PersonalExpenseRecord(
-                                title: "Cotas restantes (\(pendingMonthsCount) mês)",
-                                category: g.category,
-                                amount: me.quotaAmount * Double(pendingMonthsCount),
-                                dateText: "Grupo mensal",
-                                monthKey: monthKey,
-                                groupName: g.title,
-                                isPaid: false
+                                isPaid: isCyclePaid
                             )
                         )
                     }
                 } else if me.quotaAmount > 0 {
+                    let paid = me.hasPaid || me.markedPaidByMember
                     result.append(
                         PersonalExpenseRecord(
-                            title: "Cota do grupo",
+                            title: paid ? "Cota paga" : "Cota em aberto",
                             category: g.category,
                             amount: me.quotaAmount,
-                            dateText: "Pote coletivo",
+                            dateText: "Pote do grupo",
                             monthKey: monthKey,
                             groupName: g.title,
-                            isPaid: me.hasPaid || me.markedPaidByMember
+                            isPaid: paid
                         )
                     )
                 }
-            } else if g.myShare > 0 {
+            }
+
+            // Dívida de comanda / rateio ainda aberta no grupo
+            if g.myShare > 0 {
                 result.append(
                     PersonalExpenseRecord(
-                        title: "Sua parte no grupo",
+                        title: "Rateio em aberto",
                         category: g.category,
                         amount: g.myShare,
-                        dateText: "Rateio",
+                        dateText: "Comanda do grupo",
                         monthKey: monthKey,
                         groupName: g.title,
                         isPaid: false
@@ -1284,6 +1267,27 @@ final class JuntoStore: ObservableObject {
                 )
             }
         }
+
+        // Pagamentos de despesas de comanda já quitados em grupos (sem lançamentos pessoais avulsos)
+        for exp in personalExpenses where exp.isPaid && exp.groupName.lowercased() != "pessoal" && exp.title == "Pagamento no grupo" {
+            result.append(exp)
+        }
+
+        // Dívidas em aberto com amigos
+        for friend in friends where friend.balance < 0 {
+            result.append(
+                PersonalExpenseRecord(
+                    title: "Dívida com \(friend.name)",
+                    category: "Dívidas",
+                    amount: abs(friend.balance),
+                    dateText: "@\(friend.username)",
+                    monthKey: monthKey,
+                    groupName: "Acerto entre amigos",
+                    isPaid: false
+                )
+            )
+        }
+
         return result
     }
 

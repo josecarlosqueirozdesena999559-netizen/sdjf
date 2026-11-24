@@ -3,42 +3,19 @@ import SwiftUI
 struct ActivitiesView: View {
     @EnvironmentObject var store: JuntoStore
     @State private var searchText = ""
-    @State private var selectedFilter: ActivityFilter = .all
     @State private var selectedActivity: ActivityEvent? = nil
 
-    enum ActivityFilter: String, CaseIterable {
-        case all = "Todos"
-        case paid = "Pagos"
-        case pending = "Pendentes"
-    }
-
     private var filteredActivities: [ActivityEvent] {
-        store.activities.filter { item in
-            let matchesSearch: Bool
-            if searchText.isEmpty {
-                matchesSearch = true
-            } else {
-                matchesSearch = item.title.localizedCaseInsensitiveContains(searchText) ||
-                    item.subtitle.localizedCaseInsensitiveContains(searchText)
-            }
-
-            let matchesFilter: Bool
-            switch selectedFilter {
-            case .all:
-                matchesFilter = true
-            case .paid:
-                matchesFilter = item.isPositive
-            case .pending:
-                matchesFilter = !item.isPositive
-            }
-
-            return matchesSearch && matchesFilter
+        if searchText.isEmpty { return store.activities }
+        return store.activities.filter {
+            $0.title.localizedCaseInsensitiveContains(searchText) ||
+            $0.subtitle.localizedCaseInsensitiveContains(searchText)
         }
     }
 
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
-            // Topo: Título "Lançamentos" + Botão "+" para novo lançamento
+            // Topo limpo: "Lançamentos" + botão "Meus gastos" ao lado (sem botão de adicionar e sem filtros)
             HStack(spacing: 10) {
                 Text("Lançamentos")
                     .font(.inter(24, weight: .medium))
@@ -48,117 +25,31 @@ struct ActivitiesView: View {
 
                 Button {
                     UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                    store.showAddExpenseSheet = true
+                    store.showMyExpensesScreen = true
                 } label: {
-                    Image(systemName: "plus")
-                        .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(.white)
-                        .frame(width: 40, height: 40)
-                        .background(JuntoColors.primary)
-                        .clipShape(Circle())
+                    HStack(spacing: 6) {
+                        Image(systemName: "chart.pie.fill")
+                            .font(.system(size: 13, weight: .medium))
+                        Text("Meus gastos")
+                            .font(.inter(13, weight: .semibold))
+                    }
+                    .foregroundColor(JuntoColors.primary)
+                    .padding(.horizontal, 13)
+                    .frame(height: 36)
+                    .background(JuntoColors.primary.opacity(0.10))
+                    .clipShape(Capsule())
                 }
-                .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.92))
+                .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.94))
             }
             .padding(.horizontal, 20)
             .padding(.top, 12)
             .padding(.bottom, 12)
 
-            // Botão / Card em destaque para ver Gastos Pessoais detalhados (gráficos, categorias, quanto já pagou)
-            Button {
-                UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                store.showMyExpensesScreen = true
-            } label: {
-                HStack(spacing: 14) {
-                    ZStack {
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .fill(JuntoColors.primary.opacity(0.10))
-                            .frame(width: 46, height: 46)
-                        Image(systemName: "chart.pie.fill")
-                            .font(.system(size: 20, weight: .regular))
-                            .foregroundColor(JuntoColors.primary)
-                    }
-
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Meus gastos pessoais")
-                            .font(.inter(15, weight: .semibold))
-                            .foregroundColor(JuntoColors.textMain)
-
-                        Text("Gráficos, viagens, churrasco e quanto já pagou")
-                            .font(.inter(12, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
-                            .lineLimit(1)
-
-                        HStack(spacing: 10) {
-                            HStack(spacing: 4) {
-                                Circle()
-                                    .fill(JuntoColors.pixGreen)
-                                    .frame(width: 6, height: 6)
-                                Text("Pago: \(JuntoStore.formatBRL(store.totalPersonalPaidAmount))")
-                                    .font(.inter(11, weight: .medium))
-                                    .foregroundColor(JuntoColors.pixGreen)
-                            }
-
-                            if store.totalPersonalPendingAmount > 0 {
-                                HStack(spacing: 4) {
-                                    Circle()
-                                        .fill(JuntoColors.orangeSave)
-                                        .frame(width: 6, height: 6)
-                                    Text("Falta: \(JuntoStore.formatBRL(store.totalPersonalPendingAmount))")
-                                        .font(.inter(11, weight: .medium))
-                                        .foregroundColor(JuntoColors.orangeSave)
-                                }
-                            }
-                        }
-                        .padding(.top, 2)
-                    }
-
-                    Spacer(minLength: 4)
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 13, weight: .semibold))
-                        .foregroundColor(JuntoColors.textLight)
-                }
-                .padding(.horizontal, 14)
-                .padding(.vertical, 13)
-                .background(Color.white)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 14, style: .continuous)
-                        .stroke(JuntoColors.border, lineWidth: 1)
-                )
-                .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
-            }
-            .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.98))
-            .padding(.horizontal, 20)
-            .padding(.bottom, 12)
-
-            // Barra de pesquisa limpa (sem animação de digitação)
+            // Barra de pesquisa limpa (sem animação)
             AnimatedSearchBar(
                 text: $searchText,
                 placeholders: ["Pesquisar lançamentos"]
             )
-            .padding(.horizontal, 20)
-            .padding(.bottom, 10)
-
-            // Filtros rápidos
-            HStack(spacing: 8) {
-                ForEach(ActivityFilter.allCases, id: \.self) { filter in
-                    let active = selectedFilter == filter
-                    Button {
-                        withAnimation(.easeInOut(duration: 0.16)) {
-                            selectedFilter = filter
-                        }
-                    } label: {
-                        Text(filter.rawValue)
-                            .font(.inter(13, weight: active ? .medium : .regular))
-                            .foregroundColor(active ? .white : JuntoColors.textMuted)
-                            .padding(.horizontal, 14)
-                            .padding(.vertical, 7)
-                            .background(active ? JuntoColors.primary : JuntoColors.surfaceSubtle)
-                            .clipShape(Capsule())
-                    }
-                }
-                Spacer()
-            }
             .padding(.horizontal, 20)
             .padding(.bottom, 12)
 
@@ -176,28 +67,11 @@ struct ActivitiesView: View {
                         .foregroundColor(JuntoColors.textMain)
 
                     if searchText.isEmpty {
-                        Text("Seus pagamentos, despesas e movimentações aparecem aqui.")
+                        Text("Os pagamentos e movimentações dos seus grupos aparecem aqui automaticamente.")
                             .font(.inter(13, weight: .regular))
                             .foregroundColor(JuntoColors.textMuted)
                             .multilineTextAlignment(.center)
                             .padding(.horizontal, 36)
-
-                        Button {
-                            store.showAddExpenseSheet = true
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 13, weight: .semibold))
-                                Text("Adicionar lançamento")
-                                    .font(.inter(14, weight: .medium))
-                            }
-                            .foregroundColor(.white)
-                            .padding(.horizontal, 18)
-                            .padding(.vertical, 10)
-                            .background(JuntoColors.primary)
-                            .clipShape(Capsule())
-                        }
-                        .padding(.top, 4)
                     }
                 }
                 .frame(maxWidth: .infinity)
@@ -226,14 +100,14 @@ struct ActivitiesView: View {
             ActivityDetailSheet(
                 activity: item,
                 accentColor: iconAccentColor(for: item.icon),
-                onOpenPersonalAnalytics: {
+                onOpenExpensesAnalytics: {
                     selectedActivity = nil
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
                         store.showMyExpensesScreen = true
                     }
                 }
             )
-            .presentationDetents([.height(360), .medium])
+            .presentationDetents([.height(350), .medium])
             .presentationDragIndicator(.visible)
             .presentationCornerRadius(24)
         }
@@ -275,7 +149,7 @@ struct ActivitiesView: View {
                             .lineLimit(1)
                             .minimumScaleFactor(0.85)
 
-                        Text(item.isPositive ? "Confirmado" : "Lançado")
+                        Text(item.isPositive ? "Confirmado" : "Registrado")
                             .font(.inter(10, weight: .regular))
                             .foregroundColor(item.isPositive ? JuntoColors.pixGreen : JuntoColors.textLight)
                     }
@@ -309,7 +183,7 @@ struct ActivitiesView: View {
 private struct ActivityDetailSheet: View {
     let activity: ActivityEvent
     let accentColor: Color
-    var onOpenPersonalAnalytics: () -> Void
+    var onOpenExpensesAnalytics: () -> Void
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -349,7 +223,7 @@ private struct ActivityDetailSheet: View {
             VStack(spacing: 0) {
                 detailLine(label: "Descrição", value: activity.title)
                 Divider().padding(.leading, 14)
-                detailLine(label: "Origem / Grupo", value: activity.subtitle)
+                detailLine(label: "Grupo / Origem", value: activity.subtitle)
                 Divider().padding(.leading, 14)
                 detailLine(label: "Status", value: activity.isPositive ? "Pago / Confirmado" : "Registrado")
                 if let amt = activity.amountText {
@@ -370,11 +244,11 @@ private struct ActivityDetailSheet: View {
             .background(JuntoColors.surfaceSubtle.opacity(0.6))
             .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-            Button(action: onOpenPersonalAnalytics) {
+            Button(action: onOpenExpensesAnalytics) {
                 HStack(spacing: 8) {
                     Image(systemName: "chart.pie.fill")
                         .font(.system(size: 14))
-                    Text("Ver análise completa de gastos pessoais")
+                    Text("Ver resumo em Meus gastos")
                         .font(.inter(14, weight: .medium))
                 }
                 .foregroundColor(.white)
