@@ -1845,6 +1845,62 @@ final class JuntoStore: ObservableObject {
         allTrackedPersonalExpenses.filter { $0.isPaid }.reduce(0) { $0 + $1.amount }
     }
 
+    /// Retorna quanto o usuário logado ainda deve neste grupo (0 se já quitou)
+    func myPendingAmount(in group: RoleGroup) -> Double {
+        let cleanMe = user.username.lowercased()
+        if let me = group.participants.first(where: { $0.username.lowercased() == cleanMe || $0.name == "Você" }) {
+            if group.potMode == .monthly, group.monthlyCycles.indices.contains(group.selectedMonthIndex) {
+                let paid = group.monthlyCycles[group.selectedMonthIndex].paidUsernames.contains(me.username.lowercased())
+                if !paid && me.quotaAmount > 0 {
+                    return me.quotaAmount
+                }
+            } else if !me.hasPaid && me.quotaAmount > 0 {
+                return me.quotaAmount
+            }
+        }
+        if group.myShare > 0 {
+            return group.myShare
+        }
+        let comandaPending = userShareForComanda(in: group, username: user.username)
+        return comandaPending > 0 ? comandaPending : 0
+    }
+
+    /// Calcula o saldo efetivo entre você e um contato (incluindo pendências em grupos compartilhados) + grupo relacionado e chave Pix
+    func sharedDebtContext(with friend: FriendItem) -> (netBalance: Double, relatedGroupId: UUID?, pixKey: String) {
+        var net = friend.balance
+        var linkedGroupId: UUID? = nil
+        var targetPixKey: String = ""
+        let friendHandle = friend.username.lowercased()
+        let myHandle = user.username.lowercased()
+
+        for g in groups {
+            let ownerHandle = g.ownerUsername.lowercased()
+            let isFriendOwner = ownerHandle == friendHandle || g.participants.contains(where: { $0.role == .owner && $0.username.lowercased() == friendHandle })
+            let amIOwner = isCurrentUserOwner(in: g)
+
+            if isFriendOwner && !amIOwner {
+                let myDebt = myPendingAmount(in: g)
+                if myDebt > 0 {
+                    net -= myDebt
+                    if linkedGroupId == nil { linkedGroupId = g.id }
+                    let org = organizerPixInfo(for: g)
+                    if !org.pixKey.isEmpty { targetPixKey = org.pixKey }
+                }
+            } else if amIOwner && friendHandle != myHandle {
+                if let fp = g.participants.first(where: { $0.username.lowercased() == friendHandle && !$0.hasPaid && $0.quotaAmount > 0 }) {
+                    net += fp.quotaAmount
+                    if linkedGroupId == nil { linkedGroupId = g.id }
+                    if targetPixKey.isEmpty { targetPixKey = user.pixKey }
+                }
+            }
+        }
+
+        if targetPixKey.isEmpty {
+            targetPixKey = net < 0 ? "\(friendHandle)@pix.com.br" : user.pixKey
+        }
+        return (net, linkedGroupId, targetPixKey)
+    }
+
     var totalPersonalPendingAmount: Double {
         allTrackedPersonalExpenses.filter { !$0.isPaid }.reduce(0) { $0 + $1.amount }
     }
@@ -2520,7 +2576,9 @@ final class JuntoStore: ObservableObject {
 
         let totalPeopleCount = 1 + invitedPeople.count
         let monthsCount = potMode == .monthly ? max(1, totalMonths) : 1
-        let quotaPerPerson = potTarget > 0 ? ((potTarget / Double(monthsCount)) / Double(totalPeopleCount)) : 0
+        let itemsTotal = comandaItems.reduce(0) { $0 + $1.price }
+        let effectiveTarget = potTarget > 0 ? potTarget : itemsTotal
+        let quotaPerPerson = effectiveTarget > 0 ? ((effectiveTarget / Double(monthsCount)) / Double(totalPeopleCount)) : 0
 
         var participantsList: [GroupParticipant] = [
             GroupParticipant(name: "Você", username: user.username, quotaAmount: quotaPerPerson, hasPaid: false, role: .owner, proPlanType: user.proPlanType)
@@ -2561,13 +2619,16 @@ final class JuntoStore: ObservableObject {
             startDate: startDate,
             targetDate: targetDate,
             potBalance: 0,
-            potTarget: potTarget,
-            totalSpent: 0,
-            myShare: 0,
+            potTarget: effectiveTarget,
+            totalSpent: itemsTotal > 0 ? itemsTotal : effectiveTarget,
+            myShare: quotaPerPerson,
             members: memberInitials,
             participants: participantsList,
             hasCollectivePot: true,
             comandaItems: comandaItems,
+            ownerUsername: user.username,
+            ownerName: user.fullName,
+            ownerPixKey: user.pixKey,
             potMode: potMode,
             totalMonths: monthsCount,
             selectedMonthIndex: 0,
@@ -2613,7 +2674,7 @@ final class JuntoStore: ObservableObject {
                 title: cleanTitle,
                 category: category,
                 coverImage: cover,
-                potTarget: potTarget,
+                potTarget: effectiveTarget,
                 potMode: modeString,
                 totalMonths: monthsCount,
                 monthlyCycles: cyclesPayload,

@@ -334,6 +334,122 @@ extension View {
     }
 }
 
+// MARK: - Sheet Limpo e Bem Explicado de Exclusão / Saída de Grupo (100% Flat Branco)
+struct CleanConfirmDeleteSheet: View {
+    let title: String
+    let itemName: String
+    let isOwner: Bool
+    let confirmButtonTitle: String
+    let onConfirm: () -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                PopupCloseButton { dismiss() }
+                Spacer()
+                Text(title)
+                    .font(.inter(16, weight: .semibold))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                Color.clear.frame(width: 36, height: 36)
+            }
+            .padding(.top, 14)
+
+            VStack(alignment: .leading, spacing: 4) {
+                Text(itemName)
+                    .font(.inter(19, weight: .bold))
+                    .foregroundColor(JuntoColors.textMain)
+                    .lineLimit(2)
+                Text(isOwner
+                     ? "Confira o que acontece antes de excluir este grupo:"
+                     : "Confira o que acontece ao sair deste grupo:")
+                    .font(.inter(13, weight: .regular))
+                    .foregroundColor(JuntoColors.textMuted)
+            }
+
+            Divider().opacity(0.6)
+
+            VStack(alignment: .leading, spacing: 14) {
+                infoRow(
+                    icon: "bubble.left.and.exclamationmark.bubble.right",
+                    heading: isOwner ? "Grupo e mensagens encerrados" : "Você sai da conversa do grupo",
+                    detail: isOwner
+                        ? "O grupo deixará de aparecer na sua lista ativa de grupos e conversas."
+                        : "Você deixará de receber novas mensagens e cobranças deste grupo."
+                )
+
+                infoRow(
+                    icon: "checkmark.shield",
+                    heading: "Histórico financeiro preservado",
+                    detail: "Todos os pagamentos já confirmados continuam salvos com data e valor em Lançamentos e Meus Gastos."
+                )
+
+                infoRow(
+                    icon: "arrow.uturn.backward.circle",
+                    heading: "Ação definitiva",
+                    detail: isOwner
+                        ? "Esta exclusão não pode ser desfeita depois de confirmada."
+                        : "Para entrar novamente depois, será necessário um novo convite."
+                )
+            }
+
+            Spacer(minLength: 4)
+
+            HStack(spacing: 10) {
+                Button {
+                    dismiss()
+                } label: {
+                    Text("Cancelar")
+                        .font(.inter(14, weight: .semibold))
+                        .foregroundColor(JuntoColors.textMain)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(JuntoColors.surfaceSubtle)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+
+                Button {
+                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+                    dismiss()
+                    onConfirm()
+                } label: {
+                    Text(confirmButtonTitle)
+                        .font(.inter(14, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(JuntoColors.danger)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                }
+            }
+            .padding(.bottom, 16)
+        }
+        .padding(.horizontal, 20)
+        .background(Color.white.ignoresSafeArea())
+        .presentationBackground(Color.white)
+    }
+
+    private func infoRow(icon: String, heading: String, detail: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 16, weight: .regular))
+                .foregroundColor(JuntoColors.primary)
+                .frame(width: 24, height: 22)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(heading)
+                    .font(.inter(14, weight: .semibold))
+                    .foregroundColor(JuntoColors.textMain)
+                Text(detail)
+                    .font(.inter(12.5, weight: .regular))
+                    .foregroundColor(JuntoColors.textMuted)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+    }
+}
+
 // MARK: - Avatar Oficial do Contato "Juntou" (Logo Oficial do App)
 struct JuntoOfficialAvatarView: View {
     var size: CGFloat = 34

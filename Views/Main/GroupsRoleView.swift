@@ -980,6 +980,7 @@ struct GroupDetailSheet: View {
     @State private var showMembersSheet = false
     @State private var showGroupSettings = false
     @State private var showDeleteGroupConfirm = false
+    @State private var showExpensesQuickSheet = false
 
     struct GroupPaymentRequest: Identifiable {
         let id = UUID()
@@ -1049,28 +1050,42 @@ struct GroupDetailSheet: View {
                     }
                     .padding(.vertical, 4)
 
-                    // Pix rápido fixado (flat limpo: ícone oficial BC + valor + chave + copiar)
+                    // Pix rápido fixado (toque abre os itens de despesa do grupo + botão copiar permanece ao lado!)
                     if group.pixQuickPinEnabled {
                         let organizer = store.organizerPixInfo(for: group)
                         let quotaVal = group.dynamicQuotaPerPerson
                         VStack(spacing: 0) {
                             Divider().opacity(0.55)
                             HStack(spacing: 12) {
-                                PixOfficialIcon(size: 18, color: Color(hex: "#32BCAD"))
+                                Button {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    showExpensesQuickSheet = true
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        PixOfficialIcon(size: 18, color: Color(hex: "#32BCAD"))
 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(quotaVal > 0 ? "\(JuntoStore.formatBRL(quotaVal)) por pessoa" : "Pix do organizador")
-                                        .font(.inter(13, weight: .semibold))
-                                        .foregroundColor(JuntoColors.textMain)
-                                        .lineLimit(1)
-                                    Text(organizer.pixKey.isEmpty ? "Chave Pix não cadastrada" : organizer.pixKey)
-                                        .font(.inter(12, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMuted)
-                                        .lineLimit(1)
-                                        .truncationMode(.middle)
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            HStack(spacing: 5) {
+                                                Text(quotaVal > 0 ? "\(JuntoStore.formatBRL(quotaVal)) por pessoa" : "Pix do organizador")
+                                                    .font(.inter(13, weight: .semibold))
+                                                    .foregroundColor(JuntoColors.textMain)
+                                                    .lineLimit(1)
+                                                Text("· ver itens")
+                                                    .font(.inter(11, weight: .medium))
+                                                    .foregroundColor(JuntoColors.primary)
+                                            }
+                                            Text(organizer.pixKey.isEmpty ? "Chave Pix não cadastrada" : organizer.pixKey)
+                                                .font(.inter(12, weight: .regular))
+                                                .foregroundColor(JuntoColors.textMuted)
+                                                .lineLimit(1)
+                                                .truncationMode(.middle)
+                                        }
+
+                                        Spacer(minLength: 4)
+                                    }
+                                    .contentShape(Rectangle())
                                 }
-
-                                Spacer(minLength: 8)
+                                .buttonStyle(.plain)
 
                                 if !organizer.pixKey.isEmpty {
                                     Button {
@@ -1469,106 +1484,55 @@ struct GroupDetailSheet: View {
                                 .foregroundColor(JuntoColors.textMuted)
                                 .padding(.vertical, 8)
                         } else {
-                            // Checklist interativo de itens da comanda / recibo
+                            // Lista limpa e direta de despesas do grupo (sem "Marcar que consumi" e sem "Todos")
                             VStack(spacing: 0) {
                                 ForEach(store.groups[idx].comandaItems.indices, id: \.self) { itemIdx in
                                     let item = store.groups[idx].comandaItems[itemIdx]
-                                    let isAssignedToMe = item.assignedUsernames.contains(store.user.username.lowercased())
-                                    let shareForThisItem = item.sharePerConsumer(totalMembersCount: group.participants.count)
+                                    let sharePerPerson = item.price / Double(max(1, group.participants.count))
 
-                                    VStack(alignment: .leading, spacing: 8) {
-                                        HStack(alignment: .top, spacing: 10) {
-                                            Button {
-                                                store.groups[idx].comandaItems[itemIdx].isSelected.toggle()
-                                            } label: {
-                                                Image(systemName: item.isSelected ? "checkmark.circle.fill" : "circle")
-                                                    .font(.system(size: 20, weight: .regular))
-                                                    .foregroundColor(item.isSelected ? JuntoColors.primary : JuntoColors.textLight)
-                                            }
+                                    HStack(alignment: .center, spacing: 12) {
+                                        VStack(alignment: .leading, spacing: 3) {
+                                            Text(item.name)
+                                                .font(.inter(15, weight: .medium))
+                                                .foregroundColor(JuntoColors.textMain)
 
-                                            VStack(alignment: .leading, spacing: 3) {
-                                                Text(item.name)
-                                                    .font(.inter(15, weight: .medium))
-                                                    .foregroundColor(item.isSelected ? JuntoColors.textMain : JuntoColors.textMuted)
-
-                                                HStack(spacing: 6) {
-                                                    Text("\(item.quantity) un • \(JuntoStore.formatBRL(item.price))")
-                                                        .font(.inter(12, weight: .regular))
-                                                        .foregroundColor(JuntoColors.textMuted)
-
-                                                    if item.quantity > 1 {
-                                                        Text("(\(JuntoStore.formatBRL(item.unitPrice)) cada)")
-                                                            .font(.inter(11, weight: .regular))
-                                                            .foregroundColor(JuntoColors.textLight)
-                                                    }
-                                                }
-                                            }
-
-                                            Spacer()
-
-                                            VStack(alignment: .trailing, spacing: 2) {
-                                                Text(JuntoStore.formatBRL(item.price))
-                                                    .font(.inter(15, weight: .medium))
-                                                    .foregroundColor(JuntoColors.textMain)
-                                                Text(JuntoStore.formatBRL(shareForThisItem))
-                                                    .font(.inter(11, weight: .regular))
-                                                    .foregroundColor(JuntoColors.textMuted)
-                                            }
-                                        }
-
-                                        // Linha de checklist por consumo
-                                        HStack(spacing: 8) {
-                                            Button {
-                                                store.toggleMemberAssignedToComandaItem(
-                                                    groupId: groupId,
-                                                    itemId: item.id,
-                                                    username: store.user.username
-                                                )
-                                            } label: {
-                                                HStack(spacing: 4) {
-                                                    Image(systemName: isAssignedToMe ? "checkmark.square.fill" : "square")
-                                                        .font(.system(size: 13))
-                                                    Text(isAssignedToMe ? "Eu consumi" : "Marcar que consumi")
-                                                        .font(.inter(11, weight: .medium))
-                                                }
-                                                .foregroundColor(isAssignedToMe ? JuntoColors.pixGreen : JuntoColors.textMuted)
-                                                .padding(.horizontal, 8)
-                                                .padding(.vertical, 4)
-                                                .background(isAssignedToMe ? JuntoColors.pixGreenLight : JuntoColors.surfaceSubtle)
-                                                .clipShape(Capsule())
-                                            }
-
-                                            Spacer()
-
-                                            Button {
-                                                selectedItemForConsumers = item
-                                            } label: {
-                                                HStack(spacing: 4) {
-                                                    Image(systemName: "person.2")
-                                                        .font(.system(size: 11))
-                                                    Text(item.assignedUsernames.isEmpty ? "Todos (\(group.participants.count))" : "\(item.assignedUsernames.count) pessoa(s)")
-                                                        .font(.inter(11, weight: .regular))
-                                                }
+                                            Text("\(item.quantity) × \(JuntoStore.formatBRL(item.unitPrice))")
+                                                .font(.inter(12, weight: .regular))
                                                 .foregroundColor(JuntoColors.textMuted)
-                                                .padding(.horizontal, 8)
-                                                .padding(.vertical, 4)
-                                                .background(JuntoColors.surfaceSubtle)
-                                                .clipShape(Capsule())
+                                        }
+
+                                        Spacer()
+
+                                        VStack(alignment: .trailing, spacing: 2) {
+                                            Text(JuntoStore.formatBRL(item.price))
+                                                .font(.inter(15, weight: .semibold))
+                                                .foregroundColor(JuntoColors.textMain)
+                                            Text("\(JuntoStore.formatBRL(sharePerPerson)) / pessoa")
+                                                .font(.inter(11, weight: .regular))
+                                                .foregroundColor(JuntoColors.textMuted)
+                                        }
+
+                                        if canAddExpenses {
+                                            Button {
+                                                store.groups[idx].comandaItems.remove(at: itemIdx)
+                                            } label: {
+                                                Image(systemName: "trash")
+                                                    .font(.system(size: 13))
+                                                    .foregroundColor(JuntoColors.textLight)
+                                                    .frame(width: 28, height: 28)
                                             }
                                         }
-                                        .padding(.leading, 30)
                                     }
                                     .padding(.vertical, 10)
-                                    Divider()
+                                    Divider().opacity(0.55)
                                 }
                             }
 
-                            // Resumo de cálculo da comanda com base no checklist
                             let myShare = store.userShareForComanda(in: group, username: store.user.username)
                             if myShare > 0 {
                                 HStack(alignment: .center) {
                                     VStack(alignment: .leading, spacing: 2) {
-                                        Text("Sua parte na comanda")
+                                        Text("Sua parte nas despesas")
                                             .font(.inter(12, weight: .regular))
                                             .foregroundColor(JuntoColors.textMuted)
                                         Text(JuntoStore.formatBRL(myShare))
@@ -1580,7 +1544,7 @@ struct GroupDetailSheet: View {
 
                                     JuntoPillButton(title: "Pagar \(JuntoStore.formatBRL(myShare))", color: JuntoColors.primary) {
                                         pendingPaymentSheet = GroupPaymentRequest(
-                                            title: "Comanda • \(group.title)",
+                                            title: group.title,
                                             amount: myShare,
                                             participantId: nil
                                         )
@@ -1619,17 +1583,29 @@ struct GroupDetailSheet: View {
                 GroupChatScreen(groupId: resolvedId)
                     .environmentObject(store)
             }
-            .alert("Excluir \"\(group.title)\"?", isPresented: $showDeleteGroupConfirm) {
-                Button("Cancelar", role: .cancel) {}
-                Button("Excluir grupo", role: .destructive) {
+            .sheet(isPresented: $showDeleteGroupConfirm) {
+                CleanConfirmDeleteSheet(
+                    title: "Excluir grupo",
+                    itemName: group.title,
+                    isOwner: true,
+                    confirmButtonTitle: "Excluir grupo"
+                ) {
                     let targetId = resolvedId
                     dismiss()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
                         store.deleteGroup(groupId: targetId)
                     }
                 }
-            } message: {
-                Text("O grupo será excluído, mas seu histórico de pagamentos em Meus Gastos continuará salvo.")
+                .presentationDetents([.height(395)])
+                .presentationCornerRadius(24)
+                .presentationBackground(Color.white)
+            }
+            .sheet(isPresented: $showExpensesQuickSheet) {
+                GroupExpensesQuickSheet(groupId: resolvedId)
+                    .environmentObject(store)
+                    .presentationDetents([.medium, .large])
+                    .presentationCornerRadius(24)
+                    .presentationBackground(Color.white)
             }
             .fullScreenCover(isPresented: $showAddMemberScreen) {
                 AddGroupMemberScreen(groupId: resolvedId)
@@ -2200,12 +2176,15 @@ struct GroupSettingsScreen: View {
                 .presentationCornerRadius(20)
                 .presentationBackground(Color.white)
             }
-            .alert(isOwner ? "Excluir \"\(group.title)\"?" : "Sair de \"\(group.title)\"?", isPresented: $showLeaveOrDeleteConfirm) {
-                Button("Cancelar", role: .cancel) {}
-                Button(isOwner ? "Excluir grupo" : "Sair do grupo", role: .destructive) {
+            .sheet(isPresented: $showLeaveOrDeleteConfirm) {
+                CleanConfirmDeleteSheet(
+                    title: isOwner ? "Excluir grupo" : "Sair do grupo",
+                    itemName: group.title,
+                    isOwner: isOwner,
+                    confirmButtonTitle: isOwner ? "Excluir grupo" : "Sair do grupo"
+                ) {
                     let targetId = resolvedId
                     let ownerFlag = isOwner
-                    // Fecha ambas as telas ANTES de remover o grupo do array para nunca dar crash de índice!
                     onLeaveOrDelete?()
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
                         if ownerFlag {
@@ -2215,10 +2194,9 @@ struct GroupSettingsScreen: View {
                         }
                     }
                 }
-            } message: {
-                Text(isOwner
-                     ? "O grupo será excluído, mas seu histórico de pagamentos continuará salvo em Meus Gastos."
-                     : "Você sairá deste grupo e seu histórico de pagamentos continuará salvo em Meus Gastos.")
+                .presentationDetents([.height(395)])
+                .presentationCornerRadius(24)
+                .presentationBackground(Color.white)
             }
             .sheet(item: $selectedParticipantForAction) { participant in
                 ParticipantActionSheet(
@@ -2443,6 +2421,140 @@ struct GroupMembersSheet: View {
             }
         }
         .background(Color.white.ignoresSafeArea())
+    }
+}
+
+// MARK: - Sheet Rápido de Itens de Despesa do Grupo (aberto ao clicar na barra Pix do grupo)
+struct GroupExpensesQuickSheet: View {
+    @EnvironmentObject var store: JuntoStore
+    let groupId: UUID
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        if let idx = store.resolvedGroupIndex(for: groupId) {
+            let group = store.groups[idx]
+            let organizer = store.organizerPixInfo(for: group)
+            let count = max(1, group.participants.count)
+            let quotaVal = group.dynamicQuotaPerPerson
+
+            VStack(alignment: .leading, spacing: 0) {
+                HStack {
+                    PopupCloseButton { dismiss() }
+                    Spacer()
+                    Text("Despesas · \(group.title)")
+                        .font(.inter(16, weight: .semibold))
+                        .foregroundColor(JuntoColors.textMain)
+                        .lineLimit(1)
+                    Spacer()
+                    Color.clear.frame(width: 36, height: 36)
+                }
+                .padding(.horizontal, 20)
+                .padding(.top, 16)
+                .padding(.bottom, 12)
+
+                Divider().opacity(0.6)
+
+                // Resumo Pix + copiar chave
+                HStack(spacing: 12) {
+                    PixOfficialIcon(size: 20, color: Color(hex: "#32BCAD"))
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text(quotaVal > 0 ? "\(JuntoStore.formatBRL(quotaVal)) por pessoa" : "Total: \(JuntoStore.formatBRL(group.totalSpent))")
+                            .font(.inter(14, weight: .bold))
+                            .foregroundColor(JuntoColors.textMain)
+                        Text(organizer.pixKey.isEmpty ? "Chave Pix não cadastrada" : organizer.pixKey)
+                            .font(.inter(12, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
+                    }
+                    Spacer()
+                    if !organizer.pixKey.isEmpty {
+                        Button {
+                            UIPasteboard.general.string = organizer.pixKey
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            store.showToast("Chave Pix copiada!", icon: "doc.on.doc")
+                        } label: {
+                            HStack(spacing: 5) {
+                                Image(systemName: "doc.on.doc")
+                                    .font(.system(size: 12, weight: .semibold))
+                                Text("Copiar")
+                                    .font(.inter(12, weight: .semibold))
+                            }
+                            .foregroundColor(JuntoColors.primary)
+                            .padding(.horizontal, 12)
+                            .frame(height: 32)
+                            .background(JuntoColors.surfaceSubtle)
+                            .clipShape(Capsule())
+                        }
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 14)
+
+                Divider().opacity(0.6)
+
+                if group.comandaItems.isEmpty {
+                    VStack(spacing: 10) {
+                        Spacer()
+                        Image(systemName: "list.bullet.rectangle")
+                            .font(.system(size: 28, weight: .light))
+                            .foregroundColor(JuntoColors.textLight)
+                        Text("Nenhum item detalhado")
+                            .font(.inter(15, weight: .semibold))
+                            .foregroundColor(JuntoColors.textMain)
+                        if group.potTarget > 0 {
+                            Text("Meta total de \(JuntoStore.formatBRL(group.potTarget)) dividida entre \(count) participantes (\(JuntoStore.formatBRL(quotaVal)) para cada).")
+                                .font(.inter(13, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                        } else {
+                            Text("As despesas adicionadas no grupo aparecerão listadas aqui.")
+                                .font(.inter(13, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                                .multilineTextAlignment(.center)
+                                .padding(.horizontal, 32)
+                        }
+                        Spacer()
+                    }
+                    .frame(maxWidth: .infinity)
+                } else {
+                    ScrollView(showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            ForEach(group.comandaItems) { item in
+                                let perPerson = item.price / Double(count)
+                                HStack(spacing: 12) {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(item.name)
+                                            .font(.inter(15, weight: .medium))
+                                            .foregroundColor(JuntoColors.textMain)
+                                        Text("\(item.quantity) × \(JuntoStore.formatBRL(item.unitPrice))")
+                                            .font(.inter(12, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                    }
+                                    Spacer()
+                                    VStack(alignment: .trailing, spacing: 2) {
+                                        Text(JuntoStore.formatBRL(item.price))
+                                            .font(.inter(15, weight: .semibold))
+                                            .foregroundColor(JuntoColors.textMain)
+                                        Text("\(JuntoStore.formatBRL(perPerson)) / pessoa")
+                                            .font(.inter(11, weight: .regular))
+                                            .foregroundColor(JuntoColors.textMuted)
+                                    }
+                                }
+                                .padding(.horizontal, 20)
+                                .padding(.vertical, 12)
+                                Divider().padding(.leading, 20).opacity(0.55)
+                            }
+                        }
+                        .padding(.bottom, 24)
+                    }
+                }
+            }
+            .background(Color.white.ignoresSafeArea())
+        } else {
+            Color.white.ignoresSafeArea().onAppear { dismiss() }
+        }
     }
 }
 

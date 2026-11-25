@@ -244,21 +244,16 @@ struct ReceiptScannerModal: View {
         }
     }
 
-    // MARK: - Estado 1: Opções de Captura Inicial
+    // MARK: - Estado 1: Opções de Captura Inicial (Ilustração flat oficial + sem botão manual)
     private var initialCaptureView: some View {
-        VStack(spacing: 24) {
+        VStack(spacing: 22) {
             Spacer()
 
-            VStack(spacing: 12) {
-                ZStack {
-                    Circle()
-                        .fill(JuntoColors.surfaceSubtle)
-                        .frame(width: 86, height: 86)
-
-                    Image(systemName: "doc.viewfinder")
-                        .font(.system(size: 38, weight: .light))
-                        .foregroundColor(JuntoColors.primary)
-                }
+            VStack(spacing: 10) {
+                Image("ReceiptScanHero")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(height: 215)
 
                 Text("Escanear recibo ou comanda")
                     .font(.inter(20, weight: .semibold))
@@ -305,16 +300,6 @@ struct ReceiptScannerModal: View {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .stroke(JuntoColors.primary, lineWidth: 1.2)
                     )
-                }
-
-                Button {
-                    hasScanned = true
-                    showAddItemSheet = true
-                } label: {
-                    Text("Adicionar itens manualmente")
-                        .font(.inter(13, weight: .medium))
-                        .foregroundColor(JuntoColors.textMuted)
-                        .padding(.top, 4)
                 }
             }
             .padding(.horizontal, 24)
@@ -377,15 +362,16 @@ struct ReceiptScannerModal: View {
             Divider().opacity(0.6)
 
             if items.isEmpty {
-                VStack(spacing: 12) {
+                VStack(spacing: 10) {
                     Spacer()
-                    Image(systemName: "doc.text.magnifyingglass")
-                        .font(.system(size: 34, weight: .light))
-                        .foregroundColor(JuntoColors.textLight)
+                    Image("ReceiptScanHero")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(height: 165)
                     Text("Nenhum valor legível encontrado")
                         .font(.inter(16, weight: .semibold))
                         .foregroundColor(JuntoColors.textMain)
-                    Text("Tente uma foto mais próxima e bem iluminada do recibo, ou toque em + para adicionar os itens.")
+                    Text("Tente uma foto mais próxima e bem iluminada do recibo.")
                         .font(.inter(13, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                         .multilineTextAlignment(.center)

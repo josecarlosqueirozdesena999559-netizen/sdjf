@@ -1,6 +1,48 @@
 import SwiftUI
 import UIKit
 
+/// Fecha o teclado automaticamente ao tocar fora dos campos em qualquer tela, sem bloquear botões ou gestos.
+final class GlobalKeyboardDismissInstaller: NSObject, UIGestureRecognizerDelegate {
+    static let shared = GlobalKeyboardDismissInstaller()
+    private weak var installedWindow: UIWindow?
+
+    func installIfNeeded() {
+        guard let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
+                ?? UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first,
+              let window = scene.windows.first(where: { $0.isKeyWindow }) ?? scene.windows.first else {
+            return
+        }
+        guard installedWindow !== window else { return }
+        installedWindow = window
+
+        let tap = UITapGestureRecognizer(target: self, action: #selector(handleBackgroundTap))
+        tap.cancelsTouchesInView = false
+        tap.delaysTouchesBegan = false
+        tap.delaysTouchesEnded = false
+        tap.delegate = self
+        window.addGestureRecognizer(tap)
+    }
+
+    @objc private func handleBackgroundTap() {
+        installedWindow?.endEditing(true)
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        var view = touch.view
+        while let current = view {
+            if current is UITextField || current is UITextView || current is UIControl {
+                return false
+            }
+            view = current.superview
+        }
+        return true
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer) -> Bool {
+        return true
+    }
+}
+
 final class JuntoAppDelegate: NSObject, UIApplicationDelegate {
     func application(
         _ application: UIApplication,
@@ -33,6 +75,11 @@ struct JuntoApp: App {
             JuntoRootView()
                 .environmentObject(store)
                 .preferredColorScheme(.light)
+                .onAppear {
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                        GlobalKeyboardDismissInstaller.shared.installIfNeeded()
+                    }
+                }
         }
     }
 }

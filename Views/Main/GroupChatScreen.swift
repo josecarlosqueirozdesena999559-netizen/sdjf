@@ -23,6 +23,7 @@ struct GroupChatScreen: View {
     @State private var showCreatePollSheet = false
     @State private var showMembersSheet = false
     @State private var showAnnualProSheet = false
+    @State private var showExpensesQuickSheet = false
     @State private var recMicPulse = false
 
     // Desfazer exclusão com cronômetro de 5 segundos estilo WhatsApp
@@ -126,26 +127,40 @@ struct GroupChatScreen: View {
             .background(Color.white)
             .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.8), alignment: .bottom)
 
-            // Pix rápido fixado (flat minimalista e alinhado: ícone oficial BC + valor + chave + copiar)
+            // Pix rápido fixado (toque abre itens de despesa do grupo + botão copiar permanece ao lado!)
             if let g = group, g.pixQuickPinEnabled {
                 let organizer = store.organizerPixInfo(for: g)
                 let quotaVal = g.dynamicQuotaPerPerson
                 HStack(spacing: 10) {
-                    PixOfficialIcon(size: 16, color: Color(hex: "#32BCAD"))
+                    Button {
+                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                        showExpensesQuickSheet = true
+                    } label: {
+                        HStack(spacing: 10) {
+                            PixOfficialIcon(size: 16, color: Color(hex: "#32BCAD"))
 
-                    VStack(alignment: .leading, spacing: 1) {
-                        Text(quotaVal > 0 ? "\(JuntoStore.formatBRL(quotaVal)) por pessoa" : "Pix do grupo")
-                            .font(.inter(12, weight: .semibold))
-                            .foregroundColor(JuntoColors.textMain)
-                            .lineLimit(1)
-                        Text(organizer.pixKey.isEmpty ? "Chave Pix não cadastrada" : organizer.pixKey)
-                            .font(.inter(11, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
-                            .lineLimit(1)
-                            .truncationMode(.middle)
+                            VStack(alignment: .leading, spacing: 1) {
+                                HStack(spacing: 4) {
+                                    Text(quotaVal > 0 ? "\(JuntoStore.formatBRL(quotaVal)) por pessoa" : "Pix do grupo")
+                                        .font(.inter(12, weight: .semibold))
+                                        .foregroundColor(JuntoColors.textMain)
+                                        .lineLimit(1)
+                                    Text("· ver itens")
+                                        .font(.inter(11, weight: .medium))
+                                        .foregroundColor(JuntoColors.primary)
+                                }
+                                Text(organizer.pixKey.isEmpty ? "Chave Pix não cadastrada" : organizer.pixKey)
+                                    .font(.inter(11, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                                    .lineLimit(1)
+                                    .truncationMode(.middle)
+                            }
+
+                            Spacer(minLength: 4)
+                        }
+                        .contentShape(Rectangle())
                     }
-
-                    Spacer(minLength: 8)
+                    .buttonStyle(.plain)
 
                     if !organizer.pixKey.isEmpty {
                         Button {
@@ -600,6 +615,13 @@ struct GroupChatScreen: View {
         .fullScreenCover(isPresented: $showAnnualProSheet) {
             JuntoProSubscriptionScreen(initialPeriod: .yearly)
                 .environmentObject(store)
+        }
+        .sheet(isPresented: $showExpensesQuickSheet) {
+            GroupExpensesQuickSheet(groupId: groupId)
+                .environmentObject(store)
+                .presentationDetents([.medium, .large])
+                .presentationCornerRadius(24)
+                .presentationBackground(Color.white)
         }
     }
 

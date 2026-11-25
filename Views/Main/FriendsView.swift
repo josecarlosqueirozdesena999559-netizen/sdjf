@@ -214,21 +214,17 @@ struct FriendsView: View {
                     .environmentObject(store)
             }
         }
-        .alert(
-            groupPendingLeave.map { "Sair de \"\($0.title)\"?" } ?? "Sair do grupo?",
-            isPresented: Binding(
-                get: { groupPendingLeave != nil },
-                set: { if !$0 { groupPendingLeave = nil } }
-            )
-        ) {
-            Button("Cancelar", role: .cancel) {
+        .sheet(item: $groupPendingLeave) { target in
+            let isOwner = store.isCurrentUserOwner(in: target)
+            CleanConfirmDeleteSheet(
+                title: isOwner ? "Excluir grupo" : "Sair do grupo",
+                itemName: target.title,
+                isOwner: isOwner,
+                confirmButtonTitle: isOwner ? "Excluir grupo" : "Sair do grupo"
+            ) {
+                let targetId = target.id
                 groupPendingLeave = nil
-            }
-            Button("Sair", role: .destructive) {
-                if let target = groupPendingLeave {
-                    let targetId = target.id
-                    let isOwner = store.isCurrentUserOwner(in: target)
-                    groupPendingLeave = nil
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                     if isOwner {
                         store.deleteGroup(groupId: targetId)
                     } else {
@@ -236,19 +232,23 @@ struct FriendsView: View {
                     }
                 }
             }
-        } message: {
-            Text("Você sairá deste grupo e seu histórico de pagamentos em Meus Gastos continuará salvo.")
+            .presentationDetents([.height(395)])
+            .presentationCornerRadius(24)
+            .presentationBackground(Color.white)
         }
     }
 
-    // MARK: - Linha de Conversa com Amigo (Estilo WhatsApp)
+    // MARK: - Linha de Conversa com Amigo (Estilo WhatsApp + valor devido incluso dos grupos compartilhados)
     private func friendRow(_ friend: FriendItem) -> some View {
-        Button {
+        let debtCtx = store.sharedDebtContext(with: friend)
+        let netBalance = debtCtx.netBalance
+        let unread = store.unreadCount(forFriend: friend.username)
+
+        return Button {
             store.markFriendChatAsRead(username: friend.username)
             selectedChatFriend = friend
         } label: {
             HStack(spacing: 14) {
-                // Bolinha verde online SOMENTE aqui na tela inicial quando online
                 ZStack(alignment: .bottomTrailing) {
                     GeometricAvatarView(seed: friend.username, displayName: friend.name, size: 50)
                     if friend.isOnline {
@@ -276,26 +276,27 @@ struct FriendsView: View {
 
                 Spacer()
 
-                if friend.balance > 0 {
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("deve a você")
-                            .font(.inter(11, weight: .regular))
-                            .foregroundColor(JuntoColors.pixGreen)
-                        Text(JuntoStore.formatBRL(friend.balance))
-                            .font(.inter(16, weight: .bold))
-                            .foregroundColor(JuntoColors.pixGreen)
+                HStack(spacing: 8) {
+                    if netBalance > 0 {
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("deve a você")
+                                .font(.inter(11, weight: .regular))
+                                .foregroundColor(JuntoColors.pixGreen)
+                            Text(JuntoStore.formatBRL(netBalance))
+                                .font(.inter(15, weight: .bold))
+                                .foregroundColor(JuntoColors.pixGreen)
+                        }
+                    } else if netBalance < 0 {
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("você deve")
+                                .font(.inter(11, weight: .regular))
+                                .foregroundColor(JuntoColors.orangeSave)
+                            Text(JuntoStore.formatBRL(abs(netBalance)))
+                                .font(.inter(15, weight: .bold))
+                                .foregroundColor(JuntoColors.orangeSave)
+                        }
                     }
-                } else if friend.balance < 0 {
-                    VStack(alignment: .trailing, spacing: 2) {
-                        Text("você deve")
-                            .font(.inter(11, weight: .regular))
-                            .foregroundColor(JuntoColors.orangeSave)
-                        Text(JuntoStore.formatBRL(abs(friend.balance)))
-                            .font(.inter(16, weight: .bold))
-                            .foregroundColor(JuntoColors.orangeSave)
-                    }
-                } else {
-                    let unread = store.unreadCount(forFriend: friend.username)
+
                     if unread > 0 {
                         Text("\(unread)")
                             .font(.inter(12, weight: .bold))
@@ -320,9 +321,11 @@ struct FriendsView: View {
         }
     }
 
-    // MARK: - Linha de Conversa de Grupo (Estilo WhatsApp com contador real de não lidas)
+    // MARK: - Linha de Conversa de Grupo (Mostra "você deve R$ ..." ao criar/participar + contador real)
     private func groupRow(_ group: RoleGroup) -> some View {
         let unread = store.unreadCount(forGroup: group.id)
+        let myDebt = store.myPendingAmount(in: group)
+
         return Button {
             store.markGroupChatAsRead(groupId: group.id)
             selectedGroupChatId = group.id
@@ -344,14 +347,27 @@ struct FriendsView: View {
 
                 Spacer()
 
-                if unread > 0 {
-                    Text("\(unread)")
-                        .font(.inter(12, weight: .bold))
-                        .foregroundColor(.white)
-                        .padding(.horizontal, 8)
-                        .frame(minWidth: 24, minHeight: 24)
-                        .background(JuntoColors.primary)
-                        .clipShape(Capsule())
+                HStack(spacing: 8) {
+                    if myDebt > 0 {
+                        VStack(alignment: .trailing, spacing: 2) {
+                            Text("você deve")
+                                .font(.inter(11, weight: .regular))
+                                .foregroundColor(JuntoColors.orangeSave)
+                            Text(JuntoStore.formatBRL(myDebt))
+                                .font(.inter(15, weight: .bold))
+                                .foregroundColor(JuntoColors.orangeSave)
+                        }
+                    }
+
+                    if unread > 0 {
+                        Text("\(unread)")
+                            .font(.inter(12, weight: .bold))
+                            .foregroundColor(.white)
+                            .padding(.horizontal, 8)
+                            .frame(minWidth: 24, minHeight: 24)
+                            .background(JuntoColors.primary)
+                            .clipShape(Capsule())
+                    }
                 }
             }
             .padding(.vertical, 6)

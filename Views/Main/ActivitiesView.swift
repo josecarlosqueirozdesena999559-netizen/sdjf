@@ -105,7 +105,7 @@ struct ActivitiesView: View {
         .sheet(item: $selectedActivity) { item in
             ActivityDetailSheet(
                 activity: item,
-                accentColor: iconAccentColor(for: item.icon),
+                holderName: store.user.fullName,
                 onOpenExpensesAnalytics: {
                     selectedActivity = nil
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
@@ -113,9 +113,9 @@ struct ActivitiesView: View {
                     }
                 }
             )
-            .presentationDetents([.height(350), .medium])
-            .presentationDragIndicator(.visible)
+            .presentationDetents([.height(500), .large])
             .presentationCornerRadius(24)
+            .presentationBackground(Color.white)
         }
     }
 
@@ -181,92 +181,155 @@ struct ActivitiesView: View {
     }
 }
 
-// MARK: - Detalhes completos de um Lançamento
+// MARK: - Extrato Detalhado do Lançamento (100% Flat Branco — Estilo Comprovante/Extrato Bancário)
 private struct ActivityDetailSheet: View {
     let activity: ActivityEvent
-    let accentColor: Color
+    let holderName: String
     var onOpenExpensesAnalytics: () -> Void
     @Environment(\.dismiss) private var dismiss
+    @State private var copiedAuth = false
 
-    var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
-            HStack(spacing: 12) {
-                Image(systemName: activity.icon)
-                    .font(.system(size: 22, weight: .light))
-                    .foregroundColor(accentColor)
-                    .frame(width: 30, alignment: .center)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Detalhes do lançamento")
-                        .font(.inter(17, weight: .semibold))
-                        .foregroundColor(JuntoColors.textMain)
-                    Text(activity.timeAgo)
-                        .font(.inter(12, weight: .regular))
-                        .foregroundColor(JuntoColors.textMuted)
-                }
-
-                Spacer()
-
-                PopupCloseButton { dismiss() }
-            }
-            .padding(.top, 20)
-
-            VStack(spacing: 0) {
-                detailLine(label: "Descrição", value: activity.title)
-                Divider().opacity(0.5)
-                detailLine(label: "Grupo / Origem", value: activity.subtitle)
-                Divider().opacity(0.5)
-                detailLine(label: "Data do pagamento", value: activity.displayDateText)
-                Divider().opacity(0.5)
-                detailLine(label: "Status", value: activity.isPositive ? "Pago / Confirmado" : "Registrado")
-                if let amt = activity.amountText {
-                    Divider().opacity(0.5)
-                    HStack {
-                        Text("Valor")
-                            .font(.inter(13, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
-                        Spacer()
-                        Text(amt)
-                            .font(.inter(17, weight: .bold))
-                            .foregroundColor(activity.isPositive ? JuntoColors.pixGreen : JuntoColors.textMain)
-                    }
-                    .padding(.vertical, 12)
-                }
-            }
-
-            Button(action: onOpenExpensesAnalytics) {
-                HStack(spacing: 8) {
-                    Image(systemName: "chart.pie.fill")
-                        .font(.system(size: 14))
-                    Text("Ver resumo em Meus gastos")
-                        .font(.inter(14, weight: .medium))
-                }
-                .foregroundColor(.white)
-                .frame(maxWidth: .infinity)
-                .frame(height: 46)
-                .background(JuntoColors.primary)
-                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-            }
-            .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.97))
-
-            Spacer()
-        }
-        .padding(.horizontal, 20)
-        .background(Color.white.ignoresSafeArea())
+    private var authCode: String {
+        "JNT-" + String(activity.id.uuidString.replacingOccurrences(of: "-", with: "").prefix(10)).uppercased()
     }
 
-    private func detailLine(label: String, value: String) -> some View {
+    private var groupOriginName: String {
+        let parts = activity.subtitle.components(separatedBy: "•")
+        return parts.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? activity.subtitle
+    }
+
+    private var extraNote: String? {
+        let parts = activity.subtitle.components(separatedBy: "•")
+        guard parts.count > 1 else { return nil }
+        return parts.dropFirst().joined(separator: " · ").trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            // Topo flat limpo com X
+            HStack {
+                PopupCloseButton { dismiss() }
+                Spacer()
+                Text("Extrato do lançamento")
+                    .font(.inter(16, weight: .semibold))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                Color.clear.frame(width: 36, height: 36)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
+
+            Divider().opacity(0.6)
+
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 0) {
+                    // Cabeçalho de valor estilo extrato bancário
+                    VStack(spacing: 6) {
+                        PixOfficialIcon(size: 26, color: Color(hex: "#32BCAD"))
+                            .padding(.top, 18)
+
+                        Text(activity.amountText ?? "R$ 0,00")
+                            .font(.inter(30, weight: .bold))
+                            .foregroundColor(JuntoColors.textMain)
+
+                        Text(activity.isPositive ? "Pagamento confirmado" : "Lançamento registrado")
+                            .font(.inter(12, weight: .semibold))
+                            .foregroundColor(activity.isPositive ? JuntoColors.pixGreen : JuntoColors.orangeSave)
+
+                        Text(activity.displayDateText)
+                            .font(.inter(12, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .padding(.bottom, 16)
+                    }
+                    .frame(maxWidth: .infinity)
+
+                    Divider().opacity(0.6)
+
+                    // Linhas detalhadas do extrato
+                    VStack(spacing: 0) {
+                        statementRow(label: "Descrição", value: activity.title)
+                        Divider().opacity(0.5)
+
+                        statementRow(label: "Grupo / Origem", value: groupOriginName)
+                        Divider().opacity(0.5)
+
+                        if let note = extraNote, !note.isEmpty {
+                            statementRow(label: "Detalhe", value: note)
+                            Divider().opacity(0.5)
+                        }
+
+                        statementRow(label: "Forma de pagamento", value: "Pix")
+                        Divider().opacity(0.5)
+
+                        statementRow(label: "Data e horário", value: activity.displayDateText)
+                        Divider().opacity(0.5)
+
+                        statementRow(label: "Titular da conta", value: holderName)
+                        Divider().opacity(0.5)
+
+                        HStack(alignment: .center, spacing: 12) {
+                            Text("Código do registro")
+                                .font(.inter(13, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                            Spacer()
+                            Button {
+                                UIPasteboard.general.string = authCode
+                                copiedAuth = true
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedAuth = false }
+                            } label: {
+                                HStack(spacing: 5) {
+                                    Text(authCode)
+                                        .font(.system(size: 12.5, weight: .medium, design: .monospaced))
+                                        .foregroundColor(JuntoColors.textMain)
+                                    Image(systemName: copiedAuth ? "checkmark" : "doc.on.doc")
+                                        .font(.system(size: 12, weight: .medium))
+                                        .foregroundColor(copiedAuth ? JuntoColors.pixGreen : JuntoColors.primary)
+                                }
+                            }
+                        }
+                        .padding(.vertical, 13)
+                    }
+                    .padding(.horizontal, 20)
+
+                    Divider().opacity(0.6)
+
+                    Button(action: onOpenExpensesAnalytics) {
+                        HStack(spacing: 8) {
+                            Image(systemName: "chart.pie.fill")
+                                .font(.system(size: 14))
+                            Text("Ver resumo em Meus gastos")
+                                .font(.inter(14, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 48)
+                        .background(JuntoColors.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+                    .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.98))
+                    .padding(.horizontal, 20)
+                    .padding(.top, 18)
+                    .padding(.bottom, 24)
+                }
+            }
+        }
+        .background(Color.white.ignoresSafeArea())
+        .presentationBackground(Color.white)
+    }
+
+    private func statementRow(label: String, value: String) -> some View {
         HStack(alignment: .top, spacing: 12) {
             Text(label)
                 .font(.inter(13, weight: .regular))
                 .foregroundColor(JuntoColors.textMuted)
             Spacer()
             Text(value)
-                .font(.inter(13, weight: .medium))
+                .font(.inter(13.5, weight: .medium))
                 .foregroundColor(JuntoColors.textMain)
                 .multilineTextAlignment(.trailing)
         }
-        .padding(.horizontal, 14)
-        .padding(.vertical, 12)
+        .padding(.vertical, 13)
     }
 }

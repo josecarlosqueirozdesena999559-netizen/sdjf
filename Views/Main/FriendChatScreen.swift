@@ -21,6 +21,7 @@ struct FriendChatScreen: View {
     @State private var showDocumentImporter = false
     @State private var showCreatePollSheet = false
     @State private var showProfileScreen = false
+    @State private var sharedGroupIdForItems: UUID? = nil
     @State private var recMicPulse = false
 
     // Desfazer exclusão com cronômetro de 5 segundos estilo WhatsApp
@@ -93,6 +94,66 @@ struct FriendChatScreen: View {
             .padding(.vertical, 10)
             .background(Color.white)
             .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.8), alignment: .bottom)
+
+            // Barra flat no topo da conversa quando houver valor devido (igual ao grupo: clique abre itens e copiar permanece ao lado!)
+            let debtCtx = store.sharedDebtContext(with: currentFriend)
+            if debtCtx.netBalance != 0 {
+                let owes = debtCtx.netBalance < 0
+                HStack(spacing: 10) {
+                    Button {
+                        if let gid = debtCtx.relatedGroupId {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            sharedGroupIdForItems = gid
+                        }
+                    } label: {
+                        HStack(spacing: 10) {
+                            PixOfficialIcon(size: 16, color: Color(hex: "#32BCAD"))
+
+                            VStack(alignment: .leading, spacing: 1) {
+                                HStack(spacing: 5) {
+                                    Text(owes ? "Você deve \(JuntoStore.formatBRL(abs(debtCtx.netBalance)))" : "Deve a você \(JuntoStore.formatBRL(debtCtx.netBalance))")
+                                        .font(.inter(12, weight: .semibold))
+                                        .foregroundColor(owes ? JuntoColors.orangeSave : JuntoColors.pixGreen)
+                                        .lineLimit(1)
+                                    if debtCtx.relatedGroupId != nil {
+                                        Text("· ver itens")
+                                            .font(.inter(11, weight: .medium))
+                                            .foregroundColor(JuntoColors.primary)
+                                    }
+                                }
+                                if !debtCtx.pixKey.isEmpty {
+                                    Text("Pix: \(debtCtx.pixKey)")
+                                        .font(.inter(11, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                }
+                            }
+
+                            Spacer(minLength: 4)
+                        }
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+
+                    if !debtCtx.pixKey.isEmpty {
+                        Button {
+                            UIPasteboard.general.string = debtCtx.pixKey
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            store.showToast("Chave Pix copiada!", icon: "doc.on.doc")
+                        } label: {
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 13, weight: .medium))
+                                .foregroundColor(JuntoColors.primary)
+                                .frame(width: 30, height: 30)
+                        }
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 8)
+                .background(Color.white)
+                .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.7), alignment: .bottom)
+            }
 
             // Área de Mensagens
             ScrollViewReader { proxy in
@@ -466,6 +527,18 @@ struct FriendChatScreen: View {
             .environmentObject(store)
             .presentationDetents([.fraction(0.72), .large])
             .presentationCornerRadius(24)
+        }
+        .sheet(isPresented: Binding(
+            get: { sharedGroupIdForItems != nil },
+            set: { if !$0 { sharedGroupIdForItems = nil } }
+        )) {
+            if let gid = sharedGroupIdForItems {
+                GroupExpensesQuickSheet(groupId: gid)
+                    .environmentObject(store)
+                    .presentationDetents([.medium, .large])
+                    .presentationCornerRadius(24)
+                    .presentationBackground(Color.white)
+            }
         }
         .sheet(isPresented: $showAttachmentMenu) {
             ChatAttachmentMenuSheet(
