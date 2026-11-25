@@ -344,7 +344,7 @@ struct CleanConfirmDeleteSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 18) {
+        VStack(alignment: .leading, spacing: 0) {
             HStack {
                 PopupCloseButton { dismiss() }
                 Spacer()
@@ -354,47 +354,57 @@ struct CleanConfirmDeleteSheet: View {
                 Spacer()
                 Color.clear.frame(width: 36, height: 36)
             }
-            .padding(.top, 14)
-
-            VStack(alignment: .leading, spacing: 4) {
-                Text(itemName)
-                    .font(.inter(19, weight: .bold))
-                    .foregroundColor(JuntoColors.textMain)
-                    .lineLimit(2)
-                Text(isOwner
-                     ? "Confira o que acontece antes de excluir este grupo:"
-                     : "Confira o que acontece ao sair deste grupo:")
-                    .font(.inter(13, weight: .regular))
-                    .foregroundColor(JuntoColors.textMuted)
-            }
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 12)
 
             Divider().opacity(0.6)
 
-            VStack(alignment: .leading, spacing: 14) {
-                infoRow(
-                    icon: "bubble.left.and.exclamationmark.bubble.right",
-                    heading: isOwner ? "Grupo e mensagens encerrados" : "Você sai da conversa do grupo",
-                    detail: isOwner
-                        ? "O grupo deixará de aparecer na sua lista ativa de grupos e conversas."
-                        : "Você deixará de receber novas mensagens e cobranças deste grupo."
-                )
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 16) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(itemName)
+                            .font(.inter(19, weight: .bold))
+                            .foregroundColor(JuntoColors.textMain)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(isOwner
+                             ? "Confira o que acontece antes de excluir este grupo:"
+                             : "Confira o que acontece ao sair deste grupo:")
+                            .font(.inter(13, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                    }
 
-                infoRow(
-                    icon: "checkmark.shield",
-                    heading: "Histórico financeiro preservado",
-                    detail: "Todos os pagamentos já confirmados continuam salvos com data e valor em Lançamentos e Meus Gastos."
-                )
+                    Divider().opacity(0.6)
 
-                infoRow(
-                    icon: "arrow.uturn.backward.circle",
-                    heading: "Ação definitiva",
-                    detail: isOwner
-                        ? "Esta exclusão não pode ser desfeita depois de confirmada."
-                        : "Para entrar novamente depois, será necessário um novo convite."
-                )
+                    VStack(alignment: .leading, spacing: 14) {
+                        infoRow(
+                            icon: "bubble.left.and.exclamationmark.bubble.right",
+                            heading: isOwner ? "Grupo e mensagens encerrados" : "Você sai da conversa do grupo",
+                            detail: isOwner
+                                ? "O grupo deixará de aparecer na sua lista ativa de grupos e conversas."
+                                : "Você deixará de receber novas mensagens e cobranças deste grupo."
+                        )
+
+                        infoRow(
+                            icon: "checkmark.shield",
+                            heading: "Histórico financeiro preservado",
+                            detail: "Todos os pagamentos já confirmados continuam salvos com data e valor em Lançamentos e Meus Gastos."
+                        )
+
+                        infoRow(
+                            icon: "arrow.uturn.backward.circle",
+                            heading: "Ação definitiva",
+                            detail: isOwner
+                                ? "Esta exclusão não pode ser desfeita depois de confirmada."
+                                : "Para entrar novamente depois, será necessário um novo convite."
+                        )
+                    }
+                }
+                .padding(.horizontal, 20)
+                .padding(.vertical, 16)
             }
 
-            Spacer(minLength: 4)
+            Divider().opacity(0.6)
 
             HStack(spacing: 10) {
                 Button {
@@ -423,9 +433,10 @@ struct CleanConfirmDeleteSheet: View {
                         .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
                 }
             }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
             .padding(.bottom, 16)
         }
-        .padding(.horizontal, 20)
         .background(Color.white.ignoresSafeArea())
         .presentationBackground(Color.white)
     }

@@ -91,28 +91,6 @@ struct GroupsRoleView: View {
                                     .foregroundColor(JuntoColors.textMuted)
                                     .multilineTextAlignment(.center)
                                     .padding(.horizontal, 32)
-
-                                Button {
-                                    if store.canCreateMoreGroups() {
-                                        showCreateGroup = true
-                                    } else {
-                                        store.showToast("Plano gratuito permite 1 grupo. Assine o Juntô Pro para grupos ilimitados.", icon: "lock")
-                                        showProPaywall = true
-                                    }
-                                } label: {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: "person.2.badge.plus")
-                                            .font(.system(size: 14, weight: .semibold))
-                                        Text("Criar primeiro grupo")
-                                            .font(.inter(14, weight: .semibold))
-                                    }
-                                    .foregroundColor(.white)
-                                    .padding(.horizontal, 28)
-                                    .frame(height: 46)
-                                    .background(JuntoColors.primary)
-                                    .clipShape(Capsule())
-                                }
-                                .padding(.top, 6)
                             }
                         } else {
                             VStack(spacing: 10) {
@@ -1600,7 +1578,7 @@ struct GroupDetailSheet: View {
                         store.deleteGroup(groupId: targetId)
                     }
                 }
-                .presentationDetents([.height(395)])
+                .presentationDetents([.height(470), .large])
                 .presentationCornerRadius(24)
                 .presentationBackground(Color.white)
             }
@@ -2198,7 +2176,7 @@ struct GroupSettingsScreen: View {
                         }
                     }
                 }
-                .presentationDetents([.height(395)])
+                .presentationDetents([.height(470), .large])
                 .presentationCornerRadius(24)
                 .presentationBackground(Color.white)
             }

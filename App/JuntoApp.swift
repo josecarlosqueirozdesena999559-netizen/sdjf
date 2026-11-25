@@ -1,12 +1,35 @@
 import SwiftUI
 import UIKit
 
-/// Fecha o teclado automaticamente ao tocar fora dos campos em qualquer tela, sem bloquear botões ou gestos.
+/// Fecha o teclado automaticamente ao tocar fora dos campos em qualquer tela, sem bloquear botões ou a barra de digitação do chat.
 final class GlobalKeyboardDismissInstaller: NSObject, UIGestureRecognizerDelegate {
     static let shared = GlobalKeyboardDismissInstaller()
     private weak var installedWindow: UIWindow?
+    private var keyboardHeight: CGFloat = 0
+    private var suppressUntil: Date = .distantPast
+    private var observersInstalled = false
+
+    func suppressDismissBriefly() {
+        suppressUntil = Date().addingTimeInterval(0.35)
+    }
 
     func installIfNeeded() {
+        if !observersInstalled {
+            observersInstalled = true
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleKeyboardWillShow(_:)),
+                name: UIResponder.keyboardWillShowNotification,
+                object: nil
+            )
+            NotificationCenter.default.addObserver(
+                self,
+                selector: #selector(handleKeyboardWillHide),
+                name: UIResponder.keyboardWillHideNotification,
+                object: nil
+            )
+        }
+
         guard let scene = UIApplication.shared.connectedScenes.first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
                 ?? UIApplication.shared.connectedScenes.compactMap({ $0 as? UIWindowScene }).first,
               let window = scene.windows.first(where: { $0.isKeyWindow }) ?? scene.windows.first else {
@@ -23,11 +46,32 @@ final class GlobalKeyboardDismissInstaller: NSObject, UIGestureRecognizerDelegat
         window.addGestureRecognizer(tap)
     }
 
+    @objc private func handleKeyboardWillShow(_ note: Notification) {
+        if let frame = note.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect {
+            keyboardHeight = frame.height
+        }
+    }
+
+    @objc private func handleKeyboardWillHide() {
+        keyboardHeight = 0
+    }
+
     @objc private func handleBackgroundTap() {
+        guard Date() >= suppressUntil else { return }
         installedWindow?.endEditing(true)
     }
 
     func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        if Date() < suppressUntil {
+            return false
+        }
+        if let window = installedWindow, keyboardHeight > 0 {
+            let loc = touch.location(in: window)
+            // Não fecha o teclado ao tocar na barra de mensagem / botão enviar logo acima do teclado
+            if loc.y >= window.bounds.height - keyboardHeight - 95 {
+                return false
+            }
+        }
         var view = touch.view
         while let current = view {
             if current is UITextField || current is UITextView || current is UIControl {

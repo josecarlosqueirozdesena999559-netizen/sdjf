@@ -425,11 +425,13 @@ struct GroupChatScreen: View {
                         Button {
                             let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
                             guard !text.isEmpty else { return }
+                            GlobalKeyboardDismissInstaller.shared.suppressDismissBriefly()
                             if editingMessageId == nil {
                                 ChatSoundManager.shared.playSendSound()
                             }
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             inputText = ""
+                            isInputFocused = true
                             if let editId = editingMessageId {
                                 store.editGroupChatMessage(groupId: groupId, messageId: editId, newText: text)
                                 editingMessageId = nil
