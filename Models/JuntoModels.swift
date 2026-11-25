@@ -500,6 +500,10 @@ struct ActivityEvent: Identifiable, Codable {
     let amountText: String?
     let isPositive: Bool
     var dateText: String = ""
+    // Campos extras para extrato enriquecido
+    var receiverName: String? = nil      // quem recebeu o pagamento
+    var groupName: String? = nil         // nome do grupo (separado do subtitle)
+    var itemsSummary: [String]? = nil    // itens comprados no grupo
 
     var displayDateText: String {
         dateText.isEmpty ? timeAgo : dateText

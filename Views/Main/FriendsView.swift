@@ -99,62 +99,66 @@ struct FriendsView: View {
             Divider().opacity(0.6)
 
             if recentChats.isEmpty {
-                Spacer()
-                VStack(spacing: 14) {
-                    if searchText.isEmpty {
-                        ZStack {
-                            Circle()
-                                .fill(JuntoColors.primary.opacity(0.08))
-                                .frame(width: 68, height: 68)
-                            Image(systemName: "bubble.left.and.bubble.right")
-                                .font(.system(size: 26, weight: .regular))
-                                .foregroundColor(JuntoColors.primary)
-                        }
+                GeometryReader { geo in
+                    VStack(spacing: 14) {
+                        Spacer()
+                        if searchText.isEmpty {
+                            let imgSize = min(max(geo.size.height * 0.38, 190), 290)
+                            Image("EmptyChatsHero")
+                                .resizable()
+                                .interpolation(.high)
+                                .antialiased(true)
+                                .scaledToFit()
+                                .frame(width: min(geo.size.width * 0.72, imgSize), height: imgSize)
 
-                        Text("Nenhuma conversa por aqui")
-                            .font(.inter(17, weight: .bold))
-                            .foregroundColor(JuntoColors.textMain)
+                            VStack(spacing: 10) {
+                                Text("Nenhuma conversa ainda")
+                                    .font(.inter(20, weight: .bold))
+                                    .foregroundColor(JuntoColors.textMain)
 
-                        Text("Inicie uma conversa com seus contatos do Juntô ou crie um grupo para dividir gastos.")
-                            .font(.inter(14, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 36)
+                                Text("Adicione amigos ou crie um grupo para começar a conversar, dividir despesas e fazer o Pix na hora.")
+                                    .font(.inter(14, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 32)
 
-                        Button {
-                            showAddFriendScreen = true
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "person.badge.plus")
-                                    .font(.system(size: 14, weight: .semibold))
-                                Text("Iniciar conversa")
-                                    .font(.inter(14, weight: .semibold))
+                                Button {
+                                    showAddFriendScreen = true
+                                } label: {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "person.badge.plus")
+                                            .font(.system(size: 14, weight: .semibold))
+                                        Text("Adicionar amigo")
+                                            .font(.inter(14, weight: .semibold))
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 28)
+                                    .frame(height: 46)
+                                    .background(JuntoColors.primary)
+                                    .clipShape(Capsule())
+                                }
+                                .padding(.top, 6)
                             }
-                            .foregroundColor(JuntoColors.primary)
-                            .padding(.horizontal, 22)
-                            .frame(height: 44)
-                            .background(Color.white)
-                            .overlay(Capsule().stroke(JuntoColors.primary, lineWidth: 1.2))
-                            .clipShape(Capsule())
+                        } else {
+                            VStack(spacing: 10) {
+                                ZStack {
+                                    Circle()
+                                        .fill(JuntoColors.surfaceSubtle)
+                                        .frame(width: 60, height: 60)
+                                    Image(systemName: "magnifyingglass")
+                                        .font(.system(size: 22, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                }
+                                Text("Nenhuma conversa encontrada")
+                                    .font(.inter(15, weight: .semibold))
+                                    .foregroundColor(JuntoColors.textMain)
+                            }
                         }
-                        .padding(.top, 4)
-                    } else {
-                        ZStack {
-                            Circle()
-                                .fill(JuntoColors.surfaceSubtle)
-                                .frame(width: 60, height: 60)
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 22, weight: .regular))
-                                .foregroundColor(JuntoColors.textMuted)
-                        }
-                        Text("Nenhuma conversa encontrada")
-                            .font(.inter(15, weight: .semibold))
-                            .foregroundColor(JuntoColors.textMain)
+                        Spacer()
+                        Spacer().frame(height: 80)
                     }
+                    .frame(width: geo.size.width, height: geo.size.height)
                 }
-                .frame(maxWidth: .infinity)
-                Spacer()
-                Spacer().frame(height: 110)
             } else {
                 // Lista estilo WhatsApp Real: conversas unificadas onde quem mandar recente fica sempre no topo!
                 List {

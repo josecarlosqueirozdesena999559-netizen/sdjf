@@ -69,67 +69,71 @@ struct GroupsRoleView: View {
             Divider().opacity(0.6)
 
             if filteredGroups.isEmpty {
-                Spacer()
-                VStack(spacing: 14) {
-                    if searchText.isEmpty {
-                        ZStack {
-                            Circle()
-                                .fill(JuntoColors.primary.opacity(0.08))
-                                .frame(width: 68, height: 68)
-                            Image(systemName: "person.2")
-                                .font(.system(size: 26, weight: .regular))
-                                .foregroundColor(JuntoColors.primary)
-                        }
+                GeometryReader { geo in
+                    VStack(spacing: 14) {
+                        Spacer()
+                        if searchText.isEmpty {
+                            let imgSize = min(max(geo.size.height * 0.38, 190), 290)
+                            Image("EmptyGroupsHero")
+                                .resizable()
+                                .interpolation(.high)
+                                .antialiased(true)
+                                .scaledToFit()
+                                .frame(width: min(geo.size.width * 0.72, imgSize), height: imgSize)
 
-                        Text("Nenhum grupo por aqui")
-                            .font(.inter(17, weight: .bold))
-                            .foregroundColor(JuntoColors.textMain)
+                            VStack(spacing: 10) {
+                                Text("Seus grupos aparecem aqui")
+                                    .font(.inter(20, weight: .bold))
+                                    .foregroundColor(JuntoColors.textMain)
 
-                        Text("Organize viagens, casa ou rolês e divida contas com facilidade.")
-                            .font(.inter(14, weight: .regular))
-                            .foregroundColor(JuntoColors.textMuted)
-                            .multilineTextAlignment(.center)
-                            .padding(.horizontal, 36)
+                                Text("Crie um grupo para organizar viagens, rolês, despesas de casa ou qualquer rateio com amigos.")
+                                    .font(.inter(14, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                                    .multilineTextAlignment(.center)
+                                    .padding(.horizontal, 32)
 
-                        Button {
-                            if store.canCreateMoreGroups() {
-                                showCreateGroup = true
-                            } else {
-                                store.showToast("Plano gratuito permite 1 grupo. Assine o Juntô Pro para grupos ilimitados.", icon: "lock")
-                                showProPaywall = true
+                                Button {
+                                    if store.canCreateMoreGroups() {
+                                        showCreateGroup = true
+                                    } else {
+                                        store.showToast("Plano gratuito permite 1 grupo. Assine o Juntô Pro para grupos ilimitados.", icon: "lock")
+                                        showProPaywall = true
+                                    }
+                                } label: {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: "person.2.badge.plus")
+                                            .font(.system(size: 14, weight: .semibold))
+                                        Text("Criar primeiro grupo")
+                                            .font(.inter(14, weight: .semibold))
+                                    }
+                                    .foregroundColor(.white)
+                                    .padding(.horizontal, 28)
+                                    .frame(height: 46)
+                                    .background(JuntoColors.primary)
+                                    .clipShape(Capsule())
+                                }
+                                .padding(.top, 6)
                             }
-                        } label: {
-                            HStack(spacing: 8) {
-                                Image(systemName: "person.2.badge.plus")
-                                    .font(.system(size: 14, weight: .semibold))
-                                Text("Começar um novo grupo")
-                                    .font(.inter(14, weight: .semibold))
+                        } else {
+                            VStack(spacing: 10) {
+                                ZStack {
+                                    Circle()
+                                        .fill(JuntoColors.surfaceSubtle)
+                                        .frame(width: 60, height: 60)
+                                    Image(systemName: "magnifyingglass")
+                                        .font(.system(size: 22, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                }
+                                Text("Nenhum grupo encontrado")
+                                    .font(.inter(15, weight: .semibold))
+                                    .foregroundColor(JuntoColors.textMain)
                             }
-                            .foregroundColor(JuntoColors.primary)
-                            .padding(.horizontal, 22)
-                            .frame(height: 44)
-                            .background(Color.white)
-                            .overlay(Capsule().stroke(JuntoColors.primary, lineWidth: 1.2))
-                            .clipShape(Capsule())
                         }
-                        .padding(.top, 4)
-                    } else {
-                        ZStack {
-                            Circle()
-                                .fill(JuntoColors.surfaceSubtle)
-                                .frame(width: 60, height: 60)
-                            Image(systemName: "magnifyingglass")
-                                .font(.system(size: 22, weight: .regular))
-                                .foregroundColor(JuntoColors.textMuted)
-                        }
-                        Text("Nenhum grupo encontrado")
-                            .font(.inter(15, weight: .semibold))
-                            .foregroundColor(JuntoColors.textMain)
+                        Spacer()
+                        Spacer().frame(height: 80)
                     }
+                    .frame(width: geo.size.width, height: geo.size.height)
                 }
-                .frame(maxWidth: .infinity)
-                Spacer()
-                Spacer().frame(height: 110)
             } else {
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 0) {

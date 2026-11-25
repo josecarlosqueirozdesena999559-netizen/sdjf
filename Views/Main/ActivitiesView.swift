@@ -194,14 +194,16 @@ private struct ActivityDetailSheet: View {
     }
 
     private var groupOriginName: String {
-        let parts = activity.subtitle.components(separatedBy: "•")
+        if let gn = activity.groupName, !gn.isEmpty { return gn }
+        let parts = activity.subtitle.components(separatedBy: "\u2022")
         return parts.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? activity.subtitle
     }
 
     private var extraNote: String? {
-        let parts = activity.subtitle.components(separatedBy: "•")
+        guard activity.groupName == nil else { return nil }
+        let parts = activity.subtitle.components(separatedBy: "\u2022")
         guard parts.count > 1 else { return nil }
-        return parts.dropFirst().joined(separator: " · ").trimmingCharacters(in: .whitespacesAndNewlines)
+        return parts.dropFirst().joined(separator: " \u00b7 ").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     var body: some View {
@@ -210,7 +212,7 @@ private struct ActivityDetailSheet: View {
             HStack {
                 PopupCloseButton { dismiss() }
                 Spacer()
-                Text("Extrato do lançamento")
+                Text("Comprovante de pagamento")
                     .font(.inter(16, weight: .semibold))
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
@@ -224,18 +226,24 @@ private struct ActivityDetailSheet: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
-                    // Cabeçalho de valor estilo extrato bancário
+                    // Cabe\u00e7alho de valor estilo extrato banc\u00e1rio
                     VStack(spacing: 6) {
                         PixOfficialIcon(size: 26, color: Color(hex: "#32BCAD"))
                             .padding(.top, 18)
 
                         Text(activity.amountText ?? "R$ 0,00")
-                            .font(.inter(30, weight: .bold))
+                            .font(.inter(32, weight: .bold))
                             .foregroundColor(JuntoColors.textMain)
 
-                        Text(activity.isPositive ? "Pagamento confirmado" : "Lançamento registrado")
+                        Text(activity.isPositive ? "Pagamento confirmado" : "Lan\u00e7amento registrado")
                             .font(.inter(12, weight: .semibold))
                             .foregroundColor(activity.isPositive ? JuntoColors.pixGreen : JuntoColors.orangeSave)
+                            .padding(.horizontal, 14)
+                            .padding(.vertical, 4)
+                            .background(
+                                (activity.isPositive ? JuntoColors.pixGreen : JuntoColors.orangeSave).opacity(0.1)
+                            )
+                            .clipShape(Capsule())
 
                         Text(activity.displayDateText)
                             .font(.inter(12, weight: .regular))
@@ -248,11 +256,16 @@ private struct ActivityDetailSheet: View {
 
                     // Linhas detalhadas do extrato
                     VStack(spacing: 0) {
-                        statementRow(label: "Descrição", value: activity.title)
+                        statementRow(label: "Descri\u00e7\u00e3o", value: activity.title)
                         Divider().opacity(0.5)
 
-                        statementRow(label: "Grupo / Origem", value: groupOriginName)
+                        statementRow(label: "Grupo", value: groupOriginName)
                         Divider().opacity(0.5)
+
+                        if let receiver = activity.receiverName, !receiver.isEmpty {
+                            statementRow(label: "Recebido por", value: receiver)
+                            Divider().opacity(0.5)
+                        }
 
                         if let note = extraNote, !note.isEmpty {
                             statementRow(label: "Detalhe", value: note)
@@ -262,14 +275,17 @@ private struct ActivityDetailSheet: View {
                         statementRow(label: "Forma de pagamento", value: "Pix")
                         Divider().opacity(0.5)
 
-                        statementRow(label: "Data e horário", value: activity.displayDateText)
+                        statementRow(label: "Data do pagamento", value: activity.displayDateText)
                         Divider().opacity(0.5)
 
-                        statementRow(label: "Titular da conta", value: holderName)
+                        statementRow(label: "Valor pago", value: activity.amountText ?? "\u2014")
+                        Divider().opacity(0.5)
+
+                        statementRow(label: "Pago por", value: holderName)
                         Divider().opacity(0.5)
 
                         HStack(alignment: .center, spacing: 12) {
-                            Text("Código do registro")
+                            Text("C\u00f3digo do registro")
                                 .font(.inter(13, weight: .regular))
                                 .foregroundColor(JuntoColors.textMuted)
                             Spacer()
@@ -292,6 +308,34 @@ private struct ActivityDetailSheet: View {
                         .padding(.vertical, 13)
                     }
                     .padding(.horizontal, 20)
+
+                    // Itens comprados no grupo (se houver)
+                    if let items = activity.itemsSummary, !items.isEmpty {
+                        Divider().opacity(0.6)
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack(spacing: 6) {
+                                Image(systemName: "list.bullet.rectangle")
+                                    .font(.system(size: 13, weight: .medium))
+                                    .foregroundColor(JuntoColors.primary)
+                                Text("Itens do grupo")
+                                    .font(.inter(13, weight: .semibold))
+                                    .foregroundColor(JuntoColors.textMain)
+                            }
+                            ForEach(items, id: \.self) { item in
+                                HStack(spacing: 8) {
+                                    Circle()
+                                        .fill(JuntoColors.primary.opacity(0.22))
+                                        .frame(width: 5, height: 5)
+                                    Text(item)
+                                        .font(.inter(13, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMain)
+                                    Spacer()
+                                }
+                            }
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.vertical, 14)
+                    }
 
                     Divider().opacity(0.6)
 
@@ -333,3 +377,4 @@ private struct ActivityDetailSheet: View {
         .padding(.vertical, 13)
     }
 }
+

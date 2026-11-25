@@ -1997,7 +1997,9 @@ final class JuntoStore: ObservableObject {
                 timeAgo: "Agora",
                 amountText: Self.formatBRL(quota),
                 isPositive: true,
-                dateText: nowDateText
+                dateText: nowDateText,
+                receiverName: organizer.name,
+                groupName: groupTitle
             ),
             at: 0
         )
@@ -2049,7 +2051,10 @@ final class JuntoStore: ObservableObject {
                     timeAgo: "Agora",
                     amountText: Self.formatBRL(amount),
                     isPositive: true,
-                    dateText: nowDateText
+                    dateText: nowDateText,
+                    receiverName: organizer.name,
+                    groupName: groupTitle,
+                    itemsSummary: groups[gIdx].comandaItems.filter { $0.isPaid }.map { $0.name }
                 ),
                 at: 0
             )
@@ -2066,7 +2071,9 @@ final class JuntoStore: ObservableObject {
                     timeAgo: "Agora",
                     amountText: Self.formatBRL(amount),
                     isPositive: true,
-                    dateText: nowDateText
+                    dateText: nowDateText,
+                    receiverName: organizer.name,
+                    groupName: groupTitle
                 ),
                 at: 0
             )
@@ -2166,6 +2173,8 @@ final class JuntoStore: ObservableObject {
             )
         }
 
+        let organizerName = organizerPixInfo(for: groups[gIdx]).name
+        let groupItems = groups[gIdx].comandaItems.map { $0.name }
         activities.insert(
             ActivityEvent(
                 icon: "checkmark.circle",
@@ -2174,7 +2183,10 @@ final class JuntoStore: ObservableObject {
                 timeAgo: "Agora",
                 amountText: "+ \(Self.formatBRL(quota))",
                 isPositive: true,
-                dateText: nowDateText
+                dateText: nowDateText,
+                receiverName: organizerName,
+                groupName: groupTitle,
+                itemsSummary: groupItems.isEmpty ? nil : groupItems
             ),
             at: 0
         )
