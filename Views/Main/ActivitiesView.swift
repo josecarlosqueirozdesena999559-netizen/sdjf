@@ -195,15 +195,15 @@ private struct ActivityDetailSheet: View {
 
     private var groupOriginName: String {
         if let gn = activity.groupName, !gn.isEmpty { return gn }
-        let parts = activity.subtitle.components(separatedBy: "\u2022")
+        let parts = activity.subtitle.components(separatedBy: "•")
         return parts.first?.trimmingCharacters(in: .whitespacesAndNewlines) ?? activity.subtitle
     }
 
     private var extraNote: String? {
         guard activity.groupName == nil else { return nil }
-        let parts = activity.subtitle.components(separatedBy: "\u2022")
+        let parts = activity.subtitle.components(separatedBy: "•")
         guard parts.count > 1 else { return nil }
-        return parts.dropFirst().joined(separator: " \u00b7 ").trimmingCharacters(in: .whitespacesAndNewlines)
+        return parts.dropFirst().joined(separator: " · ").trimmingCharacters(in: .whitespacesAndNewlines)
     }
 
     var body: some View {
@@ -226,7 +226,7 @@ private struct ActivityDetailSheet: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 0) {
-                    // Cabe\u00e7alho de valor estilo extrato banc\u00e1rio
+                    // Cabeçalho de valor estilo extrato bancário
                     VStack(spacing: 6) {
                         PixOfficialIcon(size: 26, color: Color(hex: "#32BCAD"))
                             .padding(.top, 18)
@@ -235,7 +235,7 @@ private struct ActivityDetailSheet: View {
                             .font(.inter(32, weight: .bold))
                             .foregroundColor(JuntoColors.textMain)
 
-                        Text(activity.isPositive ? "Pagamento confirmado" : "Lan\u00e7amento registrado")
+                        Text(activity.isPositive ? "Pagamento confirmado" : "Lançamento registrado")
                             .font(.inter(12, weight: .semibold))
                             .foregroundColor(activity.isPositive ? JuntoColors.pixGreen : JuntoColors.orangeSave)
                             .padding(.horizontal, 14)
@@ -256,7 +256,7 @@ private struct ActivityDetailSheet: View {
 
                     // Linhas detalhadas do extrato
                     VStack(spacing: 0) {
-                        statementRow(label: "Descri\u00e7\u00e3o", value: activity.title)
+                        statementRow(label: "Descrição", value: activity.title)
                         Divider().opacity(0.5)
 
                         statementRow(label: "Grupo", value: groupOriginName)
@@ -278,14 +278,14 @@ private struct ActivityDetailSheet: View {
                         statementRow(label: "Data do pagamento", value: activity.displayDateText)
                         Divider().opacity(0.5)
 
-                        statementRow(label: "Valor pago", value: activity.amountText ?? "\u2014")
+                        statementRow(label: "Valor pago", value: activity.amountText ?? "—")
                         Divider().opacity(0.5)
 
                         statementRow(label: "Pago por", value: holderName)
                         Divider().opacity(0.5)
 
                         HStack(alignment: .center, spacing: 12) {
-                            Text("C\u00f3digo do registro")
+                            Text("Código do registro")
                                 .font(.inter(13, weight: .regular))
                                 .foregroundColor(JuntoColors.textMuted)
                             Spacer()
