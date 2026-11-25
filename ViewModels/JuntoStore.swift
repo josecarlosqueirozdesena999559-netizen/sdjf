@@ -1839,16 +1839,26 @@ final class JuntoStore: ObservableObject {
         return (user.fullName, user.pixKey)
     }
 
-    /// Participante informa que já fez o Pix para o organizador (aguarda conferência do dono do grupo; suporta Pote Mensal)
+    /// Participante informa que já fez o Pix para o organizador.
+    /// Se quem pagou for o próprio dono do grupo, confirma e desconta imediatamente.
+    /// Se for outro participante, aguarda confirmação do dono.
     func memberMarkQuotaAsPaid(groupId: UUID, participantId: UUID, monthIndex: Int? = nil) {
-        guard let gIdx = groups.firstIndex(where: { $0.id == groupId }),
+        guard let gIdx = resolvedGroupIndex(for: groupId),
               let pIdx = groups[gIdx].participants.firstIndex(where: { $0.id == participantId }) else { return }
+
+        let resolvedId = groups[gIdx].id
+        let mIdx = monthIndex ?? groups[gIdx].selectedMonthIndex
+
+        // Quando quem paga é o próprio dono do grupo, confirma e desconta o valor imediatamente!
+        if isCurrentUserOwner(in: groups[gIdx]) {
+            ownerConfirmParticipantPaid(groupId: resolvedId, participantId: participantId, monthIndex: mIdx)
+            return
+        }
 
         let uname = groups[gIdx].participants[pIdx].username.lowercased()
         let groupTitle = groups[gIdx].title
         let quota = groups[gIdx].participants[pIdx].quotaAmount
         let organizer = organizerPixInfo(for: groups[gIdx])
-        let mIdx = monthIndex ?? groups[gIdx].selectedMonthIndex
 
         if groups[gIdx].potMode == .monthly, groups[gIdx].monthlyCycles.indices.contains(mIdx) {
             guard !groups[gIdx].monthlyCycles[mIdx].paidUsernames.contains(uname) else { return }
@@ -1889,12 +1899,38 @@ final class JuntoStore: ObservableObject {
             at: 0
         )
 
-        if quota > 0 {
+        persistPaymentHistory()
+        runAIReminderAgentScan()
+        let gidStr = resolvedId.uuidString.lowercased()
+        Task {
+            await JuntoBackendService.shared.markGroupPayment(groupId: gidStr, amount: quota, monthIndex: mIdx, kind: "QUOTA")
+        }
+        showToast("Pagamento enviado! Aguardando o dono do grupo confirmar.", icon: "checkmark.circle")
+    }
+
+    /// Participante informa que pagou as despesas selecionadas da comanda do grupo.
+    /// Se for o dono, desconta imediatamente; se for outro participante, aguarda confirmação do dono.
+    func memberMarkGroupExpensesAsPaid(groupId: UUID, amount: Double) {
+        guard amount > 0, let gIdx = resolvedGroupIndex(for: groupId) else { return }
+        let resolvedId = groups[gIdx].id
+        let groupTitle = groups[gIdx].title
+        let organizer = organizerPixInfo(for: groups[gIdx])
+        let isOwner = isCurrentUserOwner(in: groups[gIdx])
+        let nowDateText = Self.formattedCurrentDateTime()
+
+        if isOwner {
+            groups[gIdx].myShare = max(0, groups[gIdx].myShare - amount)
+            for i in groups[gIdx].comandaItems.indices {
+                if groups[gIdx].comandaItems[i].isSelected {
+                    groups[gIdx].comandaItems[i].isSelected = false
+                    groups[gIdx].comandaItems[i].isPaid = true
+                }
+            }
             personalExpenses.insert(
                 PersonalExpenseRecord(
-                    title: "Cota paga\(monthSuffix)",
+                    title: "Pagamento no grupo",
                     category: groups[gIdx].category,
-                    amount: quota,
+                    amount: amount,
                     dateText: nowDateText,
                     monthKey: Self.currentMonthKey(),
                     groupName: groupTitle,
@@ -1902,70 +1938,58 @@ final class JuntoStore: ObservableObject {
                 ),
                 at: 0
             )
-        }
-        persistPaymentHistory()
-        runAIReminderAgentScan()
-        let gidStr = groupId.uuidString.lowercased()
-        Task {
-            await JuntoBackendService.shared.markGroupPayment(groupId: gidStr, amount: quota, monthIndex: mIdx, kind: "QUOTA")
-        }
-        showToast("Marcado como pago! Aguardando o dono do grupo confirmar.", icon: "checkmark.circle")
-    }
-
-    /// Participante informa que pagou as despesas selecionadas da comanda do grupo
-    func memberMarkGroupExpensesAsPaid(groupId: UUID, amount: Double) {
-        guard amount > 0, let gIdx = resolvedGroupIndex(for: groupId) else { return }
-        let groupTitle = groups[gIdx].title
-        let organizer = organizerPixInfo(for: groups[gIdx])
-        groups[gIdx].myShare = max(0, groups[gIdx].myShare - amount)
-        for i in groups[gIdx].comandaItems.indices {
-            if groups[gIdx].comandaItems[i].isSelected {
-                groups[gIdx].comandaItems[i].isSelected = false
+            activities.insert(
+                ActivityEvent(
+                    icon: "checkmark.circle",
+                    title: "Pagamento confirmado",
+                    subtitle: "\(groupTitle) • Valor descontado",
+                    timeAgo: "Agora",
+                    amountText: Self.formatBRL(amount),
+                    isPositive: true,
+                    dateText: nowDateText
+                ),
+                at: 0
+            )
+        } else {
+            let cleanUser = user.username.lowercased()
+            if let pIdx = groups[gIdx].participants.firstIndex(where: { $0.username.lowercased() == cleanUser }) {
+                groups[gIdx].participants[pIdx].markedPaidByMember = true
             }
+            activities.insert(
+                ActivityEvent(
+                    icon: "clock.badge.checkmark",
+                    title: "Pagamento informado",
+                    subtitle: "\(groupTitle) • Aguardando confirmação do dono",
+                    timeAgo: "Agora",
+                    amountText: Self.formatBRL(amount),
+                    isPositive: true,
+                    dateText: nowDateText
+                ),
+                at: 0
+            )
         }
+
         notifications.insert(
             AppNotification(
                 icon: "checkmark.circle",
-                title: "Você pagou a \(organizer.name)",
+                title: isOwner ? "Pagamento confirmado" : "Você pagou a \(organizer.name)",
                 message: "Pagamento de \(Self.formatBRL(amount)) referente ao grupo \(groupTitle).",
                 timeAgo: "Agora",
                 isUnread: true
             ),
             at: 0
         )
-        let nowDateText = Self.formattedCurrentDateTime()
-        activities.insert(
-            ActivityEvent(
-                icon: "checkmark.circle",
-                title: "Despesa marcada como paga",
-                subtitle: "\(groupTitle) • Pix enviado ao organizador",
-                timeAgo: "Agora",
-                amountText: Self.formatBRL(amount),
-                isPositive: true,
-                dateText: nowDateText
-            ),
-            at: 0
-        )
 
-        personalExpenses.insert(
-            PersonalExpenseRecord(
-                title: "Pagamento no grupo",
-                category: groups[gIdx].category,
-                amount: amount,
-                dateText: nowDateText,
-                monthKey: Self.currentMonthKey(),
-                groupName: groupTitle,
-                isPaid: true
-            ),
-            at: 0
-        )
         persistPaymentHistory()
         runAIReminderAgentScan()
-        let gidStr = groupId.uuidString.lowercased()
+        let gidStr = resolvedId.uuidString.lowercased()
         Task {
             await JuntoBackendService.shared.markGroupPayment(groupId: gidStr, amount: amount, kind: "EXPENSE")
+            if isOwner {
+                await JuntoBackendService.shared.confirmGroupPayment(groupId: gidStr, username: user.username.lowercased(), monthIndex: groups[gIdx].selectedMonthIndex)
+            }
         }
-        showToast("Marcado como pago! O organizador já pode conferir.", icon: "checkmark.circle")
+        showToast(isOwner ? "Pagamento confirmado e descontado no grupo!" : "Enviado! Aguardando o dono do grupo confirmar.", icon: "checkmark.circle")
     }
 
     /// Dono do grupo confere o Pix na conta dele e confirma o pagamento do participante (suporta Pote Mensal por mês)
@@ -1973,6 +1997,7 @@ final class JuntoStore: ObservableObject {
         guard let gIdx = resolvedGroupIndex(for: groupId),
               let pIdx = groups[gIdx].participants.firstIndex(where: { $0.id == participantId }) else { return }
 
+        let resolvedId = groups[gIdx].id
         let quota = groups[gIdx].participants[pIdx].quotaAmount
         let personName = groups[gIdx].participants[pIdx].name
         let uname = groups[gIdx].participants[pIdx].username.lowercased()
@@ -1991,23 +2016,28 @@ final class JuntoStore: ObservableObject {
             groups[gIdx].potBalance += quota
         }
 
+        // Desconta imediatamente o valor do próprio usuário quando confirmado
+        if uname == user.username.lowercased() || personName == "Você" {
+            groups[gIdx].myShare = max(0, groups[gIdx].myShare - quota)
+        }
+
         let monthSuffix = (groups[gIdx].potMode == .monthly && groups[gIdx].monthlyCycles.indices.contains(mIdx))
             ? " • \(groups[gIdx].monthlyCycles[mIdx].label)"
             : ""
 
         // Atualiza comprovantes pendentes desse participante no chat para aprovados
-        if let msgs = groupChatMessages[groupId] {
+        if let msgs = groupChatMessages[resolvedId] {
             for i in msgs.indices {
                 if msgs[i].senderUsername?.lowercased() == uname,
                    case .receipt(let amt, let img, let file, _) = msgs[i].kind {
-                    groupChatMessages[groupId]?[i].kind = .receipt(amount: amt, imageData: img, fileName: file, status: .approved)
+                    groupChatMessages[resolvedId]?[i].kind = .receipt(amount: amt, imageData: img, fileName: file, status: .approved)
                 }
             }
         }
 
         // Adiciona mensagem automática de confirmação no chat do grupo
-        if groupChatMessages[groupId] == nil { groupChatMessages[groupId] = [] }
-        groupChatMessages[groupId]?.append(
+        if groupChatMessages[resolvedId] == nil { groupChatMessages[resolvedId] = [] }
+        groupChatMessages[resolvedId]?.append(
             ChatMessage(
                 isFromMe: false,
                 kind: .system("✅ @\(user.username) confirmou o pagamento de @\(uname)."),
@@ -2017,6 +2047,21 @@ final class JuntoStore: ObservableObject {
 
         let nowDateText = Self.formattedCurrentDateTime()
         groups[gIdx].participants[pIdx].paidDateText = nowDateText
+
+        if quota > 0 && (uname == user.username.lowercased() || personName == "Você") {
+            personalExpenses.insert(
+                PersonalExpenseRecord(
+                    title: "Pagamento no grupo\(monthSuffix)",
+                    category: groups[gIdx].category,
+                    amount: quota,
+                    dateText: nowDateText,
+                    monthKey: Self.currentMonthKey(),
+                    groupName: groupTitle,
+                    isPaid: true
+                ),
+                at: 0
+            )
+        }
 
         activities.insert(
             ActivityEvent(
@@ -2032,7 +2077,7 @@ final class JuntoStore: ObservableObject {
         )
         persistPaymentHistory()
         runAIReminderAgentScan()
-        let gidStr = groupId.uuidString.lowercased()
+        let gidStr = resolvedId.uuidString.lowercased()
         Task {
             await JuntoBackendService.shared.confirmGroupPayment(groupId: gidStr, username: uname, monthIndex: mIdx)
         }
@@ -2041,47 +2086,49 @@ final class JuntoStore: ObservableObject {
 
     /// Envia o comprovante de pagamento Pix (imagem ou arquivo PDF) diretamente no chat do grupo
     func sendGroupReceipt(groupId: UUID, amount: Double, imageData: Data?, fileName: String?) {
-        guard let gIdx = groups.firstIndex(where: { $0.id == groupId }) else { return }
+        guard let gIdx = resolvedGroupIndex(for: groupId) else { return }
+        let resolvedId = groups[gIdx].id
+        let isOwner = isCurrentUserOwner(in: groups[gIdx])
 
         let msg = ChatMessage(
             isFromMe: true,
-            kind: .receipt(amount: amount, imageData: imageData, fileName: fileName, status: .pending),
+            kind: .receipt(amount: amount, imageData: imageData, fileName: fileName, status: isOwner ? .approved : .pending),
             timeText: currentTimeString(),
             senderName: user.fullName,
             senderUsername: user.username,
             senderProPlanType: user.proPlanType
         )
 
-        if groupChatMessages[groupId] == nil {
-            groupChatMessages[groupId] = []
+        if groupChatMessages[resolvedId] == nil {
+            groupChatMessages[resolvedId] = []
         }
-        groupChatMessages[groupId]?.append(msg)
+        groupChatMessages[resolvedId]?.append(msg)
         persistChatMessageToServer(
             localId: msg.id,
             friendUsername: nil,
-            groupId: groupId,
+            groupId: resolvedId,
             kind: msg.kind,
             replyToAuthor: nil,
             replyToPreview: nil
         )
 
-        let cleanUser = user.username.lowercased()
-        if let pIdx = groups[gIdx].participants.firstIndex(where: { $0.username.lowercased() == cleanUser }) {
-            groups[gIdx].participants[pIdx].markedPaidByMember = true
-            let mIdx = groups[gIdx].selectedMonthIndex
-            if groups[gIdx].potMode == .monthly, groups[gIdx].monthlyCycles.indices.contains(mIdx) {
-                groups[gIdx].monthlyCycles[mIdx].markedPaidUsernames.insert(cleanUser)
+        if !isOwner {
+            let cleanUser = user.username.lowercased()
+            if let pIdx = groups[gIdx].participants.firstIndex(where: { $0.username.lowercased() == cleanUser }) {
+                groups[gIdx].participants[pIdx].markedPaidByMember = true
+                let mIdx = groups[gIdx].selectedMonthIndex
+                if groups[gIdx].potMode == .monthly, groups[gIdx].monthlyCycles.indices.contains(mIdx) {
+                    groups[gIdx].monthlyCycles[mIdx].markedPaidUsernames.insert(cleanUser)
+                }
             }
         }
-
-        showToast("Comprovante enviado no chat para o organizador conferir!", icon: "doc.text.fill")
     }
 
     func markParticipantPaid(groupId: UUID, participantUsername: String, monthIndex: Int? = nil) {
-        guard let gIdx = groups.firstIndex(where: { $0.id == groupId }) else { return }
+        guard let gIdx = resolvedGroupIndex(for: groupId) else { return }
         let clean = participantUsername.lowercased()
         if let p = groups[gIdx].participants.first(where: { $0.username.lowercased() == clean }) {
-            ownerConfirmParticipantPaid(groupId: groupId, participantId: p.id, monthIndex: monthIndex)
+            ownerConfirmParticipantPaid(groupId: groups[gIdx].id, participantId: p.id, monthIndex: monthIndex)
         }
     }
 

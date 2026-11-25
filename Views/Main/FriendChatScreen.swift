@@ -124,11 +124,9 @@ struct FriendChatScreen: View {
                                             chatBubble(msg)
                                         }
                                         .id(msg.id)
-                                        .onLongPressGesture(minimumDuration: 0.35) {
+                                        .onLongPressGesture(minimumDuration: 0.28) {
                                             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                                            withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
-                                                selectedMessageForMenu = msg
-                                            }
+                                            selectedMessageForMenu = msg
                                         }
                                     }
                                 }
@@ -421,9 +419,10 @@ struct FriendChatScreen: View {
                         startUndoDelete(for: targetId)
                     },
                     onDismiss: {
-                        withAnimation(.easeInOut(duration: 0.15)) { selectedMessageForMenu = nil }
+                        selectedMessageForMenu = nil
                     }
                 )
+                .zIndex(50)
             }
         }
         .onAppear {
@@ -1518,7 +1517,7 @@ struct SwipeToReplyContainer<Content: View>: View {
     }
 }
 
-// MARK: - Menu Flat ao Segurar Mensagem (Responder · Copiar · Editar · Excluir para todos — fundo flat sem glass)
+// MARK: - Menu Flat ao Segurar Mensagem (Animação fluida de abertura e fechamento — fundo flat sem glass)
 struct CustomMessageMenuOverlay: View {
     let previewText: String
     let authorName: String
@@ -1530,11 +1529,24 @@ struct CustomMessageMenuOverlay: View {
     let onDelete: () -> Void
     let onDismiss: () -> Void
 
+    @State private var isVisible: Bool = false
+
+    private func closeWithAnimation(then completion: @escaping () -> Void) {
+        withAnimation(.easeOut(duration: 0.16)) {
+            isVisible = false
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            completion()
+        }
+    }
+
     var body: some View {
         ZStack {
-            Color.black.opacity(0.32)
+            Color.black.opacity(isVisible ? 0.30 : 0.0)
                 .ignoresSafeArea()
-                .onTapGesture { onDismiss() }
+                .onTapGesture {
+                    closeWithAnimation { onDismiss() }
+                }
 
             VStack(spacing: 10) {
                 // Prévia limpa flat da mensagem selecionada
@@ -1552,32 +1564,50 @@ struct CustomMessageMenuOverlay: View {
                 .background(Color.white)
                 .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(JuntoColors.border, lineWidth: 0.9))
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .scaleEffect(isVisible ? 1.0 : 0.92)
+                .offset(y: isVisible ? 0 : 12)
+                .opacity(isVisible ? 1.0 : 0.0)
 
                 // Lista flat de ações (estilo organizado sem glass)
                 VStack(spacing: 0) {
-                    actionRow(icon: "arrowshape.turn.up.left", title: "Responder", color: JuntoColors.textMain, action: onReply)
+                    actionRow(icon: "arrowshape.turn.up.left", title: "Responder", color: JuntoColors.textMain) {
+                        closeWithAnimation { onReply() }
+                    }
 
                     if let onCopy {
                         Divider().padding(.leading, 48)
-                        actionRow(icon: "doc.on.doc", title: "Copiar", color: JuntoColors.textMain, action: onCopy)
+                        actionRow(icon: "doc.on.doc", title: "Copiar", color: JuntoColors.textMain) {
+                            closeWithAnimation { onCopy() }
+                        }
                     }
 
                     if canEdit {
                         Divider().padding(.leading, 48)
-                        actionRow(icon: "pencil", title: "Editar", color: JuntoColors.textMain, action: onEdit)
+                        actionRow(icon: "pencil", title: "Editar", color: JuntoColors.textMain) {
+                            closeWithAnimation { onEdit() }
+                        }
                     }
 
                     if canDelete {
                         Divider().padding(.leading, 48)
-                        actionRow(icon: "trash", title: "Excluir para todos", color: JuntoColors.danger, action: onDelete)
+                        actionRow(icon: "trash", title: "Excluir para todos", color: JuntoColors.danger) {
+                            closeWithAnimation { onDelete() }
+                        }
                     }
                 }
                 .background(Color.white)
                 .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).stroke(JuntoColors.border, lineWidth: 0.9))
                 .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                .scaleEffect(isVisible ? 1.0 : 0.88, anchor: .top)
+                .offset(y: isVisible ? 0 : 18)
+                .opacity(isVisible ? 1.0 : 0.0)
             }
             .padding(.horizontal, 28)
-            .transition(.scale(scale: 0.95).combined(with: .opacity))
+        }
+        .onAppear {
+            withAnimation(.spring(response: 0.28, dampingFraction: 0.78, blendDuration: 0.1)) {
+                isVisible = true
+            }
         }
     }
 

@@ -125,26 +125,26 @@ struct GroupChatScreen: View {
             .background(Color.white)
             .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.8), alignment: .bottom)
 
-            // Lembrete fixado no topo do grupo quando "Pix rápido" estiver marcado (chave Pix + valor para cada um)
+            // Pix rápido fixado (flat minimalista e alinhado: ícone oficial BC + valor + chave + copiar)
             if let g = group, g.pixQuickPinEnabled {
                 let organizer = store.organizerPixInfo(for: g)
                 let quotaVal = g.dynamicQuotaPerPerson
                 HStack(spacing: 10) {
-                    PixOfficialIcon(size: 18, color: Color(hex: "#32BCAD"))
+                    PixOfficialIcon(size: 16, color: Color(hex: "#32BCAD"))
 
                     VStack(alignment: .leading, spacing: 1) {
-                        Text(organizer.pixKey.isEmpty ? "Pix do organizador" : "Pix: \(organizer.pixKey)")
+                        Text(quotaVal > 0 ? "\(JuntoStore.formatBRL(quotaVal)) por pessoa" : "Pix do grupo")
                             .font(.inter(12, weight: .semibold))
                             .foregroundColor(JuntoColors.textMain)
                             .lineLimit(1)
-                        if quotaVal > 0 {
-                            Text("Valor por pessoa: \(JuntoStore.formatBRL(quotaVal))")
-                                .font(.inter(11, weight: .medium))
-                                .foregroundColor(JuntoColors.pixGreen)
-                        }
+                        Text(organizer.pixKey.isEmpty ? "Chave Pix não cadastrada" : organizer.pixKey)
+                            .font(.inter(11, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
                     }
 
-                    Spacer()
+                    Spacer(minLength: 8)
 
                     if !organizer.pixKey.isEmpty {
                         Button {
@@ -153,16 +153,14 @@ struct GroupChatScreen: View {
                             store.showToast("Chave Pix copiada!", icon: "doc.on.doc")
                         } label: {
                             Image(systemName: "doc.on.doc")
-                                .font(.system(size: 14, weight: .medium))
+                                .font(.system(size: 13, weight: .medium))
                                 .foregroundColor(JuntoColors.primary)
-                                .frame(width: 32, height: 32)
-                                .background(JuntoColors.primary.opacity(0.08))
-                                .clipShape(Circle())
+                                .frame(width: 30, height: 30)
                         }
                     }
                 }
                 .padding(.horizontal, 14)
-                .padding(.vertical, 9)
+                .padding(.vertical, 8)
                 .background(Color.white)
                 .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.7), alignment: .bottom)
             }
@@ -486,9 +484,10 @@ struct GroupChatScreen: View {
                         startUndoDelete(for: targetId)
                     },
                     onDismiss: {
-                        withAnimation(.easeInOut(duration: 0.15)) { selectedMessageForMenu = nil }
+                        selectedMessageForMenu = nil
                     }
                 )
+                .zIndex(50)
             }
         }
         .onAppear {
@@ -781,21 +780,18 @@ struct GroupChatScreen: View {
 
                 case .receipt(let amount, let imageData, let fileName, let status):
                     VStack(alignment: .leading, spacing: 8) {
+                        // Status limpo sem fundo verde (flat minimalista)
                         HStack(spacing: 5) {
-                            Image(systemName: status == .approved ? "checkmark.circle.fill" : "hourglass.circle.fill")
-                                .font(.system(size: 13, weight: .bold))
-                                .foregroundColor(status == .approved ? JuntoColors.pixGreen : JuntoColors.accent)
-                            Text(status == .approved ? "PAGAMENTO CONFIRMADO" : "COMPROVANTE PENDENTE")
-                                .font(.inter(11, weight: .bold))
-                                .foregroundColor(status == .approved ? JuntoColors.pixGreen : JuntoColors.accent)
+                            Image(systemName: status == .approved ? "checkmark.circle.fill" : "clock")
+                                .font(.system(size: 12, weight: .semibold))
+                                .foregroundColor(status == .approved ? (msg.isFromMe ? Color(hex: "#5EEAD4") : JuntoColors.pixGreen) : JuntoColors.accent)
+                            Text(status == .approved ? "Pagamento confirmado" : "Comprovante enviado")
+                                .font(.inter(11, weight: .semibold))
+                                .foregroundColor(msg.isFromMe ? .white.opacity(0.85) : JuntoColors.textMuted)
                         }
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 4)
-                        .background(status == .approved ? JuntoColors.pixGreen.opacity(0.12) : JuntoColors.accent.opacity(0.12))
-                        .clipShape(Capsule())
 
                         Text(JuntoStore.formatBRL(amount))
-                            .font(.inter(22, weight: .bold))
+                            .font(.inter(21, weight: .bold))
                             .foregroundColor(msg.isFromMe ? .white : JuntoColors.textMain)
 
                         if let data = imageData, let uiImg = UIImage(data: data) {
@@ -807,25 +803,25 @@ struct GroupChatScreen: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                         } else if let docName = fileName {
                             HStack(spacing: 8) {
-                                Image(systemName: "doc.text.fill")
-                                    .font(.system(size: 20))
-                                    .foregroundColor(JuntoColors.primary)
+                                Image(systemName: "doc.text")
+                                    .font(.system(size: 18))
+                                    .foregroundColor(msg.isFromMe ? .white : JuntoColors.primary)
                                 VStack(alignment: .leading, spacing: 1) {
                                     Text(docName)
                                         .font(.inter(12, weight: .medium))
                                         .foregroundColor(msg.isFromMe ? .white : JuntoColors.textMain)
                                         .lineLimit(1)
-                                    Text("Comprovante PDF")
+                                    Text("Comprovante")
                                         .font(.inter(10, weight: .regular))
                                         .foregroundColor(msg.isFromMe ? .white.opacity(0.7) : JuntoColors.textMuted)
                                 }
                             }
                             .padding(8)
-                            .background(msg.isFromMe ? Color.white.opacity(0.15) : JuntoColors.surfaceSubtle)
+                            .background(msg.isFromMe ? Color.white.opacity(0.12) : JuntoColors.surfaceSubtle)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                         }
 
-                        // Ação de confirmar para Dono ou Admin
+                        // Ação de confirmar para Dono ou Admin (flat sem fundo verde)
                         if let g = group, store.isCurrentUserGroupOwnerOrAdmin(in: g), status == .pending {
                             Button {
                                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
@@ -834,15 +830,15 @@ struct GroupChatScreen: View {
                                 }
                             } label: {
                                 HStack(spacing: 6) {
-                                    Image(systemName: "checkmark.seal.fill")
-                                        .font(.system(size: 13, weight: .bold))
-                                    Text("Conferir e Marcar Pago")
-                                        .font(.inter(12, weight: .bold))
+                                    Image(systemName: "checkmark")
+                                        .font(.system(size: 12, weight: .bold))
+                                    Text("Confirmar pagamento")
+                                        .font(.inter(12, weight: .semibold))
                                 }
-                                .foregroundColor(.white)
+                                .foregroundColor(msg.isFromMe ? JuntoColors.primary : .white)
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 36)
-                                .background(JuntoColors.pixGreen)
+                                .background(msg.isFromMe ? Color.white : JuntoColors.primary)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                             }
                             .padding(.top, 4)
@@ -901,11 +897,9 @@ struct GroupChatScreen: View {
                 groupMessageRow(msg)
             }
             .id(msg.id)
-            .onLongPressGesture(minimumDuration: 0.35) {
+            .onLongPressGesture(minimumDuration: 0.28) {
                 UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.85)) {
-                    selectedMessageForMenu = msg
-                }
+                selectedMessageForMenu = msg
             }
         }
     }

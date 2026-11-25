@@ -8,6 +8,7 @@ struct FriendsView: View {
     @State private var showAddFriendScreen = false
     @State private var selectedChatFriend: FriendItem? = nil
     @State private var selectedGroupChatId: UUID? = nil
+    @State private var groupPendingLeave: RoleGroup? = nil
     @State private var searchText = ""
 
     /// Todas as conversas unificadas estilo WhatsApp: quem mandar recente fica no topo (grupos ou amigos)
@@ -213,6 +214,31 @@ struct FriendsView: View {
                     .environmentObject(store)
             }
         }
+        .alert(
+            groupPendingLeave.map { "Sair de \"\($0.title)\"?" } ?? "Sair do grupo?",
+            isPresented: Binding(
+                get: { groupPendingLeave != nil },
+                set: { if !$0 { groupPendingLeave = nil } }
+            )
+        ) {
+            Button("Cancelar", role: .cancel) {
+                groupPendingLeave = nil
+            }
+            Button("Sair", role: .destructive) {
+                if let target = groupPendingLeave {
+                    let targetId = target.id
+                    let isOwner = store.isCurrentUserOwner(in: target)
+                    groupPendingLeave = nil
+                    if isOwner {
+                        store.deleteGroup(groupId: targetId)
+                    } else {
+                        store.leaveGroup(groupId: targetId)
+                    }
+                }
+            }
+        } message: {
+            Text("Você sairá deste grupo e seu histórico de pagamentos em Meus Gastos continuará salvo.")
+        }
     }
 
     // MARK: - Linha de Conversa com Amigo (Estilo WhatsApp)
@@ -332,6 +358,19 @@ struct FriendsView: View {
         }
         .listRowInsets(EdgeInsets(top: 6, leading: 20, bottom: 6, trailing: 20))
         .listRowBackground(Color.white)
+        .contextMenu {
+            Button {
+                store.clearGroupConversation(for: group.id)
+            } label: {
+                Label("Limpar conversa", systemImage: "trash")
+            }
+
+            Button(role: .destructive) {
+                groupPendingLeave = group
+            } label: {
+                Label("Sair do grupo", systemImage: "rectangle.portrait.and.arrow.right")
+            }
+        }
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive) {
                 store.clearGroupConversation(for: group.id)

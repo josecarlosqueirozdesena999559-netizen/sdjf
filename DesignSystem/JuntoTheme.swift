@@ -134,70 +134,78 @@ struct JuntoPotIcon: View {
     }
 }
 
-// MARK: - Ícone Oficial do Pix (Banco Central do Brasil — Losango com encaixes internos)
+// MARK: - Ícone Oficial do Pix (Banco Central do Brasil — Vetor SVG Oficial Flat)
+struct PixOfficialShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        let sx = rect.width / 24.0
+        let sy = rect.height / 24.0
+        func pt(_ x: CGFloat, _ y: CGFloat) -> CGPoint {
+            CGPoint(x: rect.minX + x * sx, y: rect.minY + y * sy)
+        }
+
+        var p = Path()
+        // Parte inferior
+        p.move(to: pt(5.283, 18.360))
+        p.addCurve(to: pt(7.776, 17.328), control1: pt(6.218, 18.362), control2: pt(7.116, 17.991))
+        p.addLine(to: pt(11.376, 13.728))
+        p.addCurve(to: pt(12.322, 13.728), control1: pt(11.641, 13.475), control2: pt(12.057, 13.475))
+        p.addLine(to: pt(15.935, 17.341))
+        p.addCurve(to: pt(18.428, 18.373), control1: pt(16.595, 18.004), control2: pt(17.493, 18.376))
+        p.addLine(to: pt(19.138, 18.373))
+        p.addLine(to: pt(14.578, 22.933))
+        p.addCurve(to: pt(9.422, 22.933), control1: pt(13.154, 24.356), control2: pt(10.846, 24.356))
+        p.addLine(to: pt(4.850, 18.360))
+        p.closeSubpath()
+
+        // Parte superior
+        p.move(to: pt(18.428, 5.627))
+        p.addCurve(to: pt(15.935, 6.659), control1: pt(17.493, 5.625), control2: pt(16.595, 5.996))
+        p.addLine(to: pt(12.322, 10.273))
+        p.addCurve(to: pt(11.376, 10.273), control1: pt(12.061, 10.534), control2: pt(11.637, 10.534))
+        p.addLine(to: pt(7.776, 6.673))
+        p.addCurve(to: pt(5.283, 5.640), control1: pt(7.116, 6.010), control2: pt(6.219, 5.638))
+        p.addLine(to: pt(4.849, 5.640))
+        p.addLine(to: pt(9.422, 1.068))
+        p.addCurve(to: pt(14.578, 1.068), control1: pt(10.846, -0.356), control2: pt(13.154, -0.356))
+        p.addLine(to: pt(19.137, 5.627))
+        p.closeSubpath()
+
+        // Corpo lateral contínuo oficial (esquerda + centro + direita)
+        p.move(to: pt(1.068, 9.422))
+        p.addLine(to: pt(3.790, 6.699))
+        p.addLine(to: pt(5.282, 6.699))
+        p.addCurve(to: pt(7.026, 7.421), control1: pt(5.936, 6.701), control2: pt(6.562, 6.960))
+        p.addLine(to: pt(10.626, 11.021))
+        p.addCurve(to: pt(13.069, 11.021), control1: pt(11.301, 11.694), control2: pt(12.394, 11.694))
+        p.addLine(to: pt(16.683, 7.408))
+        p.addCurve(to: pt(18.427, 6.685), control1: pt(17.146, 6.947), control2: pt(17.773, 6.687))
+        p.addLine(to: pt(20.194, 6.685))
+        p.addLine(to: pt(22.931, 9.422))
+        p.addCurve(to: pt(22.931, 14.578), control1: pt(24.355, 10.846), control2: pt(24.355, 13.154))
+        p.addLine(to: pt(20.195, 17.314))
+        p.addLine(to: pt(18.427, 17.314))
+        p.addCurve(to: pt(16.683, 16.592), control1: pt(17.773, 17.312), control2: pt(17.147, 17.053))
+        p.addLine(to: pt(13.070, 12.979))
+        p.addCurve(to: pt(10.626, 12.979), control1: pt(12.386, 12.326), control2: pt(11.310, 12.326))
+        p.addLine(to: pt(7.026, 16.579))
+        p.addCurve(to: pt(5.282, 17.301), control1: pt(6.562, 17.040), control2: pt(5.936, 17.299))
+        p.addLine(to: pt(3.791, 17.301))
+        p.addLine(to: pt(1.068, 14.578))
+        p.addCurve(to: pt(1.068, 9.422), control1: pt(-0.356, 13.154), control2: pt(-0.356, 10.846))
+        p.closeSubpath()
+
+        return p
+    }
+}
+
 struct PixOfficialIcon: View {
     var size: CGFloat = 24
     var color: Color = Color(hex: "#32BCAD")
 
     var body: some View {
-        Canvas { ctx, sz in
-            let s = min(sz.width, sz.height)
-            let cx = sz.width / 2
-            let cy = sz.height / 2
-
-            // Desenho vetorial fiel ao símbolo oficial do Pix (4 losangos arredondados formando o diamante central)
-            func drawDiamond(center: CGPoint, radius: CGFloat, corner: CGFloat) {
-                var p = Path()
-                let top = CGPoint(x: center.x, y: center.y - radius)
-                let right = CGPoint(x: center.x + radius, y: center.y)
-                let bottom = CGPoint(x: center.x, y: center.y + radius)
-                let left = CGPoint(x: center.x - radius, y: center.y)
-
-                p.move(to: CGPoint(x: (left.x + top.x) / 2, y: (left.y + top.y) / 2))
-                p.addArc(tangent1End: top, tangent2End: right, radius: corner)
-                p.addArc(tangent1End: right, tangent2End: bottom, radius: corner)
-                p.addArc(tangent1End: bottom, tangent2End: left, radius: corner)
-                p.addArc(tangent1End: left, tangent2End: top, radius: corner)
-                p.closeSubpath()
-                ctx.fill(p, with: .color(color))
-            }
-
-            let d = s * 0.235
-            let r = s * 0.215
-            let corner = s * 0.065
-
-            // Losango superior e inferior
-            drawDiamond(center: CGPoint(x: cx, y: cy - d), radius: r, corner: corner)
-            drawDiamond(center: CGPoint(x: cx, y: cy + d), radius: r, corner: corner)
-            // Losango esquerdo e direito
-            drawDiamond(center: CGPoint(x: cx - d, y: cy), radius: r, corner: corner)
-            drawDiamond(center: CGPoint(x: cx + d, y: cy), radius: r, corner: corner)
-
-            // Conectores sutis em X central (identidade oficial Pix)
-            var cross1 = Path()
-            cross1.move(to: CGPoint(x: cx - d * 0.85, y: cy - d * 0.85))
-            cross1.addLine(to: CGPoint(x: cx + d * 0.85, y: cy + d * 0.85))
-            var cross2 = Path()
-            cross2.move(to: CGPoint(x: cx + d * 0.85, y: cy - d * 0.85))
-            cross2.addLine(to: CGPoint(x: cx - d * 0.85, y: cy + d * 0.85))
-
-            let bridgeStyle = StrokeStyle(lineWidth: max(1.6, s * 0.095), lineCap: .round)
-            ctx.stroke(cross1, with: .color(color), style: bridgeStyle)
-            ctx.stroke(cross2, with: .color(color), style: bridgeStyle)
-
-            // Recorte branco suave no cruzamento interno para fidelidade ao ícone oficial
-            var innerCut = Path()
-            let cr = s * 0.095
-            innerCut.move(to: CGPoint(x: cx, y: cy - cr))
-            innerCut.addLine(to: CGPoint(x: cx + cr, y: cy))
-            innerCut.addLine(to: CGPoint(x: cx, y: cy + cr))
-            innerCut.addLine(to: CGPoint(x: cx - cr, y: cy))
-            innerCut.closeSubpath()
-            ctx.blendMode = .destinationOut
-            ctx.fill(innerCut, with: .color(.black))
-        }
-        .compositingGroup()
-        .frame(width: size, height: size)
+        PixOfficialShape()
+            .fill(color)
+            .frame(width: size, height: size)
     }
 }
 
@@ -211,14 +219,9 @@ struct PixContactCardView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            // Header estilo cartão bancário
-            HStack(spacing: 8) {
-                ZStack {
-                    Circle()
-                        .fill(Color(hex: "#00B494"))
-                        .frame(width: 32, height: 32)
-                    PixOfficialIcon(size: 16, color: .white)
-                }
+            // Header flat com ícone oficial do Pix (Banco Central)
+            HStack(spacing: 10) {
+                PixOfficialIcon(size: 24, color: isFromMe ? Color(hex: "#5EEAD4") : Color(hex: "#32BCAD"))
 
                 VStack(alignment: .leading, spacing: 1) {
                     Text("Chave Pix")

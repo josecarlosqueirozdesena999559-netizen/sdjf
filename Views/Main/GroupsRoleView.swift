@@ -981,7 +981,7 @@ struct GroupDetailSheet: View {
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 18) {
-                    // Topo (Fechar | Nome do Grupo | Configurações + Chat)
+                    // Topo (Fechar | Nome do Grupo | Configurações)
                     HStack(spacing: 10) {
                         PopupCloseButton { dismiss() }
                         Spacer()
@@ -994,18 +994,13 @@ struct GroupDetailSheet: View {
                                 .lineLimit(1)
                         }
                         Spacer()
-                        HStack(spacing: 8) {
-                            Button {
-                                showGroupSettings = true
-                            } label: {
-                                Image(systemName: "gearshape")
-                                    .font(.system(size: 18, weight: .regular))
-                                    .foregroundColor(JuntoColors.textMain)
-                                    .frame(width: 36, height: 36)
-                            }
-                            CircleNavButton(icon: "bubble.left.and.bubble.right", bgColor: JuntoColors.primary, fgColor: .white) {
-                                showGroupChat = true
-                            }
+                        Button {
+                            showGroupSettings = true
+                        } label: {
+                            Image(systemName: "gearshape")
+                                .font(.system(size: 18, weight: .regular))
+                                .foregroundColor(JuntoColors.textMain)
+                                .frame(width: 36, height: 36)
                         }
                     }
                     .padding(.top, 16)
@@ -1025,41 +1020,45 @@ struct GroupDetailSheet: View {
                     }
                     .padding(.vertical, 4)
 
-                    // Lembrete fixado no topo quando "Pix rápido" estiver marcado (chave Pix + valor para cada um)
+                    // Pix rápido fixado (flat limpo: ícone oficial BC + valor + chave + copiar)
                     if group.pixQuickPinEnabled {
                         let organizer = store.organizerPixInfo(for: group)
                         let quotaVal = group.dynamicQuotaPerPerson
-                        HStack(spacing: 12) {
-                            PixOfficialIcon(size: 20, color: Color(hex: "#32BCAD"))
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(organizer.pixKey.isEmpty ? "Pix do organizador" : "Chave Pix: \(organizer.pixKey)")
-                                    .font(.inter(13, weight: .semibold))
-                                    .foregroundColor(JuntoColors.textMain)
-                                    .lineLimit(1)
-                                if quotaVal > 0 {
-                                    Text("Valor para cada um: \(JuntoStore.formatBRL(quotaVal))")
-                                        .font(.inter(12, weight: .medium))
-                                        .foregroundColor(JuntoColors.pixGreen)
+                        VStack(spacing: 0) {
+                            Divider().opacity(0.55)
+                            HStack(spacing: 12) {
+                                PixOfficialIcon(size: 18, color: Color(hex: "#32BCAD"))
+
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(quotaVal > 0 ? "\(JuntoStore.formatBRL(quotaVal)) por pessoa" : "Pix do organizador")
+                                        .font(.inter(13, weight: .semibold))
+                                        .foregroundColor(JuntoColors.textMain)
+                                        .lineLimit(1)
+                                    Text(organizer.pixKey.isEmpty ? "Chave Pix não cadastrada" : organizer.pixKey)
+                                        .font(.inter(12, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                }
+
+                                Spacer(minLength: 8)
+
+                                if !organizer.pixKey.isEmpty {
+                                    Button {
+                                        UIPasteboard.general.string = organizer.pixKey
+                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                        store.showToast("Chave Pix copiada!", icon: "doc.on.doc")
+                                    } label: {
+                                        Image(systemName: "doc.on.doc")
+                                            .font(.system(size: 14, weight: .medium))
+                                            .foregroundColor(JuntoColors.primary)
+                                            .frame(width: 34, height: 34)
+                                    }
                                 }
                             }
-                            Spacer()
-                            if !organizer.pixKey.isEmpty {
-                                Button {
-                                    UIPasteboard.general.string = organizer.pixKey
-                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                    store.showToast("Chave Pix copiada!", icon: "doc.on.doc")
-                                } label: {
-                                    Image(systemName: "doc.on.doc")
-                                        .font(.system(size: 14, weight: .medium))
-                                        .foregroundColor(JuntoColors.primary)
-                                        .frame(width: 34, height: 34)
-                                        .background(JuntoColors.primary.opacity(0.08))
-                                        .clipShape(Circle())
-                                }
-                            }
+                            .padding(.vertical, 10)
+                            Divider().opacity(0.55)
                         }
-                        .padding(.vertical, 10)
-                        Divider().opacity(0.6)
                     }
 
                     // Lista de participantes rolável para o lado (botão adicionar somente ícone!)
@@ -1282,11 +1281,11 @@ struct GroupDetailSheet: View {
                                                 }
                                             }
                                             if isMarkedInCurrentCycle && !isPaidInCurrentCycle {
-                                                Text("\(JuntoStore.formatBRL(participant.quotaAmount)) · Informou pago")
+                                                Text("\(JuntoStore.formatBRL(participant.quotaAmount)) · Aguardando confirmação")
                                                     .font(.inter(12, weight: .medium))
                                                     .foregroundColor(JuntoColors.orangeSave)
                                             } else {
-                                                Text("Cota: \(JuntoStore.formatBRL(participant.quotaAmount))")
+                                                Text(JuntoStore.formatBRL(participant.quotaAmount))
                                                     .font(.inter(12, weight: .regular))
                                                     .foregroundColor(JuntoColors.textMuted)
                                             }
@@ -1312,7 +1311,7 @@ struct GroupDetailSheet: View {
                                                     .foregroundColor(.white)
                                                     .padding(.horizontal, 12)
                                                     .padding(.vertical, 6)
-                                                    .background(JuntoColors.pixGreen)
+                                                    .background(JuntoColors.primary)
                                                     .clipShape(Capsule())
                                                 } else {
                                                     Text("Aguardando")
@@ -1322,7 +1321,7 @@ struct GroupDetailSheet: View {
                                             } else {
                                                 Button("Pagar") {
                                                     pendingPaymentSheet = GroupPaymentRequest(
-                                                        title: "Cota\(monthLabelText) • \(group.title)",
+                                                        title: "\(group.title)\(monthLabelText)",
                                                         amount: participant.quotaAmount,
                                                         participantId: participant.id
                                                     )
@@ -1482,7 +1481,7 @@ struct GroupDetailSheet: View {
                                                 Text(JuntoStore.formatBRL(item.price))
                                                     .font(.inter(15, weight: .medium))
                                                     .foregroundColor(JuntoColors.textMain)
-                                                Text("Cota: \(JuntoStore.formatBRL(shareForThisItem))")
+                                                Text(JuntoStore.formatBRL(shareForThisItem))
                                                     .font(.inter(11, weight: .regular))
                                                     .foregroundColor(JuntoColors.textMuted)
                                             }
@@ -1631,18 +1630,23 @@ struct GroupDetailSheet: View {
                     amount: request.amount,
                     onMarkAsPaid: {
                         if let pid = request.participantId {
-                            store.memberMarkQuotaAsPaid(groupId: groupId, participantId: pid, monthIndex: activeMonthIdx)
+                            store.memberMarkQuotaAsPaid(groupId: resolvedId, participantId: pid, monthIndex: activeMonthIdx)
                         } else {
-                            store.memberMarkGroupExpensesAsPaid(groupId: groupId, amount: request.amount)
+                            store.memberMarkGroupExpensesAsPaid(groupId: resolvedId, amount: request.amount)
                         }
                         pendingPaymentSheet = nil
+                        // Ao enviar e confirmar, abre o grupo (chat) já com o comprovante e valor descontado se for dono
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.30) {
+                            showGroupChat = true
+                        }
                     },
                     onSendReceipt: { imgData, fileName in
-                        store.sendGroupReceipt(groupId: groupId, amount: request.amount, imageData: imgData, fileName: fileName)
+                        store.sendGroupReceipt(groupId: resolvedId, amount: request.amount, imageData: imgData, fileName: fileName)
                     }
                 )
-                .presentationDetents([.height(540), .large])
+                .presentationDetents([.height(470), .large])
                 .presentationCornerRadius(20)
+                .presentationBackground(Color.white)
             }
             .fullScreenCover(isPresented: $showGroupSettings) {
                 GroupSettingsScreen(groupId: resolvedId, onLeaveOrDelete: {
@@ -2004,9 +2008,10 @@ struct GroupSettingsScreen: View {
                                         .frame(width: 28)
 
                                     HStack(spacing: 6) {
-                                        Text("Fechamento automático IA")
+                                        Text("Fechamento IA")
                                             .font(.inter(16, weight: .regular))
                                             .foregroundColor(JuntoColors.textMain)
+                                            .lineLimit(1)
                                         proBadgePill
                                     }
 
@@ -2044,9 +2049,10 @@ struct GroupSettingsScreen: View {
                                         .frame(width: 28)
 
                                     HStack(spacing: 6) {
-                                        Text("Pix rápido no topo do grupo")
+                                        Text("Pix rápido")
                                             .font(.inter(16, weight: .regular))
                                             .foregroundColor(JuntoColors.textMain)
+                                            .lineLimit(1)
                                         proBadgePill
                                     }
 
@@ -2072,8 +2078,8 @@ struct GroupSettingsScreen: View {
                                 }
 
                                 Text(organizer.pixKey.isEmpty
-                                     ? "Fixa no topo do grupo a chave Pix e o valor para cada participante pagar rápido."
-                                     : "Fixa no topo do grupo a chave Pix (\(organizer.pixKey)) e o valor para cada um.")
+                                     ? "Fixa no topo do grupo a chave Pix e o valor por pessoa."
+                                     : "Fixa no topo do grupo a chave Pix (\(organizer.pixKey)) e o valor por pessoa.")
                                     .font(.inter(13, weight: .regular))
                                     .foregroundColor(JuntoColors.textMuted)
                                     .padding(.leading, 42)
@@ -2087,9 +2093,10 @@ struct GroupSettingsScreen: View {
                                         .foregroundColor(JuntoColors.textMuted)
                                         .frame(width: 28)
 
-                                    Text("Somente admins lançam gastos")
+                                    Text("Somente admins lançam")
                                         .font(.inter(16, weight: .regular))
                                         .foregroundColor(JuntoColors.textMain)
+                                        .lineLimit(1)
 
                                     Spacer()
 
@@ -2147,16 +2154,16 @@ struct GroupSettingsScreen: View {
                 JuntoProSubscriptionScreen()
                     .environmentObject(store)
             }
-            .alert("Editar nome do grupo", isPresented: $showEditGroupAlert) {
-                TextField("Nome do grupo", text: $editedTitle)
-                Button("Cancelar", role: .cancel) {}
-                Button("Salvar") {
-                    let clean = editedTitle.trimmingCharacters(in: .whitespacesAndNewlines)
-                    if !clean.isEmpty, let gIdx = groupIndex {
-                        store.groups[gIdx].title = clean
+            .sheet(isPresented: $showEditGroupAlert) {
+                EditGroupNameSheet(initialTitle: editedTitle) { newTitle in
+                    if let gIdx = store.resolvedGroupIndex(for: resolvedId) {
+                        store.groups[gIdx].title = newTitle
                         store.showToast("Nome do grupo atualizado.", icon: "checkmark.circle.fill")
                     }
                 }
+                .presentationDetents([.height(220)])
+                .presentationCornerRadius(20)
+                .presentationBackground(Color.white)
             }
             .alert(isOwner ? "Excluir \"\(group.title)\"?" : "Sair de \"\(group.title)\"?", isPresented: $showLeaveOrDeleteConfirm) {
                 Button("Cancelar", role: .cancel) {}
@@ -2404,7 +2411,55 @@ struct GroupMembersSheet: View {
     }
 }
 
-// MARK: - Sheet de Pagamento Direto ao Organizador (Vencimento de 5 minutos + Anexo de comprovante)
+// MARK: - Sheet Flat de Edição de Nome do Grupo (Input padronizado + X / ✓)
+struct EditGroupNameSheet: View {
+    let initialTitle: String
+    let onSave: (String) -> Void
+    @Environment(\.dismiss) private var dismiss
+
+    @State private var titleText: String = ""
+
+    var body: some View {
+        let trimmed = titleText.trimmingCharacters(in: .whitespacesAndNewlines)
+        VStack(alignment: .leading, spacing: 18) {
+            HStack {
+                PopupCloseButton { dismiss() }
+                Spacer()
+                Text("Editar nome do grupo")
+                    .font(.inter(16, weight: .semibold))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                CircleNavButton(
+                    icon: "checkmark",
+                    bgColor: trimmed.isEmpty ? JuntoColors.surfaceSubtle : JuntoColors.primary,
+                    fgColor: trimmed.isEmpty ? JuntoColors.textLight : .white
+                ) {
+                    guard !trimmed.isEmpty else { return }
+                    onSave(trimmed)
+                    dismiss()
+                }
+                .disabled(trimmed.isEmpty)
+            }
+            .padding(.top, 14)
+
+            CleanOutlineInput(
+                label: "Nome do grupo",
+                placeholder: "Ex: Viagem para Pipa",
+                text: $titleText
+            )
+
+            Spacer()
+        }
+        .padding(.horizontal, 20)
+        .background(Color.white.ignoresSafeArea())
+        .presentationBackground(Color.white)
+        .onAppear {
+            titleText = initialTitle
+        }
+    }
+}
+
+// MARK: - Sheet de Pagamento Direto via Pix (100% Flat Limpo + Ícone Oficial BC + Comprovante)
 struct OrganizerPixPaymentSheet: View {
     let title: String
     let organizerName: String
@@ -2418,7 +2473,7 @@ struct OrganizerPixPaymentSheet: View {
     @State private var timeRemaining = 300 // 5 minutos
     @State private var timer: Timer? = nil
 
-    // Anexo de comprovante (Foto ou PDF)
+    // Anexo de comprovante (Foto ou Arquivo)
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var showFileImporter = false
     @State private var attachedData: Data? = nil
@@ -2430,184 +2485,194 @@ struct OrganizerPixPaymentSheet: View {
         return String(format: "%02d:%02d", mins, secs)
     }
 
+    private func confirmPayment() {
+        UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        onSendReceipt?(attachedData, attachedFileName ?? (attachedData != nil ? "comprovante.jpg" : nil))
+        onMarkAsPaid()
+        dismiss()
+    }
+
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            // Cabeçalho limpo
+        VStack(spacing: 0) {
+            // Topo 100% flat branco: X | Pagar via Pix | ✓
             HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Pagar via Pix")
-                        .font(.inter(18, weight: .semibold))
-                        .foregroundColor(JuntoColors.textMain)
-                    Text("\(title) · Para: \(organizerName)")
-                        .font(.inter(12, weight: .regular))
-                        .foregroundColor(JuntoColors.textMuted)
-                        .lineLimit(1)
-                }
-                Spacer()
                 PopupCloseButton { dismiss() }
-            }
-            .padding(.top, 18)
-
-            // Valor a transferir e tempo de expiração
-            HStack {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("Valor a transferir")
-                        .font(.inter(12, weight: .regular))
-                        .foregroundColor(JuntoColors.textMuted)
-                    if timeRemaining > 0 {
-                        Text("Chave válida por \(formattedTime)")
-                            .font(.inter(11, weight: .medium))
-                            .foregroundColor(timeRemaining < 60 ? JuntoColors.danger : JuntoColors.pixGreen)
-                            .monospacedDigit()
-                    } else {
-                        Text("Chave expirada")
-                            .font(.inter(11, weight: .medium))
-                            .foregroundColor(JuntoColors.danger)
-                    }
-                }
                 Spacer()
-                Text(JuntoStore.formatBRL(amount))
-                    .font(.inter(22, weight: .semibold))
+                Text("Pagar via Pix")
+                    .font(.inter(16, weight: .semibold))
                     .foregroundColor(JuntoColors.textMain)
-            }
-            .padding(.horizontal, 16)
-            .padding(.vertical, 14)
-            .background(Color.white)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
-
-            // Card da Chave Pix com Toque para Copiar
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 8) {
-                    ZStack {
-                        Circle()
-                            .fill(Color(hex: "#00B494"))
-                            .frame(width: 28, height: 28)
-                        PixOfficialIcon(size: 14, color: .white)
-                    }
-                    Text("Chave Pix de \(organizerName)")
-                        .font(.inter(13, weight: .medium))
-                        .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                CircleNavButton(icon: "checkmark", bgColor: JuntoColors.primary, fgColor: .white) {
+                    confirmPayment()
                 }
-
-                Text(organizerPixKey)
-                    .font(.system(size: 16, weight: .medium, design: .monospaced))
-                    .foregroundColor(JuntoColors.textMain)
-                    .textSelection(.enabled)
-                    .padding(12)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(JuntoColors.surfaceSubtle)
-                    .clipShape(RoundedRectangle(cornerRadius: 8))
-
-                Button {
-                    UIPasteboard.general.string = organizerPixKey
-                    copiedKey = true
-                    UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedKey = false }
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: copiedKey ? "checkmark" : "doc.on.doc")
-                            .font(.system(size: 13, weight: .medium))
-                        Text(copiedKey ? "Chave Pix copiada!" : "Copiar Chave Pix")
-                            .font(.inter(13, weight: .semibold))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 42)
-                    .background(Color(hex: "#00B494"))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-                }
-                .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.97))
-
-                Text("Transfira pelo app do seu banco e anexe o comprovante abaixo.")
-                    .font(.inter(11, weight: .regular))
-                    .foregroundColor(JuntoColors.textMuted)
             }
-            .padding(14)
-            .background(Color.white)
-            .overlay(RoundedRectangle(cornerRadius: 12).stroke(JuntoColors.border, lineWidth: 1))
-            .clipShape(RoundedRectangle(cornerRadius: 12))
+            .padding(.horizontal, 20)
+            .padding(.top, 16)
+            .padding(.bottom, 14)
 
-            Spacer(minLength: 4)
+            Divider().opacity(0.6)
 
-            // Comprovante anexado (se houver)
-            if let fName = attachedFileName {
-                HStack(spacing: 8) {
-                    Image(systemName: "checkmark.circle.fill")
-                        .foregroundColor(JuntoColors.pixGreen)
-                    Text("Comprovante: \(fName)")
-                        .font(.inter(12, weight: .medium))
-                        .foregroundColor(JuntoColors.pixGreen)
-                        .lineLimit(1)
-                    Spacer()
-                    Button {
-                        attachedData = nil
-                        attachedFileName = nil
-                    } label: {
-                        Image(systemName: "xmark.circle.fill")
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    // Valor centralizado limpo com ícone oficial flat do Pix (Banco Central)
+                    VStack(spacing: 8) {
+                        PixOfficialIcon(size: 32, color: Color(hex: "#32BCAD"))
+                            .padding(.top, 20)
+
+                        Text(JuntoStore.formatBRL(amount))
+                            .font(.inter(32, weight: .bold))
+                            .foregroundColor(JuntoColors.textMain)
+
+                        Text("\(title) · \(organizerName)")
+                            .font(.inter(13, weight: .regular))
                             .foregroundColor(JuntoColors.textMuted)
-                    }
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 8)
-                .background(JuntoColors.pixGreen.opacity(0.10))
-                .clipShape(RoundedRectangle(cornerRadius: 8))
-            }
+                            .lineLimit(1)
 
-            // Botões de Ação: Anexar Comprovante (Foto ou PDF) + Já Paguei
-            HStack(spacing: 10) {
-                PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
-                    HStack(spacing: 4) {
-                        Image(systemName: "photo")
-                            .font(.system(size: 13))
-                        Text("Foto")
-                            .font(.inter(13, weight: .medium))
+                        Text(timeRemaining > 0 ? "Válido por \(formattedTime)" : "Chave expirada")
+                            .font(.inter(11, weight: .medium))
+                            .foregroundColor(timeRemaining < 60 ? JuntoColors.danger : JuntoColors.textLight)
+                            .monospacedDigit()
+                            .padding(.bottom, 18)
                     }
-                    .foregroundColor(JuntoColors.primary)
-                    .frame(height: 48)
-                    .padding(.horizontal, 12)
-                    .background(JuntoColors.surfaceSubtle)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-
-                Button {
-                    showFileImporter = true
-                } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "doc.fill")
-                            .font(.system(size: 13))
-                        Text("PDF")
-                            .font(.inter(13, weight: .medium))
-                    }
-                    .foregroundColor(JuntoColors.primary)
-                    .frame(height: 48)
-                    .padding(.horizontal, 12)
-                    .background(JuntoColors.surfaceSubtle)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                }
-
-                Button {
-                    onSendReceipt?(attachedData, attachedFileName ?? (attachedData != nil ? "comprovante.jpg" : nil))
-                    onMarkAsPaid()
-                    dismiss()
-                } label: {
-                    HStack(spacing: 6) {
-                        Image(systemName: "checkmark")
-                            .font(.system(size: 14, weight: .semibold))
-                        Text(attachedData != nil || attachedFileName != nil ? "Enviar e Confirmar" : "Já paguei via Pix")
-                            .font(.inter(14, weight: .medium))
-                    }
-                    .foregroundColor(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 48)
-                    .background(JuntoColors.primary)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+
+                    Divider().opacity(0.6)
+
+                    // Linha flat da Chave Pix + botão copiar
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("Chave Pix")
+                                .font(.inter(12, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                            Text(organizerPixKey.isEmpty ? "Chave não cadastrada" : organizerPixKey)
+                                .font(.system(size: 15, weight: .medium, design: .monospaced))
+                                .foregroundColor(JuntoColors.textMain)
+                                .lineLimit(1)
+                                .truncationMode(.middle)
+                                .textSelection(.enabled)
+                        }
+
+                        Spacer(minLength: 8)
+
+                        if !organizerPixKey.isEmpty {
+                            Button {
+                                UIPasteboard.general.string = organizerPixKey
+                                copiedKey = true
+                                UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedKey = false }
+                            } label: {
+                                Image(systemName: copiedKey ? "checkmark" : "doc.on.doc")
+                                    .font(.system(size: 15, weight: .medium))
+                                    .foregroundColor(copiedKey ? .white : JuntoColors.primary)
+                                    .frame(width: 38, height: 38)
+                                    .background(copiedKey ? Color(hex: "#32BCAD") : JuntoColors.surfaceSubtle)
+                                    .clipShape(Circle())
+                            }
+                            .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.94))
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+
+                    Divider().opacity(0.6)
+
+                    // Linha flat de Comprovante (sem caixa verde, sem texto poluído)
+                    VStack(spacing: 10) {
+                        HStack(spacing: 12) {
+                            Image(systemName: attachedFileName != nil ? "checkmark.circle" : "paperclip")
+                                .font(.system(size: 16, weight: .regular))
+                                .foregroundColor(attachedFileName != nil ? JuntoColors.primary : JuntoColors.textMuted)
+                                .frame(width: 24)
+
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(attachedFileName ?? "Anexar comprovante")
+                                    .font(.inter(14, weight: attachedFileName != nil ? .medium : .regular))
+                                    .foregroundColor(JuntoColors.textMain)
+                                    .lineLimit(1)
+                                if attachedFileName == nil {
+                                    Text("Opcional · foto ou arquivo")
+                                        .font(.inter(12, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                }
+                            }
+
+                            Spacer()
+
+                            if attachedFileName != nil {
+                                Button {
+                                    attachedData = nil
+                                    attachedFileName = nil
+                                } label: {
+                                    Image(systemName: "xmark")
+                                        .font(.system(size: 13, weight: .medium))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                        .frame(width: 34, height: 34)
+                                }
+                            } else {
+                                HStack(spacing: 8) {
+                                    PhotosPicker(selection: $selectedPhotoItem, matching: .images) {
+                                        Image(systemName: "photo")
+                                            .font(.system(size: 15, weight: .regular))
+                                            .foregroundColor(JuntoColors.primary)
+                                            .frame(width: 36, height: 36)
+                                            .background(JuntoColors.surfaceSubtle)
+                                            .clipShape(Circle())
+                                    }
+
+                                    Button {
+                                        showFileImporter = true
+                                    } label: {
+                                        Image(systemName: "doc")
+                                            .font(.system(size: 15, weight: .regular))
+                                            .foregroundColor(JuntoColors.primary)
+                                            .frame(width: 36, height: 36)
+                                            .background(JuntoColors.surfaceSubtle)
+                                            .clipShape(Circle())
+                                    }
+                                }
+                            }
+                        }
+
+                        if let data = attachedData, let uiImg = UIImage(data: data) {
+                            Image(uiImage: uiImg)
+                                .resizable()
+                                .scaledToFill()
+                                .frame(height: 110)
+                                .frame(maxWidth: .infinity)
+                                .clipped()
+                                .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
+
+                    Divider().opacity(0.6)
+
+                    // Botão único limpo para Enviar e Confirmar
+                    Button {
+                        confirmPayment()
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 14, weight: .semibold))
+                            Text(attachedData != nil || attachedFileName != nil ? "Enviar e confirmar" : "Confirmar pagamento")
+                                .font(.inter(15, weight: .semibold))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 50)
+                        .background(JuntoColors.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(JuntoTapBounceStyle(scaleAmount: 0.98))
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, 22)
                 }
             }
-            .padding(.bottom, 10)
         }
-        .padding(.horizontal, 20)
         .background(Color.white.ignoresSafeArea())
+        .presentationBackground(Color.white)
         .onChange(of: selectedPhotoItem) { _, newItem in
             Task {
                 if let data = try? await newItem?.loadTransferable(type: Data.self) {
