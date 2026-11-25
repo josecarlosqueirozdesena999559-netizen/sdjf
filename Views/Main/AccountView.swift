@@ -373,7 +373,8 @@ struct AccountSettingsScreen: View {
                 case .password: passwordChanged = true
                 }
             }
-            .presentationDetents([.height(240)])
+            .presentationDetents([.height(field == .pixKey ? 320 : 250)])
+            .presentationBackground(Color.white)
         }
     }
 
@@ -422,11 +423,50 @@ struct EditDraftFieldSheet: View {
     let initialValue: String
     let onSave: (String) -> Void
     @State private var text: String = ""
+    @State private var selectedPixKind: PixKeyKind = .cpf
     @Environment(\.dismiss) private var dismiss
 
-    var body: some View {
+    private var validationState: (isValid: Bool, formatted: String, error: String?) {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
-        VStack(alignment: .leading, spacing: 18) {
+        guard !trimmed.isEmpty else { return (false, "", nil) }
+        switch field {
+        case .pixKey:
+            let res = PixKeyValidator.validate(trimmed, kind: selectedPixKind)
+            return (res.isValid, res.formatted, res.errorMessage)
+        case .phone:
+            let formatted = PixKeyValidator.formatBrPhone(trimmed)
+            let valid = PixKeyValidator.isValidBrPhone(formatted)
+            return (valid, formatted, valid ? nil : "Telefone inválido. Informe DDD + número.")
+        case .email:
+            let clean = trimmed.lowercased()
+            let valid = PixKeyValidator.isValidEmail(clean)
+            return (valid, clean, valid ? nil : "E-mail inválido. Ex: nome@dominio.com")
+        case .name:
+            let valid = trimmed.count >= 2
+            return (valid, trimmed, valid ? nil : "Informe pelo menos 2 caracteres.")
+        case .password:
+            let valid = trimmed.count >= 6
+            return (valid, trimmed, valid ? nil : "Mínimo de 6 caracteres.")
+        }
+    }
+
+    private var inputKeyboardType: UIKeyboardType {
+        switch field {
+        case .phone: return .phonePad
+        case .email: return .emailAddress
+        case .pixKey:
+            switch selectedPixKind {
+            case .cpf, .phone: return .numberPad
+            case .email: return .emailAddress
+            case .random: return .asciiCapable
+            }
+        default: return .default
+        }
+    }
+
+    var body: some View {
+        let state = validationState
+        VStack(alignment: .leading, spacing: 16) {
             HStack {
                 PopupCloseButton { dismiss() }
                 Spacer()
@@ -436,25 +476,90 @@ struct EditDraftFieldSheet: View {
                 Spacer()
                 CircleNavButton(
                     icon: "checkmark",
-                    bgColor: trimmed.isEmpty ? JuntoColors.surfaceSubtle : JuntoColors.primary,
-                    fgColor: trimmed.isEmpty ? JuntoColors.textLight : .white
+                    bgColor: state.isValid ? JuntoColors.primary : JuntoColors.surfaceSubtle,
+                    fgColor: state.isValid ? .white : JuntoColors.textLight
                 ) {
-                    guard !trimmed.isEmpty else { return }
-                    onSave(trimmed)
+                    guard state.isValid else { return }
+                    onSave(state.formatted)
                     dismiss()
                 }
-                .disabled(trimmed.isEmpty)
+                .disabled(!state.isValid)
             }
             .padding(.top, 14)
 
-            CleanOutlineInput(label: "", placeholder: "Digite o novo valor", text: $text)
+            if field == .pixKey {
+                HStack(spacing: 8) {
+                    ForEach(PixKeyKind.allCases) { kind in
+                        let active = selectedPixKind == kind
+                        Button {
+                            withAnimation(.easeInOut(duration: 0.15)) {
+                                selectedPixKind = kind
+                                text = ""
+                            }
+                        } label: {
+                            Text(kind.rawValue)
+                                .font(.inter(12, weight: active ? .semibold : .regular))
+                                .foregroundColor(active ? .white : JuntoColors.textMain)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 34)
+                                .background(active ? JuntoColors.primary : JuntoColors.surfaceSubtle)
+                                .clipShape(Capsule())
+                        }
+                    }
+                }
+            }
+
+            CleanOutlineInput(
+                label: "",
+                placeholder: field == .pixKey ? selectedPixKind.placeholder : (field == .phone ? "(11) 99999-9999" : "Digite o novo valor"),
+                text: $text,
+                keyboardType: inputKeyboardType,
+                leadingPrefix: (field == .phone || (field == .pixKey && selectedPixKind == .phone)) ? "+55" : nil
+            )
+            .textInputAutocapitalization(field == .name ? .words : .never)
+            .autocorrectionDisabled(field != .name)
+            .onChange(of: text) { _, newValue in
+                if field == .pixKey {
+                    let formatted = PixKeyValidator.formatLive(newValue, kind: selectedPixKind)
+                    if formatted != text { text = formatted }
+                } else if field == .phone {
+                    let formatted = PixKeyValidator.formatBrPhone(newValue)
+                    if formatted != text { text = formatted }
+                } else if field == .email {
+                    let clean = newValue.replacingOccurrences(of: " ", with: "").lowercased()
+                    if clean != text { text = clean }
+                }
+            }
+
+            if let err = state.error {
+                Text(err)
+                    .font(.inter(12, weight: .medium))
+                    .foregroundColor(JuntoColors.danger)
+            } else if state.isValid && field == .pixKey {
+                HStack(spacing: 5) {
+                    Image(systemName: "checkmark.circle.fill")
+                        .font(.system(size: 13))
+                    Text("Chave \(selectedPixKind.rawValue) válida")
+                        .font(.inter(12, weight: .medium))
+                }
+                .foregroundColor(JuntoColors.pixGreen)
+            }
 
             Spacer()
         }
         .padding(.horizontal, 20)
         .background(Color.white.ignoresSafeArea())
         .presentationBackground(Color.white)
-        .onAppear { text = initialValue }
+        .onAppear {
+            if field == .pixKey {
+                selectedPixKind = PixKeyValidator.detectKind(from: initialValue)
+                text = PixKeyValidator.formatLive(initialValue, kind: selectedPixKind)
+            } else if field == .phone {
+                text = PixKeyValidator.formatBrPhone(initialValue)
+            } else {
+                text = initialValue
+            }
+        }
     }
 }
 

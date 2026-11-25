@@ -1962,11 +1962,15 @@ struct GroupSettingsScreen: View {
                                             }
                                         }
 
-                                        // Prévia ao vivo da mensagem do agente
+                                        // Prévia ao vivo da mensagem do contato oficial Juntou
                                         VStack(alignment: .leading, spacing: 6) {
-                                            Text("Prévia da Juntô IA")
-                                                .font(.inter(11, weight: .semibold))
-                                                .foregroundColor(JuntoColors.primary)
+                                            HStack(spacing: 6) {
+                                                JuntoOfficialAvatarView(size: 18)
+                                                Text("Prévia · Juntou Oficial")
+                                                    .font(.inter(11, weight: .semibold))
+                                                    .foregroundColor(JuntoColors.primary)
+                                                VerifiedBadgeView(type: .yearly, size: 11)
+                                            }
                                             Text(previewText)
                                                 .font(.inter(12.5, weight: .regular))
                                                 .foregroundColor(JuntoColors.textMain)

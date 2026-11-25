@@ -21,6 +21,10 @@ struct LoginView: View {
         ContactsManager.normalizeBrDigits(phoneText)
     }
 
+    private var isPhoneValid: Bool {
+        PixKeyValidator.isValidBrPhone(cleanDigits)
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             // Topo com voltar e progresso (2 passos)
@@ -81,17 +85,37 @@ struct LoginView: View {
                         )
                         .onChange(of: phoneText) { _, newValue in
                             accountNotFound = false
-                            let formatted = Self.formatLivePhone(newValue)
+                            let formatted = PixKeyValidator.formatBrPhone(newValue)
                             if formatted != phoneText { phoneText = formatted }
                         }
 
-                        JuntoPillButton(
-                            title: isLoading ? "Enviando código..." : "Avançar",
-                            color: cleanDigits.count >= 10 ? JuntoColors.primary : JuntoColors.border
-                        ) {
-                            sendOTP()
+                        if !phoneText.isEmpty && cleanDigits.count >= 10 && !isPhoneValid {
+                            Text("Informe um número brasileiro válido com DDD e 9º dígito.")
+                                .font(.inter(12, weight: .medium))
+                                .foregroundColor(JuntoColors.danger)
                         }
-                        .disabled(cleanDigits.count < 10 || isLoading)
+
+                        if accountNotFound {
+                            VStack(alignment: .leading, spacing: 12) {
+                                Text("Nenhuma conta encontrada para este número. Crie sua conta para começar.")
+                                    .font(.inter(13, weight: .medium))
+                                    .foregroundColor(JuntoColors.orangeSave)
+
+                                JuntoPillButton(title: "Criar conta agora", color: JuntoColors.primary) {
+                                    withAnimation(.easeInOut(duration: 0.22)) {
+                                        store.route = .registerFlow
+                                    }
+                                }
+                            }
+                        } else {
+                            JuntoPillButton(
+                                title: isLoading ? "Verificando..." : "Avançar",
+                                color: isPhoneValid ? JuntoColors.primary : JuntoColors.border
+                            ) {
+                                sendOTP()
+                            }
+                            .disabled(!isPhoneValid || isLoading)
+                        }
 
                     case .otp:
                         VStack(alignment: .leading, spacing: 8) {
@@ -162,13 +186,13 @@ struct LoginView: View {
     }
 
     private func sendOTP() {
-        guard cleanDigits.count >= 10, !isLoading else { return }
+        guard isPhoneValid, !isLoading else { return }
         isLoading = true
         accountNotFound = false
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
         Task {
-            let result = await JuntoBackendService.shared.requestWhatsAppOTP(phone: cleanDigits)
+            let result = await JuntoBackendService.shared.requestWhatsAppOTP(phone: cleanDigits, mode: "login")
             isLoading = false
             if result.ok {
                 startResendCountdown()
@@ -176,8 +200,12 @@ struct LoginView: View {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     step = .otp
                 }
+            } else if !result.isExistingUser, (result.errorMessage?.localizedCaseInsensitiveContains("cadastr") == true || result.errorMessage?.localizedCaseInsensitiveContains("conta") == true) {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    accountNotFound = true
+                }
             } else {
-                store.showToast("Não foi possível enviar o código. Verifique sua conexão.", icon: "exclamationmark.triangle")
+                store.showToast(result.errorMessage ?? "Não foi possível enviar o código. Verifique sua conexão.", icon: "exclamationmark.triangle")
             }
         }
     }

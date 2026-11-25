@@ -280,6 +280,21 @@ struct PixContactCardView: View {
     }
 }
 
+// MARK: - Avatar Oficial do Contato "Juntou" (Logo Oficial do App)
+struct JuntoOfficialAvatarView: View {
+    var size: CGFloat = 34
+
+    var body: some View {
+        Image("JuntoLogoMark")
+            .resizable()
+            .scaledToFill()
+            .frame(width: size, height: size)
+            .background(JuntoColors.primary)
+            .clipShape(Circle())
+            .overlay(Circle().stroke(JuntoColors.border, lineWidth: 0.8))
+    }
+}
+
 // MARK: - Avatar Premium com Cores Misturadas Únicas (mais de 130 combinações diferentes)
 struct GeometricAvatarView: View {
     var seed: String = "junto"

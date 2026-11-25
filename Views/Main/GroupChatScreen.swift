@@ -22,6 +22,7 @@ struct GroupChatScreen: View {
     @State private var showDocumentImporter = false
     @State private var showCreatePollSheet = false
     @State private var showMembersSheet = false
+    @State private var showAnnualProSheet = false
     @State private var recMicPulse = false
 
     // Desfazer exclusão com cronômetro de 5 segundos estilo WhatsApp
@@ -585,33 +586,49 @@ struct GroupChatScreen: View {
                     .presentationCornerRadius(24)
             }
         }
+        .fullScreenCover(isPresented: $showAnnualProSheet) {
+            JuntoProSubscriptionScreen(initialPeriod: .yearly)
+                .environmentObject(store)
+        }
     }
 
-    // MARK: - Bolha de Mensagem do Grupo (Avatar + Nome colorido do participante + Citação de Resposta)
+    // MARK: - Bolha de Mensagem do Grupo (Avatar + Nome colorido do participante + Contato Oficial Juntou)
     @ViewBuilder
     private func groupMessageRow(_ msg: ChatMessage) -> some View {
         let senderSeed = msg.senderUsername ?? msg.senderName ?? "membro"
-        let senderDisplayName = msg.senderName ?? "Participante"
-        let nameColor = colorForMember(senderSeed)
+        let isOfficialAgent = senderSeed.lowercased() == "juntou.oficial" || senderSeed.lowercased() == "junto.ia"
+        let senderDisplayName = isOfficialAgent ? "Juntou" : (msg.senderName ?? "Participante")
+        let nameColor = isOfficialAgent ? JuntoColors.primary : colorForMember(senderSeed)
 
         HStack(alignment: .bottom, spacing: 8) {
             if msg.isFromMe {
                 Spacer(minLength: 48)
+            } else if isOfficialAgent {
+                // Foto oficial do contato "Juntou" usando a logo oficial do app
+                JuntoOfficialAvatarView(size: 32)
             } else {
                 // Foto do usuário no grupo ao lado esquerdo da bolha
                 GeometricAvatarView(seed: senderSeed, displayName: senderDisplayName, size: 30)
             }
 
             VStack(alignment: .leading, spacing: 5) {
-                // Nome do participante em cor única (somente para mensagens de outros membros)
+                // Nome do participante em cor única (ou Juntou Oficial com selo dourado)
                 if !msg.isFromMe {
                     HStack(spacing: 5) {
                         Text(senderDisplayName)
-                            .font(.inter(12, weight: .medium))
+                            .font(.inter(12, weight: isOfficialAgent ? .bold : .medium))
                             .foregroundColor(nameColor)
-                        VerifiedBadgeView(type: msg.senderProPlanType, size: 11)
+                        VerifiedBadgeView(type: isOfficialAgent ? .yearly : msg.senderProPlanType, size: 12)
 
-                        if let uname = msg.senderUsername, uname.lowercased() != store.user.username.lowercased() {
+                        if isOfficialAgent {
+                            Text("Oficial")
+                                .font(.inter(10, weight: .semibold))
+                                .foregroundColor(JuntoColors.primary)
+                                .padding(.horizontal, 6)
+                                .padding(.vertical, 2)
+                                .background(JuntoColors.primary.opacity(0.08))
+                                .clipShape(Capsule())
+                        } else if let uname = msg.senderUsername, uname.lowercased() != store.user.username.lowercased() {
                             let isFriend = store.friends.contains { $0.username.lowercased() == uname.lowercased() && !$0.isPendingInvite }
                             Button {
                                 withAnimation {
@@ -687,12 +704,35 @@ struct GroupChatScreen: View {
                         let key = txt.replacingOccurrences(of: "Minha chave Pix:", with: "").trimmingCharacters(in: .whitespacesAndNewlines)
                         PixContactCardView(name: msg.isFromMe ? store.user.fullName : senderDisplayName, pixKey: key, isFromMe: msg.isFromMe)
                     } else {
-                        Text(txt)
-                            .font(.inter(14, weight: .regular))
-                            .foregroundColor(msg.isFromMe ? .white : JuntoColors.textMain)
-                            .lineSpacing(2)
-                            .multilineTextAlignment(.leading)
-                            .fixedSize(horizontal: false, vertical: true)
+                        VStack(alignment: .leading, spacing: 8) {
+                            Text(txt)
+                                .font(.inter(14, weight: .regular))
+                                .foregroundColor(msg.isFromMe ? .white : JuntoColors.textMain)
+                                .lineSpacing(3)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+
+                            if isOfficialAgent && txt.contains("junto.app/anual") {
+                                Divider().opacity(0.6)
+                                Button {
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    showAnnualProSheet = true
+                                } label: {
+                                    HStack(spacing: 6) {
+                                        VerifiedBadgeView(type: .yearly, size: 13)
+                                        Text("Conhecer Plano Anual Juntô Pro")
+                                            .font(.inter(12, weight: .semibold))
+                                            .foregroundColor(JuntoColors.primary)
+                                        Spacer(minLength: 4)
+                                        Image(systemName: "chevron.right")
+                                            .font(.system(size: 10, weight: .semibold))
+                                            .foregroundColor(JuntoColors.primary)
+                                    }
+                                    .padding(.vertical, 2)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
                     }
 
                 case .photo(let data, let caption):

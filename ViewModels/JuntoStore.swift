@@ -232,7 +232,7 @@ final class JuntoStore: ObservableObject {
         return cal.dateComponents([.day], from: today, to: due).day ?? 0
     }
 
-    /// Monta a mensagem natural e contextual do Agente Juntô IA conforme o tom escolhido e prazo restante
+    /// Monta a mensagem natural, bem formatada e realista do contato oficial Juntou conforme o tom escolhido e prazo restante
     func composeAIReminderMessage(for group: RoleGroup, pendingParticipants: [GroupParticipant], daysLeft: Int) -> String {
         let deadlinePhrase: String
         if daysLeft < 0 {
@@ -249,23 +249,48 @@ final class JuntoStore: ObservableObject {
             .map { $0.name.split(separator: " ").first.map(String.init) ?? $0.name }
             .joined(separator: ", ")
         let quotaSample = pendingParticipants.first?.quotaAmount ?? group.dynamicQuotaPerPerson
-        let quotaText = quotaSample > 0 ? Self.formatBRL(quotaSample) : "sua cota"
+        let quotaText = quotaSample > 0 ? Self.formatBRL(quotaSample) : "valor em aberto"
         let organizer = organizerPixInfo(for: group)
-        let pixSuffix = (group.pixQuickPinEnabled && !organizer.pixKey.isEmpty)
-            ? "\nChave Pix: \(organizer.pixKey)"
+        let pixBlock = (group.pixQuickPinEnabled && !organizer.pixKey.isEmpty)
+            ? "\n\nChave Pix (\(organizer.name.split(separator: " ").first.map(String.init) ?? organizer.name)):\n\(organizer.pixKey)"
             : ""
+        let footer = "\n\n— Juntou · Contato Oficial\nConheça o Plano Anual: https://junto.app/anual"
 
         switch group.aiReminderTone {
         case .friendly:
-            return "Oi pessoal! Aqui é a Juntô IA passando para lembrar que a meta de \"\(group.title)\" \(deadlinePhrase). Ainda está em aberto para: \(namesList) (\(quotaText)).\(pixSuffix)"
+            return """
+            Olá, pessoal!
+
+            Aqui é o Juntou, passando para lembrar com carinho que o prazo de \(group.title) \(deadlinePhrase).
+
+            • Ainda em aberto: \(namesList)
+            • Valor por pessoa: \(quotaText)\(pixBlock)
+
+            Quando fizer a transferência, basta confirmar no grupo para manter tudo atualizado.\(footer)
+            """
         case .direct:
-            return "Lembrete Juntô IA · \"\(group.title)\" \(deadlinePhrase). Pagamento pendente: \(namesList) — \(quotaText).\(pixSuffix)"
+            return """
+            Lembrete de pagamento · \(group.title)
+
+            O prazo do grupo \(deadlinePhrase).
+            • Pendentes: \(namesList)
+            • Valor por pessoa: \(quotaText)\(pixBlock)\(footer)
+            """
         case .funny:
-            return "Alô galera de \"\(group.title)\"! A Juntô IA tá de olho: a meta \(deadlinePhrase) e o Pix ainda não caiu por aqui. Faltam: \(namesList) (\(quotaText)). Bora quitar!\(pixSuffix)"
+            return """
+            Oi pessoal de \(group.title)!
+
+            Passando para dar aquele toque amigo: o prazo \(deadlinePhrase) e ainda faltam alguns pagamentos para fechar tudo certinho.
+
+            • Quem ainda falta: \(namesList)
+            • Valor individual: \(quotaText)\(pixBlock)
+
+            Assim que enviar o Pix, confirme direto no grupo para atualizar na hora.\(footer)
+            """
         }
     }
 
-    /// Varredura automática do Agente Juntô IA: dispara lembretes no app próximo ao vencimento para quem ainda não pagou
+    /// Varredura automática do contato oficial Juntou: dispara lembretes no app próximo ao vencimento para quem ainda não pagou
     func runAIReminderAgentScan() {
         guard user.isPro else { return }
         let df = DateFormatter()
@@ -292,18 +317,25 @@ final class JuntoStore: ObservableObject {
             if group.autoClosureSummaryEnabled && group.overallGoalPercent == 100 {
                 let closureKey = "junto_ai_closure_\(group.id.uuidString.lowercased())"
                 if !UserDefaults.standard.bool(forKey: closureKey) {
-                    let summary = "🎉 Fechamento Juntô IA: \"\(group.title)\" atingiu 100% da meta! Todos os \(group.participants.count) participantes quitaram (\(Self.formatBRL(group.potBalance)) arrecadados)."
-                    deliverAIReminderInApp(group: group, messageBody: summary, notifTitle: "Juntô IA • Grupo 100% quitado!")
+                    let summary = """
+                    Meta concluída em \(group.title)!
+
+                    Todos os \(group.participants.count) participantes confirmaram o pagamento e o grupo atingiu 100% da meta, somando \(Self.formatBRL(group.potBalance)) arrecadados.
+
+                    — Juntou · Contato Oficial
+                    Conheça o Plano Anual: https://junto.app/anual
+                    """
+                    deliverAIReminderInApp(group: group, messageBody: summary, notifTitle: "Juntou · Grupo 100% quitado!")
                     UserDefaults.standard.set(true, forKey: closureKey)
                 }
             }
         }
     }
 
-    /// Envia imediatamente um lembrete do Agente Juntô IA no chat do grupo e nas notificações do app
+    /// Envia imediatamente um lembrete do contato oficial Juntou (via Manus IA no servidor Docker, com fallback instantâneo)
     func triggerAIReminderNow(for groupId: UUID) {
         guard user.isPro else {
-            showToast("O Agente Juntô IA é exclusivo do plano Juntô Pro.", icon: "sparkles")
+            showToast("O Agente Juntou é exclusivo do plano Juntô Pro.", icon: "sparkles")
             return
         }
         guard let idx = resolvedGroupIndex(for: groupId) else { return }
@@ -314,11 +346,26 @@ final class JuntoStore: ObservableObject {
             return
         }
         let daysLeft = daysUntilDue(for: group)
-        let messageBody = composeAIReminderMessage(for: group, pendingParticipants: pending, daysLeft: daysLeft)
-        deliverAIReminderInApp(group: group, messageBody: messageBody)
         let gidStr = group.id.uuidString.lowercased()
-        Task { await JuntoBackendService.shared.triggerGroupAIReminder(groupId: gidStr) }
-        showToast("Juntô IA enviou o lembrete no app!", icon: "sparkles")
+        showToast("Juntou está preparando o lembrete...", icon: "sparkles")
+
+        Task {
+            let serverMessage = await JuntoBackendService.shared.triggerGroupAIReminder(groupId: gidStr)
+            let finalBody = (serverMessage?.isEmpty == false)
+                ? serverMessage!
+                : composeAIReminderMessage(for: group, pendingParticipants: pending, daysLeft: daysLeft)
+            // Evita duplicação caso o evento SSE já tenha inserido a mensagem oficial idêntica
+            let alreadyArrived = (groupChatMessages[group.id] ?? []).suffix(3).contains { msg in
+                if case .text(let t) = msg.kind {
+                    return t.trimmingCharacters(in: .whitespacesAndNewlines) == finalBody.trimmingCharacters(in: .whitespacesAndNewlines)
+                }
+                return false
+            }
+            if !alreadyArrived {
+                deliverAIReminderInApp(group: group, messageBody: finalBody)
+            }
+            showToast("Juntou enviou o lembrete no grupo!", icon: "checkmark.circle")
+        }
     }
 
     private func deliverAIReminderInApp(group: RoleGroup, messageBody: String, notifTitle: String? = nil) {
@@ -328,15 +375,15 @@ final class JuntoStore: ObservableObject {
             timeText: currentTimeString(),
             createdAt: Date(),
             status: .read,
-            senderName: "Juntô IA",
-            senderUsername: "junto.ia",
+            senderName: "Juntou",
+            senderUsername: "juntou.oficial",
             senderProPlanType: .yearly
         )
         unhideGroupConversation(for: group.id)
         groupChatMessages[group.id, default: []].append(aiMsg)
         unreadGroupCounts[group.id, default: 0] += 1
 
-        let title = notifTitle ?? "Juntô IA • Lembrete em \(group.title)"
+        let title = notifTitle ?? "Juntou · Lembrete em \(group.title)"
         notifications.insert(
             AppNotification(
                 icon: "sparkles",
@@ -2953,7 +3000,7 @@ final class JuntoStore: ObservableObject {
         saveUserSession()
         let uname = user.username
         Task {
-            await JuntoBackendService.shared.syncProStatus(username: uname, isPro: true, planName: plan)
+            await JuntoBackendService.shared.syncProStatus(username: uname, isPro: true, planName: plan, planType: planType)
         }
         let selo = planType == .yearly ? "Dourado" : "Roxo"
         JuntoNotificationManager.shared.triggerLocalNotification(
@@ -2970,7 +3017,7 @@ final class JuntoStore: ObservableObject {
         user.proExpiresDateText = nil
         let uname = user.username
         Task {
-            await JuntoBackendService.shared.syncProStatus(username: uname, isPro: false, planName: nil)
+            await JuntoBackendService.shared.syncProStatus(username: uname, isPro: false, planName: nil, planType: .none)
         }
         showToast("Assinatura Juntô Pro cancelada.", icon: "checkmark")
     }

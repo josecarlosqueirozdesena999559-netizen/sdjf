@@ -10,6 +10,8 @@ struct JuntoProSubscriptionScreen: View {
         case yearly = "Anual"
     }
 
+    var initialPeriod: PlanPeriod = .monthly
+
     @StateObject private var storeKit = JuntoStoreKitManager.shared
     @State private var selectedPeriod: PlanPeriod = .monthly
     @State private var isProcessing = false
@@ -207,6 +209,7 @@ struct JuntoProSubscriptionScreen: View {
         }
         .background(Color.white.ignoresSafeArea())
         .task {
+            selectedPeriod = initialPeriod
             await storeKit.loadProducts()
         }
         .sheet(isPresented: $showTermsSheet) {

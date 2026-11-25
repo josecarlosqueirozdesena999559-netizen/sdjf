@@ -2,7 +2,7 @@ import SwiftUI
 import PhotosUI
 
 /// Cadastro passo a passo (1 input por tela):
-/// 1. Nome completo -> 2. Idade -> 3. Telefone (WhatsApp) -> 4. Código do WhatsApp -> 5. Foto opcional com nome abaixo -> Início
+/// 1. Nome completo -> 2. Idade -> 3. Telefone (valida se já tem cadastro) -> 4. Código OTP -> 5. Chave Pix (CPF/Telefone/E-mail/Aleatória com formatação e validação real) -> 6. Foto opcional -> Início
 struct RegisterFlowView: View {
     @EnvironmentObject var store: JuntoStore
 
@@ -11,7 +11,8 @@ struct RegisterFlowView: View {
         case age = 2
         case phone = 3
         case otp = 4
-        case photo = 5
+        case pixKey = 5
+        case photo = 6
     }
 
     @State private var step: RegisterStep = .fullName
@@ -19,10 +20,14 @@ struct RegisterFlowView: View {
     @State private var ageText: String = ""
     @State private var phoneText: String = ""
     @State private var otpCode: String = ""
+    @State private var selectedPixKind: PixKeyKind = .cpf
+    @State private var pixKeyText: String = ""
     @State private var selectedPhotoItem: PhotosPickerItem? = nil
     @State private var avatarData: Data? = nil
 
     @State private var isLoading: Bool = false
+    @State private var phoneAlreadyRegistered: Bool = false
+    @State private var phoneErrorText: String? = nil
     @State private var resendSeconds: Int = 0
     @State private var resendTimer: Timer? = nil
 
@@ -41,6 +46,22 @@ struct RegisterFlowView: View {
 
     private var cleanDigits: String {
         ContactsManager.normalizeBrDigits(phoneText)
+    }
+
+    private var isPhoneValid: Bool {
+        PixKeyValidator.isValidBrPhone(cleanDigits)
+    }
+
+    private var pixValidation: PixValidationResult {
+        PixKeyValidator.validate(pixKeyText, kind: selectedPixKind)
+    }
+
+    private var pixKeyboardType: UIKeyboardType {
+        switch selectedPixKind {
+        case .cpf, .phone: return .numberPad
+        case .email: return .emailAddress
+        case .random: return .asciiCapable
+        }
     }
 
     private var progressFraction: CGFloat {
@@ -150,13 +171,13 @@ struct RegisterFlowView: View {
                         }
                         .disabled(!isAgeValid)
 
-                    // TELA 3: Telefone (WhatsApp)
+                    // TELA 3: Telefone (WhatsApp — valida formato BR e se já existe cadastro)
                     case .phone:
                         VStack(alignment: .leading, spacing: 8) {
                             Text("Qual é o seu WhatsApp?")
                                 .font(.inter(26, weight: .bold))
                                 .foregroundColor(JuntoColors.textMain)
-                            Text("Enviaremos um código de 6 dígitos no seu WhatsApp para validar sua conta.")
+                            Text("Verificamos seu número e enviamos um código de 6 dígitos para validar sua conta.")
                                 .font(.inter(14, weight: .regular))
                                 .foregroundColor(JuntoColors.textMuted)
                                 .lineSpacing(3)
@@ -164,29 +185,49 @@ struct RegisterFlowView: View {
                         .padding(.top, 20)
 
                         CleanOutlineInput(
-                            label: "Número do WhatsApp",
+                            label: "Número de telefone",
                             placeholder: "(11) 99999-9999",
                             text: $phoneText,
                             keyboardType: .phonePad,
                             leadingPrefix: "+55"
                         )
                         .onChange(of: phoneText) { _, newValue in
-                            let formatted = LoginView.formatLivePhone(newValue)
+                            phoneAlreadyRegistered = false
+                            phoneErrorText = nil
+                            let formatted = PixKeyValidator.formatBrPhone(newValue)
                             if formatted != phoneText { phoneText = formatted }
                         }
 
-                        JuntoPillButton(
-                            title: isLoading ? "Enviando código..." : "Avançar",
-                            color: cleanDigits.count >= 10 ? JuntoColors.primary : JuntoColors.border
-                        ) {
-                            sendOTP()
+                        if !phoneText.isEmpty && cleanDigits.count >= 10 && !isPhoneValid {
+                            Text("Informe um número brasileiro válido com DDD e 9º dígito.")
+                                .font(.inter(12, weight: .medium))
+                                .foregroundColor(JuntoColors.danger)
+                        } else if let err = phoneErrorText {
+                            Text(err)
+                                .font(.inter(13, weight: .medium))
+                                .foregroundColor(phoneAlreadyRegistered ? JuntoColors.orangeSave : JuntoColors.danger)
                         }
-                        .disabled(cleanDigits.count < 10 || isLoading)
+
+                        if phoneAlreadyRegistered {
+                            JuntoPillButton(title: "Ir para Entrar", color: JuntoColors.primary) {
+                                withAnimation(.easeInOut(duration: 0.22)) {
+                                    store.route = .login
+                                }
+                            }
+                        } else {
+                            JuntoPillButton(
+                                title: isLoading ? "Verificando..." : "Avançar",
+                                color: isPhoneValid ? JuntoColors.primary : JuntoColors.border
+                            ) {
+                                sendOTP()
+                            }
+                            .disabled(!isPhoneValid || isLoading)
+                        }
 
                     // TELA 4: Código do WhatsApp
                     case .otp:
                         VStack(alignment: .leading, spacing: 8) {
-                            Text("Código do WhatsApp")
+                            Text("Código de verificação")
                                 .font(.inter(26, weight: .bold))
                                 .foregroundColor(JuntoColors.textMain)
                             Text("Digite o código de 6 dígitos enviado para +55 \(phoneText).")
@@ -217,7 +258,7 @@ struct RegisterFlowView: View {
                                     .foregroundColor(JuntoColors.textMuted)
                                     .monospacedDigit()
                             } else {
-                                Button("Reenviar código no WhatsApp") {
+                                Button("Reenviar código") {
                                     sendOTP()
                                 }
                                 .font(.inter(13, weight: .semibold))
@@ -227,7 +268,97 @@ struct RegisterFlowView: View {
                         }
                         .padding(.top, 4)
 
-                    // TELA 5: Foto opcional (se não escolher, mantém avatar padrão) + Nome abaixo + Avançar para o Início
+                    // TELA 5: Chave Pix (CPF, Telefone, E-mail ou Aleatória com formatação e validação real)
+                    case .pixKey:
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(spacing: 8) {
+                                PixOfficialIcon(size: 24, color: Color(hex: "#32BCAD"))
+                                Text("Sua Chave Pix")
+                                    .font(.inter(26, weight: .bold))
+                                    .foregroundColor(JuntoColors.textMain)
+                            }
+                            Text("Cadastre sua chave Pix para receber dos seus amigos nos grupos. Você pode alterar depois no perfil.")
+                                .font(.inter(14, weight: .regular))
+                                .foregroundColor(JuntoColors.textMuted)
+                                .lineSpacing(3)
+                        }
+                        .padding(.top, 20)
+
+                        // Seletor limpo do tipo de chave Pix
+                        HStack(spacing: 8) {
+                            ForEach(PixKeyKind.allCases) { kind in
+                                let active = selectedPixKind == kind
+                                Button {
+                                    withAnimation(.easeInOut(duration: 0.16)) {
+                                        selectedPixKind = kind
+                                        pixKeyText = ""
+                                    }
+                                } label: {
+                                    Text(kind.rawValue)
+                                        .font(.inter(12, weight: active ? .semibold : .regular))
+                                        .foregroundColor(active ? .white : JuntoColors.textMain)
+                                        .frame(maxWidth: .infinity)
+                                        .frame(height: 36)
+                                        .background(active ? JuntoColors.primary : JuntoColors.surfaceSubtle)
+                                        .clipShape(Capsule())
+                                }
+                            }
+                        }
+
+                        VStack(alignment: .leading, spacing: 8) {
+                            CleanOutlineInput(
+                                label: "Chave Pix (\(selectedPixKind.rawValue))",
+                                placeholder: selectedPixKind.placeholder,
+                                text: $pixKeyText,
+                                keyboardType: pixKeyboardType,
+                                leadingPrefix: selectedPixKind == .phone ? "+55" : nil
+                            )
+                            .textInputAutocapitalization(.never)
+                            .autocorrectionDisabled(true)
+                            .onChange(of: pixKeyText) { _, newValue in
+                                let formatted = PixKeyValidator.formatLive(newValue, kind: selectedPixKind)
+                                if formatted != pixKeyText { pixKeyText = formatted }
+                            }
+
+                            if selectedPixKind == .phone && pixKeyText.isEmpty && !phoneText.isEmpty {
+                                Button {
+                                    pixKeyText = PixKeyValidator.formatBrPhone(phoneText)
+                                } label: {
+                                    Text("Usar meu telefone (+55 \(phoneText))")
+                                        .font(.inter(13, weight: .semibold))
+                                        .foregroundColor(JuntoColors.primary)
+                                }
+                                .padding(.top, 2)
+                            }
+
+                            if let err = pixValidation.errorMessage {
+                                Text(err)
+                                    .font(.inter(12, weight: .medium))
+                                    .foregroundColor(JuntoColors.danger)
+                            } else if pixValidation.isValid {
+                                HStack(spacing: 5) {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.system(size: 13))
+                                    Text("Chave \(selectedPixKind.rawValue) válida")
+                                        .font(.inter(12, weight: .medium))
+                                }
+                                .foregroundColor(JuntoColors.pixGreen)
+                            } else {
+                                Text(selectedPixKind.helperText)
+                                    .font(.inter(12, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMuted)
+                            }
+                        }
+
+                        JuntoPillButton(
+                            title: isLoading ? "Salvando..." : "Avançar",
+                            color: pixValidation.isValid ? JuntoColors.primary : JuntoColors.border
+                        ) {
+                            savePixKeyAndContinue()
+                        }
+                        .disabled(!pixValidation.isValid || isLoading)
+
+                    // TELA 6: Foto opcional + Nome abaixo + Avançar para o Início
                     case .photo:
                         VStack(spacing: 24) {
                             VStack(spacing: 6) {
@@ -268,7 +399,6 @@ struct RegisterFlowView: View {
                                     }
                                 }
 
-                                // Nome do usuário logo abaixo da foto/avatar
                                 Text(cleanFullName)
                                     .font(.inter(20, weight: .bold))
                                     .foregroundColor(JuntoColors.textMain)
@@ -322,6 +452,8 @@ struct RegisterFlowView: View {
             case .otp:
                 otpCode = ""
                 step = .phone
+            case .pixKey:
+                step = .otp
             case .photo:
                 break
             }
@@ -329,12 +461,14 @@ struct RegisterFlowView: View {
     }
 
     private func sendOTP() {
-        guard cleanDigits.count >= 10, !isLoading else { return }
+        guard isPhoneValid, !isLoading else { return }
         isLoading = true
+        phoneAlreadyRegistered = false
+        phoneErrorText = nil
         UIImpactFeedbackGenerator(style: .light).impactOccurred()
 
         Task {
-            let result = await JuntoBackendService.shared.requestWhatsAppOTP(phone: cleanDigits)
+            let result = await JuntoBackendService.shared.requestWhatsAppOTP(phone: cleanDigits, mode: "register")
             isLoading = false
             if result.ok {
                 startResendCountdown()
@@ -342,8 +476,11 @@ struct RegisterFlowView: View {
                 withAnimation(.easeInOut(duration: 0.2)) {
                     step = .otp
                 }
+            } else if result.isExistingUser {
+                phoneAlreadyRegistered = true
+                phoneErrorText = result.errorMessage ?? "Este número já possui cadastro no Juntô. Toque em Entrar."
             } else {
-                store.showToast("Não foi possível enviar o código. Verifique sua conexão.", icon: "exclamationmark.triangle")
+                phoneErrorText = result.errorMessage ?? "Não foi possível enviar o código. Verifique sua conexão."
             }
         }
     }
@@ -364,11 +501,29 @@ struct RegisterFlowView: View {
             if outcome.success {
                 resendTimer?.invalidate()
                 withAnimation(.easeInOut(duration: 0.22)) {
-                    step = .photo
+                    step = .pixKey
                 }
             } else if let err = outcome.errorMessage {
                 otpCode = ""
                 store.showToast(err, icon: "exclamationmark.circle")
+            }
+        }
+    }
+
+    private func savePixKeyAndContinue() {
+        guard pixValidation.isValid, !isLoading else { return }
+        isLoading = true
+        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+
+        let validatedKey = pixValidation.formatted
+        store.user.pixKey = validatedKey
+        store.saveUserSession()
+
+        Task {
+            _ = await JuntoBackendService.shared.updateProfile(pixKey: validatedKey)
+            isLoading = false
+            withAnimation(.easeInOut(duration: 0.22)) {
+                step = .photo
             }
         }
     }
@@ -379,6 +534,9 @@ struct RegisterFlowView: View {
             store.user.avatarData = data
         }
         store.user.fullName = cleanFullName
+        if pixValidation.isValid {
+            store.user.pixKey = pixValidation.formatted
+        }
         if let age = parsedAge {
             store.user.age = age
         }
@@ -413,7 +571,6 @@ struct WhatsAppSixDigitOTPView: View {
 
     var body: some View {
         ZStack {
-            // Campo numérico invisível para captura nativa do teclado e preenchimento automático de código (OTP)
             TextField("", text: $code)
                 .keyboardType(.numberPad)
                 .textContentType(.oneTimeCode)
@@ -421,46 +578,33 @@ struct WhatsAppSixDigitOTPView: View {
                 .frame(width: 1, height: 1)
                 .opacity(0.01)
                 .onChange(of: code) { _, newValue in
-                    let filtered = String(newValue.filter { $0.isNumber }.prefix(6))
-                    if filtered != code {
-                        code = filtered
-                    }
-                    if filtered.count == 6 {
+                    let digits = String(newValue.filter { $0.isNumber }.prefix(6))
+                    if digits != code { code = digits }
+                    if digits.count == 6 {
                         onComplete?()
                     }
                 }
 
-            // 6 quadrados responsivos estilo WhatsApp
-            HStack(spacing: 10) {
+            HStack(spacing: 8) {
                 ForEach(0..<6, id: \.self) { index in
-                    let charStr = digitAt(index)
-                    let isCurrent = isFocused && (code.count == index || (code.count == 6 && index == 5))
-                    let isFilled = !charStr.isEmpty
-
+                    let char = digitAt(index)
+                    let isCurrent = index == code.count && isFocused
                     ZStack {
                         RoundedRectangle(cornerRadius: 12, style: .continuous)
                             .fill(Color.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 56)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12, style: .continuous)
                                     .stroke(
-                                        isCurrent ? JuntoColors.primary : (isFilled ? JuntoColors.primary.opacity(0.45) : JuntoColors.inputBorder),
+                                        isCurrent ? JuntoColors.primary : (char.isEmpty ? JuntoColors.border : JuntoColors.primary.opacity(0.55)),
                                         lineWidth: isCurrent ? 1.8 : 1.0
                                     )
                             )
-
-                        if isFilled {
-                            Text(charStr)
-                                .font(.inter(22, weight: .semibold))
-                                .foregroundColor(JuntoColors.textMain)
-                                .transition(.scale.combined(with: .opacity))
-                        } else if isCurrent {
-                            RoundedRectangle(cornerRadius: 1)
-                                .fill(JuntoColors.primary)
-                                .frame(width: 2, height: 22)
-                        }
+                        Text(char)
+                            .font(.inter(22, weight: .bold))
+                            .foregroundColor(JuntoColors.textMain)
                     }
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
                 }
             }
             .contentShape(Rectangle())
@@ -469,15 +613,15 @@ struct WhatsAppSixDigitOTPView: View {
             }
         }
         .onAppear {
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
                 isFocused = true
             }
         }
     }
 
     private func digitAt(_ index: Int) -> String {
-        let digits = Array(code)
-        guard index < digits.count else { return "" }
-        return String(digits[index])
+        guard index < code.count else { return "" }
+        let idx = code.index(code.startIndex, offsetBy: index)
+        return String(code[idx])
     }
 }

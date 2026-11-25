@@ -80,7 +80,8 @@ actor JuntoBackendService {
         path: String,
         method: String = "GET",
         body: [String: Any]? = nil,
-        allowRetryOnUnauthorized: Bool = true
+        allowRetryOnUnauthorized: Bool = true,
+        allowErrorBody: Bool = false
     ) async -> [String: Any]? {
         guard let url = URL(string: "\(baseURL)\(path)") else { return nil }
         var req = URLRequest(url: url)
@@ -98,10 +99,13 @@ actor JuntoBackendService {
             guard let http = response as? HTTPURLResponse else { return nil }
 
             if http.statusCode == 401 && allowRetryOnUnauthorized, await refreshAccessToken() {
-                return await request(path: path, method: method, body: body, allowRetryOnUnauthorized: false)
+                return await request(path: path, method: method, body: body, allowRetryOnUnauthorized: false, allowErrorBody: allowErrorBody)
             }
 
-            guard (200...299).contains(http.statusCode) else {
+            if !(200...299).contains(http.statusCode) {
+                if allowErrorBody {
+                    return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+                }
                 return nil
             }
             return (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
@@ -250,21 +254,43 @@ actor JuntoBackendService {
     }
 
     // MARK: - 4. Login / Cadastro Exclusivo via WhatsApp OTP no Redis/PostgreSQL
-    func requestWhatsAppOTP(phone: String) async -> (ok: Bool, isExistingUser: Bool) {
+    func checkPhoneRegistered(phone: String) async -> (ok: Bool, exists: Bool, errorMessage: String?) {
         let digitsOnly = phone.filter { $0.isNumber }
-        guard digitsOnly.count >= 10 else { return (false, false) }
+        guard digitsOnly.count >= 10 else { return (false, false, "Número inválido.") }
+        let res = await request(
+            path: "/v1/auth/check-phone",
+            method: "POST",
+            body: ["phone": digitsOnly],
+            allowRetryOnUnauthorized: false,
+            allowErrorBody: true
+        )
+        let ok = (res?["ok"] as? Bool) ?? false
+        let exists = (res?["exists"] as? Bool) ?? false
+        let err = res?["error"] as? String
+        return (ok, exists, err)
+    }
+
+    func requestWhatsAppOTP(phone: String, mode: String? = nil) async -> (ok: Bool, isExistingUser: Bool, errorMessage: String?) {
+        let digitsOnly = phone.filter { $0.isNumber }
+        guard digitsOnly.count >= 10 else { return (false, false, "Número inválido.") }
+        var body: [String: Any] = [
+            "phone": digitsOnly,
+            "template": "junto_codigo_verificacao"
+        ]
+        if let mode {
+            body["mode"] = mode
+        }
         let res = await request(
             path: "/v1/auth/whatsapp/send-otp",
             method: "POST",
-            body: [
-                "phone": digitsOnly,
-                "template": "junto_codigo_verificacao"
-            ],
-            allowRetryOnUnauthorized: false
+            body: body,
+            allowRetryOnUnauthorized: false,
+            allowErrorBody: true
         )
         let ok = (res?["ok"] as? Bool) ?? false
         let existing = (res?["isExistingUser"] as? Bool) ?? false
-        return (ok, existing)
+        let err = res?["error"] as? String
+        return (ok, existing, err)
     }
 
     func loginWithWhatsAppOTP(
@@ -554,8 +580,9 @@ actor JuntoBackendService {
     }
 
     /// Dispara imediatamente o Agente Juntô IA no servidor para avisar os pendentes do grupo
-    func triggerGroupAIReminder(groupId: String) async {
-        _ = await request(path: "/v1/groups/\(groupId)/ai-remind", method: "POST", body: [:])
+    func triggerGroupAIReminder(groupId: String) async -> String? {
+        let res = await request(path: "/v1/groups/\(groupId)/ai-remind", method: "POST", body: [:])
+        return res?["message"] as? String
     }
 
     // MARK: - 9. Chat & Mídia Persistente (Volume Docker + PostgreSQL)
@@ -651,8 +678,12 @@ actor JuntoBackendService {
     }
 
     // MARK: - 10. Assinatura Juntô Pro (StoreKit 2), Caixinhas, Despesas e Notificações
-    func syncProStatus(username: String, isPro: Bool, planName: String?) async {
-        var body: [String: Any] = ["username": username, "isPro": isPro]
+    func syncProStatus(username: String, isPro: Bool, planName: String?, planType: ProPlanType = .none) async {
+        var body: [String: Any] = [
+            "username": username,
+            "isPro": isPro,
+            "planType": planType.rawValue
+        ]
         if let p = planName { body["planName"] = p }
         _ = await request(path: "/v1/sync/pro", method: "POST", body: body)
     }
