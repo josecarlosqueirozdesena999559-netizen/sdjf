@@ -6,6 +6,7 @@ final class JuntoAppDelegate: NSObject, UIApplicationDelegate {
         _ application: UIApplication,
         didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil
     ) -> Bool {
+        ChatSoundManager.shared.preload()
         return true
     }
 

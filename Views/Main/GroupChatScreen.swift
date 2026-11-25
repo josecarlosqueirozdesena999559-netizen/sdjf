@@ -198,7 +198,10 @@ struct GroupChatScreen: View {
                         }
                     }
                 }
-                .onChange(of: messages.count) { _, _ in
+                .onChange(of: messages.count) { oldCount, newCount in
+                    if newCount > oldCount, let last = messages.last, !last.isFromMe {
+                        ChatSoundManager.shared.playReceiveSound()
+                    }
                     if let lastId = messages.last?.id {
                         withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
                             proxy.scrollTo(lastId, anchor: .bottom)
@@ -407,6 +410,9 @@ struct GroupChatScreen: View {
                         Button {
                             let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
                             guard !text.isEmpty else { return }
+                            if editingMessageId == nil {
+                                ChatSoundManager.shared.playSendSound()
+                            }
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             inputText = ""
                             if let editId = editingMessageId {
@@ -490,6 +496,11 @@ struct GroupChatScreen: View {
                 )
                 .zIndex(50)
             }
+        }
+        .juntoSwipeBack {
+            audioManager.stopPlayback()
+            audioManager.cancelRecording()
+            dismiss()
         }
         .onAppear {
             store.markGroupChatAsRead(groupId: groupId)
@@ -979,6 +990,7 @@ struct GroupChatScreen: View {
         isDraggingMic = false
         micDragOffsetY = 0
         let recorded = audioManager.finishRecording()
+        ChatSoundManager.shared.playSendSound()
         let rAuthor = replyingToMessage.map { $0.isFromMe ? "Você" : ($0.senderName ?? "Participante") }
         let rPreview = replyingToMessage?.previewText
         replyingToMessage = nil

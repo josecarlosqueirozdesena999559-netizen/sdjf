@@ -376,13 +376,13 @@ struct CreateGroupScreen: View {
     @State private var hasEndDate: Bool = false
 
     @State private var potTotalText: String = ""
-    @State private var potMode: PotRecurrenceMode = .single
     @State private var isPublicGroup: Bool = false
     @State private var maxParticipants: Int = 30
     @State private var publicUntilDate: Date = Calendar.current.date(byAdding: .day, value: 30, to: Date()) ?? Date()
     @State private var selectedPeople: [SearchableUser] = []
     @State private var showSelectFriendsScreen: Bool = false
     @State private var showReceiptScanner: Bool = false
+    @State private var showAddExpenseModal: Bool = false
     @State private var scannedReceiptItems: [ComandaItem] = []
 
     private let primaryTypes: [(name: String, icon: String)] = [
@@ -412,21 +412,17 @@ struct CreateGroupScreen: View {
         1 + selectedPeople.count
     }
 
-    private var calculatedMonthsCount: Int {
-        let comps = Calendar.current.dateComponents([.month, .day], from: startDate, to: targetDate)
-        let m = comps.month ?? 0
-        let d = comps.day ?? 0
-        let total = d > 0 ? m + 1 : m
-        return max(1, total)
+    private var expensesSum: Double {
+        scannedReceiptItems.reduce(0) { $0 + $1.price }
     }
 
-    private var activeMonthsCount: Int {
-        potMode == .monthly ? calculatedMonthsCount : 1
+    private var effectiveTotalValue: Double {
+        potTotalValue > 0 ? potTotalValue : expensesSum
     }
 
     private var quotaPerPerson: Double {
-        guard potTotalValue > 0 else { return 0 }
-        return (potTotalValue / Double(activeMonthsCount)) / Double(totalPeopleCount)
+        guard effectiveTotalValue > 0 else { return 0 }
+        return effectiveTotalValue / Double(totalPeopleCount)
     }
 
     private var finalCategory: String {
@@ -614,89 +610,98 @@ struct CreateGroupScreen: View {
 
                     Divider().opacity(0.6)
 
-                    // Modelo de cobrança do pote (seletor segmentado limpo sem ícones) + valor e membros
+                    // Meta até a data estipulada dividida pelos participantes + Despesas na criação
                     VStack(alignment: .leading, spacing: 18) {
-                        VStack(alignment: .leading, spacing: 8) {
-                            Text("Frequência da meta")
-                                .font(.inter(13, weight: .semibold))
-                                .foregroundColor(JuntoColors.textMain)
-
-                            HStack(spacing: 4) {
-                                ForEach(PotRecurrenceMode.allCases, id: \.self) { mode in
-                                    let active = potMode == mode
-                                    Button {
-                                        UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                                        withAnimation(.spring(response: 0.24, dampingFraction: 0.82)) {
-                                            potMode = mode
-                                        }
-                                    } label: {
-                                        VStack(spacing: 2) {
-                                            Text(mode == .single ? "Valor único" : "Mensal")
-                                                .font(.inter(14, weight: active ? .semibold : .medium))
-                                                .foregroundColor(active ? JuntoColors.primary : JuntoColors.textMuted)
-                                            Text(mode == .single ? "Dividido uma vez" : "Parcelas por mês")
-                                                .font(.inter(11, weight: .regular))
-                                                .foregroundColor(JuntoColors.textMuted)
-                                        }
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
-                                        .background(active ? Color.white : Color.clear)
-                                        .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
-                                        .shadow(color: active ? Color.black.opacity(0.06) : .clear, radius: 4, y: 1)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                            .padding(4)
-                            .background(JuntoColors.surfaceSubtle)
-                            .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
-                        }
-
-                        HStack(alignment: .bottom, spacing: 14) {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text("Meta do pote (opcional)")
-                                    .font(.inter(12, weight: .medium))
-                                    .foregroundColor(JuntoColors.textMuted)
-                                HStack(spacing: 6) {
-                                    Text("R$")
-                                        .font(.inter(16, weight: .medium))
-                                        .foregroundColor(JuntoColors.textMuted)
-                                    TextField("0,00", text: $potTotalText)
-                                        .font(.inter(17, weight: .regular))
-                                        .foregroundColor(JuntoColors.textMain)
-                                        .keyboardType(.decimalPad)
-                                }
-                                Rectangle()
-                                    .fill(JuntoColors.border)
-                                    .frame(height: 1)
-                            }
-
-                            Button {
-                                showReceiptScanner = true
-                            } label: {
-                                Image(systemName: "doc.viewfinder")
-                                    .font(.system(size: 20, weight: .regular))
-                                    .foregroundColor(JuntoColors.primary)
-                                    .frame(width: 40, height: 40)
-                            }
-                        }
-
-                        if !scannedReceiptItems.isEmpty {
+                        // Seção de Despesas do grupo (manual com Qtd × Valor unitário ou OCR de recibo)
+                        VStack(alignment: .leading, spacing: 10) {
                             HStack {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .foregroundColor(JuntoColors.pixGreen)
-                                    .font(.system(size: 13))
-                                Text("\(scannedReceiptItems.count) itens da comanda")
-                                    .font(.inter(13, weight: .medium))
-                                    .foregroundColor(JuntoColors.textMain)
-                                Spacer()
-                                Button("Limpar") {
-                                    scannedReceiptItems = []
-                                    potTotalText = ""
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Despesas do grupo")
+                                        .font(.inter(14, weight: .semibold))
+                                        .foregroundColor(JuntoColors.textMain)
+                                    Text("Opcional · adicione itens ou leia um recibo")
+                                        .font(.inter(12, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
                                 }
-                                .font(.inter(12, weight: .medium))
-                                .foregroundColor(JuntoColors.danger)
+                                Spacer()
+                                HStack(spacing: 8) {
+                                    Button {
+                                        showReceiptScanner = true
+                                    } label: {
+                                        Image(systemName: "doc.viewfinder")
+                                            .font(.system(size: 16, weight: .medium))
+                                            .foregroundColor(JuntoColors.primary)
+                                            .frame(width: 36, height: 36)
+                                            .background(JuntoColors.surfaceSubtle)
+                                            .clipShape(Circle())
+                                    }
+
+                                    Button {
+                                        showAddExpenseModal = true
+                                    } label: {
+                                        Image(systemName: "plus")
+                                            .font(.system(size: 16, weight: .semibold))
+                                            .foregroundColor(.white)
+                                            .frame(width: 36, height: 36)
+                                            .background(JuntoColors.primary)
+                                            .clipShape(Circle())
+                                    }
+                                }
                             }
+
+                            if !scannedReceiptItems.isEmpty {
+                                VStack(spacing: 0) {
+                                    ForEach(Array(scannedReceiptItems.enumerated()), id: \.element.id) { idx, item in
+                                        HStack(spacing: 10) {
+                                            VStack(alignment: .leading, spacing: 2) {
+                                                Text(item.name)
+                                                    .font(.inter(14, weight: .medium))
+                                                    .foregroundColor(JuntoColors.textMain)
+                                                    .lineLimit(1)
+                                                Text("\(item.quantity) × \(JuntoStore.formatBRL(item.unitPrice))")
+                                                    .font(.inter(12, weight: .regular))
+                                                    .foregroundColor(JuntoColors.textMuted)
+                                            }
+                                            Spacer()
+                                            Text(JuntoStore.formatBRL(item.price))
+                                                .font(.inter(14, weight: .semibold))
+                                                .foregroundColor(JuntoColors.textMain)
+                                            Button {
+                                                scannedReceiptItems.remove(at: idx)
+                                                syncPotTotalFromItems()
+                                            } label: {
+                                                Image(systemName: "trash")
+                                                    .font(.system(size: 13))
+                                                    .foregroundColor(JuntoColors.textLight)
+                                                    .frame(width: 28, height: 28)
+                                            }
+                                        }
+                                        .padding(.vertical, 8)
+                                        if idx < scannedReceiptItems.count - 1 {
+                                            Divider().opacity(0.5)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        // Valor total até a data estipulada (pode digitar livre ou preencher automaticamente pelas despesas)
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text("Valor total da meta (opcional)")
+                                .font(.inter(12, weight: .medium))
+                                .foregroundColor(JuntoColors.textMuted)
+                            HStack(spacing: 6) {
+                                Text("R$")
+                                    .font(.inter(16, weight: .medium))
+                                    .foregroundColor(JuntoColors.textMuted)
+                                TextField("0,00", text: $potTotalText)
+                                    .font(.inter(17, weight: .regular))
+                                    .foregroundColor(JuntoColors.textMain)
+                                    .keyboardType(.decimalPad)
+                            }
+                            Rectangle()
+                                .fill(JuntoColors.border)
+                                .frame(height: 1)
                         }
 
                         // Membros (botão somente ícone sem texto)
@@ -745,11 +750,16 @@ struct CreateGroupScreen: View {
                             }
                         }
 
-                        if potTotalValue > 0 {
+                        if effectiveTotalValue > 0 {
                             HStack {
-                                Text(potMode == .monthly ? "Parcela (\(activeMonthsCount)x) por pessoa" : "Cota por pessoa")
-                                    .font(.inter(13, weight: .regular))
-                                    .foregroundColor(JuntoColors.textMuted)
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text("Valor por participante")
+                                        .font(.inter(13, weight: .medium))
+                                        .foregroundColor(JuntoColors.textMain)
+                                    Text(addTripDates ? "Dividido por \(totalPeopleCount) até \(Self.shortDateFormatter.string(from: targetDate))" : "Dividido igualmente por \(totalPeopleCount)")
+                                        .font(.inter(11, weight: .regular))
+                                        .foregroundColor(JuntoColors.textMuted)
+                                }
                                 Spacer()
                                 Text(JuntoStore.formatBRL(quotaPerPerson))
                                     .font(.inter(18, weight: .bold))
@@ -763,6 +773,7 @@ struct CreateGroupScreen: View {
             }
         }
         .background(Color.white.ignoresSafeArea())
+        .juntoSwipeBack { dismiss() }
         .onAppear {
             if primaryTypes.contains(where: { $0.name == initialType }) {
                 selectedType = initialType
@@ -776,10 +787,28 @@ struct CreateGroupScreen: View {
                 .environmentObject(store)
         }
         .sheet(isPresented: $showReceiptScanner) {
-            ReceiptScannerModal { items, total in
-                scannedReceiptItems = items
-                potTotalText = String(format: "%.2f", total).replacingOccurrences(of: ".", with: ",")
+            ReceiptScannerModal { items, _ in
+                scannedReceiptItems.append(contentsOf: items)
+                syncPotTotalFromItems()
             }
+        }
+        .sheet(isPresented: $showAddExpenseModal) {
+            AddExpenseItemSheet(title: "Adicionar despesa") { newItem in
+                scannedReceiptItems.append(newItem)
+                syncPotTotalFromItems()
+            }
+            .presentationDetents([.height(340)])
+            .presentationCornerRadius(24)
+            .presentationBackground(Color.white)
+        }
+    }
+
+    private func syncPotTotalFromItems() {
+        let sum = scannedReceiptItems.reduce(0) { $0 + $1.price }
+        if sum > 0 {
+            potTotalText = String(format: "%.2f", sum).replacingOccurrences(of: ".", with: ",")
+        } else {
+            potTotalText = ""
         }
     }
 
@@ -793,9 +822,9 @@ struct CreateGroupScreen: View {
             title: clean,
             category: finalCategory,
             hasPot: true,
-            potTarget: potTotalValue,
-            potMode: potMode,
-            totalMonths: activeMonthsCount,
+            potTarget: effectiveTotalValue,
+            potMode: .single,
+            totalMonths: 1,
             invitedPeople: selectedPeople,
             coverImageData: coverImageData,
             startDate: startDate,
@@ -1585,6 +1614,7 @@ struct GroupDetailSheet: View {
                 .padding(.bottom, 30)
             }
             .background(Color.white)
+            .juntoSwipeBack { dismiss() }
             .fullScreenCover(isPresented: $showGroupChat) {
                 GroupChatScreen(groupId: resolvedId)
                     .environmentObject(store)
@@ -2150,6 +2180,7 @@ struct GroupSettingsScreen: View {
                 }
             }
             .background(Color.white.ignoresSafeArea())
+            .juntoSwipeBack { dismiss() }
             .fullScreenCover(isPresented: $showAddMemberScreen) {
                 AddGroupMemberScreen(groupId: resolvedId)
                     .environmentObject(store)

@@ -353,6 +353,7 @@ struct AccountSettingsScreen: View {
                 }
             }
         }
+        .juntoSwipeBack { dismiss() }
         .onAppear {
             draftName = store.user.fullName
             draftEmail = store.user.email

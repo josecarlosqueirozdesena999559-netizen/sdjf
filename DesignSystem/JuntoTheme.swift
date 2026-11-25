@@ -280,6 +280,60 @@ struct PixContactCardView: View {
     }
 }
 
+// MARK: - Deslize da borda esquerda para voltar/sair (funciona em chats e fullScreenCover)
+struct EdgeSwipeBackModifier: ViewModifier {
+    let onDismiss: () -> Void
+    @State private var dragOffset: CGFloat = 0
+    @State private var isDraggingFromEdge: Bool = false
+
+    func body(content: Content) -> some View {
+        content
+            .offset(x: dragOffset)
+            .shadow(color: dragOffset > 0 ? Color.black.opacity(0.14) : .clear, radius: 14, x: -4, y: 0)
+            .simultaneousGesture(
+                DragGesture(minimumDistance: 12, coordinateSpace: .global)
+                    .onChanged { value in
+                        if !isDraggingFromEdge {
+                            guard value.startLocation.x <= 36,
+                                  value.translation.width > 10,
+                                  abs(value.translation.width) > abs(value.translation.height) * 1.2 else {
+                                return
+                            }
+                            isDraggingFromEdge = true
+                            UIApplication.shared.sendAction(#selector(UIResponder.resignFirstResponder), to: nil, from: nil, for: nil)
+                        }
+                        if isDraggingFromEdge {
+                            dragOffset = max(0, value.translation.width)
+                        }
+                    }
+                    .onEnded { value in
+                        guard isDraggingFromEdge else { return }
+                        isDraggingFromEdge = false
+                        let shouldDismiss = value.translation.width > 88 || value.predictedEndTranslation.width > 150
+                        if shouldDismiss {
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            withAnimation(.easeOut(duration: 0.18)) {
+                                dragOffset = UIScreen.main.bounds.width
+                            }
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.16) {
+                                onDismiss()
+                            }
+                        } else {
+                            withAnimation(.spring(response: 0.28, dampingFraction: 0.84)) {
+                                dragOffset = 0
+                            }
+                        }
+                    }
+            )
+    }
+}
+
+extension View {
+    func juntoSwipeBack(action: @escaping () -> Void) -> some View {
+        modifier(EdgeSwipeBackModifier(onDismiss: action))
+    }
+}
+
 // MARK: - Avatar Oficial do Contato "Juntou" (Logo Oficial do App)
 struct JuntoOfficialAvatarView: View {
     var size: CGFloat = 34

@@ -208,6 +208,7 @@ struct JuntoProSubscriptionScreen: View {
             }
         }
         .background(Color.white.ignoresSafeArea())
+        .juntoSwipeBack { dismiss() }
         .task {
             selectedPeriod = initialPeriod
             await storeKit.loadProducts()

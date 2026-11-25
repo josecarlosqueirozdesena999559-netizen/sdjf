@@ -154,7 +154,10 @@ struct FriendChatScreen: View {
                         }
                     }
                 }
-                .onChange(of: messages.count) { _, _ in
+                .onChange(of: messages.count) { oldCount, newCount in
+                    if newCount > oldCount, let last = messages.last, !last.isFromMe {
+                        ChatSoundManager.shared.playReceiveSound()
+                    }
                     if let lastId = messages.last?.id {
                         withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
                             proxy.scrollTo(lastId, anchor: .bottom)
@@ -342,6 +345,9 @@ struct FriendChatScreen: View {
                         Button {
                             let text = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
                             guard !text.isEmpty else { return }
+                            if editingMessageId == nil {
+                                ChatSoundManager.shared.playSendSound()
+                            }
                             UIImpactFeedbackGenerator(style: .light).impactOccurred()
                             inputText = ""
                             if let editId = editingMessageId {
@@ -424,6 +430,11 @@ struct FriendChatScreen: View {
                 )
                 .zIndex(50)
             }
+        }
+        .juntoSwipeBack {
+            audioManager.stopPlayback()
+            audioManager.cancelRecording()
+            dismiss()
         }
         .onAppear {
             store.markFriendChatAsRead(username: friend.username)
@@ -753,6 +764,7 @@ struct FriendChatScreen: View {
         isDraggingMic = false
         micDragOffsetY = 0
         let recorded = audioManager.finishRecording()
+        ChatSoundManager.shared.playSendSound()
         store.sendChatMessage(
             to: friend.username,
             kind: .audio(
