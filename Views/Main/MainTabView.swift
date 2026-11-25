@@ -4,6 +4,18 @@ struct MainTabView: View {
     @EnvironmentObject var store: JuntoStore
     @State private var showNotifications = false
     @State private var homeButtonsCollapsed = false
+    @GestureState private var dragOffset: CGFloat = 0
+
+    private let tabs = MainTab.allCases
+
+    private func switchTab(direction: Int) {
+        let current = store.selectedTab.rawValue
+        let next = current + direction
+        guard next >= 0, next < tabs.count else { return }
+        withAnimation(.easeInOut(duration: 0.22)) {
+            store.selectedTab = tabs[next]
+        }
+    }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -28,6 +40,20 @@ struct MainTabView: View {
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .background(Color.white.ignoresSafeArea())
+            .gesture(
+                DragGesture(minimumDistance: 40, coordinateSpace: .local)
+                    .onEnded { value in
+                        let horizontal = value.translation.width
+                        let vertical = value.translation.height
+                        // Só ativa se o gesto for predominantemente horizontal
+                        guard abs(horizontal) > abs(vertical) * 1.5 else { return }
+                        if horizontal < -40 {
+                            switchTab(direction: 1)   // arrasta pra esquerda → próxima aba
+                        } else if horizontal > 40 {
+                            switchTab(direction: -1)  // arrasta pra direita → aba anterior
+                        }
+                    }
+            )
 
             // Tab Bar Flutuante Estilo iOS Liquid Glass
             VStack(alignment: .trailing, spacing: 12) {

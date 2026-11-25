@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>VidaGest Saúde — Painel Administrativo</title>
+  <title>Agenda Saúde</title>
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
-  <!-- Overlay de Carregamento ("Aguarde...") -->
-  <div id="loadingOverlay" class="loading-overlay hidden" role="status" aria-live="polite">
+  <!-- Overlay "Aguarde..." -->
+  <div id="loadingOverlay" class="loading-overlay hidden">
     <div class="loading-box">
       <div class="spinner"></div>
       <span>Aguarde...</span>
@@ -19,43 +19,35 @@
   <div id="loginView" class="login-view">
     <div class="login-card">
       <div class="login-brand">
-        <div class="brand-badge">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M12 21s-7-4.35-9.33-8.28C.6 9.25 2.42 4.5 6.5 4.5c2.2 0 4.05 1.15 5.5 2.85C13.45 5.65 15.3 4.5 17.5 4.5c4.08 0 5.9 4.75 3.83 8.22C19 16.65 12 21 12 21z"/>
-            <path d="M8 12h2l1.5-2.5 2 5 1.5-2.5H17"/>
-          </svg>
-        </div>
-        <div>
-          <h1>VidaGest <span>Saúde</span></h1>
-          <p>Gestão Municipal de Saúde — Módulo Admin</p>
-        </div>
+        <h1>Agenda <span>Saúde</span></h1>
+        <p>Sistema Municipal de Gestão em Saúde</p>
       </div>
 
       <form id="loginForm" class="login-form">
         <div class="field-group">
           <label for="loginUser">Usuário</label>
-          <input id="loginUser" type="text" placeholder="Digite seu usuário" value="admin" required autocomplete="username" />
+          <input id="loginUser" type="text" value="admin" required autocomplete="username" />
         </div>
         <div class="field-group">
           <label for="loginPass">Senha</label>
-          <input id="loginPass" type="password" placeholder="Digite sua senha" value="admin123" required autocomplete="current-password" />
+          <input id="loginPass" type="password" value="admin123" required autocomplete="current-password" />
         </div>
         <div id="loginError" class="login-error hidden"></div>
         <button type="submit" class="btn-login">Acessar</button>
       </form>
 
       <div class="login-footer">
-        <span>Acesso padrão: <strong>admin</strong> / <strong>admin123</strong></span>
-        <small>VidaGest Saúde • v1.0.0</small>
+        <small>Acesso via Administrador</small>
+        <small>Agenda Saúde — v1.0.0</small>
       </div>
     </div>
 
-    <!-- Modal de Seleção de Unidade de Saúde -->
+    <!-- Modal Seleção de Unidade -->
     <div id="unitModal" class="modal-backdrop hidden">
       <div class="modal-window">
         <div class="modal-header">
-          <span>Seleção de Unidade de Saúde</span>
-          <button type="button" id="btnCancelUnitX" class="modal-close" title="Cancelar">&times;</button>
+          <span>Seleção de Unidade de Saúde / Local de Armazenamento</span>
+          <button type="button" id="btnCancelUnitX" class="modal-close" title="Fechar">&times;</button>
         </div>
         <div class="modal-body">
           <div class="modal-field-row">
@@ -63,31 +55,25 @@
             <select id="selectUnit"></select>
           </div>
           <div class="modal-field-row">
-            <label for="inputLocalArm">Setor / Local:</label>
-            <input id="inputLocalArm" type="text" placeholder="Opcional (ex: Administração)" />
+            <label for="inputLocalArm">Local Arm.:</label>
+            <input id="inputLocalArm" type="text" />
           </div>
         </div>
         <div class="modal-footer">
-          <button type="button" id="btnConfirmUnit" class="btn-confirm">Confirmar</button>
-          <button type="button" id="btnCancelUnit" class="btn-cancel-modal">Cancelar</button>
+          <button type="button" id="btnConfirmUnit" class="btn-confirm">&#10003; Confirmar</button>
+          <button type="button" id="btnCancelUnit" class="btn-cancel-modal">&#10007; Cancelar</button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- SHELL PRINCIPAL DO SISTEMA -->
+  <!-- SHELL PRINCIPAL -->
   <div id="appShell" class="app-shell hidden">
-    <!-- Barra Superior Limpa (sem menus extras no topo, conforme solicitado) -->
     <header class="topbar">
       <div class="topbar-left">
-        <div class="topbar-logo">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-            <path d="M12 21s-7-4.35-9.33-8.28C.6 9.25 2.42 4.5 6.5 4.5c2.2 0 4.05 1.15 5.5 2.85C13.45 5.65 15.3 4.5 17.5 4.5c4.08 0 5.9 4.75 3.83 8.22C19 16.65 12 21 12 21z"/>
-          </svg>
-          <span>VidaGest <strong>SAÚDE</strong></span>
-        </div>
-        <span class="topbar-divider">|</span>
-        <span id="topbarContext" class="topbar-context">Administração Geral</span>
+        <span class="topbar-appname">AGENDA SAÚDE</span>
+        <span class="topbar-divider"></span>
+        <span id="topbarContext" class="topbar-context">Geral</span>
       </div>
       <div class="topbar-right">
         <span id="topbarUser" class="topbar-user"></span>
@@ -95,18 +81,16 @@
       </div>
     </header>
 
-    <!-- Corpo Principal: Sidebar em Pastas + Área de Abas -->
     <div class="workspace">
       <aside id="sidebar" class="sidebar">
         <div class="sidebar-header">
           <span>Navegação</span>
-          <button id="btnToggleSidebar" class="sidebar-collapse" title="Recolher menu">◀</button>
+          <button id="btnToggleSidebar" class="sidebar-collapse" title="Recolher">&#9664;</button>
         </div>
         <div class="sidebar-search">
           <input id="menuSearch" type="text" placeholder="Pesquise o programa desejado..." />
-          <span class="search-icon">🔍</span>
         </div>
-        <nav id="folderTree" class="folder-tree" aria-label="Menu de navegação em pastas"></nav>
+        <nav id="folderTree" class="folder-tree"></nav>
       </aside>
 
       <main class="main-area">
@@ -115,12 +99,11 @@
       </main>
     </div>
 
-    <!-- Barra de Status Inferior -->
     <footer class="statusbar">
       <div class="status-left">
-        <span>VidaGest Saúde v1.0.0</span>
+        <span>Agenda Saúde v1.0.0</span>
         <span class="sep">|</span>
-        <span id="statusDateTime">--/--/---- --:--:--</span>
+        <span id="statusDateTime"></span>
       </div>
       <div class="status-center">
         <span id="statusUser">Usuário: -</span>
@@ -131,9 +114,7 @@
     </footer>
   </div>
 
-  <!-- Toast de Notificação -->
   <div id="toastContainer" class="toast-container"></div>
-
   <script src="/app.js"></script>
 </body>
 </html>
