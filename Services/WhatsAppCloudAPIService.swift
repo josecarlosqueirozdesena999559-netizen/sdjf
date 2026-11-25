@@ -4,7 +4,7 @@ import Foundation
 final class WhatsAppCloudAPIService {
     static let shared = WhatsAppCloudAPIService()
 
-    private let token: String = "EAAsjZBozpZCmwBTK4QdUHZBEdP3Vyh6a6RboBa1zyniHKPjddIG5nrFOOwfef0qPTQsTNB9M5l6ibcpZAmoiA8uzRfkQv9sjjeLfTTeVQUE4ZAdGqRbtZCyl4pZBr2FcZBEQX5i9IvhkvxUzLxK835ZBW4VEC3W6IO7k6wz9AO0iM1c3uVgKkWdHzxKfMG51qZA8N3nx1DmXwv9H6xZAuVoFjRMq6msPkLCpW7StMLrgyCzAgz2VE86xeItYdljgrLckIGSIFpxopeBbzPKQ5J1UdZA0SQZDZD"
+    private let token: String = "EAAsjZBozpZCmwBTKtsWj3UFhZA7nZARwpFI3vKd46nUyry8NZCiIlKf6rfNZCcmstsnqUdv5FXpNKaO0tvNobv7BIj9c59b3WOSbvjfRzzOMy1AiV57O1cZAa4jwmjpBAGwjayEV3M48L5GdlyqRQPxSajjBbpCUYbopV54FCQvTw9NNnFfYXZA3iZBmWdG61ZBDDr08JM0aXdhrQZBrNvBTABJvzsJ8SfBMWZCwtn8ehsIZCqHEAGkgLhTmV59HZA1fvF2n1piKNNLnhFs39d7uBgWLFV"
     private let phoneNumberId: String = "1490074984181964"
 
     private init() {}

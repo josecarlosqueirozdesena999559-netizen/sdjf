@@ -244,67 +244,79 @@ struct ReceiptScannerModal: View {
         }
     }
 
-    // MARK: - Estado 1: Opções de Captura Inicial (Ilustração flat oficial + sem botão manual)
+    // MARK: - Estado 1: Opções de Captura Inicial (Ilustração Retina responsiva ao tamanho da tela + sem perda de qualidade)
     private var initialCaptureView: some View {
-        VStack(spacing: 22) {
-            Spacer()
+        GeometryReader { geo in
+            let heroHeight = min(max(geo.size.height * 0.44, 240), 390)
+            let heroMaxWidth = geo.size.width * 0.84
 
-            VStack(spacing: 10) {
+            VStack(spacing: 0) {
+                Spacer(minLength: 10)
+
                 Image("ReceiptScanHero")
+                    .interpolation(.high)
+                    .antialiased(true)
                     .resizable()
                     .scaledToFit()
-                    .frame(height: 215)
+                    .frame(maxWidth: heroMaxWidth)
+                    .frame(height: heroHeight)
 
-                Text("Escanear recibo ou comanda")
-                    .font(.inter(20, weight: .semibold))
-                    .foregroundColor(JuntoColors.textMain)
+                Spacer(minLength: 12)
 
-                Text("Tire uma foto nítida ou escolha da galeria para ler automaticamente a descrição, quantidade e valores reais.")
-                    .font(.inter(14, weight: .regular))
-                    .foregroundColor(JuntoColors.textMuted)
-                    .multilineTextAlignment(.center)
-                    .padding(.horizontal, 32)
-            }
+                VStack(spacing: 8) {
+                    Text("Escanear recibo ou comanda")
+                        .font(.inter(21, weight: .semibold))
+                        .foregroundColor(JuntoColors.textMain)
 
-            VStack(spacing: 12) {
-                Button {
-                    showCameraPicker = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "camera.fill")
-                            .font(.system(size: 16))
-                        Text("Tirar foto do recibo")
-                            .font(.inter(15, weight: .medium))
-                    }
-                    .foregroundColor(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .background(JuntoColors.primary)
-                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    Text("Tire uma foto nítida ou escolha da galeria para ler automaticamente a descrição, quantidade e valores reais.")
+                        .font(.inter(14, weight: .regular))
+                        .foregroundColor(JuntoColors.textMuted)
+                        .multilineTextAlignment(.center)
+                        .padding(.horizontal, 28)
                 }
 
-                Button {
-                    showGalleryPicker = true
-                } label: {
-                    HStack(spacing: 8) {
-                        Image(systemName: "photo.on.rectangle")
-                            .font(.system(size: 16))
-                        Text("Escolher foto da galeria")
-                            .font(.inter(15, weight: .medium))
-                    }
-                    .foregroundColor(JuntoColors.primary)
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .background(Color.white)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 12, style: .continuous)
-                            .stroke(JuntoColors.primary, lineWidth: 1.2)
-                    )
-                }
-            }
-            .padding(.horizontal, 24)
+                Spacer(minLength: 18)
 
-            Spacer()
+                VStack(spacing: 12) {
+                    Button {
+                        showCameraPicker = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "camera.fill")
+                                .font(.system(size: 16))
+                            Text("Tirar foto do recibo")
+                                .font(.inter(15, weight: .medium))
+                        }
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(JuntoColors.primary)
+                        .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
+                    }
+
+                    Button {
+                        showGalleryPicker = true
+                    } label: {
+                        HStack(spacing: 8) {
+                            Image(systemName: "photo.on.rectangle")
+                                .font(.system(size: 16))
+                            Text("Escolher foto da galeria")
+                                .font(.inter(15, weight: .medium))
+                        }
+                        .foregroundColor(JuntoColors.primary)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 52)
+                        .background(Color.white)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                .stroke(JuntoColors.primary, lineWidth: 1.2)
+                        )
+                    }
+                }
+                .padding(.horizontal, 24)
+                .padding(.bottom, max(20, geo.safeAreaInsets.bottom + 12))
+            }
+            .frame(width: geo.size.width, height: geo.size.height)
         }
     }
 
@@ -362,23 +374,28 @@ struct ReceiptScannerModal: View {
             Divider().opacity(0.6)
 
             if items.isEmpty {
-                VStack(spacing: 10) {
-                    Spacer()
-                    Image("ReceiptScanHero")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(height: 165)
-                    Text("Nenhum valor legível encontrado")
-                        .font(.inter(16, weight: .semibold))
-                        .foregroundColor(JuntoColors.textMain)
-                    Text("Tente uma foto mais próxima e bem iluminada do recibo.")
-                        .font(.inter(13, weight: .regular))
-                        .foregroundColor(JuntoColors.textMuted)
-                        .multilineTextAlignment(.center)
-                        .padding(.horizontal, 36)
-                    Spacer()
+                GeometryReader { geo in
+                    VStack(spacing: 12) {
+                        Spacer()
+                        Image("ReceiptScanHero")
+                            .interpolation(.high)
+                            .antialiased(true)
+                            .resizable()
+                            .scaledToFit()
+                            .frame(maxWidth: geo.size.width * 0.72)
+                            .frame(height: min(max(geo.size.height * 0.42, 200), 310))
+                        Text("Nenhum valor legível encontrado")
+                            .font(.inter(16, weight: .semibold))
+                            .foregroundColor(JuntoColors.textMain)
+                        Text("Tente uma foto mais próxima e bem iluminada do recibo.")
+                            .font(.inter(13, weight: .regular))
+                            .foregroundColor(JuntoColors.textMuted)
+                            .multilineTextAlignment(.center)
+                            .padding(.horizontal, 36)
+                        Spacer()
+                    }
+                    .frame(width: geo.size.width, height: geo.size.height)
                 }
-                .frame(maxWidth: .infinity)
             } else {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
