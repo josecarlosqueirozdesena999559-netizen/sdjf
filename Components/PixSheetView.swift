@@ -42,14 +42,7 @@ struct PixSheetView: View {
                         .foregroundColor(JuntoColors.textMuted)
                 }
                 Spacer()
-                Button { dismiss() } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14, weight: .medium))
-                        .foregroundColor(JuntoColors.textMuted)
-                        .frame(width: 30, height: 30)
-                        .background(JuntoColors.surfaceSubtle)
-                        .clipShape(Circle())
-                }
+                PopupCloseButton { dismiss() }
             }
 
             // Valor e validade limpíssimos (sem bolinha verde e sem caixas coloridas)
@@ -142,14 +135,11 @@ struct PixSheetView: View {
                 onCopy()
                 DispatchQueue.main.asyncAfter(deadline: .now() + 2) { copiedPayload = false }
             }
-
-            Button("Fechar") { dismiss() }
-                .font(.inter(14, weight: .regular))
-                .foregroundColor(JuntoColors.textMuted)
-                .padding(.bottom, 6)
+            .padding(.bottom, 10)
         }
         .padding(.horizontal, 20)
-        .background(Color.white)
+        .background(Color.white.ignoresSafeArea())
+        .presentationBackground(Color.white)
         .onAppear {
             timeRemaining = 300
             timer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { _ in

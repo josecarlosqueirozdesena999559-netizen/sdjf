@@ -248,13 +248,27 @@ struct AccountSettingsScreen: View {
 
             VStack(spacing: 0) {
                 HStack {
-                    CircleNavButton(icon: "chevron.left") { dismiss() }
+                    PopupCloseButton { dismiss() }
                     Spacer()
                     Text("Editar perfil")
                         .font(.inter(17, weight: .semibold))
                         .foregroundColor(JuntoColors.textMain)
                     Spacer()
-                    Spacer().frame(width: 44)
+                    if hasChanges {
+                        CircleNavButton(icon: "checkmark", bgColor: JuntoColors.primary, fgColor: .white) {
+                            store.user.fullName = draftName
+                            store.user.email = draftEmail
+                            store.user.phone = draftPhone
+                            store.user.pixKey = draftPixKey
+                            store.user.avatarData = draftAvatarData
+                            store.saveUserSession()
+                            passwordChanged = false
+                            store.showToast("Alterações salvas.", icon: "checkmark.circle")
+                            dismiss()
+                        }
+                    } else {
+                        Color.clear.frame(width: 40, height: 40)
+                    }
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 10)
@@ -334,24 +348,6 @@ struct AccountSettingsScreen: View {
                                 editField = .email
                             }
                         }
-
-                        // Botão Salvar aparece SOMENTE quando houver alterações!
-                        if hasChanges {
-                            JuntoPillButton(title: "Salvar alterações", color: JuntoColors.primary) {
-                                store.user.fullName = draftName
-                                store.user.email = draftEmail
-                                store.user.phone = draftPhone
-                                store.user.pixKey = draftPixKey
-                                store.user.avatarData = draftAvatarData
-                                store.saveUserSession()
-                                passwordChanged = false
-                                store.showToast("Alterações salvas.", icon: "checkmark.circle")
-                                dismiss()
-                            }
-                            .padding(.horizontal, 20)
-                            .padding(.top, 24)
-                            .transition(.opacity.combined(with: .move(edge: .bottom)))
-                        }
                     }
                     .padding(.bottom, 40)
                 }
@@ -429,24 +425,35 @@ struct EditDraftFieldSheet: View {
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         VStack(alignment: .leading, spacing: 18) {
-            Text(field.label)
-                .font(.inter(18, weight: .medium))
-                .foregroundColor(JuntoColors.textMain)
-                .padding(.top, 20)
+            HStack {
+                PopupCloseButton { dismiss() }
+                Spacer()
+                Text(field.label)
+                    .font(.inter(16, weight: .semibold))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                CircleNavButton(
+                    icon: "checkmark",
+                    bgColor: trimmed.isEmpty ? JuntoColors.surfaceSubtle : JuntoColors.primary,
+                    fgColor: trimmed.isEmpty ? JuntoColors.textLight : .white
+                ) {
+                    guard !trimmed.isEmpty else { return }
+                    onSave(trimmed)
+                    dismiss()
+                }
+                .disabled(trimmed.isEmpty)
+            }
+            .padding(.top, 14)
 
             CleanOutlineInput(label: "", placeholder: "Digite o novo valor", text: $text)
 
-            JuntoPillButton(title: "Aplicar", color: JuntoColors.primary) {
-                let clean = text.trimmingCharacters(in: .whitespacesAndNewlines)
-                guard !clean.isEmpty else { return }
-                onSave(clean)
-                dismiss()
-            }
             Spacer()
         }
-        .padding(.horizontal, 22)
-        .background(Color.white)
+        .padding(.horizontal, 20)
+        .background(Color.white.ignoresSafeArea())
+        .presentationBackground(Color.white)
         .onAppear { text = initialValue }
     }
 }

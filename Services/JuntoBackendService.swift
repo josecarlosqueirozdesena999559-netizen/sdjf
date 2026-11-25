@@ -532,6 +532,32 @@ actor JuntoBackendService {
         _ = await request(path: "/v1/groups/\(groupId)/payments/confirm", method: "POST", body: body)
     }
 
+    /// Salva configurações Juntô Pro e controles do grupo no PostgreSQL
+    func updateGroupProSettings(
+        groupId: String,
+        aiReminderEnabled: Bool,
+        aiReminderDaysBefore: Int,
+        aiReminderTone: String,
+        pixQuickPinEnabled: Bool,
+        restrictExpensesToAdmins: Bool,
+        autoClosureSummaryEnabled: Bool
+    ) async {
+        let body: [String: Any] = [
+            "aiReminderEnabled": aiReminderEnabled,
+            "aiReminderDaysBefore": aiReminderDaysBefore,
+            "aiReminderTone": aiReminderTone,
+            "pixQuickPinEnabled": pixQuickPinEnabled,
+            "restrictExpensesToAdmins": restrictExpensesToAdmins,
+            "autoClosureSummaryEnabled": autoClosureSummaryEnabled
+        ]
+        _ = await request(path: "/v1/groups/\(groupId)/pro-settings", method: "PATCH", body: body)
+    }
+
+    /// Dispara imediatamente o Agente Juntô IA no servidor para avisar os pendentes do grupo
+    func triggerGroupAIReminder(groupId: String) async {
+        _ = await request(path: "/v1/groups/\(groupId)/ai-remind", method: "POST", body: [:])
+    }
+
     // MARK: - 9. Chat & Mídia Persistente (Volume Docker + PostgreSQL)
     func uploadMedia(data: Data, filename: String, mimeType: String) async -> String? {
         let res = await request(

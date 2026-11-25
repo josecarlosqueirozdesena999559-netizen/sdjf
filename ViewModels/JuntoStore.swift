@@ -186,6 +186,25 @@ final class JuntoStore: ObservableObject {
         if let encoded = try? JSONEncoder().encode(allMap) {
             UserDefaults.standard.set(encoded, forKey: groupProSettingsKey)
         }
+
+        let gidStr = g.id.uuidString.lowercased()
+        let aiEnabled = g.aiReminderEnabled
+        let aiDays = g.aiReminderDaysBefore
+        let aiTone = g.aiReminderTone.rawValue
+        let pixPin = g.pixQuickPinEnabled
+        let adminOnly = g.restrictExpensesToAdmins
+        let autoClosure = g.autoClosureSummaryEnabled
+        Task {
+            await JuntoBackendService.shared.updateGroupProSettings(
+                groupId: gidStr,
+                aiReminderEnabled: aiEnabled,
+                aiReminderDaysBefore: aiDays,
+                aiReminderTone: aiTone,
+                pixQuickPinEnabled: pixPin,
+                restrictExpensesToAdmins: adminOnly,
+                autoClosureSummaryEnabled: autoClosure
+            )
+        }
     }
 
     func applySavedGroupProSettings() {
@@ -297,6 +316,8 @@ final class JuntoStore: ObservableObject {
         let daysLeft = daysUntilDue(for: group)
         let messageBody = composeAIReminderMessage(for: group, pendingParticipants: pending, daysLeft: daysLeft)
         deliverAIReminderInApp(group: group, messageBody: messageBody)
+        let gidStr = group.id.uuidString.lowercased()
+        Task { await JuntoBackendService.shared.triggerGroupAIReminder(groupId: gidStr) }
         showToast("Juntô IA enviou o lembrete no app!", icon: "sparkles")
     }
 
@@ -783,6 +804,12 @@ final class JuntoStore: ObservableObject {
                 let ownerUsername = (g["ownerUsername"] as? String) ?? user.username
                 let ownerName = (g["ownerName"] as? String) ?? user.fullName
                 let ownerPixKey = (g["ownerPixKey"] as? String) ?? user.pixKey
+                let aiReminderEnabled = (g["aiReminderEnabled"] as? Bool) ?? false
+                let aiReminderDaysBefore = (g["aiReminderDaysBefore"] as? Int) ?? 2
+                let aiReminderToneStr = (g["aiReminderTone"] as? String) ?? AIReminderTone.friendly.rawValue
+                let pixQuickPinEnabled = (g["pixQuickPinEnabled"] as? Bool) ?? true
+                let restrictExpensesToAdmins = (g["restrictExpensesToAdmins"] as? Bool) ?? true
+                let autoClosureSummaryEnabled = (g["autoClosureSummaryEnabled"] as? Bool) ?? false
                 let startDate = (g["startDate"] as? String).flatMap { isoParser.date(from: $0) } ?? Date()
                 let targetDate = (g["targetDate"] as? String).flatMap { isoParser.date(from: $0) } ?? (Calendar.current.date(byAdding: .day, value: 15, to: Date()) ?? Date())
 
@@ -850,6 +877,12 @@ final class JuntoStore: ObservableObject {
                     ownerUsername: ownerUsername,
                     ownerName: ownerName,
                     ownerPixKey: ownerPixKey,
+                    aiReminderEnabled: aiReminderEnabled,
+                    aiReminderDaysBefore: aiReminderDaysBefore,
+                    aiReminderTone: AIReminderTone(rawValue: aiReminderToneStr) ?? .friendly,
+                    pixQuickPinEnabled: pixQuickPinEnabled,
+                    restrictExpensesToAdmins: restrictExpensesToAdmins,
+                    autoClosureSummaryEnabled: autoClosureSummaryEnabled,
                     potMode: potModeStr == "MONTHLY" ? .monthly : .single,
                     totalMonths: totalMonths,
                     selectedMonthIndex: 0,

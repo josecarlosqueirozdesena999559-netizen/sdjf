@@ -125,6 +125,48 @@ struct GroupChatScreen: View {
             .background(Color.white)
             .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.8), alignment: .bottom)
 
+            // Lembrete fixado no topo do grupo quando "Pix rápido" estiver marcado (chave Pix + valor para cada um)
+            if let g = group, g.pixQuickPinEnabled {
+                let organizer = store.organizerPixInfo(for: g)
+                let quotaVal = g.dynamicQuotaPerPerson
+                HStack(spacing: 10) {
+                    PixOfficialIcon(size: 18, color: Color(hex: "#32BCAD"))
+
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(organizer.pixKey.isEmpty ? "Pix do organizador" : "Pix: \(organizer.pixKey)")
+                            .font(.inter(12, weight: .semibold))
+                            .foregroundColor(JuntoColors.textMain)
+                            .lineLimit(1)
+                        if quotaVal > 0 {
+                            Text("Valor por pessoa: \(JuntoStore.formatBRL(quotaVal))")
+                                .font(.inter(11, weight: .medium))
+                                .foregroundColor(JuntoColors.pixGreen)
+                        }
+                    }
+
+                    Spacer()
+
+                    if !organizer.pixKey.isEmpty {
+                        Button {
+                            UIPasteboard.general.string = organizer.pixKey
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            store.showToast("Chave Pix copiada!", icon: "doc.on.doc")
+                        } label: {
+                            Image(systemName: "doc.on.doc")
+                                .font(.system(size: 14, weight: .medium))
+                                .foregroundColor(JuntoColors.primary)
+                                .frame(width: 32, height: 32)
+                                .background(JuntoColors.primary.opacity(0.08))
+                                .clipShape(Circle())
+                        }
+                    }
+                }
+                .padding(.horizontal, 14)
+                .padding(.vertical, 9)
+                .background(Color.white)
+                .overlay(Rectangle().fill(JuntoColors.border).frame(height: 0.7), alignment: .bottom)
+            }
+
             // Área de Mensagens do Grupo
             ScrollViewReader { proxy in
                 ScrollView(showsIndicators: false) {

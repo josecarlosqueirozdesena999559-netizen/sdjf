@@ -20,7 +20,7 @@ struct JuntoProSubscriptionScreen: View {
     private let proFeatures: [(title: String, subtitle: String)] = [
         ("Agente Juntô IA de Lembretes", "Próximo ao vencimento, nossa IA envia mensagens automáticas no próprio app para quem ainda não pagou, no tom que você escolher."),
         ("Fechamento Automático pela IA", "Quando o pote bater 100%, a Juntô IA publica o resumo final de quitação automaticamente no chat do grupo."),
-        ("Pix Rápido e Cobrança em 1 Toque", "Fixa sua chave Pix nos lembretes da IA e monta a cobrança pronta dos pendentes para enviar no WhatsApp."),
+        ("Pix Rápido Fixado no Grupo", "Fixa automaticamente sua chave Pix e o valor de cada participante no topo do grupo e nos lembretes da IA."),
         ("Insights Inteligentes de Gastos", "Acompanhe sua maior categoria do mês, média por pagamento e taxa de quitação em Meus Gastos."),
         ("Grupos ilimitados e múltiplos admins", "Crie quantos grupos, viagens e potes mensais quiser e adicione co-organizadores."),
         ("Selo de Verificado Exclusivo", "Assinante Mensal recebe o Selo Roxo e o Assinante Anual recebe o Selo Dourado em todas as conversas e grupos.")

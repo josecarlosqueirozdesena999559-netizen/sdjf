@@ -377,7 +377,7 @@ struct MyExpensesAnalyticsScreen: View {
                         .foregroundColor(JuntoColors.textMain)
                         .multilineTextAlignment(.center)
 
-                    Text("Agente Juntô IA de lembretes automáticos, insights mensais e cobrança Pix em 1 toque.")
+                    Text("Agente Juntô IA de lembretes automáticos, Pix rápido fixado no grupo e insights mensais.")
                         .font(.inter(13, weight: .regular))
                         .foregroundColor(JuntoColors.textMuted)
                         .multilineTextAlignment(.center)

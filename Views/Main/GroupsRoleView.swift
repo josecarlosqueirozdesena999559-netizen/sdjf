@@ -833,15 +833,15 @@ struct SelectFriendsForGroupScreen: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             HStack {
-                CircleNavButton(icon: "chevron.left") { dismiss() }
+                PopupCloseButton { dismiss() }
                 Spacer()
                 Text("Adicionar membros")
-                    .font(.inter(17, weight: .medium))
+                    .font(.inter(17, weight: .semibold))
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
-                Button("Pronto") { dismiss() }
-                    .font(.inter(15, weight: .medium))
-                    .foregroundColor(JuntoColors.primary)
+                CircleNavButton(icon: "checkmark", bgColor: JuntoColors.primary, fgColor: .white) {
+                    dismiss()
+                }
             }
             .padding(.horizontal, 18)
             .padding(.top, 12)
@@ -1024,6 +1024,43 @@ struct GroupDetailSheet: View {
                         Spacer()
                     }
                     .padding(.vertical, 4)
+
+                    // Lembrete fixado no topo quando "Pix rápido" estiver marcado (chave Pix + valor para cada um)
+                    if group.pixQuickPinEnabled {
+                        let organizer = store.organizerPixInfo(for: group)
+                        let quotaVal = group.dynamicQuotaPerPerson
+                        HStack(spacing: 12) {
+                            PixOfficialIcon(size: 20, color: Color(hex: "#32BCAD"))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(organizer.pixKey.isEmpty ? "Pix do organizador" : "Chave Pix: \(organizer.pixKey)")
+                                    .font(.inter(13, weight: .semibold))
+                                    .foregroundColor(JuntoColors.textMain)
+                                    .lineLimit(1)
+                                if quotaVal > 0 {
+                                    Text("Valor para cada um: \(JuntoStore.formatBRL(quotaVal))")
+                                        .font(.inter(12, weight: .medium))
+                                        .foregroundColor(JuntoColors.pixGreen)
+                                }
+                            }
+                            Spacer()
+                            if !organizer.pixKey.isEmpty {
+                                Button {
+                                    UIPasteboard.general.string = organizer.pixKey
+                                    UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                                    store.showToast("Chave Pix copiada!", icon: "doc.on.doc")
+                                } label: {
+                                    Image(systemName: "doc.on.doc")
+                                        .font(.system(size: 14, weight: .medium))
+                                        .foregroundColor(JuntoColors.primary)
+                                        .frame(width: 34, height: 34)
+                                        .background(JuntoColors.primary.opacity(0.08))
+                                        .clipShape(Circle())
+                                }
+                            }
+                        }
+                        .padding(.vertical, 10)
+                        Divider().opacity(0.6)
+                    }
 
                     // Lista de participantes rolável para o lado (botão adicionar somente ícone!)
                     VStack(alignment: .leading, spacing: 10) {
@@ -1353,17 +1390,12 @@ struct GroupDetailSheet: View {
                                     Button {
                                         withAnimation { showAddExpenseForm.toggle() }
                                     } label: {
-                                        HStack(spacing: 4) {
-                                            Image(systemName: showAddExpenseForm ? "xmark" : "plus")
-                                                .font(.system(size: 11))
-                                            Text(showAddExpenseForm ? "Fechar" : "Manual")
-                                                .font(.inter(12, weight: .medium))
-                                        }
-                                        .foregroundColor(JuntoColors.primary)
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 5)
-                                        .background(JuntoColors.surfaceSubtle)
-                                        .clipShape(Capsule())
+                                        Image(systemName: showAddExpenseForm ? "xmark" : "plus")
+                                            .font(.system(size: 13, weight: .medium))
+                                            .foregroundColor(JuntoColors.primary)
+                                            .frame(width: 30, height: 30)
+                                            .background(JuntoColors.surfaceSubtle)
+                                            .clipShape(Circle())
                                     }
                                 }
                             } else {
@@ -1384,14 +1416,21 @@ struct GroupDetailSheet: View {
                                         .tint(JuntoColors.primary)
                                 }
 
-                                JuntoPillButton(title: "Salvar despesa", color: JuntoColors.primary) {
-                                    let val = Double(expenseAmount.replacingOccurrences(of: ",", with: ".")) ?? 0
-                                    store.addExpenseToGroup(groupId: groupId, name: expenseName, totalAmount: val, payFromPot: payFromPot)
-                                    expenseName = ""
-                                    expenseAmount = ""
-                                    payFromPot = false
-                                    showAddExpenseForm = false
+                                HStack(spacing: 16) {
+                                    Spacer()
+                                    CircleNavButton(icon: "xmark", bgColor: JuntoColors.surfaceSubtle, fgColor: JuntoColors.textMain) {
+                                        withAnimation { showAddExpenseForm = false }
+                                    }
+                                    CircleNavButton(icon: "checkmark", bgColor: JuntoColors.primary, fgColor: .white) {
+                                        let val = Double(expenseAmount.replacingOccurrences(of: ",", with: ".")) ?? 0
+                                        store.addExpenseToGroup(groupId: groupId, name: expenseName, totalAmount: val, payFromPot: payFromPot)
+                                        expenseName = ""
+                                        expenseAmount = ""
+                                        payFromPot = false
+                                        showAddExpenseForm = false
+                                    }
                                 }
+                                .padding(.top, 2)
                             }
                             .padding(.vertical, 8)
                         }
@@ -1554,9 +1593,10 @@ struct GroupDetailSheet: View {
             .alert("Excluir \"\(group.title)\"?", isPresented: $showDeleteGroupConfirm) {
                 Button("Cancelar", role: .cancel) {}
                 Button("Excluir grupo", role: .destructive) {
+                    let targetId = resolvedId
                     dismiss()
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) {
-                        store.deleteGroup(groupId: resolvedId)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        store.deleteGroup(groupId: targetId)
                     }
                 }
             } message: {
@@ -1666,7 +1706,6 @@ struct GroupSettingsScreen: View {
             let resolvedId = group.id
             let isOwner = store.isCurrentUserOwner(in: group)
             let inviteText = "Entre no grupo \"\(group.title)\" no Juntô para dividir gastos e pagar no Pix: https://junto.app/baixar"
-            let pendingChargeText = store.pendingChargeMessage(for: group)
             let organizer = store.organizerPixInfo(for: group)
             let pendingMembers = group.participants.filter { !$0.hasPaid && $0.quotaAmount > 0 }
             let previewText = store.composeAIReminderMessage(
@@ -1837,13 +1876,17 @@ struct GroupSettingsScreen: View {
                                     Spacer()
 
                                     Toggle("", isOn: Binding(
-                                        get: { store.groups[idx].aiReminderEnabled },
+                                        get: {
+                                            guard let liveIdx = store.resolvedGroupIndex(for: resolvedId) else { return false }
+                                            return store.groups[liveIdx].aiReminderEnabled
+                                        },
                                         set: { newVal in
+                                            guard let liveIdx = store.resolvedGroupIndex(for: resolvedId) else { return }
                                             if newVal && !store.user.isPro {
                                                 showProPaywall = true
                                             } else {
                                                 withAnimation(.easeInOut(duration: 0.2)) {
-                                                    store.groups[idx].aiReminderEnabled = newVal
+                                                    store.groups[liveIdx].aiReminderEnabled = newVal
                                                 }
                                                 store.saveGroupProSettings(for: resolvedId)
                                                 if newVal {
@@ -1872,8 +1915,10 @@ struct GroupSettingsScreen: View {
                                                 ForEach([1, 2, 3, 5], id: \.self) { days in
                                                     let active = group.aiReminderDaysBefore == days
                                                     Button {
-                                                        store.groups[idx].aiReminderDaysBefore = days
-                                                        store.saveGroupProSettings(for: resolvedId)
+                                                        if let liveIdx = store.resolvedGroupIndex(for: resolvedId) {
+                                                            store.groups[liveIdx].aiReminderDaysBefore = days
+                                                            store.saveGroupProSettings(for: resolvedId)
+                                                        }
                                                     } label: {
                                                         Text(days == 1 ? "1 dia" : "\(days) dias")
                                                             .font(.inter(12, weight: active ? .semibold : .regular))
@@ -1896,8 +1941,10 @@ struct GroupSettingsScreen: View {
                                                 ForEach(AIReminderTone.allCases, id: \.self) { tone in
                                                     let active = group.aiReminderTone == tone
                                                     Button {
-                                                        store.groups[idx].aiReminderTone = tone
-                                                        store.saveGroupProSettings(for: resolvedId)
+                                                        if let liveIdx = store.resolvedGroupIndex(for: resolvedId) {
+                                                            store.groups[liveIdx].aiReminderTone = tone
+                                                            store.saveGroupProSettings(for: resolvedId)
+                                                        }
                                                     } label: {
                                                         Text(tone.rawValue)
                                                             .font(.inter(12, weight: active ? .semibold : .regular))
@@ -1966,12 +2013,16 @@ struct GroupSettingsScreen: View {
                                     Spacer()
 
                                     Toggle("", isOn: Binding(
-                                        get: { store.groups[idx].autoClosureSummaryEnabled },
+                                        get: {
+                                            guard let liveIdx = store.resolvedGroupIndex(for: resolvedId) else { return false }
+                                            return store.groups[liveIdx].autoClosureSummaryEnabled
+                                        },
                                         set: { newVal in
+                                            guard let liveIdx = store.resolvedGroupIndex(for: resolvedId) else { return }
                                             if newVal && !store.user.isPro {
                                                 showProPaywall = true
                                             } else {
-                                                store.groups[idx].autoClosureSummaryEnabled = newVal
+                                                store.groups[liveIdx].autoClosureSummaryEnabled = newVal
                                                 store.saveGroupProSettings(for: resolvedId)
                                             }
                                         }
@@ -1986,16 +2037,14 @@ struct GroupSettingsScreen: View {
                                     .padding(.leading, 42)
                             }
 
-                            // 3. Chave Pix fixada nos lembretes e cobranças (PRO)
+                            // 3. Pix rápido fixado no topo do grupo + chave Pix nos lembretes (PRO)
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack(alignment: .center, spacing: 14) {
-                                    Image(systemName: "qrcode")
-                                        .font(.system(size: 18, weight: .regular))
-                                        .foregroundColor(JuntoColors.primary)
+                                    PixOfficialIcon(size: 20, color: Color(hex: "#32BCAD"))
                                         .frame(width: 28)
 
                                     HStack(spacing: 6) {
-                                        Text("Pix rápido nas cobranças")
+                                        Text("Pix rápido no topo do grupo")
                                             .font(.inter(16, weight: .regular))
                                             .foregroundColor(JuntoColors.textMain)
                                         proBadgePill
@@ -2004,12 +2053,16 @@ struct GroupSettingsScreen: View {
                                     Spacer()
 
                                     Toggle("", isOn: Binding(
-                                        get: { store.groups[idx].pixQuickPinEnabled },
+                                        get: {
+                                            guard let liveIdx = store.resolvedGroupIndex(for: resolvedId) else { return false }
+                                            return store.groups[liveIdx].pixQuickPinEnabled
+                                        },
                                         set: { newVal in
+                                            guard let liveIdx = store.resolvedGroupIndex(for: resolvedId) else { return }
                                             if newVal && !store.user.isPro {
                                                 showProPaywall = true
                                             } else {
-                                                store.groups[idx].pixQuickPinEnabled = newVal
+                                                store.groups[liveIdx].pixQuickPinEnabled = newVal
                                                 store.saveGroupProSettings(for: resolvedId)
                                             }
                                         }
@@ -2019,14 +2072,14 @@ struct GroupSettingsScreen: View {
                                 }
 
                                 Text(organizer.pixKey.isEmpty
-                                     ? "Inclui sua chave Pix automaticamente nos avisos do grupo para receber mais rápido."
-                                     : "Anexa a chave Pix (\(organizer.pixKey)) nos lembretes da IA e nas cobranças do grupo.")
+                                     ? "Fixa no topo do grupo a chave Pix e o valor para cada participante pagar rápido."
+                                     : "Fixa no topo do grupo a chave Pix (\(organizer.pixKey)) e o valor para cada um.")
                                     .font(.inter(13, weight: .regular))
                                     .foregroundColor(JuntoColors.textMuted)
                                     .padding(.leading, 42)
                             }
 
-                            // 4. Trava de despesas somente para admins
+                            // 4. Trava de despesas somente para admins (desmarcado = todos podem lançar)
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack(alignment: .center, spacing: 14) {
                                     Image(systemName: "lock.shield")
@@ -2041,9 +2094,13 @@ struct GroupSettingsScreen: View {
                                     Spacer()
 
                                     Toggle("", isOn: Binding(
-                                        get: { store.groups[idx].restrictExpensesToAdmins },
+                                        get: {
+                                            guard let liveIdx = store.resolvedGroupIndex(for: resolvedId) else { return true }
+                                            return store.groups[liveIdx].restrictExpensesToAdmins
+                                        },
                                         set: { newVal in
-                                            store.groups[idx].restrictExpensesToAdmins = newVal
+                                            guard let liveIdx = store.resolvedGroupIndex(for: resolvedId) else { return }
+                                            store.groups[liveIdx].restrictExpensesToAdmins = newVal
                                             store.saveGroupProSettings(for: resolvedId)
                                         }
                                     ))
@@ -2051,33 +2108,10 @@ struct GroupSettingsScreen: View {
                                     .tint(JuntoColors.primary)
                                 }
 
-                                Text("Evita lançamentos acidentais mantendo o controle das despesas apenas com dono e administradores.")
+                                Text("Ativado: apenas dono e admins lançam despesas. Desativado: todos os participantes podem lançar gastos.")
                                     .font(.inter(13, weight: .regular))
                                     .foregroundColor(JuntoColors.textMuted)
                                     .padding(.leading, 42)
-                            }
-
-                            // 5. Cobrar pendentes em 1 toque no WhatsApp (PRO)
-                            if store.user.isPro {
-                                ShareLink(item: pendingChargeText) {
-                                    proActionRow(
-                                        icon: "bell.badge",
-                                        title: "Cobrar pendentes no WhatsApp",
-                                        subtitle: "Monta a lista pronta de quem falta pagar com valor e chave Pix."
-                                    )
-                                }
-                                .buttonStyle(.plain)
-                            } else {
-                                Button {
-                                    showProPaywall = true
-                                } label: {
-                                    proActionRow(
-                                        icon: "bell.badge",
-                                        title: "Cobrar pendentes no WhatsApp",
-                                        subtitle: "Monta a lista pronta de quem falta pagar com valor e chave Pix."
-                                    )
-                                }
-                                .buttonStyle(.plain)
                             }
                         }
                         .padding(.horizontal, 20)
@@ -2127,12 +2161,17 @@ struct GroupSettingsScreen: View {
             .alert(isOwner ? "Excluir \"\(group.title)\"?" : "Sair de \"\(group.title)\"?", isPresented: $showLeaveOrDeleteConfirm) {
                 Button("Cancelar", role: .cancel) {}
                 Button(isOwner ? "Excluir grupo" : "Sair do grupo", role: .destructive) {
-                    if isOwner {
-                        store.deleteGroup(groupId: resolvedId)
-                    } else {
-                        store.leaveGroup(groupId: resolvedId)
-                    }
+                    let targetId = resolvedId
+                    let ownerFlag = isOwner
+                    // Fecha ambas as telas ANTES de remover o grupo do array para nunca dar crash de índice!
                     onLeaveOrDelete?()
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.45) {
+                        if ownerFlag {
+                            store.deleteGroup(groupId: targetId)
+                        } else {
+                            store.leaveGroup(groupId: targetId)
+                        }
+                    }
                 }
             } message: {
                 Text(isOwner
@@ -2169,31 +2208,6 @@ struct GroupSettingsScreen: View {
             .padding(.vertical, 2)
             .background(JuntoColors.primary.opacity(0.10))
             .clipShape(Capsule())
-    }
-
-    private func proActionRow(icon: String, title: String, subtitle: String) -> some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack(alignment: .center, spacing: 14) {
-                Image(systemName: icon)
-                    .font(.system(size: 18, weight: .regular))
-                    .foregroundColor(JuntoColors.primary)
-                    .frame(width: 28)
-
-                Text(title)
-                    .font(.inter(16, weight: .regular))
-                    .foregroundColor(JuntoColors.textMain)
-
-                Spacer()
-
-                proBadgePill
-            }
-
-            Text(subtitle)
-                .font(.inter(13, weight: .regular))
-                .foregroundColor(JuntoColors.textMuted)
-                .padding(.leading, 42)
-        }
-        .contentShape(Rectangle())
     }
 }
 
@@ -2898,11 +2912,6 @@ struct CreatePersonalPotScreen: View {
                         .padding(.vertical, 10)
                         Divider()
                     }
-
-                    JuntoPillButton(title: "Criar Caixinha Pessoal", color: JuntoColors.primary) {
-                        handleSave()
-                    }
-                    .padding(.top, 8)
                 }
                 .padding(.horizontal, 20)
                 .padding(.bottom, 32)
@@ -3042,11 +3051,12 @@ struct PersonalPotDetailSheet: View {
                                 text: $depositNoteText
                             )
 
-                            HStack(spacing: 10) {
-                                JuntoOutlineButton(title: "Cancelar", color: JuntoColors.textMuted) {
+                            HStack(spacing: 14) {
+                                Spacer()
+                                CircleNavButton(icon: "xmark", bgColor: JuntoColors.surfaceSubtle, fgColor: JuntoColors.textMain) {
                                     showDepositForm = false
                                 }
-                                JuntoPillButton(title: "Confirmar", color: JuntoColors.primary) {
+                                CircleNavButton(icon: "checkmark", bgColor: JuntoColors.primary, fgColor: .white) {
                                     let val = Double(depositAmountText.replacingOccurrences(of: ",", with: ".")) ?? 0
                                     store.depositIntoPersonalPot(potId: potId, amount: val, note: depositNoteText)
                                     depositAmountText = ""
@@ -3136,8 +3146,29 @@ struct AssignItemConsumersSheet: View {
     @State private var currentAssigned: Set<String> = []
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 16) {
+        VStack(spacing: 0) {
+            // Topo 100% flat branco com X e ✓ (sem glass)
+            HStack {
+                PopupCloseButton { dismiss() }
+                Spacer()
+                Text("Quem consumiu?")
+                    .font(.inter(16, weight: .semibold))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
+                CircleNavButton(icon: "checkmark", bgColor: JuntoColors.primary, fgColor: .white) {
+                    var updated = item
+                    updated.assignedUsernames = currentAssigned
+                    onSave(updated)
+                    dismiss()
+                }
+            }
+            .padding(.horizontal, 18)
+            .padding(.top, 14)
+            .padding(.bottom, 12)
+
+            Divider().opacity(0.6)
+
+            VStack(spacing: 14) {
                 VStack(spacing: 4) {
                     Text(item.name)
                         .font(.inter(17, weight: .medium))
@@ -3201,29 +3232,12 @@ struct AssignItemConsumersSheet: View {
                         }
                     }
                 }
-
-                Divider()
-
-                JuntoPillButton(title: "Salvar divisão do item", color: JuntoColors.primary) {
-                    var updated = item
-                    updated.assignedUsernames = currentAssigned
-                    onSave(updated)
-                    dismiss()
-                }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 16)
             }
-            .navigationTitle("Quem consumiu?")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Fechar") { dismiss() }
-                        .foregroundColor(JuntoColors.textMain)
-                }
-            }
-            .onAppear {
-                currentAssigned = item.assignedUsernames
-            }
+        }
+        .background(Color.white.ignoresSafeArea())
+        .presentationBackground(Color.white)
+        .onAppear {
+            currentAssigned = item.assignedUsernames
         }
     }
 }

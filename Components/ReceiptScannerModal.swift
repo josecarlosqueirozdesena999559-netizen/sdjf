@@ -30,55 +30,64 @@ struct ReceiptScannerModal: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(spacing: 0) {
-                if isProcessingOCR {
-                    processingView
-                } else if !hasScanned {
-                    initialCaptureView
-                } else {
-                    scannedItemsChecklistView
-                }
-            }
-            .background(Color.white.ignoresSafeArea())
-            .navigationTitle(hasScanned ? "Itens do Recibo" : "Escanear Recibo")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button("Cancelar") { dismiss() }
-                        .foregroundColor(JuntoColors.textMain)
-                }
-
+        VStack(spacing: 0) {
+            // Topo limpo flat (sem NavigationStack glass): X | Título | ✓
+            HStack {
+                PopupCloseButton { dismiss() }
+                Spacer()
+                Text(hasScanned ? "Itens do Recibo" : "Escanear Recibo")
+                    .font(.inter(17, weight: .semibold))
+                    .foregroundColor(JuntoColors.textMain)
+                Spacer()
                 if hasScanned {
-                    ToolbarItem(placement: .confirmationAction) {
-                        Button("Confirmar") {
-                            let selectedItems = items.filter { $0.isSelected }
-                            onConfirmItems(selectedItems, checkedTotal)
-                            dismiss()
-                        }
-                        .font(.inter(15, weight: .medium))
-                        .foregroundColor(JuntoColors.primary)
-                        .disabled(checkedCount == 0)
+                    CircleNavButton(
+                        icon: "checkmark",
+                        bgColor: checkedCount > 0 ? JuntoColors.primary : JuntoColors.border,
+                        fgColor: .white
+                    ) {
+                        let selectedItems = items.filter { $0.isSelected }
+                        onConfirmItems(selectedItems, checkedTotal)
+                        dismiss()
                     }
+                    .disabled(checkedCount == 0)
+                } else {
+                    Color.clear.frame(width: 40, height: 40)
                 }
             }
-            .sheet(isPresented: $showCameraPicker) {
-                CameraReceiptPicker(selectedImage: $pickedImage, sourceType: .camera)
-                    .ignoresSafeArea()
+            .padding(.horizontal, 18)
+            .padding(.top, 14)
+            .padding(.bottom, 12)
+            .background(Color.white)
+
+            Divider().opacity(0.6)
+
+            if isProcessingOCR {
+                processingView
+            } else if !hasScanned {
+                initialCaptureView
+            } else {
+                scannedItemsChecklistView
             }
-            .sheet(isPresented: $showGalleryPicker) {
-                CameraReceiptPicker(selectedImage: $pickedImage, sourceType: .photoLibrary)
-                    .ignoresSafeArea()
+        }
+        .background(Color.white.ignoresSafeArea())
+        .sheet(isPresented: $showCameraPicker) {
+            CameraReceiptPicker(selectedImage: $pickedImage, sourceType: .camera)
+                .ignoresSafeArea()
+        }
+        .sheet(isPresented: $showGalleryPicker) {
+            CameraReceiptPicker(selectedImage: $pickedImage, sourceType: .photoLibrary)
+                .ignoresSafeArea()
+        }
+        .onChange(of: pickedImage) { _, newImg in
+            if let img = newImg {
+                processImage(img)
             }
-            .onChange(of: pickedImage) { _, newImg in
-                if let img = newImg {
-                    processImage(img)
-                }
-            }
-            .sheet(isPresented: $showAddItemSheet) {
-                addItemSheet
-                    .presentationDetents([.fraction(0.45)])
-            }
+        }
+        .sheet(isPresented: $showAddItemSheet) {
+            addItemSheet
+                .presentationDetents([.height(340)])
+                .presentationCornerRadius(24)
+                .presentationBackground(Color.white)
         }
     }
 
@@ -204,22 +213,17 @@ struct ReceiptScannerModal: View {
                 Button {
                     showAddItemSheet = true
                 } label: {
-                    HStack(spacing: 4) {
-                        Image(systemName: "plus")
-                            .font(.system(size: 12, weight: .semibold))
-                        Text("Adicionar item")
-                            .font(.inter(13, weight: .medium))
-                    }
-                    .foregroundColor(JuntoColors.primary)
-                    .padding(.horizontal, 12)
-                    .frame(height: 34)
-                    .background(JuntoColors.surfaceSubtle)
-                    .clipShape(Capsule())
+                    Image(systemName: "plus")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(width: 36, height: 36)
+                        .background(JuntoColors.primary)
+                        .clipShape(Circle())
                 }
             }
             .padding(.horizontal, 20)
             .padding(.vertical, 14)
-            .background(JuntoColors.surfaceSubtle.opacity(0.5))
+            .background(Color.white)
 
             Divider()
 
@@ -347,21 +351,45 @@ struct ReceiptScannerModal: View {
         .background(item.isSelected ? Color.clear : JuntoColors.surfaceSubtle.opacity(0.3))
     }
 
-    // Modal simples para adicionar item manualmente
+    // Modal limpo flat (sem glass) para adicionar item manualmente com X e ✓
     private var addItemSheet: some View {
-        VStack(spacing: 16) {
+        let parsedPrice = Double(newPriceText.replacingOccurrences(of: ",", with: ".")) ?? 0
+        let canAdd = !newName.trimmingCharacters(in: .whitespaces).isEmpty && parsedPrice > 0
+
+        return VStack(spacing: 16) {
             HStack {
-                Text("Adicionar item ao recibo")
-                    .font(.inter(17, weight: .medium))
+                PopupCloseButton { showAddItemSheet = false }
+                Spacer()
+                Text("Adicionar item")
+                    .font(.inter(17, weight: .semibold))
                     .foregroundColor(JuntoColors.textMain)
                 Spacer()
-                Button { showAddItemSheet = false } label: {
-                    Image(systemName: "xmark")
-                        .font(.system(size: 14))
-                        .foregroundColor(JuntoColors.textMuted)
+                CircleNavButton(
+                    icon: "checkmark",
+                    bgColor: canAdd ? JuntoColors.primary : JuntoColors.border,
+                    fgColor: .white
+                ) {
+                    guard canAdd else { return }
+                    let u = parsedPrice / Double(max(1, newQuantity))
+                    let detail = newQuantity > 1 ? "\(newQuantity)x \(JuntoStore.formatBRL(u))" : ""
+                    items.append(
+                        ComandaItem(
+                            name: newName.trimmingCharacters(in: .whitespaces).capitalized,
+                            detail: detail,
+                            price: parsedPrice,
+                            isSelected: true,
+                            quantity: newQuantity,
+                            unitPrice: u
+                        )
+                    )
+                    newName = ""
+                    newPriceText = ""
+                    newQuantity = 1
+                    showAddItemSheet = false
                 }
+                .disabled(!canAdd)
             }
-            .padding(.top, 16)
+            .padding(.top, 14)
 
             CleanOutlineInput(label: "Nome do item", placeholder: "Ex: Cerveja, Picanha, Refrigerante", text: $newName)
 
@@ -381,29 +409,10 @@ struct ReceiptScannerModal: View {
                 }
             }
 
-            JuntoPillButton(title: "Salvar item", color: JuntoColors.primary) {
-                let p = Double(newPriceText.replacingOccurrences(of: ",", with: ".")) ?? 0
-                guard !newName.trimmingCharacters(in: .whitespaces).isEmpty, p > 0 else { return }
-
-                let u = p / Double(max(1, newQuantity))
-                let detail = newQuantity > 1 ? "\(newQuantity)x \(JuntoStore.formatBRL(u))" : ""
-                items.append(
-                    ComandaItem(
-                        name: newName.trimmingCharacters(in: .whitespaces).capitalized,
-                        detail: detail,
-                        price: p,
-                        isSelected: true,
-                        quantity: newQuantity,
-                        unitPrice: u
-                    )
-                )
-                newName = ""
-                newPriceText = ""
-                newQuantity = 1
-                showAddItemSheet = false
-            }
+            Spacer()
         }
-        .padding(20)
+        .padding(.horizontal, 20)
+        .background(Color.white.ignoresSafeArea())
     }
 
     private func processImage(_ image: UIImage) {
