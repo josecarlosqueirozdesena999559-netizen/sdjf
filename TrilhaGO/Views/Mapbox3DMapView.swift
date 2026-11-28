@@ -132,12 +132,14 @@ private struct MapboxRepresentable: UIViewRepresentable {
             self.mapView = mapView
             mapView.mapboxMap.onStyleLoaded.observeNext { [weak self, weak mapView] _ in
                 guard let self, let mapView else { return }
-                self.applyCustom3DMapStyle(mapView.mapboxMap)
-                self.polygonManager = mapView.annotations.makePolygonAnnotationManager()
-                self.polylineManager = mapView.annotations.makePolylineAnnotationManager()
-                self.pointManager = mapView.annotations.makePointAnnotationManager()
-                self.pointManager?.delegate = self
-                self.syncAnnotations(store: self.store)
+                Task { @MainActor in
+                    self.applyCustom3DMapStyle(mapView.mapboxMap)
+                    self.polygonManager = mapView.annotations.makePolygonAnnotationManager()
+                    self.polylineManager = mapView.annotations.makePolylineAnnotationManager()
+                    self.pointManager = mapView.annotations.makePointAnnotationManager()
+                    self.pointManager?.delegate = self
+                    self.syncAnnotations(store: self.store)
+                }
             }.store(in: &cancellables)
         }
 
@@ -162,6 +164,7 @@ private struct MapboxRepresentable: UIViewRepresentable {
             try? mapboxMap.addLayer(buildingLayer)
         }
 
+        @MainActor
         func syncAnnotations(store: TrilhaGameStore) {
             self.store = store
 
