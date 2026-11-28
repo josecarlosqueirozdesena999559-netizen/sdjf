@@ -1,6 +1,6 @@
 workflows:
   ios-appetize-preview:
-    name: Appetize.io Preview (Simulador iOS - Sem App Store)
+    name: Appetize.io Preview (TrilhaGO - Simulador iOS)
     max_build_duration: 60
     instance_type: mac_mini_m2
 
@@ -11,6 +11,17 @@ workflows:
       xcode: latest
 
     scripts:
+      - name: Configure Mapbox Downloads (.netrc se MAPBOX_DOWNLOADS_TOKEN estiver definido)
+        script: |
+          if [ -n "$MAPBOX_DOWNLOADS_TOKEN" ]; then
+            cat <<EOF > ~/.netrc
+          machine api.mapbox.com
+          login mapbox
+          password $MAPBOX_DOWNLOADS_TOKEN
+          EOF
+            chmod 600 ~/.netrc
+          fi
+
       - name: Generate Xcode project
         script: |
           if ! command -v xcodegen &> /dev/null; then
@@ -36,24 +47,14 @@ workflows:
           APP_PATH=$(find build/DerivedData/Build/Products/Release-iphonesimulator -name "*.app" -maxdepth 1 | head -n 1)
           echo "Found Simulator app: $APP_PATH"
           cd "$(dirname "$APP_PATH")"
-          zip -r "$CM_BUILD_DIR/build/appetize/JuntoApp-Simulator.zip" "$(basename "$APP_PATH")"
-
-      - name: Upload to Appetize.io (se APPETIZE_API_TOKEN estiver configurado)
-        script: |
-          if [ -n "$APPETIZE_API_TOKEN" ]; then
-            curl --http1.1 -X POST "https://$APPETIZE_API_TOKEN@api.appetize.io/v1/apps" \
-              -F "file=@build/appetize/JuntoApp-Simulator.zip" \
-              -F "platform=ios"
-          else
-            echo "APPETIZE_API_TOKEN não definido. Baixe build/appetize/JuntoApp-Simulator.zip nos Artifacts e suba em https://appetize.io/upload"
-          fi
+          zip -r "$CM_BUILD_DIR/build/appetize/TrilhaGO-Simulator.zip" "$(basename "$APP_PATH")"
 
     artifacts:
-      - build/appetize/JuntoApp-Simulator.zip
+      - build/appetize/TrilhaGO-Simulator.zip
       - /tmp/xcodebuild_logs/*.log
 
   ios-app-store:
-    name: TestFlight iOS - Juntô (com.achou.com)
+    name: TestFlight iOS - TrilhaGO (com.achou.com)
     max_build_duration: 120
     instance_type: mac_mini_m2
 
@@ -70,6 +71,17 @@ workflows:
       xcode: latest
 
     scripts:
+      - name: Configure Mapbox Downloads (.netrc se MAPBOX_DOWNLOADS_TOKEN estiver definido)
+        script: |
+          if [ -n "$MAPBOX_DOWNLOADS_TOKEN" ]; then
+            cat <<EOF > ~/.netrc
+          machine api.mapbox.com
+          login mapbox
+          password $MAPBOX_DOWNLOADS_TOKEN
+          EOF
+            chmod 600 ~/.netrc
+          fi
+
       - name: Generate Xcode project
         script: |
           if ! command -v xcodegen &> /dev/null; then
@@ -95,8 +107,8 @@ workflows:
 
       - name: Set build version
         script: |
-          agvtool new-marketing-version 1.0.20
-          agvtool new-version -all $((136 + ${PROJECT_BUILD_NUMBER:-1}))
+          agvtool new-marketing-version 1.0.40
+          agvtool new-version -all $((170 + ${PROJECT_BUILD_NUMBER:-1}))
 
       - name: Build IPA
         script: |

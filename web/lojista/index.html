@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>TrilhaGO — Painel do Lojista</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;700&family=Poppins:wght@500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #F8FAFC;
+      --card: #FFFFFF;
+      --emerald: #10B981;
+      --emerald-dark: #059669;
+      --gold: #FFB703;
+      --text: #0F172A;
+      --muted: #64748B;
+      --border: #E2E8F0;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Poppins', sans-serif; background: var(--bg); color: var(--text); padding: 24px; }
+    .container { max-width: 960px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px; }
+    header { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 20px 24px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; }
+    h1 { font-size: 20px; font-weight: 700; display: flex; align-items: center; gap: 10px; }
+    .pill { background: var(--emerald); color: #fff; border: none; border-radius: 999px; padding: 10px 22px; font-family: 'Poppins', sans-serif; font-weight: 700; font-size: 13px; text-transform: uppercase; letter-spacing: 0.6px; cursor: pointer; }
+    .pill:hover { background: var(--emerald-dark); }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 16px; }
+    .card { background: var(--card); border: 1px solid var(--border); border-radius: 20px; padding: 20px; display: flex; flex-direction: column; gap: 14px; }
+    .card h2 { font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; }
+    label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 4px; }
+    input, select { width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: 12px; background: var(--bg); font-family: inherit; font-size: 14px; color: var(--text); }
+    .metric { font-family: 'Outfit', sans-serif; font-size: 28px; font-weight: 700; color: var(--emerald); }
+    .badge-gold { display: inline-block; background: var(--gold); color: var(--text); font-weight: 700; font-size: 11px; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; }
+    .status-box { padding: 12px 14px; border-radius: 12px; font-size: 13px; display: none; }
+    .status-box.ok { display: block; background: #ECFDF5; color: #065F46; border: 1px solid #A7F3D0; }
+    .status-box.err { display: block; background: #FEF2F2; color: #991B1B; border: 1px solid #FECACA; }
+    table { width: 100%; border-collapse: collapse; font-size: 13px; }
+    th, td { text-align: left; padding: 10px 8px; border-bottom: 1px solid var(--border); }
+    th { color: var(--muted); font-weight: 600; font-size: 12px; text-transform: uppercase; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div>
+        <h1>TrilhaGO — Painel do Lojista</h1>
+        <p style="font-size:13px;color:var(--muted);">Validação de QR Code de prêmios e controle de estoque &amp; Baú Premium</p>
+      </div>
+      <span class="badge-gold">1 Baú Premium / Dia</span>
+    </header>
+
+    <div class="grid">
+      <div class="card">
+        <h2>Validar QR Code</h2>
+        <div>
+          <label for="qrInput">Token do Cupom (ou leitura do QR Code)</label>
+          <input id="qrInput" type="text" placeholder="Ex.: TRILHA-PREM-8F4A21" />
+        </div>
+        <button class="pill" onclick="validateQr()">VALIDAR CUPOM</button>
+        <div id="qrStatus" class="status-box"></div>
+      </div>
+
+      <div class="card">
+        <h2>Janela do Baú Premium</h2>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label for="winStart">Início (Expediente)</label>
+            <input id="winStart" type="time" value="09:30" />
+          </div>
+          <div>
+            <label for="winEnd">Fim (Expediente)</label>
+            <input id="winEnd" type="time" value="18:30" />
+          </div>
+        </div>
+        <p style="font-size:12px;color:var(--muted);">Nunca liberado às 00:00. Cooldown de 7 a 15 dias por usuário na loja.</p>
+        <button class="pill" onclick="saveWindow()">SALVAR JANELA</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>Estoque de Benefícios</h2>
+      <table>
+        <thead>
+          <tr><th>Raridade</th><th>Benefício</th><th>Probabilidade</th><th>Estoque</th><th>Ação</th></tr>
+        </thead>
+        <tbody id="stockBody"></tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    const rewards = [
+      { id: 1, rarity: 'Comum', title: '+50 Moedas TrilhaGO', prob: '70%', stock: 120 },
+      { id: 2, rarity: 'Raro', title: '20% OFF no Pedido', prob: '25%', stock: 18 },
+      { id: 3, rarity: 'Premium', title: 'Vale-Brinde Exclusivo (1/dia)', prob: '5%', stock: 1 }
+    ];
+    const validTokens = new Set(['TRILHA-PREM-8F4A21', 'TRILHA-RARE-19C302', 'TRILHA-COM-44B110']);
+
+    function renderStock() {
+      document.getElementById('stockBody').innerHTML = rewards.map(r => `
+        <tr>
+          <td>${r.rarity === 'Premium' ? '<span class="badge-gold">Premium</span>' : r.rarity}</td>
+          <td>${r.title}</td>
+          <td>${r.prob}</td>
+          <td style="font-family:'Outfit',sans-serif;font-weight:700;">${r.stock}</td>
+          <td><button class="pill" style="padding:6px 14px;font-size:11px;" onclick="addStock(${r.id})">+1 Estoque</button></td>
+        </tr>
+      `).join('');
+    }
+    function addStock(id) {
+      const item = rewards.find(x => x.id === id);
+      if (item) { item.stock += 1; renderStock(); }
+    }
+    function validateQr() {
+      const val = document.getElementById('qrInput').value.trim().toUpperCase();
+      const box = document.getElementById('qrStatus');
+      if (!val) { box.className = 'status-box err'; box.textContent = 'Informe um código QR para validar.'; return; }
+      if (validTokens.has(val)) {
+        validTokens.delete(val);
+        box.className = 'status-box ok';
+        box.textContent = 'Cupom ' + val + ' validado e resgatado com sucesso!';
+      } else {
+        box.className = 'status-box err';
+        box.textContent = 'QR Code inválido ou já resgatado anteriormente.';
+      }
+    }
+    function saveWindow() {
+      const s = document.getElementById('winStart').value;
+      const e = document.getElementById('winEnd').value;
+      if (s === '00:00') { alert('A janela nunca pode iniciar às 00:00.'); return; }
+      alert('Janela do Baú Premium salva: ' + s + ' às ' + e);
+    }
+    renderStock();
+  </script>
+</body>
+</html>

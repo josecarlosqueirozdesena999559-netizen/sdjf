@@ -1,0 +1,12 @@
+{
+  "images": [
+    {
+      "filename": "icon_key_flat.png",
+      "idiom": "universal"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}

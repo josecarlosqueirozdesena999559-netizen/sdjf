@@ -1,0 +1,12 @@
+{
+  "images": [
+    {
+      "filename": "obj_chest_common.png",
+      "idiom": "universal"
+    }
+  ],
+  "info": {
+    "author": "xcode",
+    "version": 1
+  }
+}
