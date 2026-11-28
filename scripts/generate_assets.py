@@ -242,7 +242,7 @@ def write_imageset(name, img):
 def main():
     ICONS_DIR.mkdir(parents=True, exist_ok=True)
 
-    app_icon = draw_app_icon(1024)
+    app_icon = draw_app_icon(1024).convert("RGB")
     app_icon.save(ICONS_DIR / "app_icon.png", "PNG")
     appicon_dir = XCASSETS_DIR / "AppIcon.appiconset"
     appicon_dir.mkdir(parents=True, exist_ok=True)
