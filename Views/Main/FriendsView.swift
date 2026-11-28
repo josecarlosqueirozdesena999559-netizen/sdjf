@@ -104,7 +104,12 @@ struct FriendsView: View {
                         Spacer()
                         if searchText.isEmpty {
                             let imgSize = min(max(geo.size.height * 0.38, 190), 290)
-                            EmptyChatsIllustration(size: min(geo.size.width * 0.72, imgSize))
+                            Image("EmptyChatsHero")
+                                .resizable()
+                                .interpolation(.high)
+                                .antialiased(true)
+                                .scaledToFit()
+                                .frame(width: min(geo.size.width * 0.72, imgSize), height: imgSize)
 
                             VStack(spacing: 10) {
                                 Text("Nenhuma conversa ainda")
