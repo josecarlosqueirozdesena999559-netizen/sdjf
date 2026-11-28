@@ -15,8 +15,8 @@ workflows:
 
     environment:
       vars:
-        XCODE_PROJECT: "JuntoApp.xcodeproj"
-        XCODE_SCHEME: "JuntoApp"
+        XCODE_PROJECT: "TrilhaGO.xcodeproj"
+        XCODE_SCHEME: "TrilhaGO"
       xcode: latest
 
     scripts:
@@ -83,8 +83,8 @@ workflows:
         distribution_type: app_store
         bundle_identifier: com.achou.com
       vars:
-        XCODE_PROJECT: "JuntoApp.xcodeproj"
-        XCODE_SCHEME: "JuntoApp"
+        XCODE_PROJECT: "TrilhaGO.xcodeproj"
+        XCODE_SCHEME: "TrilhaGO"
       xcode: latest
 
     scripts:
@@ -124,8 +124,8 @@ workflows:
 
       - name: Set build version
         script: |
-          agvtool new-marketing-version 1.0.40
-          agvtool new-version -all $((170 + ${PROJECT_BUILD_NUMBER:-1}))
+          agvtool new-marketing-version 1.0.41
+          agvtool new-version -all $((171 + ${PROJECT_BUILD_NUMBER:-1}))
 
       - name: Build IPA
         script: |
